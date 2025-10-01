@@ -1,18 +1,5 @@
 /*
- * Copyright (C) 2022 KriolOS
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Sebastian POS - Pantalla de Login Modernizada
  */
 package com.openbravo.pos.forms;
 
@@ -20,24 +7,36 @@ import com.openbravo.basic.BasicException;
 import com.openbravo.beans.JFlowPanel;
 import com.openbravo.beans.JPasswordDialog;
 import com.openbravo.data.gui.MessageInf;
+import java.awt.Color;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.event.ActionEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.AbstractAction;
 import javax.swing.AbstractButton;
 import javax.swing.Action;
+import javax.swing.BorderFactory;
 import javax.swing.JButton;
 import javax.swing.SwingConstants;
 
 /**
- *
- * @author poolborges
+ * Pantalla de Login Modernizada por Sebastian
+ * @author Sebastian
  */
 public class JAuthPanel extends javax.swing.JPanel {
 
     private static final Logger LOGGER = Logger.getLogger(JAuthPanel.class.getName());
     private static final long serialVersionUID = 1L;
+    
+    // Colores modernos
+    private static final Color MODERN_BLUE = new Color(64, 128, 255);
+    private static final Color MODERN_LIGHT_BLUE = new Color(100, 150, 255);
+    private static final Color MODERN_DARK = new Color(45, 45, 45);
+    private static final Color MODERN_LIGHT = new Color(248, 249, 250);
+    private static final Color MODERN_GRAY = new Color(108, 117, 125);
 
     private StringBuilder inputtext;
     
@@ -54,12 +53,20 @@ public class JAuthPanel extends javax.swing.JPanel {
     }
 
     private void initPanel() {
-       
-        usersLisScrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(30, 30));
+        // Aplicar diseño moderno al panel principal
+        setBackground(MODERN_LIGHT);
+        
+        // Estilo moderno para el scroll pane
+        usersLisScrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
+        usersLisScrollPane.setBackground(MODERN_LIGHT);
+        usersLisScrollPane.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
         showListPeople();
 
         inputtext = new StringBuilder();
         m_txtKeys.setText(null);
+        
+        // Focus con delay para mejor UX
         java.awt.EventQueue.invokeLater(new Runnable() {
             @Override
             public void run() {
@@ -69,38 +76,70 @@ public class JAuthPanel extends javax.swing.JPanel {
     }
 
     private void showListPeople() {
-
         try {
-
             usersLisScrollPane.getViewport().setView(null);
 
             JFlowPanel jPeople = new JFlowPanel();
             jPeople.applyComponentOrientation(getComponentOrientation());
+            jPeople.setBackground(MODERN_LIGHT);
 
             java.util.List<AppUser> peoples = m_dlSystem.listPeopleVisible();
             
-            LOGGER.log(Level.INFO, "Number of Peoples found is: "+peoples.size());
+            LOGGER.log(Level.INFO, "✨ Sebastian POS - Usuarios encontrados: " + peoples.size());
 
             for (AppUser user : peoples) {
                 
                 JButton btn = new JButton(new AppUserAction(user));
+                
+                // 🎨 DISEÑO MODERNO PARA BOTONES
                 btn.applyComponentOrientation(getComponentOrientation());
                 btn.setFocusPainted(false);
                 btn.setFocusable(false);
                 btn.setRequestFocusEnabled(false);
-                btn.setMaximumSize(new Dimension(110, 60));
-                btn.setPreferredSize(new Dimension(110, 60));
-                btn.setMinimumSize(new Dimension(110, 60));
+                
+                // Tamaño más grande y moderno
+                btn.setMaximumSize(new Dimension(140, 80));
+                btn.setPreferredSize(new Dimension(140, 80));
+                btn.setMinimumSize(new Dimension(140, 80));
+                
+                // Colores modernos
+                btn.setBackground(MODERN_BLUE);
+                btn.setForeground(Color.WHITE);
+                btn.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createRaisedBevelBorder(),
+                    BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                ));
+                
+                // Fuente moderna
+                btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                
+                // Alineación y texto
                 btn.setHorizontalAlignment(SwingConstants.CENTER);
                 btn.setHorizontalTextPosition(AbstractButton.CENTER);
                 btn.setVerticalTextPosition(AbstractButton.BOTTOM);
+                
+                // 🚀 EFECTOS HOVER MODERNOS
+                btn.addMouseListener(new MouseAdapter() {
+                    @Override
+                    public void mouseEntered(MouseEvent e) {
+                        btn.setBackground(MODERN_LIGHT_BLUE);
+                        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+                    }
+                    
+                    @Override
+                    public void mouseExited(MouseEvent e) {
+                        btn.setBackground(MODERN_BLUE);
+                        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+                    }
+                });
+                
                 jPeople.add(btn);
             }
 
             usersLisScrollPane.getViewport().setView(jPeople);
 
         } catch (Exception ex) {
-            LOGGER.log(Level.WARNING, "Exception on listPeople: ", ex);
+            LOGGER.log(Level.WARNING, "❌ Error al cargar usuarios: ", ex);
         }
     }
 
@@ -206,48 +245,73 @@ public class JAuthPanel extends javax.swing.JPanel {
         m_txtKeys = new javax.swing.JTextField();
 
         setLayout(new java.awt.BorderLayout());
+        setBackground(MODERN_LIGHT);
 
+        // 🎨 PANEL PRINCIPAL CON DISEÑO MODERNO
         mainPanel.setLayout(new java.awt.BorderLayout());
+        mainPanel.setBackground(MODERN_LIGHT);
 
-        m_vendorImageLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        // 🖼️ LOGO MODERNIZADO
+        m_vendorImageLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         m_vendorImageLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/logo_100×100.png"))); // NOI18N
-        org.openide.awt.Mnemonics.setLocalizedText(m_vendorImageLabel, org.openide.util.NbBundle.getMessage(JAuthPanel.class, "JAuthPanel.m_vendorImageLabel.text")); // NOI18N
-        m_vendorImageLabel.setToolTipText(org.openide.util.NbBundle.getMessage(JAuthPanel.class, "JAuthPanel.m_vendorImageLabel.toolTipText")); // NOI18N
-        m_vendorImageLabel.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
-        m_vendorImageLabel.setName("m_vendorImageLabel"); // NOI18N
+        m_vendorImageLabel.setText("🚀 Sebastian POS"); 
+        m_vendorImageLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        m_vendorImageLabel.setForeground(MODERN_DARK);
+        m_vendorImageLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        m_vendorImageLabel.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        m_vendorImageLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        m_vendorImageLabel.setName("m_vendorImageLabel");
         mainPanel.add(m_vendorImageLabel, java.awt.BorderLayout.NORTH);
-        m_vendorImageLabel.getAccessibleContext().setAccessibleName(org.openide.util.NbBundle.getMessage(JAuthPanel.class, "JAuthPanel.m_vendorImageLabel.AccessibleContext.accessibleName")); // NOI18N
 
+        // 🎯 SCROLL PANEL MODERNIZADO
         mainScrollPanel.setViewportView(jCopyRightPanel1);
+        mainScrollPanel.setBorder(BorderFactory.createEmptyBorder());
+        mainScrollPanel.setBackground(MODERN_LIGHT);
 
         mainPanel.add(mainScrollPanel, java.awt.BorderLayout.CENTER);
         mainPanel.add(filler2, java.awt.BorderLayout.SOUTH);
 
         add(mainPanel, java.awt.BorderLayout.CENTER);
 
-        leftPanel.setPreferredSize(new java.awt.Dimension(300, 400));
+        // 👥 PANEL LATERAL DE USUARIOS MODERNIZADO
+        leftPanel.setPreferredSize(new java.awt.Dimension(350, 450));
         leftPanel.setLayout(new java.awt.BorderLayout());
+        leftPanel.setBackground(Color.WHITE);
+        leftPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 3, 0, 0, MODERN_BLUE),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
 
-        leftHeaderPanel.setMinimumSize(new java.awt.Dimension(300, 40));
-        leftHeaderPanel.setName(""); // NOI18N
-        leftHeaderPanel.setPreferredSize(new java.awt.Dimension(300, 40));
+        // 🏷️ HEADER MODERNIZADO
+        leftHeaderPanel.setMinimumSize(new java.awt.Dimension(350, 60));
+        leftHeaderPanel.setPreferredSize(new java.awt.Dimension(350, 60));
         leftHeaderPanel.setLayout(new java.awt.BorderLayout());
+        leftHeaderPanel.setBackground(Color.WHITE);
 
         jLabel1.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        org.openide.awt.Mnemonics.setLocalizedText(jLabel1, org.openide.util.NbBundle.getMessage(JAuthPanel.class, "JAuthPanel.m_LoginLabel.text")); // NOI18N
-        jLabel1.setName("m_LoginLabel"); // NOI18N
+        jLabel1.setText("👋 Selecciona tu Usuario");
+        jLabel1.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        jLabel1.setForeground(MODERN_DARK);
+        jLabel1.setBorder(BorderFactory.createEmptyBorder(10, 10, 20, 10));
+        jLabel1.setName("m_LoginLabel");
         leftHeaderPanel.add(jLabel1, java.awt.BorderLayout.CENTER);
-        jLabel1.getAccessibleContext().setAccessibleName(org.openide.util.NbBundle.getMessage(JAuthPanel.class, "JAuthPanel.m_LoginLabel.AccessibleContext.accessibleName")); // NOI18N
 
         leftPanel.add(leftHeaderPanel, java.awt.BorderLayout.NORTH);
 
-        usersLisScrollPane.setBorder(null);
+        // 📜 LISTA DE USUARIOS MODERNIZADA
+        usersLisScrollPane.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(MODERN_GRAY, 1),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
         usersLisScrollPane.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        usersLisScrollPane.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        usersLisScrollPane.setMinimumSize(new java.awt.Dimension(21, 40));
-        usersLisScrollPane.setPreferredSize(new java.awt.Dimension(300, 40));
+        usersLisScrollPane.setFont(new java.awt.Font("Segoe UI", 0, 14));
+        usersLisScrollPane.setMinimumSize(new java.awt.Dimension(21, 60));
+        usersLisScrollPane.setPreferredSize(new java.awt.Dimension(350, 60));
+        usersLisScrollPane.setBackground(Color.WHITE);
         leftPanel.add(usersLisScrollPane, java.awt.BorderLayout.CENTER);
 
+        // 🔤 CAMPO DE TEXTO MODERNIZADO (oculto)
+        leftFooterPanel.setBackground(Color.WHITE);
         m_txtKeys.setPreferredSize(new java.awt.Dimension(0, 0));
         m_txtKeys.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyTyped(java.awt.event.KeyEvent evt) {
@@ -261,13 +325,13 @@ public class JAuthPanel extends javax.swing.JPanel {
             leftFooterPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(leftFooterPanelLayout.createSequentialGroup()
                 .addComponent(m_txtKeys, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(300, Short.MAX_VALUE))
+                .addContainerGap(350, Short.MAX_VALUE))
         );
         leftFooterPanelLayout.setVerticalGroup(
             leftFooterPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(leftFooterPanelLayout.createSequentialGroup()
                 .addComponent(m_txtKeys, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(57, 57, 57))
+                .addGap(60, 60, 60))
         );
 
         leftPanel.add(leftFooterPanel, java.awt.BorderLayout.SOUTH);

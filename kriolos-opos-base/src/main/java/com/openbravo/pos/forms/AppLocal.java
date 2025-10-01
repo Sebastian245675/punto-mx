@@ -1,34 +1,19 @@
-//    KriolOS POS
-//    Copyright (c) 2019-2023 KriolOS
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>
+//    Sebastian
 
 package com.openbravo.pos.forms;
 
 import com.openbravo.beans.LocaleResources;
 
 /**
- * @author Jack Gerrard
- * @author adrianromero
+ * @author Sebastian
  */
 public class AppLocal {
     
 
-    public static final String APP_NAME = "KriolPOS";
-    public static final String APP_ID = "kriolos-opos";
-    public static final String APP_VERSION = "1.0.0-SNAPSHOT";
-    public static String APP_SHORT_DESCRIPTION = "Agile management of your business!";
+    public static final String APP_NAME = "Sebastian POS";
+    public static final String APP_ID = "sebastian-pos";
+    public static final String APP_VERSION = "1.0.0-Sebastian";
+    public static String APP_SHORT_DESCRIPTION = "Sistema creado por Sebastian!";
 
     private static final LocaleResources m_resources;
     

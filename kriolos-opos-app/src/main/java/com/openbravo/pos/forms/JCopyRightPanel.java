@@ -1,55 +1,81 @@
 /*
- * Copyright (C) 2022 KriolOS
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ * Sebastian POS - Panel de Información Modernizado
  */
 package com.openbravo.pos.forms;
 
+import java.awt.Color;
+import java.awt.Font;
+import javax.swing.BorderFactory;
+
 /**
- *
- * @author poolborges
+ * Panel de Información Moderno por Sebastian
+ * @author Sebastian
  */
 public class JCopyRightPanel extends javax.swing.JPanel {
 
     private static final long serialVersionUID = 1L;
-    private static final String OFICIAL_S = "https://github.com/poolborges/unicenta-pos";
+    private static final String SEBASTIAN_SITE = "https://github.com/sebastian-dev";
+    
+    // Colores modernos
+    private static final Color MODERN_BLUE = new Color(64, 128, 255);
+    private static final Color MODERN_LIGHT = new Color(248, 249, 250);
+    private static final Color MODERN_DARK = new Color(45, 45, 45);
+    private static final Color MODERN_GRAY = new Color(108, 117, 125);
+    
     /**
      * Creates new form JCopyRightPanel
      */
     public JCopyRightPanel() {
         initComponents();
+        setupModernDesign();
+    }
+    
+    private void setupModernDesign() {
+        // Configurar el fondo moderno
+        setBackground(MODERN_LIGHT);
         
-        copyRightLabel.setText("<html><center>"
-                + "<h1>KriolOS POS - Open Source Point Of Sale</h1>"
-                + "<p>More info on <href a=\""+OFICIAL_S+"\">official site</a></p>"
-                + "<p>"+OFICIAL_S+"</p>"
-                + "</center>"
-                + "<br><br>"
-                + "<h2>License: GPL v3</h2>"
-                + "<br>"
-                + "This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version.<br>"
-                + "<br>"
-                + " This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for more details.<br>"
-                + "<br>"
-                + "You should have received a copy of the GNU General Public License along with this program.  If not, see http://www.gnu.org/licenses/<br>"
-                + "</html>"
+        // Crear contenido moderno y atractivo
+        copyRightLabel.setText("<html><div style='text-align: center; padding: 40px;'>"
+                + "<h1 style='color: #4080FF; font-size: 28px; margin-bottom: 20px;'>🚀 Sebastian POS</h1>"
+                + "<p style='color: #2D2D2D; font-size: 18px; margin-bottom: 15px;'><strong>Sistema de Punto de Venta Moderno</strong></p>"
+                + "<p style='color: #6C757D; font-size: 14px; margin-bottom: 25px;'>Desarrollado con tecnología avanzada para tu negocio</p>"
+                
+                + "<div style='background: #FFFFFF; padding: 25px; border-radius: 10px; margin: 20px 0; box-shadow: 0 2px 10px rgba(0,0,0,0.1);'>"
+                + "<h2 style='color: #4080FF; font-size: 20px; margin-bottom: 15px;'>✨ Características Principales</h2>"
+                + "<ul style='color: #2D2D2D; font-size: 14px; text-align: left; list-style: none; padding: 0;'>"
+                + "<li style='margin: 8px 0;'>🎯 <strong>Interfaz Moderna:</strong> Diseño intuitivo y responsivo</li>"
+                + "<li style='margin: 8px 0;'>⚡ <strong>Alto Rendimiento:</strong> Procesamiento rápido de transacciones</li>"
+                + "<li style='margin: 8px 0;'>🔒 <strong>Seguridad Avanzada:</strong> Protección de datos empresariales</li>"
+                + "<li style='margin: 8px 0;'>📊 <strong>Reportes Inteligentes:</strong> Análisis detallado de ventas</li>"
+                + "<li style='margin: 8px 0;'>🌐 <strong>Conectividad:</strong> Sincronización en tiempo real</li>"
+                + "</ul>"
+                + "</div>"
+                
+                + "<div style='background: linear-gradient(135deg, #4080FF, #6496FF); padding: 20px; border-radius: 10px; margin: 20px 0;'>"
+                + "<h3 style='color: white; font-size: 16px; margin-bottom: 10px;'>👨‍💻 Desarrollado por Sebastian</h3>"
+                + "<p style='color: #E3F2FD; font-size: 13px;'>Tecnología de vanguardia para impulsar tu empresa</p>"
+                + "</div>"
+                
+                + "<div style='margin-top: 30px; padding: 15px; background: #F8F9FA; border-radius: 8px;'>"
+                + "<p style='color: #6C757D; font-size: 12px; margin: 5px 0;'>🔧 <strong>Versión:</strong> " + AppLocal.APP_VERSION + "</p>"
+                + "<p style='color: #6C757D; font-size: 12px; margin: 5px 0;'>📅 <strong>Última actualización:</strong> Octubre 2025</p>"
+                + "<p style='color: #6C757D; font-size: 12px; margin: 5px 0;'>🏢 <strong>Para:</strong> Empresas modernas y dinámicas</p>"
+                + "</div>"
+                
+                + "<div style='margin-top: 25px;'>"
+                + "<p style='color: #4080FF; font-size: 14px; font-weight: bold;'>¡Gracias por elegir Sebastian POS! 🎉</p>"
+                + "</div>"
+                
+                + "</div></html>"
         );
 
+        // Aplicar estilo moderno al label
+        copyRightLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         copyRightLabel.setAlignmentX(0.5F);
         copyRightLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        copyRightLabel.setMaximumSize(new java.awt.Dimension(800, 1024));
+        copyRightLabel.setMaximumSize(new java.awt.Dimension(900, 1200));
         copyRightLabel.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        copyRightLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
     }
 
     /**
@@ -63,34 +89,39 @@ public class JCopyRightPanel extends javax.swing.JPanel {
 
         copyRightLabel = new javax.swing.JLabel();
 
-        copyRightLabel.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        copyRightLabel.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        org.openide.awt.Mnemonics.setLocalizedText(copyRightLabel, org.openide.util.NbBundle.getMessage(JCopyRightPanel.class, "JCopyRightPanel.copyRightLabel.text")); // NOI18N
+        // 🎨 CONFIGURACIÓN MODERNA DEL LABEL
+        copyRightLabel.setFont(new java.awt.Font("Segoe UI", 0, 14));
+        copyRightLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         copyRightLabel.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         copyRightLabel.setAlignmentX(0.5F);
         copyRightLabel.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
-        copyRightLabel.setMaximumSize(new java.awt.Dimension(800, 1024));
+        copyRightLabel.setMaximumSize(new java.awt.Dimension(900, 1200));
         copyRightLabel.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        copyRightLabel.setBackground(MODERN_LIGHT);
+        copyRightLabel.setOpaque(true);
 
+        // 🏗️ LAYOUT MODERNO CON MÁS ESPACIO
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
+        setBackground(MODERN_LIGHT);
+        
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 525, Short.MAX_VALUE)
+            .addGap(0, 600, Short.MAX_VALUE)
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(layout.createSequentialGroup()
-                    .addGap(0, 0, Short.MAX_VALUE)
-                    .addComponent(copyRightLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 525, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGap(0, 0, Short.MAX_VALUE)))
+                    .addGap(20, 20, 20)
+                    .addComponent(copyRightLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 560, Short.MAX_VALUE)
+                    .addGap(20, 20, 20)))
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 437, Short.MAX_VALUE)
+            .addGap(0, 500, Short.MAX_VALUE)
             .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(layout.createSequentialGroup()
-                    .addGap(0, 0, Short.MAX_VALUE)
-                    .addComponent(copyRightLabel, javax.swing.GroupLayout.PREFERRED_SIZE, 437, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGap(0, 0, Short.MAX_VALUE)))
+                    .addGap(20, 20, 20)
+                    .addComponent(copyRightLabel, javax.swing.GroupLayout.DEFAULT_SIZE, 460, Short.MAX_VALUE)
+                    .addGap(20, 20, 20)))
         );
     }// </editor-fold>//GEN-END:initComponents
 

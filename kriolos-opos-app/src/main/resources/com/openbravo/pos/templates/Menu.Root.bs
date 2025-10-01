@@ -22,6 +22,9 @@ group = menu.addGroup("Menu.Main");
         group.addPanel("/com/openbravo/images/calculator.png", "Menu.CloseTPV", "com.openbravo.pos.panels.JPanelCloseMoney");
 
 group = menu.addGroup("Menu.Backoffice");
+    // Sebastian - Panel de Clientes Moderno
+    group.addPanel("/com/openbravo/images/customer.png", "Menu.SebastianClientes", "com.openbravo.pos.sebastian.JCustomerPanel");
+    
     submenu = group.addSubmenu("/com/openbravo/images/customer.png", "Menu.Customers", "com.openbravo.pos.forms.MenuCustomers");
     submenu.addTitle("Menu.Panel.Customers.Forms");
         submenu.addPanel("/com/openbravo/images/customer.png", "Menu.CustomersManagement", "com.openbravo.pos.customers.CustomersPanel");

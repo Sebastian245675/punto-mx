@@ -67,6 +67,15 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <artifactId>kriolos-opos-assets-image</artifactId>
         </dependency>
 
+        <!-- Spring Boot DevTools for hot reload -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-devtools</artifactId>
+            <version>3.1.4</version>
+            <scope>runtime</scope>
+            <optional>true</optional>
+        </dependency>
+
         <dependency> 
             <groupId>commons-codec</groupId>  
             <artifactId>commons-codec</artifactId>  
@@ -255,6 +264,9 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <plugin> 
                 <groupId>org.codehaus.mojo</groupId>
                 <artifactId>exec-maven-plugin</artifactId>
+                <configuration>
+                    <mainClass>com.openbravo.pos.forms.StartPOS</mainClass>
+                </configuration>
                 <executions>
                     <execution>
                         <goals>
@@ -279,6 +291,25 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
        
                 </dependencies>
             </plugin>
+            
+            <!-- Spring Boot Maven Plugin for DevTools support -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+                <version>3.1.4</version>
+                <configuration>
+                    <mainClass>com.openbravo.pos.forms.StartPOS</mainClass>
+                    <excludeDevtools>false</excludeDevtools>
+                </configuration>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>repackage</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-jar-plugin</artifactId>
