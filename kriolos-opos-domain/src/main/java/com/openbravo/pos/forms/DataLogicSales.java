@@ -1289,7 +1289,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "receipts.DATENEW, "
                 + "customers.ID AS CID "
                 + "FROM ((((ticketlines ticketlines "
-                + "CROSS JOIN taxes taxes ON (ticketlines.TAXID = taxes.ID)) "
+                + "INNER JOIN taxes taxes ON (ticketlines.TAXID = taxes.ID)) "
                 + "INNER JOIN tickets tickets ON (tickets.ID = ticketlines.TICKET)) "
                 + "INNER JOIN customers customers ON (customers.ID = tickets.CUSTOMER)) "
                 + "INNER JOIN receipts receipts ON (tickets.ID = receipts.ID)) "

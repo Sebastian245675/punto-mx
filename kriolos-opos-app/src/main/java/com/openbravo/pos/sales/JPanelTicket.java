@@ -447,6 +447,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_jTaxesEuros.setText(null);
             m_jTotalEuros.setText(null);
             jCheckStock.setText(null);
+            
+            // Sebastian - Limpiar campos de cliente cuando no hay ticket
+            m_jCustomerId.setText("");
+            m_jCustomerName.setText("");
 
             checkStock();
             stateToZero();
@@ -479,6 +483,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             if (m_oTicket.getLinesCount() == 0) {
                 resetSouthComponent();
             }
+            
+            // Sebastian - Actualizar campos de cliente cuando hay ticket
+            updateCustomerFields();
 
             countArticles();
             printPartialTotals();
@@ -2192,6 +2199,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jKeyFactory = new javax.swing.JTextField();
         m_jaddtax = new javax.swing.JCheckBox();
         m_jTax = new javax.swing.JComboBox();
+        
+        // Sebastian - Inicialización campos de cliente
+        m_jLblCustomerId = new javax.swing.JLabel();
+        m_jCustomerId = new javax.swing.JTextField();
+        m_jCustomerName = new javax.swing.JLabel();
+        
         m_jPanelCatalog = new javax.swing.JPanel();
 
         setBackground(new java.awt.Color(255, 204, 153));
@@ -2451,6 +2464,36 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         m_jPanelLinesSum.setLayout(new java.awt.BorderLayout());
         m_jPanelLinesSum.add(filler2, java.awt.BorderLayout.LINE_START);
+
+        // Sebastian - Configuración del panel de cliente
+        javax.swing.JPanel customerPanel = new javax.swing.JPanel();
+        customerPanel.setLayout(new java.awt.BorderLayout());
+        customerPanel.setPreferredSize(new java.awt.Dimension(300, 30));
+        
+        javax.swing.JPanel customerInputPanel = new javax.swing.JPanel();
+        customerInputPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 2));
+        
+        m_jLblCustomerId.setFont(new java.awt.Font("Arial", 1, 11)); // NOI18N
+        m_jLblCustomerId.setText(AppLocal.getIntString("label.customerid")); // NOI18N
+        customerInputPanel.add(m_jLblCustomerId);
+        
+        m_jCustomerId.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
+        m_jCustomerId.setPreferredSize(new java.awt.Dimension(100, 20));
+        m_jCustomerId.addKeyListener(new java.awt.event.KeyAdapter() {
+            public void keyReleased(java.awt.event.KeyEvent evt) {
+                m_jCustomerIdKeyReleased(evt);
+            }
+        });
+        customerInputPanel.add(m_jCustomerId);
+        
+        customerPanel.add(customerInputPanel, java.awt.BorderLayout.WEST);
+        
+        m_jCustomerName.setFont(new java.awt.Font("Arial", 1, 11)); // NOI18N
+        m_jCustomerName.setForeground(new java.awt.Color(0, 100, 0));
+        m_jCustomerName.setText("");
+        customerPanel.add(m_jCustomerName, java.awt.BorderLayout.CENTER);
+        
+        m_jPanelLinesSum.add(customerPanel, java.awt.BorderLayout.NORTH);
 
         m_jTicketId.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
         m_jTicketId.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -3062,6 +3105,93 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jKeyFactory.requestFocus();
     }//GEN-LAST:event_m_jaddtaxActionPerformed
 
+    // Sebastian - Método para buscar cliente por ID
+    private void m_jCustomerIdKeyReleased(java.awt.event.KeyEvent evt) {
+        searchCustomerById();
+    }
+
+    /**
+     * Sebastian - Busca un cliente por ID/SearchKey y actualiza el label con el nombre
+     */
+    private void searchCustomerById() {
+        String customerId = m_jCustomerId.getText().trim();
+        
+        if (customerId.isEmpty()) {
+            m_jCustomerName.setText("");
+            // Limpiar cliente del ticket si se borra el ID
+            if (m_oTicket != null) {
+                m_oTicket.setCustomer(null);
+            }
+            return;
+        }
+        
+        try {
+            // Buscar por searchkey usando DataLogicCustomers
+            CustomerInfo customer = null;
+            
+            // Buscar en todos los clientes por searchkey
+            java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
+            for (CustomerInfo c : allCustomers) {
+                if (customerId.equals(c.getSearchkey())) {
+                    customer = c;
+                    break;
+                }
+            }
+            
+            if (customer != null) {
+                String customerName = customer.getName() != null ? customer.getName() : "Sin nombre";
+                m_jCustomerName.setText("Cliente: " + customerName);
+                m_jCustomerName.setForeground(new java.awt.Color(0, 100, 0));
+                
+                // Sebastian - IMPORTANTE: Asociar el cliente al ticket actual
+                if (m_oTicket != null) {
+                    try {
+                        // Cargar CustomerInfoExt usando el ID del cliente encontrado
+                        com.openbravo.pos.customers.CustomerInfoExt customerExt = dlSales.loadCustomerExt(customer.getId());
+                        m_oTicket.setCustomer(customerExt);
+                        LOGGER.log(System.Logger.Level.INFO, "Cliente asociado al ticket: " + customerName + " (ID: " + customer.getId() + ")");
+                    } catch (Exception ex) {
+                        LOGGER.log(System.Logger.Level.WARNING, "Error al cargar CustomerInfoExt para el cliente: " + customer.getId(), ex);
+                        m_oTicket.setCustomer(null);
+                    }
+                }
+            } else {
+                m_jCustomerName.setText("Cliente no encontrado");
+                m_jCustomerName.setForeground(new java.awt.Color(200, 0, 0));
+                // Limpiar cliente del ticket si no se encuentra
+                if (m_oTicket != null) {
+                    m_oTicket.setCustomer(null);
+                }
+            }
+        } catch (Exception e) {
+            m_jCustomerName.setText("Error al buscar cliente");
+            m_jCustomerName.setForeground(new java.awt.Color(200, 0, 0));
+            LOGGER.log(System.Logger.Level.WARNING, "Error searching customer by searchkey: " + customerId, e);
+            // Limpiar cliente del ticket en caso de error
+            if (m_oTicket != null) {
+                m_oTicket.setCustomer(null);
+            }
+        }
+    }
+    
+    // Sebastian - Método para actualizar los campos de cliente en la UI
+    private void updateCustomerFields() {
+        if (m_oTicket != null && m_oTicket.getCustomer() != null) {
+            CustomerInfo customer = m_oTicket.getCustomer();
+            String searchkey = customer.getSearchkey() != null ? customer.getSearchkey() : "";
+            String customerName = customer.getName() != null ? customer.getName() : "Sin nombre";
+            
+            m_jCustomerId.setText(searchkey);
+            m_jCustomerName.setText("Cliente: " + customerName);
+            m_jCustomerName.setForeground(new java.awt.Color(0, 100, 0));
+            
+            LOGGER.log(System.Logger.Level.INFO, "Mostrando cliente del ticket: " + customerName + " (ID: " + customer.getId() + ")");
+        } else {
+            m_jCustomerId.setText("");
+            m_jCustomerName.setText("");
+        }
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnReprint1;
     private javax.swing.JButton btnSplit;
@@ -3106,6 +3236,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private javax.swing.JLabel m_jTotalEuros;
     private javax.swing.JCheckBox m_jaddtax;
     private javax.swing.JButton m_jbtnScale;
+    
+    // Sebastian - Campos para gestión de clientes
+    private javax.swing.JTextField m_jCustomerId;
+    private javax.swing.JLabel m_jCustomerName;
+    private javax.swing.JLabel m_jLblCustomerId;
     // End of variables declaration//GEN-END:variables
 
     /**
