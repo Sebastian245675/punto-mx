@@ -137,6 +137,23 @@ public class JNumberKeys extends javax.swing.JPanel {
     }
     
     /**
+     * Oculta solo los botones numéricos (0-9), manteniendo los operadores
+     */
+    public void hideNumberButtons() {
+        m_jKey0.setVisible(false);
+        m_jKey1.setVisible(false);
+        m_jKey2.setVisible(false);
+        m_jKey3.setVisible(false);
+        m_jKey4.setVisible(false);
+        m_jKey5.setVisible(false);
+        m_jKey6.setVisible(false);
+        m_jKey7.setVisible(false);
+        m_jKey8.setVisible(false);
+        m_jKey9.setVisible(false);
+        m_jKeyDot.setVisible(false);
+    }
+    
+    /**
      *
      * @return
      */

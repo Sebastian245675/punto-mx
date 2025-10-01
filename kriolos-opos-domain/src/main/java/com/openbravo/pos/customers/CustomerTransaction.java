@@ -40,6 +40,7 @@ public class CustomerTransaction {
     Double total;
     Date transactionDate;
     String customerId;   
+    Integer puntos; // Sebastian - Puntos otorgados por esta transacción
 
     /**
      * Main method to return all customer's transactions 
@@ -56,8 +57,9 @@ public class CustomerTransaction {
      * @param total
      * @param transactionDate
      * @param cId
+     * @param puntos Sebastian - Puntos otorgados por esta transacción
      */
-    public CustomerTransaction(String ticketId, String productName, String unit, Double amount, Double total, Date transactionDate, String cId) {
+    public CustomerTransaction(String ticketId, String productName, String unit, Double amount, Double total, Date transactionDate, String cId, Integer puntos) {
         this.ticketId = ticketId;
         this.productName = productName;
         this.unit = unit;
@@ -65,7 +67,15 @@ public class CustomerTransaction {
         this.total = total;
         this.transactionDate = transactionDate;
 //        this.customerName = name;
-        this.customerId = cId;        
+        this.customerId = cId;
+        this.puntos = puntos; // Sebastian - Puntos otorgados
+    }
+
+    /**
+     * Constructor compatible con versión anterior (sin puntos)
+     */
+    public CustomerTransaction(String ticketId, String productName, String unit, Double amount, Double total, Date transactionDate, String cId) {
+        this(ticketId, productName, unit, amount, total, transactionDate, cId, 0); // 0 puntos por defecto
     }
 
     /**
@@ -186,6 +196,24 @@ public class CustomerTransaction {
         this.customerId = customerId;
     }
 
+    /**
+     * Sebastian - Getter para puntos otorgados por esta transacción
+     *
+     * @return puntos otorgados por esta transacción
+     */
+    public Integer getPuntos() {
+        return puntos;
+    }
+
+    /**
+     * Sebastian - Setter para puntos otorgados por esta transacción
+     *
+     * @param puntos puntos otorgados por esta transacción
+     */
+    public void setPuntos(Integer puntos) {
+        this.puntos = puntos;
+    }
+
     
     
     
@@ -206,7 +234,7 @@ public class CustomerTransaction {
                 Double total = dr.getDouble(5);
                 String dateValue = dr.getString(6);
                 String customerId = dr.getString(7);                
-
+                Integer puntos = dr.getInt(8); // Sebastian - Puntos otorgados por esta transacción
 
                 SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd hh:mm:ss");
                 Date date = null;
@@ -215,7 +243,7 @@ public class CustomerTransaction {
                 } catch (ParseException ex) {
                     Logger.getLogger(CustomerTransaction.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                return new CustomerTransaction(ticketId, productName, unit, amount, total, date, customerId);                
+                return new CustomerTransaction(ticketId, productName, unit, amount, total, date, customerId, puntos);                
             }
         };
     }

@@ -31,6 +31,9 @@ import com.openbravo.pos.customers.CustomerInfoGlobal;
 import com.openbravo.pos.customers.DataLogicCustomers;
 import com.openbravo.pos.customers.JCustomerFinder;
 import com.openbravo.pos.customers.JDialogNewCustomer;
+// Sebastian - Importaciones del sistema de puntos
+import com.openbravo.pos.customers.PuntosDataLogic;
+import com.openbravo.pos.customers.PuntosConfiguracion;
 import com.openbravo.pos.forms.*;
 import com.openbravo.pos.inventory.ProductStock;
 import com.openbravo.pos.inventory.TaxCategoryInfo;
@@ -103,6 +106,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     protected DataLogicSystem dlSystem;
     protected DataLogicSales dlSales;
     protected DataLogicCustomers dlCustomers;
+    // Sebastian - Sistema de puntos
+    protected PuntosDataLogic puntosDataLogic;
     protected TicketsEditor m_panelticket;
     protected TicketInfo m_oTicket;
     protected String m_oTicketExt;
@@ -148,6 +153,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         dlSales = (DataLogicSales) m_App.getBean("com.openbravo.pos.forms.DataLogicSales");
         dlCustomers = (DataLogicCustomers) m_App.getBean("com.openbravo.pos.customers.DataLogicCustomers");
         dlReceipts = (DataLogicReceipts) app.getBean("com.openbravo.pos.sales.DataLogicReceipts");
+        
+        // Sebastian - Inicializar sistema de puntos
+        try {
+            System.out.println("🔧 Inicializando sistema de puntos...");
+            puntosDataLogic = new PuntosDataLogic(m_App.getSession());
+            puntosDataLogic.verificarSistemaPuntos(); // Esto incluye initTables() y verificación completa
+            System.out.println("✅ Sistema de puntos inicializado correctamente");
+        } catch (Exception e) {
+            System.err.println("❌ Error inicializando sistema de puntos: " + e.getMessage());
+            e.printStackTrace();
+            LOGGER.log(System.Logger.Level.ERROR, "Error inicializando sistema de puntos: " + e.getMessage());
+        }
 
 // Configuration>Peripheral options        
         m_jbtnScale.setVisible(m_App.getDeviceScale().existsScale());
@@ -1712,6 +1729,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         if (scriptResult == null) {
                             try {
                                 dlSales.saveTicket(ticket, m_App.getInventoryLocation());
+                                
+                                // Sebastian - Otorgar puntos automáticamente después de guardar el ticket
+                                procesarPuntosAutomaticos(ticket);
+                                
                             } catch (BasicException ex) {
                                 LOGGER.log(System.Logger.Level.ERROR, "Exception on save ticket ", ex);
                                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, AppLocal.getIntString("message.nosaveticket"), ex);
@@ -2587,6 +2608,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 m_jNumberKeysKeyPerformed(evt);
             }
         });
+        m_jNumberKeys.hideNumberButtons(); // Ocultar solo los números, mantener operadores
         m_jPanEntries.add(m_jNumberKeys);
 
         jPanelScanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -3409,6 +3431,110 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
 
             return script.eval(code);
+        }
+    }
+    
+    /**
+     * Sebastian - Procesa automáticamente los puntos después de una venta exitosa
+     */
+    private void procesarPuntosAutomaticos(TicketInfo ticket) {
+        try {
+            // Verificar que hay un cliente asignado al ticket
+            CustomerInfo cliente = ticket.getCustomer();
+            if (cliente == null || cliente.getId() == null) {
+                LOGGER.log(System.Logger.Level.DEBUG, "No hay cliente asignado al ticket, no se otorgan puntos");
+                return;
+            }
+            
+            // Verificar que el sistema de puntos está activo
+            if (puntosDataLogic == null) {
+                LOGGER.log(System.Logger.Level.WARNING, "Sistema de puntos no inicializado");
+                return;
+            }
+            
+            // Obtener configuración activa del sistema de puntos
+            PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
+            if (config == null || !config.isSistemaActivo()) {
+                LOGGER.log(System.Logger.Level.DEBUG, "Sistema de puntos desactivado");
+                return;
+            }
+            
+            // Obtener el total del ticket
+            double totalTicket = ticket.getTotal();
+            if (totalTicket <= 0) {
+                LOGGER.log(System.Logger.Level.DEBUG, "Total del ticket <= 0, no se otorgan puntos");
+                return;
+            }
+            
+            // Calcular puntos según la configuración
+            int puntosAOtorgar = config.calcularPuntos(totalTicket);
+            if (puntosAOtorgar <= 0) {
+                LOGGER.log(System.Logger.Level.DEBUG, 
+                    String.format("No se otorgan puntos: total=%.2f, configuración=%.2f %s = %d puntos", 
+                                totalTicket, config.getMontoPorPunto(), config.getMoneda(), config.getPuntosOtorgados()));
+                return;
+            }
+            
+            // Crear descripción de la transacción
+            String descripcion = String.format("Venta automática #%d - Total: $%.2f %s", 
+                                             ticket.getTicketId(),
+                                             totalTicket, 
+                                             config.getMoneda());
+            
+            // Otorgar puntos al cliente
+            String clienteId = cliente.getId();
+            puntosDataLogic.agregarPuntosPorCompra(clienteId, totalTicket, descripcion);
+            
+            // Log exitoso
+            LOGGER.log(System.Logger.Level.INFO, 
+                String.format("✅ PUNTOS OTORGADOS AUTOMÁTICAMENTE: Cliente=%s, Total=$%.2f, Puntos=%d, Desc='%s'", 
+                            clienteId, totalTicket, puntosAOtorgar, descripcion));
+            
+            // Mostrar notificación opcional al usuario (comentada por defecto)
+            /*
+            JOptionPane.showMessageDialog(this, 
+                String.format("🎉 ¡Puntos otorgados!\nCliente: %s\nPuntos: %d", 
+                              cliente.getName() != null ? cliente.getName() : clienteId, 
+                              puntosAOtorgar), 
+                "Sistema de Puntos", 
+                JOptionPane.INFORMATION_MESSAGE);
+            */
+            
+        } catch (BasicException ex) {
+            // Si es un error de tabla no encontrada, intentar crear las tablas
+            if (ex.getMessage() != null && ex.getMessage().contains("objeto no encontrado")) {
+                LOGGER.log(System.Logger.Level.WARNING, "Tablas de puntos no encontradas, intentando crearlas...");
+                try {
+                    puntosDataLogic.verificarSistemaPuntos(); // Recrear tablas
+                    LOGGER.log(System.Logger.Level.INFO, "Tablas de puntos creadas, reintentando operación...");
+                    
+                    // Reintentar la operación una vez
+                    PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
+                    if (config != null && config.isSistemaActivo()) {
+                        CustomerInfo cliente = ticket.getCustomer();
+                        double totalTicket = ticket.getTotal();
+                        int puntosAOtorgar = config.calcularPuntos(totalTicket);
+                        
+                        if (puntosAOtorgar > 0) {
+                            String descripcion = String.format("Venta automática #%d - Total: $%.2f %s", 
+                                                             ticket.getTicketId(),
+                                                             totalTicket, 
+                                                             config.getMoneda());
+                            
+                            puntosDataLogic.agregarPuntosPorCompra(cliente.getId(), totalTicket, descripcion);
+                            LOGGER.log(System.Logger.Level.INFO, 
+                                String.format("✅ PUNTOS OTORGADOS (después de crear tablas): Cliente=%s, Total=$%.2f, Puntos=%d", 
+                                            cliente.getId(), totalTicket, puntosAOtorgar));
+                        }
+                    }
+                } catch (Exception retryEx) {
+                    LOGGER.log(System.Logger.Level.ERROR, "Error al reintentar después de crear tablas: " + retryEx.getMessage(), retryEx);
+                }
+            } else {
+                LOGGER.log(System.Logger.Level.ERROR, "Error procesando puntos automáticos: " + ex.getMessage(), ex);
+            }
+        } catch (Exception ex) {
+            LOGGER.log(System.Logger.Level.ERROR, "Error inesperado procesando puntos automáticos: " + ex.getMessage(), ex);
         }
     }
 
