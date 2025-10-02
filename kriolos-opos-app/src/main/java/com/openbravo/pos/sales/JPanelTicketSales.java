@@ -52,14 +52,19 @@ public class JPanelTicketSales extends JPanelTicket {
     @Override
     protected Component getSouthComponent() {
         LOGGER.log(System.Logger.Level.DEBUG,"JPanelTicketSales :: getSouthComponent");
-        m_cat = new JCatalog(dlSales);
-        m_cat.addActionListener(new CatalogListener());
-        return m_cat.getComponent();
+        // Catálogo de productos y categorías removido
+        // m_cat = new JCatalog(dlSales);
+        // m_cat.addActionListener(new CatalogListener());
+        // return m_cat.getComponent();
+        
+        // Retornar un panel vacío para quitar categorías y productos
+        return new javax.swing.JPanel();
     }
 
     @Override
     protected void resetSouthComponent() {
-        m_cat.showCatalogPanel(null);
+        // m_cat.showCatalogPanel(null);
+        // No hay catálogo que resetear
     }
 
     @Override
@@ -75,20 +80,21 @@ public class JPanelTicketSales extends JPanelTicket {
     }
 
     public void reLoadCatalog() {
-        try {
-            m_cat.loadCatalog();
-        } catch (BasicException ex) {
-            LOGGER.log(System.Logger.Level.ERROR, "Exception on : ", ex);
-        }
+        // try {
+        //     m_cat.loadCatalog();
+        // } catch (BasicException ex) {
+        //     LOGGER.log(System.Logger.Level.ERROR, "Exception on : ", ex);
+        // }
+        // No hay catálogo que recargar
     }
 
-    private class CatalogListener implements ActionListener {
+    // private class CatalogListener implements ActionListener {
 
-        @Override
-        public void actionPerformed(ActionEvent e) {
-            buttonTransition((ProductInfoExt) e.getSource());
-        }
-    }
+    //     @Override
+    //     public void actionPerformed(ActionEvent e) {
+    //         buttonTransition((ProductInfoExt) e.getSource());
+    //     }
+    // }
 
     private class CatalogSelectionListener implements ListSelectionListener {
 
@@ -105,11 +111,12 @@ public class JPanelTicketSales extends JPanelTicket {
                     }
 
                     // Show the accurate catalog panel...
-                    if (i >= 0) {
-                        m_cat.showCatalogPanel(m_oTicket.getLine(i).getProductID());
-                    } else {
-                        m_cat.showCatalogPanel(null);
-                    }
+                    // if (i >= 0) {
+                    //     m_cat.showCatalogPanel(m_oTicket.getLine(i).getProductID());
+                    // } else {
+                    //     m_cat.showCatalogPanel(null);
+                    // }
+                    // No hay catálogo que mostrar
                 }
             }
         }

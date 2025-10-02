@@ -172,12 +172,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         jTBtnShow.setSelected(false);
 
-        if (Boolean.valueOf(getAppProperty("till.amountattop"))) {
-            m_jPanEntries.remove(jPanelScanner);
-            m_jPanEntries.remove(m_jNumberKeys);
-            m_jPanEntries.add(jPanelScanner);
-            m_jPanEntries.add(m_jNumberKeys);
-        }
+        // Scanner ahora está en la parte superior, no en m_jPanEntries
+        // if (Boolean.valueOf(getAppProperty("till.amountattop"))) {
+        //     m_jPanEntries.remove(jPanelScanner);
+        //     m_jPanEntries.remove(m_jNumberKeys);
+        //     m_jPanEntries.add(jPanelScanner);
+        //     m_jPanEntries.add(m_jNumberKeys);
+        // }
 
         priceWith00 = ("true".equals(getAppProperty("till.pricewith00")));
 
@@ -813,6 +814,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private void stateToZero() {
         m_jPor.setText("");
         m_jPrice.setText("");
+        m_jKeyFactory.setText(""); // Limpiar también el campo de búsqueda
         m_sBarcode = new StringBuffer();
 
         m_iNumberStatus = NUMBER_INPUTZERO;
@@ -2372,8 +2374,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelMainToolbar.add(m_jPanelScripts, java.awt.BorderLayout.CENTER);
         m_jPanelScripts.getAccessibleContext().setAccessibleDescription("");
 
-        m_jPanelContainer.add(m_jPanelMainToolbar, java.awt.BorderLayout.NORTH);
-
         m_jPanelTicket.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         m_jPanelTicket.setLayout(new java.awt.BorderLayout());
 
@@ -2609,17 +2609,23 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
         m_jNumberKeys.hideNumberButtons(); // Ocultar solo los números, mantener operadores
+        
+        // Sebastian - Ocultar botones CE y * del teclado numérico
+        m_jNumberKeys.setCEVisible(false);
+        m_jNumberKeys.setMultiplyVisible(false);
+        
         m_jPanEntries.add(m_jNumberKeys);
 
         jPanelScanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        jPanelScanner.setMaximumSize(new java.awt.Dimension(300, 105));
+        jPanelScanner.setMaximumSize(new java.awt.Dimension(800, 50));
+        jPanelScanner.setPreferredSize(new java.awt.Dimension(800, 50));
 
         m_jPrice.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
         m_jPrice.setForeground(new java.awt.Color(76, 197, 237));
         m_jPrice.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         m_jPrice.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237)), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
         m_jPrice.setOpaque(true);
-        m_jPrice.setPreferredSize(new java.awt.Dimension(100, 25));
+        m_jPrice.setPreferredSize(new java.awt.Dimension(500, 30));
         m_jPrice.setRequestFocusEnabled(false);
 
         m_jEnter.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/barcode.png"))); // NOI18N
@@ -2639,13 +2645,16 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPor.setText("AS");
         m_jPor.setRequestFocusEnabled(false);
 
-        m_jKeyFactory.setEditable(false);
-        m_jKeyFactory.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
-        m_jKeyFactory.setForeground(javax.swing.UIManager.getDefaults().getColor("Panel.background"));
+        m_jKeyFactory.setEditable(true);
+        m_jKeyFactory.setFont(new java.awt.Font("Arial", 1, 16));
+        m_jKeyFactory.setForeground(new java.awt.Color(76, 197, 237));
+        m_jKeyFactory.setBackground(java.awt.Color.WHITE);
+        m_jKeyFactory.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        m_jKeyFactory.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237)), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
+        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 30));
         m_jKeyFactory.setAutoscrolls(false);
-        m_jKeyFactory.setBorder(null);
-        m_jKeyFactory.setCaretColor(javax.swing.UIManager.getDefaults().getColor("Panel.background"));
-        m_jKeyFactory.setRequestFocusEnabled(false);
+        m_jKeyFactory.setCaretColor(new java.awt.Color(76, 197, 237));
+        m_jKeyFactory.setRequestFocusEnabled(true);
         m_jKeyFactory.setVerifyInputWhenFocusTarget(false);
         m_jKeyFactory.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -2674,48 +2683,40 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         jPanelScannerLayout.setHorizontalGroup(
             jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanelScannerLayout.createSequentialGroup()
-                .addGroup(jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanelScannerLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addGroup(jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(m_jPor, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 9, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(m_jKeyFactory, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 8, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
-                    .addGroup(jPanelScannerLayout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(m_jaddtax)))
-                .addGroup(jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanelScannerLayout.createSequentialGroup()
-                        .addComponent(m_jPrice, javax.swing.GroupLayout.PREFERRED_SIZE, 187, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(0, 2, Short.MAX_VALUE))
-                    .addComponent(m_jTax, 0, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE) // Espacio flexible para centrar
                 .addComponent(m_jEnter, javax.swing.GroupLayout.PREFERRED_SIZE, 64, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(m_jKeyFactory, javax.swing.GroupLayout.PREFERRED_SIZE, 500, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(m_jTax, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(m_jaddtax)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)) // Espacio flexible para centrar
         );
         jPanelScannerLayout.setVerticalGroup(
             jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanelScannerLayout.createSequentialGroup()
-                .addComponent(m_jPrice, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addComponent(m_jTax, javax.swing.GroupLayout.PREFERRED_SIZE, 44, javax.swing.GroupLayout.PREFERRED_SIZE))
-            .addGroup(jPanelScannerLayout.createSequentialGroup()
-                .addGroup(jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(m_jEnter, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(jPanelScannerLayout.createSequentialGroup()
-                        .addComponent(m_jPor)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(m_jKeyFactory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(m_jaddtax, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE))
+            .addGroup(jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                .addComponent(m_jEnter, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(m_jKeyFactory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(m_jTax, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(m_jaddtax))
         );
-
-        m_jPanEntries.add(jPanelScanner);
 
         m_jContEntries.add(m_jPanEntries, java.awt.BorderLayout.LINE_START);
 
         m_jPanelTicket.add(m_jContEntries, java.awt.BorderLayout.LINE_END);
 
+        // Crear panel para la barra de búsqueda en la parte superior
+        javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        searchPanel.add(jPanelScanner, java.awt.BorderLayout.CENTER);
+        
+        // Crear un panel contenedor para el toolbar y la búsqueda
+        javax.swing.JPanel topPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        topPanel.add(m_jPanelMainToolbar, java.awt.BorderLayout.NORTH);
+        topPanel.add(searchPanel, java.awt.BorderLayout.SOUTH);
+
+        m_jPanelContainer.add(topPanel, java.awt.BorderLayout.NORTH);
         m_jPanelContainer.add(m_jPanelTicket, java.awt.BorderLayout.CENTER);
 
         m_jPanelCatalog.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -3114,13 +3115,27 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
     private void m_jKeyFactoryKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_m_jKeyFactoryKeyTyped
 
-        m_jKeyFactory.setText(null);
-
-        stateTransition(evt.getKeyChar());
+        // Permitir que el campo de texto maneje normalmente la entrada
+        // Solo llamamos a stateTransition para Enter
+        if (evt.getKeyChar() == '\n') {
+            // Al presionar Enter, usamos el texto del campo como código de búsqueda
+            String searchText = m_jKeyFactory.getText();
+            if (searchText != null && !searchText.trim().isEmpty()) {
+                // Limpiamos m_sBarcode y agregamos el texto completo
+                m_sBarcode = new StringBuffer(searchText.trim());
+                stateTransition('\n'); // Procesar como Enter para buscar
+            }
+        }
     }//GEN-LAST:event_m_jKeyFactoryKeyTyped
 
     private void m_jKeyFactoryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jKeyFactoryActionPerformed
-        // TODO add your handling code here:
+        // Manejar la búsqueda cuando se presiona Enter
+        String searchText = m_jKeyFactory.getText();
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            // Limpiamos m_sBarcode y agregamos el texto completo
+            m_sBarcode = new StringBuffer(searchText.trim());
+            stateTransition('\n'); // Procesar como Enter para buscar
+        }
     }//GEN-LAST:event_m_jKeyFactoryActionPerformed
 
     private void m_jaddtaxActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jaddtaxActionPerformed

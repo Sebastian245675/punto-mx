@@ -1,6 +1,3 @@
-/**
- * Sebastian - Data Access Object para el sistema de puntos
- */
 package com.openbravo.pos.customers;
 
 import com.openbravo.basic.BasicException;
@@ -13,11 +10,13 @@ import com.openbravo.data.loader.SerializerWrite;
 import com.openbravo.data.loader.DataWrite;
 import com.openbravo.data.loader.Session;
 import com.openbravo.data.loader.StaticSentence;
+import com.openbravo.pos.forms.DataLogicSales; // Sebastian - Importar DataLogicSales
 import java.util.List;
 
 public class PuntosDataLogic {
     
     protected Session s;
+    protected DataLogicSales dlSales; // Sebastian - Referencia a DataLogicSales
     protected SentenceList m_sentconfig;
     protected SentenceFind m_sentconfigfind;
     protected SentenceExec m_sentconfigsave;
@@ -30,8 +29,28 @@ public class PuntosDataLogic {
     protected SentenceExec m_sentpuntosupdate;
     protected SentenceExec m_sentpuntosdelete;
     
+    // Constructor original
     public PuntosDataLogic(Session s) {
         this.s = s;
+        this.dlSales = null;
+        initSentences();
+    }
+    
+    // Constructor que toma DataLogicSales
+    public PuntosDataLogic(DataLogicSales dlSales) {
+        this.dlSales = dlSales;
+        // Accedemos a la sesión usando reflexión para acceder al campo protegido 's'
+        try {
+            java.lang.reflect.Field sessionField = dlSales.getClass().getDeclaredField("s");
+            sessionField.setAccessible(true);
+            this.s = (Session) sessionField.get(dlSales);
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudo acceder a la sesión de DataLogicSales", e);
+        }
+        initSentences();
+    }
+    
+    private void initSentences() {
         
         // Sentencias para configuración de puntos
         m_sentconfig = new StaticSentence(s,
@@ -311,6 +330,73 @@ public class PuntosDataLogic {
         }
     }
     
+    /**
+     * Obtiene los puntos actuales de un cliente específico
+     */
+    public int obtenerPuntos(String clienteId) throws BasicException {
+        ClientePuntos puntos = getClientePuntos(clienteId);
+        return puntos != null ? puntos.getPuntosActuales() : 0;
+    }
+    
+    /**
+     * Actualiza los puntos de un cliente específico
+     */
+    public void actualizarPuntos(String clienteId, int nuevosPuntos) throws BasicException {
+        ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
+        int diferencia = nuevosPuntos - puntos.getPuntosActuales();
+        
+        // Actualizar puntos actuales
+        puntos.setPuntosActuales(nuevosPuntos);
+        
+        // Si se agregaron puntos, sumar a totales
+        if (diferencia > 0) {
+            puntos.setPuntosTotales(puntos.getPuntosTotales() + diferencia);
+            puntos.setUltimaTransaccion("Ajuste manual: +" + diferencia + " puntos");
+        } else if (diferencia < 0) {
+            puntos.setUltimaTransaccion("Ajuste manual: " + diferencia + " puntos");
+        }
+        
+        // Actualizar fecha de última transacción
+        puntos.setFechaUltimaTransaccion(new java.sql.Timestamp(System.currentTimeMillis()));
+        
+        updateClientePuntos(puntos);
+    }
+    
+    /**
+     * Agrega puntos a un cliente específico (incremento)
+     */
+    public void agregarPuntos(String clienteId, int puntosAAgregar) throws BasicException {
+        if (puntosAAgregar <= 0) {
+            throw new BasicException("La cantidad de puntos a agregar debe ser positiva");
+        }
+        
+        ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
+        puntos.agregarPuntos(puntosAAgregar, "Ajuste manual: +" + puntosAAgregar + " puntos");
+        updateClientePuntos(puntos);
+    }
+    
+    /**
+     * Quita puntos a un cliente específico (decremento)
+     */
+    public void quitarPuntos(String clienteId, int puntosAQuitar) throws BasicException {
+        if (puntosAQuitar <= 0) {
+            throw new BasicException("La cantidad de puntos a quitar debe ser positiva");
+        }
+        
+        ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
+        int puntosActuales = puntos.getPuntosActuales();
+        
+        if (puntosAQuitar > puntosActuales) {
+            throw new BasicException("No se pueden quitar " + puntosAQuitar + " puntos. El cliente solo tiene " + puntosActuales + " puntos disponibles.");
+        }
+        
+        puntos.setPuntosActuales(puntosActuales - puntosAQuitar);
+        puntos.setUltimaTransaccion("Ajuste manual: -" + puntosAQuitar + " puntos");
+        puntos.setFechaUltimaTransaccion(new java.sql.Timestamp(System.currentTimeMillis()));
+        
+        updateClientePuntos(puntos);
+    }
+
     /**
      * Fuerza la recreación completa de las tablas de puntos
      */

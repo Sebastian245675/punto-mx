@@ -26,6 +26,7 @@ import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.forms.BeanFactoryException;
 import com.openbravo.pos.forms.DataLogicSales;
 import com.openbravo.pos.util.StringUtils;
+import com.openbravo.pos.customers.PuntosDataLogic; // Sebastian - Importar lógica de puntos
 import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.image.BufferedImage;
@@ -63,6 +64,7 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
 
     private DirtyManager m_Dirty;
     private DataLogicSales dlSales;
+    private PuntosDataLogic puntosLogic; // Sebastian - Lógica de puntos
 
     //HS updates to get last added Customer 06.03.2014
     private AppView appView;
@@ -78,6 +80,7 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         try {
             appView = app;
             dlSales = (DataLogicSales) app.getBean("com.openbravo.pos.forms.DataLogicSales");
+            puntosLogic = new PuntosDataLogic(dlSales); // Sebastian - Inicializar lógica de puntos con dlSales
 
             initComponents();
 
@@ -190,6 +193,10 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         txtCountry.setText(null);
 
         m_jdate.setText(null);
+        
+        // Sebastian - Limpiar campos de puntos
+        txtPuntosActuales.setText("0");
+        txtAjustarPuntos.setText("0");
 
         m_jTaxID.setEnabled(false);
         m_jSearchkey.setEnabled(false);
@@ -226,6 +233,12 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         m_jbtndate.setEnabled(false);
 
         jTableCustomerTransactions.setEnabled(false);
+        
+        // Sebastian - Deshabilitar campos de puntos
+        txtAjustarPuntos.setEnabled(false);
+        btnAgregarPuntos.setEnabled(false);
+        btnQuitarPuntos.setEnabled(false);
+        btnActualizarPuntos.setEnabled(false);
 
         repaint();
         refresh();
@@ -265,6 +278,10 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         txtCountry.setText(null);
 
         m_jdate.setText(null);
+        
+        // Sebastian - Inicializar puntos para cliente nuevo
+        txtPuntosActuales.setText("0");
+        txtAjustarPuntos.setText("0");
 
         m_jTaxID.setEnabled(true);
         m_jSearchkey.setEnabled(true);
@@ -302,6 +319,12 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
 
         m_jdate.setEnabled(true);
         m_jbtndate.setEnabled(true);
+        
+        // Sebastian - Habilitar campos de puntos para cliente nuevo
+        txtAjustarPuntos.setEnabled(true);
+        btnAgregarPuntos.setEnabled(true);
+        btnQuitarPuntos.setEnabled(true);
+        btnActualizarPuntos.setEnabled(true);
 
         repaint();
         refresh();
@@ -388,6 +411,9 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         m_jVip.setSelected(((Boolean) customer[24]));
         txtDiscount.setText(Formats.DOUBLE.formatValue((Double)customer[25]));
         m_jdate.setText(Formats.DATE.formatValue((Date)customer[26]));
+        
+        // Sebastian - Actualizar puntos cuando se carga un cliente
+        actualizarPuntosVisuales();
     }
 
     /**
@@ -434,6 +460,12 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
 
         jBtnCreateCard.setEnabled(true);
         jBtnClearCard.setEnabled(true);
+        
+        // Sebastian - Habilitar campos de puntos para cliente existente
+        txtAjustarPuntos.setEnabled(true);
+        btnAgregarPuntos.setEnabled(true);
+        btnQuitarPuntos.setEnabled(true);
+        btnActualizarPuntos.setEnabled(true);
 
         jTableCustomerTransactions.setVisible(false);
         jTableCustomerTransactions.setEnabled(true);
@@ -681,6 +713,16 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         jPanel3 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         m_jNotes = new javax.swing.JTextArea();
+        
+        // Sebastian - Inicializar componentes de puntaje
+        jPanelPuntaje = new javax.swing.JPanel();
+        jLabelPuntosActuales = new javax.swing.JLabel();
+        txtPuntosActuales = new javax.swing.JTextField();
+        jLabelAjustarPuntos = new javax.swing.JLabel();
+        txtAjustarPuntos = new javax.swing.JTextField();
+        btnAgregarPuntos = new javax.swing.JButton();
+        btnQuitarPuntos = new javax.swing.JButton();
+        btnActualizarPuntos = new javax.swing.JButton();
 
         setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         setPreferredSize(new java.awt.Dimension(700, 400));
@@ -1429,6 +1471,97 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
 
         jTabbedPane1.addTab(AppLocal.getIntString("label.notes"), jPanel3); // NOI18N
 
+        // Sebastian - Configurar pestaña de puntaje
+        jPanelPuntaje.setFont(new java.awt.Font("Arial", 0, 12));
+        
+        jLabelPuntosActuales.setFont(new java.awt.Font("Arial", 0, 14));
+        jLabelPuntosActuales.setText("Puntos Actuales:");
+        jLabelPuntosActuales.setPreferredSize(new java.awt.Dimension(120, 30));
+        
+        txtPuntosActuales.setFont(new java.awt.Font("Arial", 0, 14));
+        txtPuntosActuales.setEditable(false);
+        txtPuntosActuales.setBackground(new java.awt.Color(240, 240, 240));
+        txtPuntosActuales.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtPuntosActuales.setPreferredSize(new java.awt.Dimension(100, 30));
+        
+        jLabelAjustarPuntos.setFont(new java.awt.Font("Arial", 0, 14));
+        jLabelAjustarPuntos.setText("Ajustar Puntos:");
+        jLabelAjustarPuntos.setPreferredSize(new java.awt.Dimension(120, 30));
+        
+        txtAjustarPuntos.setFont(new java.awt.Font("Arial", 0, 14));
+        txtAjustarPuntos.setHorizontalAlignment(javax.swing.JTextField.CENTER);
+        txtAjustarPuntos.setPreferredSize(new java.awt.Dimension(100, 30));
+        txtAjustarPuntos.setText("0");
+        
+        btnAgregarPuntos.setFont(new java.awt.Font("Arial", 0, 12));
+        btnAgregarPuntos.setText("Agregar");
+        btnAgregarPuntos.setPreferredSize(new java.awt.Dimension(80, 30));
+        btnAgregarPuntos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnAgregarPuntosActionPerformed(evt);
+            }
+        });
+        
+        btnQuitarPuntos.setFont(new java.awt.Font("Arial", 0, 12));
+        btnQuitarPuntos.setText("Quitar");
+        btnQuitarPuntos.setPreferredSize(new java.awt.Dimension(80, 30));
+        btnQuitarPuntos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnQuitarPuntosActionPerformed(evt);
+            }
+        });
+        
+        btnActualizarPuntos.setFont(new java.awt.Font("Arial", 0, 12));
+        btnActualizarPuntos.setText("Actualizar");
+        btnActualizarPuntos.setPreferredSize(new java.awt.Dimension(90, 30));
+        btnActualizarPuntos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnActualizarPuntosActionPerformed(evt);
+            }
+        });
+
+        javax.swing.GroupLayout jPanelPuntajeLayout = new javax.swing.GroupLayout(jPanelPuntaje);
+        jPanelPuntaje.setLayout(jPanelPuntajeLayout);
+        jPanelPuntajeLayout.setHorizontalGroup(
+            jPanelPuntajeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanelPuntajeLayout.createSequentialGroup()
+                .addGap(30, 30, 30)
+                .addGroup(jPanelPuntajeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(jPanelPuntajeLayout.createSequentialGroup()
+                        .addComponent(jLabelPuntosActuales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtPuntosActuales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(btnActualizarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanelPuntajeLayout.createSequentialGroup()
+                        .addComponent(jLabelAjustarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(txtAjustarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(btnAgregarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(btnQuitarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+        jPanelPuntajeLayout.setVerticalGroup(
+            jPanelPuntajeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+            .addGroup(jPanelPuntajeLayout.createSequentialGroup()
+                .addGap(30, 30, 30)
+                .addGroup(jPanelPuntajeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabelPuntosActuales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtPuntosActuales, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnActualizarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20)
+                .addGroup(jPanelPuntajeLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabelAjustarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txtAjustarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnAgregarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnQuitarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+        );
+
+        jTabbedPane1.addTab("Puntaje", jPanelPuntaje); // NOI18N
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -1562,6 +1695,98 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         }
     }//GEN-LAST:event_jLabel7MouseClicked
 
+    // Sebastian - Métodos para manejar eventos de puntos
+    private void btnActualizarPuntosActionPerformed(java.awt.event.ActionEvent evt) {
+        actualizarPuntosVisuales();
+    }
+
+    private void btnAgregarPuntosActionPerformed(java.awt.event.ActionEvent evt) {
+        if (m_oId != null && !txtAjustarPuntos.getText().trim().isEmpty()) {
+            try {
+                int puntosAAgregar = Integer.parseInt(txtAjustarPuntos.getText().trim());
+                if (puntosAAgregar > 0) {
+                    puntosLogic.agregarPuntos(m_oId, puntosAAgregar);
+                    actualizarPuntosVisuales();
+                    txtAjustarPuntos.setText("0");
+                    JOptionPane.showMessageDialog(this, 
+                        "Se agregaron " + puntosAAgregar + " puntos exitosamente.", 
+                        "Puntos Agregados", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Ingrese una cantidad positiva de puntos.", 
+                        "Error", 
+                        JOptionPane.WARNING_MESSAGE);
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "Ingrese un número válido.", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (BasicException ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "Error al agregar puntos: " + ex.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    private void btnQuitarPuntosActionPerformed(java.awt.event.ActionEvent evt) {
+        if (m_oId != null && !txtAjustarPuntos.getText().trim().isEmpty()) {
+            try {
+                int puntosAQuitar = Integer.parseInt(txtAjustarPuntos.getText().trim());
+                if (puntosAQuitar > 0) {
+                    int puntosActuales = puntosLogic.obtenerPuntos(m_oId);
+                    if (puntosActuales >= puntosAQuitar) {
+                        puntosLogic.actualizarPuntos(m_oId, puntosActuales - puntosAQuitar);
+                        actualizarPuntosVisuales();
+                        txtAjustarPuntos.setText("0");
+                        JOptionPane.showMessageDialog(this, 
+                            "Se quitaron " + puntosAQuitar + " puntos exitosamente.", 
+                            "Puntos Quitados", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(this, 
+                            "No se pueden quitar más puntos de los disponibles (" + puntosActuales + ").", 
+                            "Error", 
+                            JOptionPane.WARNING_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(this, 
+                        "Ingrese una cantidad positiva de puntos.", 
+                        "Error", 
+                        JOptionPane.WARNING_MESSAGE);
+                }
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "Ingrese un número válido.", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (BasicException ex) {
+                JOptionPane.showMessageDialog(this, 
+                    "Error al quitar puntos: " + ex.getMessage(), 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // Método auxiliar para actualizar la visualización de puntos
+    private void actualizarPuntosVisuales() {
+        if (m_oId != null) {
+            try {
+                int puntos = puntosLogic.obtenerPuntos(m_oId);
+                txtPuntosActuales.setText(String.valueOf(puntos));
+            } catch (BasicException ex) {
+                txtPuntosActuales.setText("Error");
+                LOGGER.log(System.Logger.Level.WARNING, "Error al obtener puntos: ", ex);
+            }
+        } else {
+            txtPuntosActuales.setText("0");
+        }
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jBtnClearCard;
     private javax.swing.JButton jBtnCreateCard;
@@ -1631,6 +1856,16 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
     private javax.swing.JTextField txtPostal;
     private javax.swing.JTextField txtRegion;
     private javax.swing.JButton webBtnMail;
+    
+    // Sebastian - Componentes para la pestaña de puntaje
+    private javax.swing.JPanel jPanelPuntaje;
+    private javax.swing.JLabel jLabelPuntosActuales;
+    private javax.swing.JTextField txtPuntosActuales;
+    private javax.swing.JLabel jLabelAjustarPuntos;
+    private javax.swing.JTextField txtAjustarPuntos;
+    private javax.swing.JButton btnAgregarPuntos;
+    private javax.swing.JButton btnQuitarPuntos;
+    private javax.swing.JButton btnActualizarPuntos;
     // End of variables declaration//GEN-END:variables
 
 }
