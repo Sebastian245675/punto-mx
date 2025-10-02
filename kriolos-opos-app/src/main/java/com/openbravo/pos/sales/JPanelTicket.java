@@ -73,6 +73,7 @@ import javax.swing.JDialog;
 import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ListSelectionEvent;
 import javax.swing.event.TableModelEvent;
 import javax.swing.event.TableModelListener;
@@ -870,18 +871,49 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
     private void incProduct(ProductInfoExt prod) {
 
-        if (prod.isScale() && m_App.getDeviceScale().existsScale()) {
+        if (prod.isScale()) {
             try {
-                Double value = m_App.getDeviceScale().readWeight();
-                if (value != null) {
-                    incProduct(prod, value);
+                // Usar el diálogo estilo Eleventa para productos de granel
+                Double peso = JGranelDialog.mostrarDialogo(
+                    SwingUtilities.getWindowAncestor(this), 
+                    prod.getPriceSell()
+                );
+                
+                if (peso != null) {
+                    incProduct(prod, peso);
                 }
-            } catch (ScaleException ex) {
-                LOGGER.log(System.Logger.Level.WARNING, "Exception on: ", ex);
+            } catch (Exception ex) {
+                LOGGER.log(System.Logger.Level.WARNING, "Error en diálogo de granel: ", ex);
                 Toolkit.getDefaultToolkit().beep();
-                new MessageInf(MessageInf.SGN_WARNING, AppLocal
-                        .getIntString("message.noweight"), ex).show(this);
-                stateToZero();
+                
+                // Fallback al diálogo simple si hay error
+                String input = JOptionPane.showInputDialog(
+                    this,
+                    AppLocal.getIntString("label.scaleinput"),
+                    AppLocal.getIntString("label.scale"),
+                    JOptionPane.QUESTION_MESSAGE
+                );
+                
+                if (input != null && !input.trim().isEmpty()) {
+                    try {
+                        Double value = Double.parseDouble(input.trim());
+                        if (value > 0) {
+                            incProduct(prod, value);
+                        } else {
+                            Toolkit.getDefaultToolkit().beep();
+                            JOptionPane.showMessageDialog(this, 
+                                "El peso debe ser mayor a 0",
+                                "Error", 
+                                JOptionPane.ERROR_MESSAGE);
+                        }
+                    } catch (NumberFormatException nfe) {
+                        Toolkit.getDefaultToolkit().beep();
+                        JOptionPane.showMessageDialog(this, 
+                            "Formato de peso inválido",
+                            "Error", 
+                            JOptionPane.ERROR_MESSAGE);
+                    }
+                }
             }
         } else {
             if (!prod.isVprice()) {

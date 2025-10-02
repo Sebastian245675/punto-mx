@@ -16,6 +16,7 @@
 package com.openbravo.pos.forms;
 
 import com.openbravo.pos.instance.InstanceManager;
+import com.openbravo.pos.util.ModernLookAndFeel;
 import static java.awt.Frame.MAXIMIZED_BOTH;
 import java.io.File;
 import java.rmi.RemoteException;
@@ -31,6 +32,9 @@ public class StartPOS {
     private static final Logger LOGGER = Logger.getLogger(StartPOS.class.getName());
 
     public static void main(final String args[]) {
+
+        // Aplicar estilo moderno antes de crear cualquier componente
+        ModernLookAndFeel.aplicarEstiloModerno();
 
         File configFile = (args.length > 0 ? new File(args[0]) : null);
         AppConfig config = new AppConfig(configFile);
