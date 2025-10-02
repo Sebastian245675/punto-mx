@@ -214,6 +214,14 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         );
     }
 
+    /**
+     * Sebastian - Getter para acceder a la sesión desde PuntosDataLogic
+     * @return Session actual
+     */
+    public Session getSession() {
+        return this.s;
+    }
+
 // Import Creates
     public final void createCategory(Object[] category) throws BasicException {
         m_createCat.exec(category);

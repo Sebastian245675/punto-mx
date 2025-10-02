@@ -86,6 +86,38 @@ public class JNumberKeys extends javax.swing.JPanel {
         m_jEquals.setEnabled(equalsenabled && b);   
     }
     
+    /**
+     * Sebastian - Ocultar botón CE
+     * @param visible
+     */
+    public void setCEVisible(boolean visible) {
+        m_jCE.setVisible(visible);
+    }
+    
+    /**
+     * Sebastian - Ocultar botón multiplicar (*)
+     * @param visible
+     */
+    public void setMultiplyVisible(boolean visible) {
+        m_jMultiply.setVisible(visible);
+    }
+    
+    /**
+     * Sebastian - Ocultar botón Plus (+)
+     * @param visible
+     */
+    public void setPlusVisible(boolean visible) {
+        m_jPlus.setVisible(visible);
+    }
+    
+    /**
+     * Sebastian - Ocultar botón Minus (-)
+     * @param visible
+     */
+    public void setMinusVisible(boolean visible) {
+        m_jMinus.setVisible(visible);
+    }
+    
     @Override
     public void setComponentOrientation(ComponentOrientation o) {
         // Nothing to change
@@ -476,17 +508,17 @@ public class JNumberKeys extends javax.swing.JPanel {
         m_jEquals.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btnequals.png"))); // NOI18N
         m_jEquals.setFocusPainted(false);
         m_jEquals.setFocusable(false);
-        m_jEquals.setMargin(new java.awt.Insets(8, 16, 8, 16));
-        m_jEquals.setPreferredSize(new java.awt.Dimension(42, 36));
+        m_jEquals.setMargin(new java.awt.Insets(4, 8, 4, 8)); // Márgenes más pequeños
+        m_jEquals.setPreferredSize(new java.awt.Dimension(42, 24)); // Altura aún más pequeña
         m_jEquals.setRequestFocusEnabled(false);
         gridBagConstraints = new java.awt.GridBagConstraints();
         gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 3;
-        gridBagConstraints.gridheight = 2;
+        gridBagConstraints.gridy = 5; // Mover a una fila más abajo
+        gridBagConstraints.gridheight = 1; // Solo una fila
         gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
         gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 1.0;
-        gridBagConstraints.insets = new java.awt.Insets(0, 5, 0, 0);
+        gridBagConstraints.weighty = 0.5; // Aún menos peso vertical
+        gridBagConstraints.insets = new java.awt.Insets(10, 5, 5, 0); // Más margen superior para separarlo
         add(m_jEquals, gridBagConstraints);
     }// </editor-fold>//GEN-END:initComponents
 

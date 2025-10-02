@@ -74,6 +74,11 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelDatabase.add(panel.getConfigComponent());
 
+        // Sebastian - Agregar panel de configuración Firebase
+        panel = new JPanelConfigFirebase();
+        m_panelconfig.add(panel);
+        jPanelFirebase.add(panel.getConfigComponent());
+
         panel = new JPanelConfigGeneral();
         m_panelconfig.add(panel);
         jPanelGeneral.add(panel.getConfigComponent());
@@ -234,6 +239,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         jPanelTicketSetup = new javax.swing.JPanel();
         jPanelCompany = new javax.swing.JPanel();
         jPanelDatabase = new javax.swing.JPanel();
+        jPanelFirebase = new javax.swing.JPanel(); // Sebastian - Panel Firebase
         jPanel1 = new javax.swing.JPanel();
         jbtnRestore = new javax.swing.JButton();
         jbtnExit = new javax.swing.JButton();
@@ -287,6 +293,12 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         jPanelDatabase.setPreferredSize(new java.awt.Dimension(0, 400));
         jPanelDatabase.setLayout(new javax.swing.BoxLayout(jPanelDatabase, javax.swing.BoxLayout.LINE_AXIS));
         jTabbedPane1.addTab(bundle.getString("jpanelconfiguration.tab.database.title"), jPanelDatabase); // NOI18N
+
+        // Sebastian - Configuración del panel Firebase
+        jPanelFirebase.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jPanelFirebase.setPreferredSize(new java.awt.Dimension(0, 400));
+        jPanelFirebase.setLayout(new javax.swing.BoxLayout(jPanelFirebase, javax.swing.BoxLayout.LINE_AXIS));
+        jTabbedPane1.addTab("Firebase", jPanelFirebase); // NOI18N
 
         jbtnRestore.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jbtnRestore.setText(AppLocal.getIntString("button.factory")); // NOI18N
@@ -396,6 +408,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanelCompany;
     private javax.swing.JPanel jPanelDatabase;
+    private javax.swing.JPanel jPanelFirebase; // Sebastian - Panel para configuración Firebase
     private javax.swing.JPanel jPanelGeneral;
     private javax.swing.JPanel jPanelLocale;
     private javax.swing.JPanel jPanelPayment;

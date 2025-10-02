@@ -15,6 +15,7 @@ import com.openbravo.pos.scanpal2.DeviceScannerFactory;
 import com.openbravo.pos.scripting.ScriptEngine;
 import com.openbravo.pos.scripting.ScriptException;
 import com.openbravo.pos.scripting.ScriptFactory;
+import com.openbravo.pos.firebase.FirebaseSyncManagerREST;
 import java.awt.CardLayout;
 import java.awt.ComponentOrientation;
 import java.awt.Cursor;
@@ -24,7 +25,9 @@ import java.text.DateFormat;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.concurrent.CompletableFuture;
 import javax.swing.*;
+import javax.swing.SwingUtilities;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
@@ -56,6 +59,7 @@ public class JRootApp extends JPanel implements AppView {
 
     private JPrincipalApp m_principalapp = null;
     private JAuthPanel mAuthPanel = null;
+    private FirebaseSyncManagerREST firebaseSyncManager = null;
 
     private String getLineTimer() {
         return Formats.HOURMIN.formatValue(new Date());
@@ -378,6 +382,34 @@ public class JRootApp extends JPanel implements AppView {
             showView(viewID);
 
             m_principalapp.activate();
+            
+            // Inicializar Firebase Sync Manager después de activar la aplicación principal
+            initializeFirebaseSync();
+        }
+    }
+    
+    /**
+     * Inicializa el Firebase Sync Manager y ejecuta la sincronización automática
+     * si hay conexión a internet y Firebase está configurado.
+     */
+    private void initializeFirebaseSync() {
+        try {
+            if (session != null) {
+                // Crear el FirebaseSyncManagerREST con la sesión actual
+                firebaseSyncManager = new FirebaseSyncManagerREST(session);
+                
+                // Ejecutar sincronización completa en segundo plano
+                CompletableFuture.runAsync(() -> {
+                    try {
+                        LOGGER.info("Firebase sync iniciado automáticamente después del login");
+                        firebaseSyncManager.performFullSync().join();
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error al ejecutar sincronización completa con Firebase: " + e.getMessage(), e);
+                    }
+                });
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al inicializar Firebase Sync Manager: " + e.getMessage(), e);
         }
     }
     
@@ -385,6 +417,17 @@ public class JRootApp extends JPanel implements AppView {
     private void releaseResources() {
         if(m_DeviceTicket != null){
             m_DeviceTicket.getDeviceDisplay().clearVisor();
+        }
+        
+        // Limpiar el Firebase Sync Manager si existe
+        if(firebaseSyncManager != null) {
+            try {
+                // Aquí se puede agregar cualquier limpieza necesaria del FirebaseSyncManager
+                firebaseSyncManager = null;
+                LOGGER.info("Firebase Sync Manager liberado correctamente");
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error al liberar Firebase Sync Manager: " + e.getMessage(), e);
+            }
         }
     }
 

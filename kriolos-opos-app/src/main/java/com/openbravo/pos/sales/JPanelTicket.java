@@ -2610,9 +2610,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         });
         m_jNumberKeys.hideNumberButtons(); // Ocultar solo los números, mantener operadores
         
-        // Sebastian - Ocultar botones CE y * del teclado numérico
+        // Sebastian - Ocultar botones CE, *, + y - del teclado numérico (manteniendo funcionalidad de teclado)
         m_jNumberKeys.setCEVisible(false);
         m_jNumberKeys.setMultiplyVisible(false);
+        m_jNumberKeys.setPlusVisible(false);  // Ocultar botón + visual
+        m_jNumberKeys.setMinusVisible(false); // Ocultar botón - visual
         
         m_jPanEntries.add(m_jNumberKeys);
 
@@ -3115,6 +3117,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
     private void m_jKeyFactoryKeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_m_jKeyFactoryKeyTyped
 
+        // Manejar operadores + y - para incrementar/decrementar cantidad
+        if (evt.getKeyChar() == '+' || evt.getKeyChar() == '-') {
+            evt.consume(); // Evitar que se escriba en el campo de texto
+            stateTransition(evt.getKeyChar()); // Procesar como operador
+            return;
+        }
+        
         // Permitir que el campo de texto maneje normalmente la entrada
         // Solo llamamos a stateTransition para Enter
         if (evt.getKeyChar() == '\n') {
