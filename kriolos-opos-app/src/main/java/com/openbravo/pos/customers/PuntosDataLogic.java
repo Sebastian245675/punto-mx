@@ -7,6 +7,7 @@ import com.openbravo.data.loader.SentenceFind;
 import com.openbravo.data.loader.SentenceList;
 import com.openbravo.data.loader.SerializerWriteString;
 import com.openbravo.data.loader.SerializerWrite;
+import com.openbravo.data.loader.SerializerReadInteger;
 import com.openbravo.data.loader.DataWrite;
 import com.openbravo.data.loader.Session;
 import com.openbravo.data.loader.StaticSentence;
@@ -54,24 +55,24 @@ public class PuntosDataLogic {
         
         // Sentencias para configuración de puntos
         m_sentconfig = new StaticSentence(s,
-            "SELECT ID, MONTO_POR_PUNTO, PUNTOS_OTORGADOS, SISTEMA_ACTIVO, MONEDA, FECHA_CREACION, FECHA_ACTUALIZACION " +
+            "SELECT ID, MONTO_POR_PUNTO, PUNTOS_OTORGADOS, SISTEMA_ACTIVO, MONEDA, LIMITE_DIARIO_PUNTOS, FECHA_CREACION, FECHA_ACTUALIZACION " +
             "FROM PUNTOS_CONFIGURACION ORDER BY FECHA_ACTUALIZACION DESC",
             null,
             PuntosConfiguracion.getSerializerRead());
             
         m_sentconfigfind = new PreparedSentence(s,
-            "SELECT ID, MONTO_POR_PUNTO, PUNTOS_OTORGADOS, SISTEMA_ACTIVO, MONEDA, FECHA_CREACION, FECHA_ACTUALIZACION " +
+            "SELECT ID, MONTO_POR_PUNTO, PUNTOS_OTORGADOS, SISTEMA_ACTIVO, MONEDA, LIMITE_DIARIO_PUNTOS, FECHA_CREACION, FECHA_ACTUALIZACION " +
             "FROM PUNTOS_CONFIGURACION WHERE ID = ?",
             SerializerWriteString.INSTANCE,
             PuntosConfiguracion.getSerializerRead());
             
         m_sentconfigsave = new StaticSentence(s,
-            "INSERT INTO PUNTOS_CONFIGURACION (ID, MONTO_POR_PUNTO, PUNTOS_OTORGADOS, SISTEMA_ACTIVO, MONEDA, FECHA_CREACION, FECHA_ACTUALIZACION) " +
-            "VALUES (?, ?, ?, ?, ?, ?, ?)",
+            "INSERT INTO PUNTOS_CONFIGURACION (ID, MONTO_POR_PUNTO, PUNTOS_OTORGADOS, SISTEMA_ACTIVO, MONEDA, LIMITE_DIARIO_PUNTOS, FECHA_CREACION, FECHA_ACTUALIZACION) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
             PuntosConfiguracion.getSerializerWrite());
             
         m_sentconfigupdate = new StaticSentence(s,
-            "UPDATE PUNTOS_CONFIGURACION SET MONTO_POR_PUNTO = ?, PUNTOS_OTORGADOS = ?, SISTEMA_ACTIVO = ?, MONEDA = ?, FECHA_ACTUALIZACION = ? " +
+            "UPDATE PUNTOS_CONFIGURACION SET MONTO_POR_PUNTO = ?, PUNTOS_OTORGADOS = ?, SISTEMA_ACTIVO = ?, MONEDA = ?, LIMITE_DIARIO_PUNTOS = ?, FECHA_ACTUALIZACION = ? " +
             "WHERE ID = ?",
             new SerializerWrite() {
                 public void writeValues(DataWrite dp, Object obj) throws BasicException {
@@ -80,8 +81,9 @@ public class PuntosDataLogic {
                     dp.setInt(2, config.getPuntosOtorgados());
                     dp.setBoolean(3, config.isSistemaActivo());
                     dp.setString(4, config.getMoneda());
-                    dp.setTimestamp(5, config.getFechaActualizacion());
-                    dp.setString(6, config.getId());
+                    dp.setInt(5, config.getLimiteDiarioPuntos()); // Sebastian - Nuevo campo
+                    dp.setTimestamp(6, config.getFechaActualizacion());
+                    dp.setString(7, config.getId());
                 }
             });
             
@@ -220,9 +222,42 @@ public class PuntosDataLogic {
         if (config != null && config.isSistemaActivo()) {
             int puntosAOtorgar = config.calcularPuntos(montoCompra);
             if (puntosAOtorgar > 0) {
-                ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
-                puntos.agregarPuntos(puntosAOtorgar, descripcion);
-                updateClientePuntos(puntos);
+                // Sebastian - Verificar límite diario antes de otorgar puntos
+                int puntosGanadosHoy = getPuntosGanadosHoy(clienteId);
+                int limiteDiario = config.getLimiteDiarioPuntos();
+                
+                System.out.println("🔍 VERIFICANDO LÍMITE: Cliente " + clienteId + 
+                                 " - Puntos hoy: " + puntosGanadosHoy + 
+                                 " - Límite diario: " + limiteDiario + 
+                                 " - Puntos a otorgar: " + puntosAOtorgar);
+                
+                if (puntosGanadosHoy >= limiteDiario) {
+                    System.out.println("🚫 LÍMITE DIARIO ALCANZADO: Cliente " + clienteId + 
+                                     " ya ganó " + puntosGanadosHoy + " puntos hoy (límite: " + limiteDiario + ")");
+                    return; // No otorgar más puntos
+                }
+                
+                // Si otorgar los puntos excedería el límite, ajustar la cantidad
+                int puntosDisponibles = limiteDiario - puntosGanadosHoy;
+                if (puntosAOtorgar > puntosDisponibles) {
+                    puntosAOtorgar = puntosDisponibles;
+                    System.out.println("⚠️ PUNTOS AJUSTADOS: Otorgando " + puntosAOtorgar + 
+                                     " puntos para no exceder límite diario");
+                }
+                
+                if (puntosAOtorgar > 0) {
+                    // Actualizar puntos totales del cliente
+                    ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
+                    puntos.agregarPuntos(puntosAOtorgar, descripcion);
+                    updateClientePuntos(puntos);
+                    
+                    // Sebastian - Registrar en historial para límites diarios
+                    registrarHistorialPuntos(clienteId, puntosAOtorgar, descripcion, montoCompra);
+                    
+                    System.out.println("✅ PUNTOS OTORGADOS: " + puntosAOtorgar + 
+                                     " puntos (total hoy: " + (puntosGanadosHoy + puntosAOtorgar) + 
+                                     "/" + limiteDiario + ")");
+                }
             }
         }
     }
@@ -234,6 +269,32 @@ public class PuntosDataLogic {
         ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
         puntos.agregarPuntos(puntosEspecificos, "Producto: " + producto);
         updateClientePuntos(puntos);
+    }
+    
+    /**
+     * Sebastian - Calcula cuántos puntos ha ganado un cliente en el día actual
+     */
+    public int getPuntosGanadosHoy(String clienteId) throws BasicException {
+        try {
+            // Consulta directa a la tabla de historial de puntos para el día actual
+            String query = "SELECT COALESCE(SUM(PUNTOS_OTORGADOS), 0) " +
+                          "FROM PUNTOS_HISTORIAL " +
+                          "WHERE CLIENTE_ID = ? " +
+                          "AND CAST(FECHA_TRANSACCION AS DATE) = CURRENT_DATE";
+            
+            PreparedSentence sentencia = new PreparedSentence(s, query, SerializerWriteString.INSTANCE, SerializerReadInteger.INSTANCE);
+            Integer resultado = (Integer) sentencia.find(clienteId);
+            
+            int puntosHoy = resultado != null ? resultado : 0;
+            System.out.println("📊 Cliente " + clienteId + " ha ganado " + puntosHoy + " puntos hoy");
+            
+            return puntosHoy;
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error calculando puntos del día para cliente " + clienteId + ": " + e.getMessage());
+            // Fallback: retornar 0 para permitir continuar
+            return 0;
+        }
     }
     
     /**
@@ -249,6 +310,7 @@ public class PuntosDataLogic {
                 "PUNTOS_OTORGADOS INTEGER NOT NULL, " +
                 "SISTEMA_ACTIVO BOOLEAN NOT NULL, " +
                 "MONEDA VARCHAR(10) NOT NULL, " +
+                "LIMITE_DIARIO_PUNTOS INTEGER DEFAULT 500, " + // Sebastian - Nuevo campo
                 "FECHA_CREACION TIMESTAMP NOT NULL, " +
                 "FECHA_ACTUALIZACION TIMESTAMP NOT NULL)";
             
@@ -258,6 +320,19 @@ public class PuntosDataLogic {
             } catch (BasicException e) {
                 if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe")) {
                     System.out.println("ℹ️ Tabla PUNTOS_CONFIGURACION ya existe");
+                    
+                    // Sebastian - Migración: Agregar columna LIMITE_DIARIO_PUNTOS si no existe
+                    try {
+                        String addLimitColumn = "ALTER TABLE PUNTOS_CONFIGURACION ADD COLUMN LIMITE_DIARIO_PUNTOS INTEGER DEFAULT 500";
+                        new StaticSentence(s, addLimitColumn).exec();
+                        System.out.println("✅ Columna LIMITE_DIARIO_PUNTOS agregada exitosamente");
+                    } catch (BasicException addColEx) {
+                        if (addColEx.getMessage().contains("already exists") || addColEx.getMessage().contains("ya existe")) {
+                            System.out.println("ℹ️ Columna LIMITE_DIARIO_PUNTOS ya existe");
+                        } else {
+                            System.out.println("⚠️ Error al agregar columna LIMITE_DIARIO_PUNTOS: " + addColEx.getMessage());
+                        }
+                    }
                 } else {
                     System.err.println("⚠️ Error creando tabla PUNTOS_CONFIGURACION: " + e.getMessage());
                 }
@@ -282,6 +357,27 @@ public class PuntosDataLogic {
                     System.out.println("ℹ️ Tabla CLIENTE_PUNTOS ya existe");
                 } else {
                     System.err.println("⚠️ Error creando tabla CLIENTE_PUNTOS: " + e.getMessage());
+                }
+            }
+            
+            // Sebastian - Crear tabla de historial de puntos para límites diarios
+            String createHistorialTable = 
+                "CREATE TABLE PUNTOS_HISTORIAL (" +
+                "ID VARCHAR(36) NOT NULL PRIMARY KEY, " +
+                "CLIENTE_ID VARCHAR(36) NOT NULL, " +
+                "PUNTOS_OTORGADOS INTEGER NOT NULL, " +
+                "DESCRIPCION VARCHAR(255), " +
+                "MONTO_COMPRA DECIMAL(10,2), " +
+                "FECHA_TRANSACCION TIMESTAMP NOT NULL)";
+            
+            try {
+                new StaticSentence(s, createHistorialTable).exec();
+                System.out.println("✅ Tabla PUNTOS_HISTORIAL creada exitosamente");
+            } catch (BasicException e) {
+                if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe")) {
+                    System.out.println("ℹ️ Tabla PUNTOS_HISTORIAL ya existe");
+                } else {
+                    System.err.println("⚠️ Error creando tabla PUNTOS_HISTORIAL: " + e.getMessage());
                 }
             }
             
@@ -396,6 +492,40 @@ public class PuntosDataLogic {
         
         updateClientePuntos(puntos);
     }
+    
+    /**
+     * Sebastian - Registra una transacción de puntos en el historial para límites diarios
+     */
+    private void registrarHistorialPuntos(String clienteId, int puntosOtorgados, String descripcion, double montoCompra) throws BasicException {
+        try {
+            String insertHistorial = "INSERT INTO PUNTOS_HISTORIAL (ID, CLIENTE_ID, PUNTOS_OTORGADOS, DESCRIPCION, MONTO_COMPRA, FECHA_TRANSACCION) " +
+                                   "VALUES (?, ?, ?, ?, ?, ?)";
+            
+            String id = java.util.UUID.randomUUID().toString();
+            java.sql.Timestamp ahora = new java.sql.Timestamp(System.currentTimeMillis());
+            
+            PreparedSentence sentencia = new PreparedSentence(s, insertHistorial, 
+                new SerializerWrite<Object[]>() {
+                    public void writeValues(DataWrite dp, Object[] obj) throws BasicException {
+                        dp.setString(1, (String) obj[0]); // ID
+                        dp.setString(2, (String) obj[1]); // CLIENTE_ID
+                        dp.setInt(3, (Integer) obj[2]);   // PUNTOS_OTORGADOS
+                        dp.setString(4, (String) obj[3]); // DESCRIPCION
+                        dp.setDouble(5, (Double) obj[4]); // MONTO_COMPRA
+                        dp.setTimestamp(6, (java.sql.Timestamp) obj[5]); // FECHA_TRANSACCION
+                    }
+                });
+            
+            Object[] params = {id, clienteId, puntosOtorgados, descripcion, montoCompra, ahora};
+            sentencia.exec(params);
+            
+            System.out.println("📝 HISTORIAL REGISTRADO: " + puntosOtorgados + " puntos para cliente " + clienteId);
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error registrando historial de puntos: " + e.getMessage());
+            // No lanzar excepción para no interrumpir la venta
+        }
+    }
 
     /**
      * Fuerza la recreación completa de las tablas de puntos
@@ -410,6 +540,13 @@ public class PuntosDataLogic {
                 System.out.println("ℹ️ Tabla CLIENTE_PUNTOS eliminada");
             } catch (Exception e) {
                 System.out.println("ℹ️ Tabla CLIENTE_PUNTOS no existía o no se pudo eliminar");
+            }
+            
+            try {
+                new StaticSentence(s, "DROP TABLE PUNTOS_HISTORIAL").exec();
+                System.out.println("ℹ️ Tabla PUNTOS_HISTORIAL eliminada");
+            } catch (Exception e) {
+                System.out.println("ℹ️ Tabla PUNTOS_HISTORIAL no existía o no se pudo eliminar");
             }
             
             try {

@@ -257,6 +257,70 @@ public class JTicketsBagShared extends JTicketsBag {
         });
     }
 
+    private void clearAllSharedTickets() {
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                // Confirmar la acción con el usuario
+                int response = JOptionPane.showConfirmDialog(
+                    JTicketsBagShared.this,
+                    "¿Está seguro de que desea vaciar todos los tickets almacenados?\nEsta acción no se puede deshacer.",
+                    "Confirmar vaciado",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+                );
+                
+                if (response == JOptionPane.YES_OPTION) {
+                    // Obtener todos los tickets compartidos
+                    List<SharedTicketInfo> listSharedTicket = getSharedTickets();
+                    
+                    if (listSharedTicket.isEmpty()) {
+                        JOptionPane.showMessageDialog(
+                            JTicketsBagShared.this,
+                            "No hay tickets almacenados para vaciar.",
+                            "Información",
+                            JOptionPane.INFORMATION_MESSAGE
+                        );
+                        return;
+                    }
+                    
+                    // Eliminar cada ticket
+                    int deletedCount = 0;
+                    for (SharedTicketInfo ticketInfo : listSharedTicket) {
+                        try {
+                            dlReceipts.deleteSharedTicket(ticketInfo.getId());
+                            deletedCount++;
+                        } catch (BasicException e) {
+                            LOGGER.log(System.Logger.Level.WARNING, "Error eliminando ticket: " + ticketInfo.getId(), e);
+                        }
+                    }
+                    
+                    // Mostrar resultado
+                    if (deletedCount > 0) {
+                        JOptionPane.showMessageDialog(
+                            JTicketsBagShared.this,
+                            "Se eliminaron " + deletedCount + " tickets almacenados.",
+                            "Vaciado completado",
+                            JOptionPane.INFORMATION_MESSAGE
+                        );
+                        
+                        // Actualizar la interfaz si hay un ticket activo
+                        if (m_panelticket.getActiveTicket() != null) {
+                            updateCount();
+                        }
+                    } else {
+                        JOptionPane.showMessageDialog(
+                            JTicketsBagShared.this,
+                            "No se pudieron eliminar los tickets.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE
+                        );
+                    }
+                }
+            }
+        });
+    }
+
     protected void setEnabledPanel(boolean enabled) {
         jPanel1.setEnabled(enabled);
     }
@@ -267,6 +331,7 @@ public class JTicketsBagShared extends JTicketsBag {
         m_jReprintTickets.setEnabled(false);
         m_jListTickets.setEnabled(false);
         m_jHold.setEnabled(false);
+        m_jClearAllTickets.setEnabled(false);
     }
 
     protected void setEnabledButtonDel(boolean enabled) {
@@ -289,6 +354,10 @@ public class JTicketsBagShared extends JTicketsBag {
         m_jHold.setEnabled(enabled);
     }
 
+    protected void setEnabledButtonClearAll(boolean enabled) {
+        m_jClearAllTickets.setEnabled(enabled);
+    }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -303,6 +372,7 @@ public class JTicketsBagShared extends JTicketsBag {
         m_jListTickets = new javax.swing.JButton();
         m_jReprintTickets = new javax.swing.JButton();
         m_jHold = new javax.swing.JButton();
+        m_jClearAllTickets = new javax.swing.JButton();
 
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         setLayout(new java.awt.BorderLayout());
@@ -399,6 +469,26 @@ public class JTicketsBagShared extends JTicketsBag {
         });
         jPanel1.add(m_jHold);
 
+        m_jClearAllTickets.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        m_jClearAllTickets.setForeground(new java.awt.Color(255, 0, 0));
+        m_jClearAllTickets.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_delete.png"))); // NOI18N
+        m_jClearAllTickets.setToolTipText("Vaciar todos los tickets"); // NOI18N
+        m_jClearAllTickets.setFocusPainted(false);
+        m_jClearAllTickets.setFocusable(false);
+        m_jClearAllTickets.setIconTextGap(1);
+        m_jClearAllTickets.setMargin(new java.awt.Insets(0, 2, 0, 2));
+        m_jClearAllTickets.setMaximumSize(new java.awt.Dimension(50, 40));
+        m_jClearAllTickets.setMinimumSize(new java.awt.Dimension(50, 40));
+        m_jClearAllTickets.setPreferredSize(new java.awt.Dimension(80, 45));
+        m_jClearAllTickets.setRequestFocusEnabled(false);
+        m_jClearAllTickets.setVerticalTextPosition(javax.swing.SwingConstants.TOP);
+        m_jClearAllTickets.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                m_jClearAllTicketsActionPerformed(evt);
+            }
+        });
+        jPanel1.add(m_jClearAllTickets);
+
         add(jPanel1, java.awt.BorderLayout.WEST);
     }// </editor-fold>//GEN-END:initComponents
 
@@ -491,6 +581,10 @@ public class JTicketsBagShared extends JTicketsBag {
         });
     }//GEN-LAST:event_m_jReprintTicketsActionPerformed
 
+    private void m_jClearAllTicketsActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jClearAllTicketsActionPerformed
+        clearAllSharedTickets();
+    }//GEN-LAST:event_m_jClearAllTicketsActionPerformed
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel jPanel1;
@@ -499,6 +593,7 @@ public class JTicketsBagShared extends JTicketsBag {
     private javax.swing.JButton m_jListTickets;
     private javax.swing.JButton m_jNewTicket;
     private javax.swing.JButton m_jReprintTickets;
+    private javax.swing.JButton m_jClearAllTickets;
     // End of variables declaration//GEN-END:variables
 
 }

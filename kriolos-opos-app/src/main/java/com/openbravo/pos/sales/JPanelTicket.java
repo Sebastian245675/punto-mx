@@ -470,6 +470,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Sebastian - Limpiar campos de cliente cuando no hay ticket
             m_jCustomerId.setText("");
             m_jCustomerName.setText("");
+            m_jCustomerPoints.setText("");
+            m_jCustomerPoints.setVisible(false);
 
             checkStock();
             stateToZero();
@@ -505,6 +507,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             
             // Sebastian - Actualizar campos de cliente cuando hay ticket
             updateCustomerFields();
+            
+            // Sebastian - Actualizar puntos cuando cambia el total del ticket
+            updateCustomerPointsDisplay();
 
             countArticles();
             printPartialTotals();
@@ -583,6 +588,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             countArticles();
             visorTicketLine(oLine);
             printPartialTotals();
+            
+            // Sebastian - Actualizar puntos cuando cambia una línea del ticket
+            updateCustomerPointsDisplay();
+            
             stateToZero();
         }
     }
@@ -980,6 +989,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         } else {
                             m_oTicket.setCustomer(newcustomer);
                             m_jTicketId.setText(m_oTicket.getName(m_oTicketExt));
+                            updateCustomerPointsDisplay(); // Sebastian - Actualizar display de puntos
                         }
                     } catch (BasicException ex) {
                         LOGGER.log(System.Logger.Level.WARNING, "Exception on: ", ex);
@@ -2204,6 +2214,89 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
     }
 
+    // Sebastian - Método para actualizar información de puntos del cliente
+    private void updateCustomerPointsDisplay() {
+        System.out.println("🔍 updateCustomerPointsDisplay() called");
+        
+        if (m_oTicket.getCustomer() != null) {
+            System.out.println("📋 Cliente detectado: " + m_oTicket.getCustomer().getName());
+            
+            try {
+                // Obtener puntos actuales del cliente
+                int puntosActuales = puntosDataLogic.obtenerPuntos(m_oTicket.getCustomer().getId());
+                
+                System.out.println("💯 Puntos actuales del cliente: " + puntosActuales);
+                
+                // Calcular puntos que ganará con la compra actual
+                double totalTicket = m_oTicket.getTotal();
+                PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
+                int puntosNuevos = 0;
+                
+                if (config != null && config.isSistemaActivo()) {
+                    // Sebastian - Usar el mismo método que se usa en el procesamiento real
+                    puntosNuevos = config.calcularPuntos(totalTicket);
+                    
+                    // Debug adicional
+                    System.out.println("🔧 DEBUG - Total ticket: $" + totalTicket);
+                    System.out.println("🔧 DEBUG - Monto por punto: $" + config.getMontoPorPunto());
+                    System.out.println("🔧 DEBUG - Puntos otorgados: " + config.getPuntosOtorgados());
+                    
+                    // Calcular tramos para mostrar la lógica
+                    int tramosCompletos = (int) Math.floor(totalTicket / config.getMontoPorPunto());
+                    System.out.println("🔧 DEBUG - Tramos completos: " + tramosCompletos + " (cada tramo = $" + config.getMontoPorPunto() + ")");
+                    System.out.println("🔧 DEBUG - Cálculo por tramos: " + tramosCompletos + " × " + config.getPuntosOtorgados() + " = " + puntosNuevos + " puntos");
+                    
+                    // Sebastian - Verificar límite diario
+                    try {
+                        int puntosGanadosHoy = puntosDataLogic.getPuntosGanadosHoy(m_oTicket.getCustomer().getId());
+                        int limiteDiario = config.getLimiteDiarioPuntos();
+                        
+                        System.out.println("📊 DEBUG - Puntos ganados hoy: " + puntosGanadosHoy + "/" + limiteDiario);
+                        
+                        // Ajustar puntos si exceden el límite
+                        if (puntosGanadosHoy >= limiteDiario) {
+                            puntosNuevos = 0;
+                            System.out.println("🚫 LÍMITE DIARIO ALCANZADO - No se otorgarán más puntos");
+                        } else if (puntosGanadosHoy + puntosNuevos > limiteDiario) {
+                            puntosNuevos = limiteDiario - puntosGanadosHoy;
+                            System.out.println("⚠️ PUNTOS AJUSTADOS por límite diario: " + puntosNuevos);
+                        }
+                    } catch (Exception ex) {
+                        System.err.println("⚠️ Error verificando límite diario: " + ex.getMessage());
+                    }
+                }
+                
+                int puntosFuturos = puntosActuales + puntosNuevos;
+                
+                System.out.println("🔮 Puntos nuevos a ganar: " + puntosNuevos);
+                System.out.println("🎯 Puntos futuros: " + puntosFuturos);
+                
+                // Mostrar nombre del cliente y puntos en formato: "Juan Sebastian 360 → 450"
+                String nombreCliente = m_oTicket.getCustomer().getName();
+                String textoCompleto = String.format("%s %d → %d", 
+                    nombreCliente, puntosActuales, puntosFuturos);
+                
+                System.out.println("📝 Texto a mostrar: '" + textoCompleto + "'");
+                
+                m_jCustomerPoints.setText(textoCompleto);
+                m_jCustomerPoints.setVisible(true);
+                
+                System.out.println("✅ Label actualizado y visible");
+                
+            } catch (Exception ex) {
+                System.err.println("❌ Error updating customer points display: " + ex.getMessage());
+                ex.printStackTrace();
+                LOGGER.log(System.Logger.Level.WARNING, "Error updating customer points display: ", ex);
+                m_jCustomerPoints.setText(m_oTicket.getCustomer().getName());
+                m_jCustomerPoints.setVisible(true);
+            }
+        } else {
+            System.out.println("🚫 No hay cliente asignado al ticket");
+            m_jCustomerPoints.setText("");
+            m_jCustomerPoints.setVisible(false);
+        }
+    }
+
     /**
      * This method is called from within the constructor to initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is always
@@ -2237,6 +2330,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelLinesSum = new javax.swing.JPanel();
         filler2 = new javax.swing.Box.Filler(new java.awt.Dimension(5, 0), new java.awt.Dimension(5, 0), new java.awt.Dimension(5, 32767));
         m_jTicketId = new javax.swing.JLabel();
+        m_jCustomerPoints = new javax.swing.JLabel(); // Sebastian - Label para puntos del cliente
         m_jPanelTotals = new javax.swing.JPanel();
         m_jLblSubTotalEuros = new javax.swing.JLabel();
         m_jLblTaxEuros = new javax.swing.JLabel();
@@ -2559,6 +2653,24 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jTicketId.setVerticalTextPosition(javax.swing.SwingConstants.TOP);
         m_jPanelLinesSum.add(m_jTicketId, java.awt.BorderLayout.CENTER);
 
+        // Sebastian - Configuración del label de puntos del cliente
+        m_jCustomerPoints.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N - Más grande para la posición superior
+        m_jCustomerPoints.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        m_jCustomerPoints.setText("");
+        m_jCustomerPoints.setToolTipText("Puntos del cliente");
+        m_jCustomerPoints.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+        m_jCustomerPoints.setOpaque(true);
+        m_jCustomerPoints.setPreferredSize(new java.awt.Dimension(320, 35)); // Más ancho y altura ajustada
+        m_jCustomerPoints.setRequestFocusEnabled(false);
+        m_jCustomerPoints.setVerticalTextPosition(javax.swing.SwingConstants.CENTER);
+        m_jCustomerPoints.setForeground(new java.awt.Color(0, 80, 0)); // Verde más oscuro
+        m_jCustomerPoints.setBackground(new java.awt.Color(245, 255, 245)); // Fondo verde muy claro
+        m_jCustomerPoints.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 150, 0), 2), // Borde verde
+            javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10) // Padding interno
+        ));
+        // No añadir aquí, se añadirá al customerPointsPanel más adelante
+
         m_jPanelTotals.setPreferredSize(new java.awt.Dimension(375, 60));
         m_jPanelTotals.setLayout(new java.awt.GridLayout(2, 3, 4, 0));
 
@@ -2745,12 +2857,22 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         searchPanel.add(jPanelScanner, java.awt.BorderLayout.CENTER);
         
+        // Sebastian - Crear panel superior exclusivo para puntos del cliente
+        javax.swing.JPanel customerPointsPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        customerPointsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        customerPointsPanel.add(m_jCustomerPoints, java.awt.BorderLayout.EAST);
+        
         // Crear un panel contenedor para el toolbar y la búsqueda
         javax.swing.JPanel topPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         topPanel.add(m_jPanelMainToolbar, java.awt.BorderLayout.NORTH);
         topPanel.add(searchPanel, java.awt.BorderLayout.SOUTH);
+        
+        // Sebastian - Crear un panel contenedor completo que incluya los puntos arriba de todo
+        javax.swing.JPanel completeTopPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        completeTopPanel.add(customerPointsPanel, java.awt.BorderLayout.NORTH);
+        completeTopPanel.add(topPanel, java.awt.BorderLayout.CENTER);
 
-        m_jPanelContainer.add(topPanel, java.awt.BorderLayout.NORTH);
+        m_jPanelContainer.add(completeTopPanel, java.awt.BorderLayout.NORTH);
         m_jPanelContainer.add(m_jPanelTicket, java.awt.BorderLayout.CENTER);
 
         m_jPanelCatalog.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
@@ -3085,6 +3207,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         }
 
                         checkCustomer();
+                        updateCustomerPointsDisplay(); // Sebastian - Actualizar display de puntos
 
                         m_jTicketId.setText(m_oTicket.getName(m_oTicketExt));
 
@@ -3096,6 +3219,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     }
                 } else {
                     m_oTicket.setCustomer(null);
+                    updateCustomerPointsDisplay(); // Sebastian - Limpiar display de puntos
                     if (isRestaurantMode()) {
                         restDB.setCustomerNameInTableByTicketId(null, m_oTicket.getId());
                     }
@@ -3121,6 +3245,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             }
 
                             checkCustomer();
+                            updateCustomerPointsDisplay(); // Sebastian - Actualizar display de puntos
 
                             m_jTicketId.setText(m_oTicket.getName());
 
@@ -3199,6 +3324,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Limpiar cliente del ticket si se borra el ID
             if (m_oTicket != null) {
                 m_oTicket.setCustomer(null);
+                // Sebastian - Actualizar display de puntos cuando se remueve cliente
+                updateCustomerPointsDisplay();
             }
             return;
         }
@@ -3228,6 +3355,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         com.openbravo.pos.customers.CustomerInfoExt customerExt = dlSales.loadCustomerExt(customer.getId());
                         m_oTicket.setCustomer(customerExt);
                         LOGGER.log(System.Logger.Level.INFO, "Cliente asociado al ticket: " + customerName + " (ID: " + customer.getId() + ")");
+                        
+                        // Sebastian - Actualizar display de puntos cuando se asigna cliente
+                        updateCustomerPointsDisplay();
                     } catch (Exception ex) {
                         LOGGER.log(System.Logger.Level.WARNING, "Error al cargar CustomerInfoExt para el cliente: " + customer.getId(), ex);
                         m_oTicket.setCustomer(null);
@@ -3239,6 +3369,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 // Limpiar cliente del ticket si no se encuentra
                 if (m_oTicket != null) {
                     m_oTicket.setCustomer(null);
+                    // Sebastian - Actualizar display de puntos cuando no se encuentra cliente
+                    updateCustomerPointsDisplay();
                 }
             }
         } catch (Exception e) {
@@ -3248,6 +3380,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Limpiar cliente del ticket en caso de error
             if (m_oTicket != null) {
                 m_oTicket.setCustomer(null);
+                // Sebastian - Actualizar display de puntos en caso de error
+                updateCustomerPointsDisplay();
             }
         }
     }
@@ -3263,10 +3397,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_jCustomerName.setText("Cliente: " + customerName);
             m_jCustomerName.setForeground(new java.awt.Color(0, 100, 0));
             
+            // Sebastian - Actualizar información de puntos
+            updateCustomerPointsDisplay();
+            
             LOGGER.log(System.Logger.Level.INFO, "Mostrando cliente del ticket: " + customerName + " (ID: " + customer.getId() + ")");
         } else {
             m_jCustomerId.setText("");
             m_jCustomerName.setText("");
+            // Sebastian - Limpiar puntos cuando no hay cliente
+            updateCustomerPointsDisplay();
         }
     }
 
@@ -3319,6 +3458,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private javax.swing.JTextField m_jCustomerId;
     private javax.swing.JLabel m_jCustomerName;
     private javax.swing.JLabel m_jLblCustomerId;
+    private javax.swing.JLabel m_jCustomerPoints; // Label para mostrar puntos del cliente
     // End of variables declaration//GEN-END:variables
 
     /**
@@ -3524,6 +3664,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             
             // Calcular puntos según la configuración
             int puntosAOtorgar = config.calcularPuntos(totalTicket);
+            
+            // Sebastian - Debug adicional para comparar
+            System.out.println("🛒 PROCESAMIENTO REAL - Total ticket: $" + totalTicket);
+            System.out.println("🛒 PROCESAMIENTO REAL - Monto por punto: $" + config.getMontoPorPunto());
+            System.out.println("🛒 PROCESAMIENTO REAL - Puntos otorgados: " + config.getPuntosOtorgados());
+            
+            // Mostrar lógica de tramos
+            int tramosCompletos = (int) Math.floor(totalTicket / config.getMontoPorPunto());
+            System.out.println("🛒 PROCESAMIENTO REAL - Tramos completos: " + tramosCompletos);
+            System.out.println("🛒 PROCESAMIENTO REAL - Cálculo: " + tramosCompletos + " × " + config.getPuntosOtorgados() + " = " + puntosAOtorgar + " puntos");
+            
             if (puntosAOtorgar <= 0) {
                 LOGGER.log(System.Logger.Level.DEBUG, 
                     String.format("No se otorgan puntos: total=%.2f, configuración=%.2f %s = %d puntos", 

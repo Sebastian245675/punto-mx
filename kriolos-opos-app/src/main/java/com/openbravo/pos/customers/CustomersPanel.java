@@ -174,6 +174,13 @@ public class CustomersPanel extends JPanelTable {
             txtMoneda.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
             panelConfiguracion.add(txtMoneda);
             
+            // Sebastian - Campo para límite diario de puntos
+            panelConfiguracion.add(new JLabel("🚫 Límite diario de puntos:"));
+            JTextField txtLimiteDiario = new JTextField(String.valueOf(configActual.getLimiteDiarioPuntos()));
+            txtLimiteDiario.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            txtLimiteDiario.setToolTipText("Máximo de puntos que un cliente puede ganar por día");
+            panelConfiguracion.add(txtLimiteDiario);
+            
             panelConfiguracion.add(new JLabel("✅ Sistema activado:"));
             javax.swing.JCheckBox chkSistemaActivo = new javax.swing.JCheckBox("Activar sistema automático en ventas");
             chkSistemaActivo.setSelected(configActual.isSistemaActivo());
@@ -292,11 +299,12 @@ public class CustomersPanel extends JPanelTable {
                     double monto = Double.parseDouble(txtMontoRequerido.getText());
                     int puntos = Integer.parseInt(txtCantidadPuntos.getText());
                     String moneda = txtMoneda.getText().trim();
+                    int limiteDiario = Integer.parseInt(txtLimiteDiario.getText()); // Sebastian - Nuevo campo
                     boolean activo = chkSistemaActivo.isSelected();
                     
-                    if (monto <= 0 || puntos <= 0 || moneda.isEmpty()) {
+                    if (monto <= 0 || puntos <= 0 || limiteDiario <= 0 || moneda.isEmpty()) {
                         JOptionPane.showMessageDialog(ventanaPuntos,
-                            "❌ Todos los campos deben tener valores válidos:\n• Monto > 0\n• Puntos > 0\n• Moneda no vacía",
+                            "❌ Todos los campos deben tener valores válidos:\n• Monto > 0\n• Puntos > 0\n• Límite diario > 0\n• Moneda no vacía",
                             "Datos Inválidos",
                             JOptionPane.ERROR_MESSAGE);
                         return;
@@ -305,6 +313,7 @@ public class CustomersPanel extends JPanelTable {
                     configActual.setMontoPorPunto(monto);
                     configActual.setPuntosOtorgados(puntos);
                     configActual.setMoneda(moneda);
+                    configActual.setLimiteDiarioPuntos(limiteDiario); // Sebastian - Nuevo campo
                     configActual.setSistemaActivo(activo);
                     
                     puntosDataLogic.updateConfiguracion(configActual);
@@ -313,9 +322,10 @@ public class CustomersPanel extends JPanelTable {
                         String.format("✅ Configuración guardada exitosamente:\n\n" +
                                     "💰 Monto: $%.2f %s\n" +
                                     "⭐ Puntos: %d\n" +
-                                    "🔄 Sistema: %s\n\n" +
+                                    "� Límite diario: %d puntos\n" +
+                                    "�🔄 Sistema: %s\n\n" +
                                     "Esta configuración se aplicará automáticamente en las ventas.", 
-                                    monto, moneda, puntos,
+                                    monto, moneda, puntos, limiteDiario,
                                     activo ? "ACTIVO" : "INACTIVO"),
                         "Configuración Guardada",
                         JOptionPane.INFORMATION_MESSAGE);

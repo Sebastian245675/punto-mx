@@ -41,6 +41,8 @@ public class JTicketsBagSharedList extends javax.swing.JDialog {
     private final static Logger LOGGER = Logger.getLogger(JTicketsBagSharedList.class.getName());
 
     private String m_sDialogTicket;
+    private DataLogicReceipts m_dlReceipts;
+    private java.util.List<SharedTicketInfo> m_atickets;
 
     /**
      * Creates new form JTicketsBagSharedList
@@ -65,6 +67,8 @@ public class JTicketsBagSharedList extends javax.swing.JDialog {
     public String showTicketsList(java.util.List<SharedTicketInfo> atickets, DataLogicReceipts dlReceipts) {
 
         m_sDialogTicket = null;
+        m_dlReceipts = dlReceipts;
+        m_atickets = atickets;
 
         for (SharedTicketInfo aticket : atickets) {
 
@@ -186,6 +190,7 @@ public class JTicketsBagSharedList extends javax.swing.JDialog {
         jPanel3 = new javax.swing.JPanel();
         jPanel4 = new javax.swing.JPanel();
         m_jButtonCancel = new javax.swing.JButton();
+        m_jButtonClearAll = new javax.swing.JButton();
 
         setTitle(AppLocal.getIntString("caption.tickets")); // NOI18N
         setResizable(false);
@@ -208,6 +213,21 @@ public class JTicketsBagSharedList extends javax.swing.JDialog {
 
         jPanel3.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
         jPanel3.add(jPanel4);
+
+        m_jButtonClearAll.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        m_jButtonClearAll.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
+        m_jButtonClearAll.setText("Vaciar Todo"); // NOI18N
+        m_jButtonClearAll.setFocusPainted(false);
+        m_jButtonClearAll.setFocusable(false);
+        m_jButtonClearAll.setMargin(new java.awt.Insets(8, 8, 8, 8));
+        m_jButtonClearAll.setPreferredSize(new java.awt.Dimension(120, 45));
+        m_jButtonClearAll.setRequestFocusEnabled(false);
+        m_jButtonClearAll.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                m_jButtonClearAllActionPerformed(evt);
+            }
+        });
+        jPanel3.add(m_jButtonClearAll);
 
         m_jButtonCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         m_jButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
@@ -236,6 +256,44 @@ public class JTicketsBagSharedList extends javax.swing.JDialog {
 
     }//GEN-LAST:event_m_jButtonCancelActionPerformed
 
+    private void m_jButtonClearAllActionPerformed(java.awt.event.ActionEvent evt) {
+        int option = JOptionPane.showConfirmDialog(this,
+                "¿Está seguro de que desea eliminar todos los tickets almacenados?",
+                "Confirmar eliminación",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.WARNING_MESSAGE);
+        
+        if (option == JOptionPane.YES_OPTION) {
+            try {
+                // Eliminar todos los tickets de la base de datos
+                for (SharedTicketInfo ticket : m_atickets) {
+                    m_dlReceipts.deleteSharedTicket(ticket.getId());
+                }
+                
+                // Limpiar la vista
+                m_jtickets.removeAll();
+                m_jtickets.revalidate();
+                m_jtickets.repaint();
+                
+                // Mostrar mensaje de confirmación
+                JOptionPane.showMessageDialog(this,
+                        "Todos los tickets han sido eliminados correctamente.",
+                        "Eliminación exitosa",
+                        JOptionPane.INFORMATION_MESSAGE);
+                
+                // Cerrar el diálogo
+                dispose();
+                
+            } catch (BasicException ex) {
+                LOGGER.log(Level.SEVERE, "Error al eliminar tickets", ex);
+                JOptionPane.showMessageDialog(this,
+                        "Error al eliminar los tickets: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
@@ -243,6 +301,7 @@ public class JTicketsBagSharedList extends javax.swing.JDialog {
     private javax.swing.JPanel jPanel4;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JButton m_jButtonCancel;
+    private javax.swing.JButton m_jButtonClearAll;
     private javax.swing.JPanel m_jtickets;
     // End of variables declaration//GEN-END:variables
 

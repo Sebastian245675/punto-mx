@@ -23,6 +23,7 @@ public class PuntosConfiguracion {
     private int puntosOtorgados;   // Cuántos puntos se otorgan por el monto
     private boolean sistemaActivo;
     private String moneda;
+    private int limiteDiarioPuntos; // Sebastian - Límite máximo de puntos por día
     private Date fechaCreacion;
     private Date fechaActualizacion;
     
@@ -33,6 +34,7 @@ public class PuntosConfiguracion {
         this.puntosOtorgados = 50;     // 50 puntos por defecto
         this.sistemaActivo = true;
         this.moneda = "MX";
+        this.limiteDiarioPuntos = 500; // Sebastian - 500 puntos por día por defecto
         this.fechaCreacion = new Date();
         this.fechaActualizacion = new Date();
     }
@@ -70,6 +72,13 @@ public class PuntosConfiguracion {
     public String getMoneda() { return moneda; }
     public void setMoneda(String moneda) { this.moneda = moneda; }
     
+    // Sebastian - Getter y setter para límite diario de puntos
+    public int getLimiteDiarioPuntos() { return limiteDiarioPuntos; }
+    public void setLimiteDiarioPuntos(int limiteDiarioPuntos) { 
+        this.limiteDiarioPuntos = limiteDiarioPuntos; 
+        this.fechaActualizacion = new Date();
+    }
+    
     public Date getFechaCreacion() { return fechaCreacion; }
     public void setFechaCreacion(Date fechaCreacion) { this.fechaCreacion = fechaCreacion; }
     
@@ -78,16 +87,18 @@ public class PuntosConfiguracion {
     
     /**
      * Calcula cuántos puntos corresponden a un monto dado
+     * Sebastian - Modificado para funcionar por tramos/escalones, no proporcional
      */
     public int calcularPuntos(double monto) {
         if (!sistemaActivo || montoPorPunto <= 0) {
             return 0;
         }
         
-        // Proporción: si montoPorPunto = 700000 y puntosOtorgados = 50
-        // entonces monto / montoPorPunto * puntosOtorgados
-        double proporcion = monto / montoPorPunto;
-        return (int) Math.floor(proporcion * puntosOtorgados);
+        // Calcular por tramos: cada montoPorPunto completo = puntosOtorgados
+        // Ejemplo: Si montoPorPunto = $400 y puntosOtorgados = 40
+        // $0-$399 = 0 puntos, $400-$799 = 40 puntos, $800-$1199 = 80 puntos, etc.
+        int tramosCompletos = (int) Math.floor(monto / montoPorPunto);
+        return tramosCompletos * puntosOtorgados;
     }
     
     /**
@@ -103,8 +114,9 @@ public class PuntosConfiguracion {
                 config.puntosOtorgados = dr.getInt(3);
                 config.sistemaActivo = dr.getBoolean(4);
                 config.moneda = dr.getString(5);
-                config.fechaCreacion = dr.getTimestamp(6);
-                config.fechaActualizacion = dr.getTimestamp(7);
+                config.limiteDiarioPuntos = dr.getInt(6); // Sebastian - Nuevo campo
+                config.fechaCreacion = dr.getTimestamp(7);
+                config.fechaActualizacion = dr.getTimestamp(8);
                 return config;
             }
         };
@@ -123,8 +135,9 @@ public class PuntosConfiguracion {
                 dp.setInt(3, config.getPuntosOtorgados());
                 dp.setBoolean(4, config.isSistemaActivo());
                 dp.setString(5, config.getMoneda());
-                dp.setTimestamp(6, config.getFechaCreacion());
-                dp.setTimestamp(7, config.getFechaActualizacion());
+                dp.setInt(6, config.getLimiteDiarioPuntos()); // Sebastian - Nuevo campo
+                dp.setTimestamp(7, config.getFechaCreacion());
+                dp.setTimestamp(8, config.getFechaActualizacion());
             }
         };
     }
