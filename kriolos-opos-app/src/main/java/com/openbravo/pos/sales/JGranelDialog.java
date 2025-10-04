@@ -39,10 +39,10 @@ public class JGranelDialog extends JDialog {
     private boolean aceptado = false;
     private boolean modoPesoAPrecio = true; // true = peso->precio, false = precio->peso
     
-    /**
+    /** 
      * Constructor
      * @param parent Ventana padre
-     * @param precioUnitario Precio por kilo del producto
+     * @param precioUnitario Precio porkilo del producto
      */
     public JGranelDialog(Window parent, double precioUnitario) {
         super(parent, "Ingreso de Peso - Producto Granel", ModalityType.APPLICATION_MODAL);

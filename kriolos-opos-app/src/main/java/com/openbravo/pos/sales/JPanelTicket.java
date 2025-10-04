@@ -2671,7 +2671,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         ));
         // No añadir aquí, se añadirá al customerPointsPanel más adelante
 
-        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(375, 60));
+        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(450, 60)); // Más ancho para estar más a la derecha
+        m_jPanelTotals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 50, 0, 0)); // Margen izquierdo para empujar a la derecha
         m_jPanelTotals.setLayout(new java.awt.GridLayout(2, 3, 4, 0));
 
         m_jLblSubTotalEuros.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
