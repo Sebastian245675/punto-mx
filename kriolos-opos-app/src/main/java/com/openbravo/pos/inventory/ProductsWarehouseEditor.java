@@ -1,8 +1,28 @@
 //    KriolOS POS
 //    Copyright (c) 2019-2023 KriolOS
 //
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
+//    This program is free software: you can redistribute it and/or mo    @Override
+    public void writeValueEdit(Object value) {
+        Object[] myprod = (Object[]) value;
+        id = myprod[0];
+        prodid = myprod[1];
+        prodref = (String) myprod[2];
+        prodname = (String) myprod[3];
+        location = myprod[4];
+        m_jTitle.setText(Formats.STRING.formatValue((String)myprod[2]) + " - " + Formats.STRING.formatValue((String)myprod[3]));
+        
+        // Formatear stock con decimales para mejor visualización
+        double quantity = myprod[7] != null ? ((Double) myprod[7]).doubleValue() : 0.0;
+        double minimum = myprod[5] != null ? ((Double) myprod[5]).doubleValue() : 0.0;
+        double maximum = myprod[6] != null ? ((Double) myprod[6]).doubleValue() : 100.0;
+        
+        m_jQuantity.setText(DECIMAL_FORMAT.format(quantity));
+        m_jMinimum.setText(DECIMAL_FORMAT.format(minimum));
+        m_jMaximum.setText(DECIMAL_FORMAT.format(maximum));
+        
+        m_jMinimum.setEnabled(true);
+        m_jMaximum.setEnabled(true);
+     }under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
@@ -23,6 +43,13 @@ import com.openbravo.data.user.EditorRecord;
 import com.openbravo.format.Formats;
 import com.openbravo.pos.forms.AppLocal;
 import java.awt.Component;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.text.DecimalFormat;
+import javax.swing.text.AbstractDocument;
+import javax.swing.text.AttributeSet;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.DocumentFilter;
 
 /**
  *
@@ -30,6 +57,8 @@ import java.awt.Component;
  */
 public class ProductsWarehouseEditor extends javax.swing.JPanel implements EditorRecord {
 
+    private static final DecimalFormat DECIMAL_FORMAT = new DecimalFormat("0.000");
+    
     /**
      *
      */
@@ -44,8 +73,37 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
     public ProductsWarehouseEditor(DirtyManager dirty) {
         initComponents();
         
+        // Configurar filtros decimales para mejor entrada de datos
+        setupDecimalFilters();
+        
         m_jMinimum.getDocument().addDocumentListener(dirty);
         m_jMaximum.getDocument().addDocumentListener(dirty);
+    }
+    
+    /**
+     * Configura filtros para permitir entrada decimal en los campos de stock
+     */
+    private void setupDecimalFilters() {
+        // Aplicar filtro decimal a campos de stock
+        ((AbstractDocument) m_jMinimum.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
+        ((AbstractDocument) m_jMaximum.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
+        
+        // Mejorar experiencia de usuario con efectos de foco
+        setupFocusEffects(m_jMinimum);
+        setupFocusEffects(m_jMaximum);
+        setupFocusEffects(m_jQuantity);
+    }
+    
+    /**
+     * Configura efectos visuales al obtener/perder foco
+     */
+    private void setupFocusEffects(javax.swing.JTextField field) {
+        field.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                field.selectAll();
+            }
+        });
     }
 
     public ProductsWarehouseEditor() {
@@ -81,9 +139,9 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
         prodref = null;
         prodname = null;
         location = null;
-        m_jQuantity.setText(null);
-        m_jMinimum.setText(null);
-        m_jMaximum.setText(null);
+        m_jQuantity.setText("0.000");
+        m_jMinimum.setText("0.000");
+        m_jMaximum.setText("100.000");
         m_jMinimum.setEnabled(true);
         m_jMaximum.setEnabled(true);
     }
@@ -253,6 +311,37 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
                 .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
+    
+    /**
+     * Filtro para permitir solo entrada de números decimales
+     */
+    private static class DecimalDocumentFilter extends DocumentFilter {
+        private static final String DECIMAL_PATTERN = "^\\d*\\.?\\d{0,3}$";
+        
+        @Override
+        public void insertString(FilterBypass fb, int offset, String string, AttributeSet attr)
+                throws BadLocationException {
+            
+            String currentText = fb.getDocument().getText(0, fb.getDocument().getLength());
+            String newText = currentText.substring(0, offset) + string + currentText.substring(offset);
+            
+            if (newText.matches(DECIMAL_PATTERN) || newText.isEmpty()) {
+                super.insertString(fb, offset, string, attr);
+            }
+        }
+        
+        @Override
+        public void replace(FilterBypass fb, int offset, int length, String text, AttributeSet attrs)
+                throws BadLocationException {
+            
+            String currentText = fb.getDocument().getText(0, fb.getDocument().getLength());
+            String newText = currentText.substring(0, offset) + text + currentText.substring(offset + length);
+            
+            if (newText.matches(DECIMAL_PATTERN) || newText.isEmpty()) {
+                super.replace(fb, offset, length, text, attrs);
+            }
+        }
+    }
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
