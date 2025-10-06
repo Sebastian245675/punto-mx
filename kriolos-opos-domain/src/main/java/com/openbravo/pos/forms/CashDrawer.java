@@ -28,6 +28,7 @@ public class CashDrawer {
     private int cashSequence;
     private Date cashDateStart;
     private Date cashDateEnd;
+    private double initialAmount;  // Sebastian - Fondo inicial de caja
 
     public String getCashIndex() {
         return cashIndex;
@@ -59,6 +60,15 @@ public class CashDrawer {
 
     public void setCashDateEnd(Date cashDateEnd) {
         this.cashDateEnd = cashDateEnd;
+    }
+
+    // Sebastian - Métodos para manejar el fondo inicial
+    public double getInitialAmount() {
+        return initialAmount;
+    }
+
+    public void setInitialAmount(double initialAmount) {
+        this.initialAmount = initialAmount;
     }
 
 }

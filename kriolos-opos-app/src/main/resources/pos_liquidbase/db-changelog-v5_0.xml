@@ -19,4 +19,13 @@
             </column>
         </createTable>
     </changeSet>
+    
+    <!-- Sebastian - Agregar columna initial_amount para manejar fondo inicial de caja -->
+    <changeSet author="sebastian (unicenta-pos)" id="20241004-01">
+        <addColumn tableName="closedcash">
+            <column name="initial_amount" type="DOUBLE" defaultValueNumeric="0.0">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

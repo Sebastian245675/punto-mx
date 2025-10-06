@@ -73,6 +73,9 @@ public class PaymentsModel {
     private Double m_dSalesTaxNet;
     private java.util.List<SalesLine> m_lsales;
 
+    // Sebastian - Fondo inicial de caja
+    private Double m_dInitialAmount;
+
     private final static String[] SALEHEADERS = {"label.taxcategory", "label.totaltax", "label.totalnet"};
 
     private PaymentsModel() {
@@ -111,6 +114,9 @@ public class PaymentsModel {
         p.m_lremovedlines = new ArrayList<>();
 
         p.m_lsales = new ArrayList<>();
+        
+        // Sebastian - Fondo inicial por defecto
+        p.m_dInitialAmount = 0.0;
 
         return p;
     }
@@ -131,6 +137,9 @@ public class PaymentsModel {
         p.m_iSeq = app.getActiveCashSequence();
         p.m_dDateStart = app.getActiveCashDateStart();
         p.m_dDateEnd = null;
+        
+        // Sebastian - Cargar fondo inicial de la caja activa
+        p.m_dInitialAmount = app.getActiveCashInitialAmount();
 
 // JG 9 Nov 12
         // Product category Sales
@@ -1119,5 +1128,50 @@ public class PaymentsModel {
         public void setNumberOfEntries(int numberOfEntries) {
             this.numberOfEntries = numberOfEntries;
         }
+    }
+    
+    // Sebastian - Métodos para manejar el fondo inicial
+    
+    /**
+     * Obtiene el fondo inicial de la caja
+     * @return el fondo inicial como Double
+     */
+    public Double getInitialAmount() {
+        return m_dInitialAmount != null ? m_dInitialAmount : 0.0;
+    }
+    
+    /**
+     * Formatea el fondo inicial para mostrar
+     * @return el fondo inicial formateado como String
+     */
+    public String printInitialAmount() {
+        return Formats.CURRENCY.formatValue(getInitialAmount());
+    }
+    
+    /**
+     * Calcula el total de efectivo incluyendo el fondo inicial
+     * Solo aplica para pagos en efectivo ("cash")
+     * @return el total de efectivo más el fondo inicial
+     */
+    public Double getCashTotalWithInitial() {
+        Double cashTotal = 0.0;
+        
+        // Buscar pagos en efectivo
+        for (PaymentsLine payment : m_lpayments) {
+            if ("cash".equals(payment.getType())) {
+                cashTotal += payment.getValue();
+            }
+        }
+        
+        // Agregar fondo inicial
+        return cashTotal + getInitialAmount();
+    }
+    
+    /**
+     * Formatea el total de efectivo con fondo inicial para mostrar
+     * @return el total de efectivo con fondo inicial formateado como String
+     */
+    public String printCashTotalWithInitial() {
+        return Formats.CURRENCY.formatValue(getCashTotalWithInitial());
     }
 }

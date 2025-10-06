@@ -29,6 +29,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.sql.SQLException;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -383,19 +384,59 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
      * @throws BasicException
      */
     public final Object[] findActiveCash(String sActiveCashIndex) throws BasicException {
+        LOGGER.info("🔍 Sebastian - Buscando caja activa: " + sActiveCashIndex);
 
-        final SentenceFind m_activecash = new PreparedSentence(this.session,
-                "SELECT HOST, HOSTSEQUENCE, DATESTART, DATEEND, NOSALES "
-                + "FROM closedcash WHERE MONEY = ?",
-                SerializerWriteString.INSTANCE,
-                new SerializerReadBasic(new Datas[]{
-            Datas.STRING,
-            Datas.INT,
-            Datas.TIMESTAMP,
-            Datas.TIMESTAMP,
-            Datas.INT}));
+        // Sebastian - Intentar primero con fondo inicial
+        try {
+            final SentenceFind m_activecash = new PreparedSentence(this.session,
+                    "SELECT HOST, HOSTSEQUENCE, DATESTART, DATEEND, NOSALES, initial_amount "
+                    + "FROM closedcash WHERE MONEY = ?",
+                    SerializerWriteString.INSTANCE,
+                    new SerializerReadBasic(new Datas[]{
+                Datas.STRING,
+                Datas.INT,
+                Datas.TIMESTAMP,
+                Datas.TIMESTAMP,
+                Datas.INT,
+                Datas.DOUBLE}));
 
-        return (Object[]) m_activecash.find(sActiveCashIndex);
+            Object[] result = (Object[]) m_activecash.find(sActiveCashIndex);
+            
+            if (result != null) {
+                LOGGER.info("📋 Sebastian - Resultado BD completo:");
+                for (int i = 0; i < result.length; i++) {
+                    LOGGER.info("   [" + i + "] = " + result[i] + " (" + (result[i] != null ? result[i].getClass().getSimpleName() : "null") + ")");
+                }
+                
+                // Verificación especial del campo initial_amount
+                if (result.length > 5 && result[5] != null) {
+                    LOGGER.info("💰 Sebastian - initial_amount desde BD: $" + result[5]);
+                } else {
+                    LOGGER.warning("⚠️ Sebastian - initial_amount es null o no existe en posición [5]");
+                }
+            } else {
+                LOGGER.warning("❌ Sebastian - No se encontró caja con MONEY = " + sActiveCashIndex);
+            }
+            
+            return result;
+        } catch (BasicException e) {
+            LOGGER.warning("⚠️ Sebastian - Error con consulta extendida, usando fallback: " + e.getMessage());
+            // Sebastian - Fallback para compatibilidad con versión anterior
+            final SentenceFind m_activecash = new PreparedSentence(this.session,
+                    "SELECT HOST, HOSTSEQUENCE, DATESTART, DATEEND, NOSALES "
+                    + "FROM closedcash WHERE MONEY = ?",
+                    SerializerWriteString.INSTANCE,
+                    new SerializerReadBasic(new Datas[]{
+                Datas.STRING,
+                Datas.INT,
+                Datas.TIMESTAMP,
+                Datas.TIMESTAMP,
+                Datas.INT}));
+
+            Object[] result = (Object[]) m_activecash.find(sActiveCashIndex);
+            LOGGER.info("📋 Sebastian - Resultado BD fallback (sin initial_amount): longitud = " + (result != null ? result.length : "null"));
+            return result;
+        }
     }
 
     /**
@@ -426,17 +467,121 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
      * @throws BasicException
      */
     public final void execInsertCash(Object[] cash) throws BasicException {
+        // Sebastian - Compatibilidad con versión anterior (sin fondo inicial)
+        if (cash.length == 5) {
+            // Versión anterior sin fondo inicial
+            final SentenceExec m_insertcash = new StaticSentence(this.session,
+                    "INSERT INTO closedcash(MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND) "
+                    + "VALUES (?, ?, ?, ?, ?)",
+                    new SerializerWriteBasic(new Datas[]{
+                Datas.STRING,
+                Datas.STRING,
+                Datas.INT,
+                Datas.TIMESTAMP,
+                Datas.TIMESTAMP}));
+            m_insertcash.exec(cash);
+        } else if (cash.length == 6) {
+            // Nueva versión con fondo inicial
+            execInsertCashWithInitialAmount(cash);
+        } else {
+            throw new BasicException("Invalid cash array length: " + cash.length);
+        }
+    }
+
+    /**
+     * Sebastian - Insertar caja con fondo inicial
+     * @param cash Array con [MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND, INITIAL_AMOUNT]
+     * @throws BasicException
+     */
+    public final void execInsertCashWithInitialAmount(Object[] cash) throws BasicException {
         final SentenceExec m_insertcash = new StaticSentence(this.session,
-                "INSERT INTO closedcash(MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND) "
-                + "VALUES (?, ?, ?, ?, ?)",
+                "INSERT INTO closedcash(MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND, initial_amount) "
+                + "VALUES (?, ?, ?, ?, ?, ?)",
                 new SerializerWriteBasic(new Datas[]{
             Datas.STRING,
             Datas.STRING,
             Datas.INT,
             Datas.TIMESTAMP,
-            Datas.TIMESTAMP}));
+            Datas.TIMESTAMP,
+            Datas.DOUBLE}));
 
         m_insertcash.exec(cash);
+    }
+
+    /**
+     * Sebastian - Actualizar el monto inicial de una caja específica
+     * @param cashIndex Índice de la caja
+     * @param initialAmount Nuevo monto inicial
+     * @throws BasicException
+     */
+    public final void execUpdateCashInitialAmount(String cashIndex, double initialAmount) throws BasicException {
+        try {
+            LOGGER.info("� Sebastian - FORZANDO ACTUALIZACIÓN DE MONTO INICIAL...");
+            LOGGER.info("� Sebastian - Caja: " + cashIndex + ", Monto: $" + initialAmount);
+            
+            // PASO 1: Desactivar auto-commit para control total
+            this.session.getConnection().setAutoCommit(false);
+            LOGGER.info("🔧 Sebastian - Auto-commit DESACTIVADO");
+            
+            // PASO 2: Ejecutar UPDATE con parámetros explícitos
+            final SentenceExec m_updatecash = new StaticSentence(this.session,
+                    "UPDATE closedcash SET initial_amount = ? WHERE MONEY = ?",
+                    new SerializerWriteBasic(new Datas[]{
+                Datas.DOUBLE,
+                Datas.STRING}));
+
+            m_updatecash.exec(new Object[]{initialAmount, cashIndex});
+            LOGGER.info("✅ Sebastian - UPDATE closedcash ejecutado correctamente");
+            
+            // Verificar inmediatamente qué se guardó
+            PreparedSentence<String, Object[]> verifyStmt = new PreparedSentence<>(this.session,
+                    "SELECT initial_amount FROM closedcash WHERE MONEY = ?",
+                    SerializerWriteString.INSTANCE,
+                    new SerializerReadBasic(new Datas[]{Datas.DOUBLE}));
+            
+            Object[] result = verifyStmt.find(cashIndex);
+            if (result != null && result.length > 0) {
+                LOGGER.info("🔍 Sebastian - Verificación inmediata PRE-COMMIT: BD tiene $" + result[0]);
+            } else {
+                LOGGER.warning("❌ Sebastian - No se pudo verificar el valor guardado PRE-COMMIT");
+            }
+            
+            // PASO 3: COMMIT inmediato y forzado
+            this.session.getConnection().commit();
+            LOGGER.info("✅ Sebastian - COMMIT forzado ejecutado");
+            
+            // PASO 4: CHECKPOINT para forzar escritura a disco
+            this.session.getConnection().createStatement().execute("CHECKPOINT");
+            LOGGER.info("💾 Sebastian - CHECKPOINT ejecutado - datos forzados a disco");
+            
+            // PASO 5: VERIFICACIÓN FINAL (sin SHUTDOWN que desconecta la BD)
+            Object[] finalResult = verifyStmt.find(cashIndex);
+            if (finalResult != null && finalResult.length > 0) {
+                double finalAmount = finalResult[0] != null ? ((Number) finalResult[0]).doubleValue() : 0.0;
+                LOGGER.info("� Sebastian - Verificación FINAL: BD persiste $" + finalAmount);
+            }
+            LOGGER.info("💾 Sebastian - Datos persistidos sin desconectar BD");
+            
+            // PASO 6: Reactivar auto-commit
+            this.session.getConnection().setAutoCommit(true);
+            LOGGER.info("🔄 Sebastian - Auto-commit reactivado para operaciones futuras");
+            
+            LOGGER.info("🎯 Sebastian - MONTO INICIAL GUARDADO PERMANENTEMENTE CON CHECKPOINT: $" + initialAmount);
+            
+        } catch (Exception ex) {
+            LOGGER.severe("❌ Sebastian - ERROR CRÍTICO en actualización: " + ex.getMessage());
+            ex.printStackTrace();
+            
+            try {
+                this.session.getConnection().rollback();
+                this.session.getConnection().setAutoCommit(true);
+                LOGGER.info("🔄 Sebastian - Rollback ejecutado, auto-commit restaurado");
+            } catch (Exception rollbackEx) {
+                LOGGER.severe("❌ Sebastian - Error en rollback: " + rollbackEx.getMessage());
+            }
+            
+            throw new BasicException("Error crítico actualizando monto inicial", ex);
+        }
     }
 
     /**
