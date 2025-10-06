@@ -60,6 +60,9 @@ public class JRootApp extends JPanel implements AppView {
     private JPrincipalApp m_principalapp = null;
     private JAuthPanel mAuthPanel = null;
     private FirebaseSyncManagerREST firebaseSyncManager = null;
+    
+    // Sebastian - Indicar si la caja activa necesita configuración de fondo inicial
+    private boolean needsInitialCashSetup = false;
 
     private String getLineTimer() {
         return Formats.HOURMIN.formatValue(new Date());
@@ -172,26 +175,43 @@ public class JRootApp extends JPanel implements AppView {
                     ? null
                     : m_dlSystem.findActiveCash(sActiveCashIndex);
             if (valcash == null || !appFileProperties.getHost().equals(valcash[0])) {
+                // Sebastian - Solo inicializar caja sin monto inicial (se pedirá después del login)
                 setActiveCash(UUID.randomUUID().toString(),
-                        m_dlSystem.getSequenceCash(appFileProperties.getHost()) + 1, new Date(), null);
+                        m_dlSystem.getSequenceCash(appFileProperties.getHost()) + 1, new Date(), null, 0.0);
                 m_dlSystem.execInsertCash(
                         new Object[]{getActiveCashIndex(), appFileProperties.getHost(),
                             getActiveCashSequence(),
                             getActiveCashDateStart(),
-                            getActiveCashDateEnd()});
+                            getActiveCashDateEnd(), 0.0}); // Sebastian - Monto inicial temporal
+                needsInitialCashSetup = true; // Sebastian - Marcar que necesita configuración de fondo
+                return false; // Continuar normalmente
             } else {
+                // Sebastian - Recuperar fondo inicial guardado (si existe)
+                LOGGER.log(Level.INFO, "🔍 Sebastian - Datos de caja recuperados - Array length: " + valcash.length);
+                for (int i = 0; i < valcash.length; i++) {
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - valcash[" + i + "] = " + valcash[i] + " (tipo: " + (valcash[i] != null ? valcash[i].getClass().getSimpleName() : "null") + ")");
+                }
+                
+                double savedInitialAmount = valcash.length > 5 ? (Double) valcash[5] : 0.0;
                 setActiveCash(sActiveCashIndex,
                         (Integer) valcash[1],
                         (Date) valcash[2],
-                        (Date) valcash[3]);
+                        (Date) valcash[3],
+                        savedInitialAmount);
+                
+                LOGGER.log(Level.INFO, "💰 Sebastian POS - Caja activa recuperada con fondo inicial: $" + savedInitialAmount);
+                
+                // Sebastian - Solo necesita configuración si el fondo inicial es 0 o null
+                needsInitialCashSetup = (savedInitialAmount <= 0.0);
+                
+                return false; // Continuar normalmente
             }
         } catch (BasicException e) {
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
                     AppLocal.getIntString("message.cannotclosecash"), e);
             msg.show(this);
-            return true;
+            return true; // Error crítico
         }
-        return false;
     }
 
     private void logStartup() {
@@ -273,9 +293,34 @@ public class JRootApp extends JPanel implements AppView {
         activeCash.setCashSequence(iSeq);
         activeCash.setCashDateStart(dStart);
         activeCash.setCashDateEnd(dEnd);
+        activeCash.setInitialAmount(0.0); // Sebastian - Fondo inicial por defecto
 
         hostSavedProperties.setProperty("activecash", activeCash.getCashIndex());
         m_dlSystem.setResourceAsProperties(getHostID(), hostSavedProperties);
+    }
+
+    // Sebastian - Método para establecer caja activa con fondo inicial
+    @Override
+    public void setActiveCash(String sIndex, int iSeq, Date dStart, Date dEnd, double initialAmount) {
+        activeCash.setCashIndex(sIndex);
+        activeCash.setCashSequence(iSeq);
+        activeCash.setCashDateStart(dStart);
+        activeCash.setCashDateEnd(dEnd);
+        activeCash.setInitialAmount(initialAmount);
+
+        hostSavedProperties.setProperty("activecash", activeCash.getCashIndex());
+        m_dlSystem.setResourceAsProperties(getHostID(), hostSavedProperties);
+    }
+
+    // Sebastian - Obtener fondo inicial de la caja activa
+    @Override
+    public double getActiveCashInitialAmount() {
+        return activeCash.getInitialAmount();
+    }
+
+    // Sebastian - Actualizar solo el fondo inicial de la caja activa
+    public void setActiveCashInitialAmount(double initialAmount) {
+        activeCash.setInitialAmount(initialAmount);
     }
 
     @Override
@@ -383,6 +428,14 @@ public class JRootApp extends JPanel implements AppView {
 
             m_principalapp.activate();
             
+            // Sebastian - Solo verificar monto inicial si realmente necesita configuración
+            if (needsInitialCashSetup) {
+                LOGGER.log(Level.INFO, "🔧 Sebastian - Configurando fondo inicial para nueva caja o caja sin fondo configurado");
+                checkAndSetupInitialCash();
+            } else {
+                LOGGER.log(Level.INFO, "✅ Sebastian - Caja activa ya tiene fondo inicial configurado, omitiendo solicitud");
+            }
+            
             // Inicializar Firebase Sync Manager después de activar la aplicación principal
             initializeFirebaseSync();
         }
@@ -410,6 +463,98 @@ public class JRootApp extends JPanel implements AppView {
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error al inicializar Firebase Sync Manager: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Sebastian - Configurar monto inicial (solo se llama cuando realmente se necesita)
+     */
+    private void checkAndSetupInitialCash() {
+        LOGGER.log(Level.INFO, "� Sebastian - Solicitando configuración de fondo inicial para caja: " + getActiveCashIndex());
+        SwingUtilities.invokeLater(() -> {
+            showInitialCashDialog();
+        });
+    }
+    
+    /**
+     * Sebastian - Mostrar diálogo para configurar monto inicial
+     */
+    private void showInitialCashDialog() {
+        try {
+            LOGGER.log(Level.INFO, "🔔 Sebastian - Mostrando diálogo de monto inicial...");
+            
+            // Ejecutar en EDT si no estamos ya en él
+            if (!SwingUtilities.isEventDispatchThread()) {
+                SwingUtilities.invokeAndWait(() -> showInitialCashDialog());
+                return;
+            }
+            
+            // Usar la aplicación principal como padre
+            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
+            if (parentFrame == null && getTopLevelAncestor() instanceof JFrame) {
+                parentFrame = (JFrame) getTopLevelAncestor();
+            }
+            
+            JDialogInitialCash dialog = new JDialogInitialCash(parentFrame);
+            dialog.setInitialAmount(4000.0);
+            
+            // Asegurar que el diálogo esté al frente
+            dialog.setAlwaysOnTop(true);
+            dialog.toFront();
+            dialog.requestFocus();
+            
+            dialog.setVisible(true);
+            
+            if (dialog.isAccepted()) {
+                double initialAmount = dialog.getInitialAmount();
+                LOGGER.log(Level.INFO, "💰 Sebastian POS - Fondo inicial establecido: $" + initialAmount);
+                updateActiveCashInitialAmount(initialAmount);
+            }
+        } catch (Exception ex) {
+            LOGGER.log(Level.WARNING, "Error mostrando diálogo de monto inicial", ex);
+        }
+    }
+    
+    /**
+     * Sebastian - Actualizar monto inicial de la caja activa
+     */
+    private void updateActiveCashInitialAmount(double initialAmount) {
+        try {
+            String activeCashIndex = getActiveCashIndex();
+            LOGGER.log(Level.INFO, "🔄 Sebastian - Actualizando monto inicial en BD. Caja: " + activeCashIndex + ", Monto: $" + initialAmount);
+            
+            // Actualizar en la base de datos
+            try {
+                m_dlSystem.execUpdateCashInitialAmount(activeCashIndex, initialAmount);
+                LOGGER.log(Level.INFO, "✅ Sebastian - Monto inicial actualizado en BD correctamente");
+            } catch (Exception sqlEx) {
+                LOGGER.log(Level.SEVERE, "❌ Sebastian - ERROR CRÍTICO en execUpdateCashInitialAmount: " + sqlEx.getMessage(), sqlEx);
+                throw sqlEx; // Re-lanzar para que se vea el error completo
+            }
+            
+            // Verificar que el cambio se guardó consultando la BD inmediatamente
+            Object[] verificationData = m_dlSystem.findActiveCash(activeCashIndex);
+            if (verificationData != null && verificationData.length > 5) {
+                double savedAmount = (verificationData[5] != null) ? ((Number) verificationData[5]).doubleValue() : 0.0;
+                LOGGER.log(Level.INFO, "🔍 Sebastian - Verificación BD: Monto guardado = $" + savedAmount);
+                
+                if (Math.abs(savedAmount - initialAmount) < 0.01) {
+                    LOGGER.log(Level.INFO, "✅ Sebastian - Verificación EXITOSA: BD actualizada correctamente");
+                } else {
+                    LOGGER.log(Level.WARNING, "❌ Sebastian - Verificación FALLÓ: BD muestra $" + savedAmount + ", esperaba $" + initialAmount);
+                }
+            }
+            
+            // Actualizar en memoria
+            setActiveCashInitialAmount(initialAmount);
+            LOGGER.log(Level.INFO, "✅ Sebastian - Monto inicial actualizado en memoria correctamente");
+            
+            // Sebastian - Marcar que ya no necesita configuración de fondo inicial
+            needsInitialCashSetup = false;
+            
+            LOGGER.log(Level.INFO, "✅ Sebastian - PROCESO COMPLETO: Monto inicial actualizado: $" + initialAmount);
+        } catch (Exception ex) {
+            LOGGER.log(Level.WARNING, "❌ Sebastian - Error actualizando monto inicial: " + ex.getMessage(), ex);
         }
     }
     
