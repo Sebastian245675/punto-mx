@@ -6,6 +6,7 @@ package com.openbravo.pos.forms;
 import com.openbravo.basic.BasicException;
 import com.openbravo.beans.JFlowPanel;
 import com.openbravo.beans.JPasswordDialog;
+import com.openbravo.beans.JPasswordDialogModern;
 import com.openbravo.data.gui.MessageInf;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -282,7 +283,7 @@ public class JAuthPanel extends javax.swing.JPanel {
                     LOGGER.log(Level.INFO, "IS Logged");
                     authListener.onSucess(m_actionuser);
                 } else {
-                    String sPassword = JPasswordDialog.showEditor(JAuthPanel.this,
+                    String sPassword = JPasswordDialogModern.showEditor(JAuthPanel.this,
                             AppLocal.getIntString("label.Password"),
                             m_actionuser.getName(),
                             m_actionuser.getIcon());
@@ -368,7 +369,7 @@ public class JAuthPanel extends javax.swing.JPanel {
 
         // 🖼️ LOGO MODERNIZADO
         m_vendorImageLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_vendorImageLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/logo_100×100.png"))); // NOI18N
+        m_vendorImageLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/app_logo_100x100.png"))); // NOI18N
         m_vendorImageLabel.setText("🚀 Sebastian POS"); 
         m_vendorImageLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         m_vendorImageLabel.setForeground(MODERN_DARK);
