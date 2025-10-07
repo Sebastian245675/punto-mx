@@ -7,20 +7,13 @@ import com.openbravo.basic.BasicException;
 import com.openbravo.beans.JFlowPanel;
 import com.openbravo.beans.JPasswordDialog;
 import com.openbravo.data.gui.MessageInf;
-import java.awt.Color;
-import java.awt.Dimension;
-import java.awt.Font;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import javax.swing.AbstractAction;
-import javax.swing.AbstractButton;
-import javax.swing.Action;
-import javax.swing.BorderFactory;
-import javax.swing.JButton;
-import javax.swing.SwingConstants;
+import javax.swing.*;
 
 /**
  * Pantalla de Login Modernizada por Sebastian
@@ -53,13 +46,47 @@ public class JAuthPanel extends javax.swing.JPanel {
     }
 
     private void initPanel() {
-        // Aplicar diseño moderno al panel principal
+        // 🎨 APLICAR DISEÑO ULTRA MODERNO AL PANEL PRINCIPAL
         setBackground(MODERN_LIGHT);
         
+        // Título principal moderno
+        jLabel1.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        jLabel1.setForeground(MODERN_DARK);
+        jLabel1.setText("🔐 Seleccionar Usuario");
+        jLabel1.setBorder(BorderFactory.createEmptyBorder(20, 20, 15, 20));
+        
+        // Panel lateral moderno
+        leftPanel.setBackground(Color.WHITE);
+        leftPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createMatteBorder(0, 0, 0, 1, new Color(230, 230, 230)),
+            BorderFactory.createEmptyBorder(0, 15, 0, 15)
+        ));
+        
+        // Header panel moderno
+        leftHeaderPanel.setBackground(MODERN_BLUE);
+        jLabel1.setForeground(Color.WHITE);
+        jLabel1.setOpaque(true);
+        jLabel1.setBackground(MODERN_BLUE);
+        
         // Estilo moderno para el scroll pane
-        usersLisScrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
-        usersLisScrollPane.setBackground(MODERN_LIGHT);
-        usersLisScrollPane.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        usersLisScrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(12, 35));
+        usersLisScrollPane.setBackground(Color.WHITE);
+        usersLisScrollPane.setBorder(BorderFactory.createEmptyBorder(10, 5, 10, 5));
+        usersLisScrollPane.getVerticalScrollBar().setUI(new javax.swing.plaf.basic.BasicScrollBarUI() {
+            @Override
+            protected void configureScrollBarColors() {
+                this.thumbColor = MODERN_BLUE;
+                this.trackColor = new Color(240, 240, 240);
+            }
+        });
+        
+        // Panel principal con efectos visuales
+        mainPanel.setBackground(MODERN_LIGHT);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Campo de texto oculto pero funcional
+        m_txtKeys.setPreferredSize(new Dimension(0, 0));
+        m_txtKeys.setVisible(false);
         
         showListPeople();
 
@@ -74,6 +101,36 @@ public class JAuthPanel extends javax.swing.JPanel {
             }
         });
     }
+    
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        
+        // 🎨 EFECTOS VISUALES MODERNOS PARA EL LOGIN
+        Graphics2D g2d = (Graphics2D) g.create();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        
+        // Gradiente de fondo moderno
+        GradientPaint backgroundGradient = new GradientPaint(
+            0, 0, MODERN_LIGHT,
+            getWidth(), getHeight(), new Color(240, 245, 251)
+        );
+        g2d.setPaint(backgroundGradient);
+        g2d.fillRect(0, 0, getWidth(), getHeight());
+        
+        // Efecto de líneas decorativas sutiles
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.1f));
+        g2d.setColor(MODERN_BLUE);
+        g2d.setStroke(new BasicStroke(2));
+        
+        // Líneas diagonales decorativas
+        for (int i = 0; i < getWidth() + getHeight(); i += 100) {
+            g2d.drawLine(i, 0, i - getHeight(), getHeight());
+        }
+        
+        g2d.dispose();
+    }
 
     private void showListPeople() {
         try {
@@ -85,53 +142,82 @@ public class JAuthPanel extends javax.swing.JPanel {
 
             java.util.List<AppUser> peoples = m_dlSystem.listPeopleVisible();
             
-            LOGGER.log(Level.INFO, "✨ Sebastian POS - Usuarios encontrados: " + peoples.size());
+            LOGGER.log(Level.INFO, "✨ CONNECTING POS - Usuarios encontrados: " + peoples.size());
 
             for (AppUser user : peoples) {
                 
                 JButton btn = new JButton(new AppUserAction(user));
                 
-                // 🎨 DISEÑO MODERNO PARA BOTONES
+                // 🎨 DISEÑO ULTRA MODERNO PARA BOTONES DE USUARIO
                 btn.applyComponentOrientation(getComponentOrientation());
                 btn.setFocusPainted(false);
                 btn.setFocusable(false);
                 btn.setRequestFocusEnabled(false);
                 
-                // Tamaño más grande y moderno
-                btn.setMaximumSize(new Dimension(140, 80));
-                btn.setPreferredSize(new Dimension(140, 80));
-                btn.setMinimumSize(new Dimension(140, 80));
+                // Tamaño moderno y elegante
+                btn.setMaximumSize(new Dimension(160, 90));
+                btn.setPreferredSize(new Dimension(160, 90));
+                btn.setMinimumSize(new Dimension(160, 90));
                 
-                // Colores modernos
+                // Colores modernos con gradiente visual
                 btn.setBackground(MODERN_BLUE);
                 btn.setForeground(Color.WHITE);
                 btn.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createRaisedBevelBorder(),
-                    BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                    BorderFactory.createLineBorder(new Color(52, 116, 235), 2, true),
+                    BorderFactory.createEmptyBorder(15, 20, 15, 20)
                 ));
                 
-                // Fuente moderna
-                btn.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                // Fuente moderna y elegante
+                btn.setFont(new Font("Segoe UI", Font.BOLD, 14));
                 
-                // Alineación y texto
+                // Alineación perfecta
                 btn.setHorizontalAlignment(SwingConstants.CENTER);
                 btn.setHorizontalTextPosition(AbstractButton.CENTER);
                 btn.setVerticalTextPosition(AbstractButton.BOTTOM);
                 
-                // 🚀 EFECTOS HOVER MODERNOS
+                // 🚀 EFECTOS HOVER PREMIUM
                 btn.addMouseListener(new MouseAdapter() {
                     @Override
                     public void mouseEntered(MouseEvent e) {
-                        btn.setBackground(MODERN_LIGHT_BLUE);
+                        btn.setBackground(new Color(52, 116, 235));
+                        btn.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(new Color(40, 104, 223), 3, true),
+                            BorderFactory.createEmptyBorder(14, 19, 14, 19)
+                        ));
                         btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+                        
+                        // Efecto de "elevación"
+                        btn.setPreferredSize(new Dimension(165, 95));
+                        btn.revalidate();
                     }
                     
                     @Override
                     public void mouseExited(MouseEvent e) {
                         btn.setBackground(MODERN_BLUE);
+                        btn.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(new Color(52, 116, 235), 2, true),
+                            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+                        ));
                         btn.setCursor(new java.awt.Cursor(java.awt.Cursor.DEFAULT_CURSOR));
+                        
+                        // Restaurar tamaño
+                        btn.setPreferredSize(new Dimension(160, 90));
+                        btn.revalidate();
+                    }
+                    
+                    @Override
+                    public void mousePressed(MouseEvent e) {
+                        btn.setBackground(new Color(40, 104, 223));
+                    }
+                    
+                    @Override
+                    public void mouseReleased(MouseEvent e) {
+                        btn.setBackground(new Color(52, 116, 235));
                     }
                 });
+                
+                // 👤 CREAR AVATAR MODERNO PARA EL USUARIO
+                configurarAvatarModerno(btn, user);
                 
                 jPeople.add(btn);
             }
@@ -217,6 +303,35 @@ public class JAuthPanel extends javax.swing.JPanel {
                 LOGGER.log(Level.WARNING, "Exception on LOGIN: ", ex);
             }
         }
+    }
+    
+    /**
+     * 👤 Configura un avatar moderno para el botón de usuario
+     */
+    private void configurarAvatarModerno(JButton btn, AppUser user) {
+        String userName = user.getName();
+        
+        // Array de emojis modernos para avatares
+        String[] avatars = {
+            "👨‍💼", "👩‍💼", "👨‍🔧", "👩‍🔧", "👨‍💻", "👩‍💻", 
+            "👨‍🍳", "👩‍🍳", "👨‍⚕️", "👩‍⚕️", "👨‍🏫", "👩‍🏫",
+            "💼", "🧑‍💼", "👤", "🎯", "⭐", "🚀"
+        };
+        
+        // Seleccionar avatar basado en el hash del nombre
+        String selectedAvatar = avatars[Math.abs(userName.hashCode()) % avatars.length];
+        
+        // Crear texto con avatar y nombre
+        String buttonText = "<html><div style='text-align: center; padding: 8px;'>" +
+                           "<div style='font-size: 24px; margin-bottom: 5px;'>" + selectedAvatar + "</div>" +
+                           "<div style='font-size: 12px; font-weight: bold; color: white;'>" + userName + "</div>" +
+                           "</html>";
+        
+        btn.setText(buttonText);
+        
+        // Configuraciones adicionales de estilo
+        btn.setVerticalTextPosition(SwingConstants.CENTER);
+        btn.setHorizontalTextPosition(SwingConstants.CENTER);
     }
     
     public interface AuthListener {

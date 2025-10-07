@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.rmi.RemoteException;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
+import javax.swing.SwingUtilities;
 import java.awt.Dimension;
 import java.awt.GraphicsDevice;
 import java.awt.GraphicsEnvironment;
@@ -58,11 +59,61 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
     public void initFrame() {
 
         setTitle(AppLocal.APP_NAME + " - " + AppLocal.APP_VERSION);
-        String image = "/com/openbravo/images/app_logo_48x48.png";
+        
+        // FORZAR ICONO PERSONALIZADO CON MÁXIMA AGRESIVIDAD
         try {
-            this.setIconImage(ImageIO.read(JRootFrame.class.getResourceAsStream(image)));
-        } catch (IOException e) {
-            LOGGER.log(Level.WARNING, "Exception load icon: " + image, e);
+            // Intentar cargar desde múltiples ubicaciones
+            String[] iconPaths = {
+                "/com/openbravo/images/app_logo_48x48.png",
+                "/com/openbravo/pos/templates/app_logo_48x48.png",
+                "/images/app_logo_48x48.png",
+                "/app_logo_48x48.png"
+            };
+            
+            java.awt.Image iconImage = null;
+            for (String path : iconPaths) {
+                try {
+                    iconImage = ImageIO.read(JRootFrame.class.getResourceAsStream(path));
+                    if (iconImage != null) break;
+                } catch (Exception e) {
+                    // Intentar siguiente ruta
+                }
+            }
+            
+            if (iconImage != null) {
+                // Configurar múltiples tamaños de iconos
+                java.util.List<java.awt.Image> iconList = new java.util.ArrayList<>();
+                iconList.add(iconImage.getScaledInstance(16, 16, java.awt.Image.SCALE_SMOOTH));
+                iconList.add(iconImage.getScaledInstance(24, 24, java.awt.Image.SCALE_SMOOTH));
+                iconList.add(iconImage.getScaledInstance(32, 32, java.awt.Image.SCALE_SMOOTH));
+                iconList.add(iconImage.getScaledInstance(48, 48, java.awt.Image.SCALE_SMOOTH));
+                iconList.add(iconImage.getScaledInstance(64, 64, java.awt.Image.SCALE_SMOOTH));
+                iconList.add(iconImage.getScaledInstance(128, 128, java.awt.Image.SCALE_SMOOTH));
+                
+                this.setIconImages(iconList);
+                this.setIconImage(iconImage);
+                
+                // También configurar para la barra de tareas agresivamente
+                try {
+                    if (java.awt.Taskbar.isTaskbarSupported()) {
+                        java.awt.Taskbar taskbar = java.awt.Taskbar.getTaskbar();
+                        if (taskbar.isSupported(java.awt.Taskbar.Feature.ICON_IMAGE)) {
+                            taskbar.setIconImage(iconImage);
+                        }
+                    }
+                } catch (Exception e) {
+                    // Ignorar si la plataforma no soporta taskbar
+                }
+                
+                // Forzar refresco del frame
+                SwingUtilities.invokeLater(() -> {
+                    this.repaint();
+                    this.revalidate();
+                });
+            }
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Exception load icon", e);
         }
 
         //SHOW SPLASH

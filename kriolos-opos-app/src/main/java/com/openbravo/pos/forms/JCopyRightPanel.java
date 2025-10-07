@@ -1,14 +1,14 @@
 /*
- * Sebastian POS - Panel de Información Modernizado
+ * CONNECTING POS - Panel de Información Modernizado
  */
 package com.openbravo.pos.forms;
 
-import java.awt.Color;
-import java.awt.Font;
+import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
 import javax.swing.BorderFactory;
 
 /**
- * Panel de Información Moderno por Sebastian
+ * Panel de Información Ultra Moderno por Sebastian
  * @author Sebastian
  */
 public class JCopyRightPanel extends javax.swing.JPanel {
@@ -16,11 +16,12 @@ public class JCopyRightPanel extends javax.swing.JPanel {
     private static final long serialVersionUID = 1L;
     private static final String SEBASTIAN_SITE = "https://github.com/sebastian-dev";
     
-    // Colores modernos
-    private static final Color MODERN_BLUE = new Color(64, 128, 255);
+    // Colores modernos premium
+    private static final Color MODERN_BLUE = new Color(74, 144, 226);
     private static final Color MODERN_LIGHT = new Color(248, 249, 250);
-    private static final Color MODERN_DARK = new Color(45, 45, 45);
+    private static final Color MODERN_DARK = new Color(33, 37, 41);
     private static final Color MODERN_GRAY = new Color(108, 117, 125);
+    private static final Color MODERN_SUCCESS = new Color(40, 167, 69);
     
     /**
      * Creates new form JCopyRightPanel
@@ -36,7 +37,7 @@ public class JCopyRightPanel extends javax.swing.JPanel {
         
         // Crear contenido moderno y atractivo
         copyRightLabel.setText("<html><div style='text-align: center; padding: 40px;'>"
-                + "<h1 style='color: #4080FF; font-size: 28px; margin-bottom: 20px;'>🚀 Sebastian POS</h1>"
+                + "<h1 style='color: #4080FF; font-size: 28px; margin-bottom: 20px;'>🚀 CONNECTING POS</h1>"
                 + "<p style='color: #2D2D2D; font-size: 18px; margin-bottom: 15px;'><strong>Sistema de Punto de Venta Moderno</strong></p>"
                 + "<p style='color: #6C757D; font-size: 14px; margin-bottom: 25px;'>Desarrollado con tecnología avanzada para tu negocio</p>"
                 
@@ -63,7 +64,7 @@ public class JCopyRightPanel extends javax.swing.JPanel {
                 + "</div>"
                 
                 + "<div style='margin-top: 25px;'>"
-                + "<p style='color: #4080FF; font-size: 14px; font-weight: bold;'>¡Gracias por elegir Sebastian POS! 🎉</p>"
+                + "<p style='color: #4080FF; font-size: 14px; font-weight: bold;'>¡Gracias por elegir CONNECTING POS! 🎉</p>"
                 + "</div>"
                 
                 + "</div></html>"
@@ -76,6 +77,47 @@ public class JCopyRightPanel extends javax.swing.JPanel {
         copyRightLabel.setMaximumSize(new java.awt.Dimension(900, 1200));
         copyRightLabel.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
         copyRightLabel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+    }
+    
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        
+        // 🎨 EFECTOS VISUALES ULTRA MODERNOS
+        Graphics2D g2d = (Graphics2D) g.create();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        g2d.setRenderingHint(RenderingHints.KEY_RENDERING, RenderingHints.VALUE_RENDER_QUALITY);
+        
+        // Gradiente de fondo premium
+        GradientPaint backgroundGradient = new GradientPaint(
+            0, 0, new Color(248, 249, 250),
+            0, getHeight(), new Color(239, 243, 248)
+        );
+        g2d.setPaint(backgroundGradient);
+        g2d.fillRect(0, 0, getWidth(), getHeight());
+        
+        // Efectos de luz sutil en las esquinas
+        g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, 0.3f));
+        
+        // Luz superior izquierda
+        RadialGradientPaint lightGradient1 = new RadialGradientPaint(
+            0, 0, 200,
+            new float[]{0f, 1f},
+            new Color[]{new Color(74, 144, 226, 50), new Color(74, 144, 226, 0)}
+        );
+        g2d.setPaint(lightGradient1);
+        g2d.fillOval(-100, -100, 200, 200);
+        
+        // Luz inferior derecha
+        RadialGradientPaint lightGradient2 = new RadialGradientPaint(
+            getWidth(), getHeight(), 150,
+            new float[]{0f, 1f},
+            new Color[]{new Color(40, 167, 69, 30), new Color(40, 167, 69, 0)}
+        );
+        g2d.setPaint(lightGradient2);
+        g2d.fillOval(getWidth() - 75, getHeight() - 75, 150, 150);
+        
+        g2d.dispose();
     }
 
     /**

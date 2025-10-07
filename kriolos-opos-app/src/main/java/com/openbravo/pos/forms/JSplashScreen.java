@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2022 KriolOS
+ * Copyright (C) 2022 KriolOS - Modernizado por Sebastian
  *
  * This program is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,18 +16,84 @@
  */
 package com.openbravo.pos.forms;
 
+import java.awt.*;
+import java.awt.geom.RoundRectangle2D;
+import javax.swing.*;
+
 /**
- *
- * @author poolborges
+ * Splash Screen Modernizado por Sebastian
+ * @author poolborges, Sebastian
  */
 public class JSplashScreen extends javax.swing.JPanel {
 
     private static final long serialVersionUID = 1L;
+    
+    // 🎨 COLORES MODERNOS
+    private static final Color MODERN_PRIMARY = new Color(74, 144, 226);
+    private static final Color MODERN_SECONDARY = new Color(108, 117, 125);
+    private static final Color MODERN_BACKGROUND = new Color(248, 249, 250);
+    private static final Color MODERN_DARK = new Color(33, 37, 41);
+    private static final Color MODERN_SUCCESS = new Color(40, 167, 69);
+    
     /**
      * Creates new form JSplashScreen
      */
     public JSplashScreen() {
         initComponents();
+        aplicarEstiloModerno();
+    }
+    
+    /**
+     * 🚀 APLICAR ESTILO MODERNO AL SPLASH SCREEN
+     */
+    private void aplicarEstiloModerno() {
+        // Fondo moderno
+        setBackground(MODERN_BACKGROUND);
+        
+        // Título moderno
+        jLabel1.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        jLabel1.setForeground(MODERN_DARK);
+        jLabel1.setText("🚀 CONNECTING POS - Cargando...");
+        jLabel1.setHorizontalAlignment(SwingConstants.CENTER);
+        jLabel1.setBorder(BorderFactory.createEmptyBorder(30, 20, 20, 20));
+        
+        // Progress bar moderno
+        jProgressBar1.setStringPainted(true);
+        jProgressBar1.setString("Iniciando sistema...");
+        jProgressBar1.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        jProgressBar1.setForeground(MODERN_PRIMARY);
+        jProgressBar1.setBackground(Color.WHITE);
+        jProgressBar1.setBorder(BorderFactory.createEmptyBorder(20, 30, 30, 30));
+        
+        // Panel con bordes redondeados
+        setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createEmptyBorder(20, 20, 20, 20),
+            BorderFactory.createLineBorder(MODERN_SECONDARY, 1, true)
+        ));
+    }
+    
+    @Override
+    protected void paintComponent(Graphics g) {
+        super.paintComponent(g);
+        
+        // 🎨 EFECTOS VISUALES MODERNOS
+        Graphics2D g2d = (Graphics2D) g.create();
+        g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+        
+        // Gradiente de fondo moderno
+        GradientPaint gradient = new GradientPaint(
+            0, 0, MODERN_BACKGROUND,
+            0, getHeight(), new Color(230, 240, 250)
+        );
+        g2d.setPaint(gradient);
+        g2d.fillRoundRect(10, 10, getWidth() - 20, getHeight() - 20, 15, 15);
+        
+        // Borde sutil
+        g2d.setColor(new Color(200, 210, 220));
+        g2d.setStroke(new BasicStroke(2));
+        g2d.drawRoundRect(10, 10, getWidth() - 20, getHeight() - 20, 15, 15);
+        
+        g2d.dispose();
     }
 
     /**

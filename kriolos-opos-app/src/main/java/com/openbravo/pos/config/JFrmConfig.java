@@ -48,6 +48,10 @@ public class JFrmConfig extends javax.swing.JFrame {
 
         String image = "/com/openbravo/images/app_logo_48x48.png";
         try {
+            // Configurar múltiples tamaños de iconos para mejor compatibilidad
+            java.util.List<java.awt.Image> iconList = new java.util.ArrayList<>();
+            iconList.add(ImageIO.read(JFrmConfig.class.getResourceAsStream(image)));
+            this.setIconImages(iconList);
             this.setIconImage(ImageIO.read(JFrmConfig.class.getResourceAsStream(image)));
         } catch (IOException e) {
             LOGGER.log(Level.WARNING, "Exception load icon: "+image, e);

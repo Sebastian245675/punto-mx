@@ -10,7 +10,7 @@ import com.openbravo.beans.LocaleResources;
 public class AppLocal {
     
 
-    public static final String APP_NAME = "Sebastian POS";
+    public static final String APP_NAME = "CONNECTING POS";
     public static final String APP_ID = "sebastian-pos";
     public static final String APP_VERSION = "1.0.0-Sebastian";
     public static String APP_SHORT_DESCRIPTION = "Sistema creado por Sebastian!";
