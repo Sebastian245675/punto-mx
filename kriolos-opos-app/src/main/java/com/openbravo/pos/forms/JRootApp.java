@@ -23,12 +23,14 @@ import java.io.*;
 import java.sql.SQLException;
 import java.text.DateFormat;
 import java.util.*;
+import java.util.Date;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.CompletableFuture;
 import javax.swing.*;
 import javax.swing.SwingUtilities;
 import java.io.IOException;
+import com.openbravo.beans.JDoubleDialog;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
@@ -60,9 +62,6 @@ public class JRootApp extends JPanel implements AppView {
     private JPrincipalApp m_principalapp = null;
     private JAuthPanel mAuthPanel = null;
     private FirebaseSyncManagerREST firebaseSyncManager = null;
-    
-    // Sebastian - Indicar si la caja activa necesita configuración de fondo inicial
-    private boolean needsInitialCashSetup = false;
 
     private String getLineTimer() {
         return Formats.HOURMIN.formatValue(new Date());
@@ -175,43 +174,26 @@ public class JRootApp extends JPanel implements AppView {
                     ? null
                     : m_dlSystem.findActiveCash(sActiveCashIndex);
             if (valcash == null || !appFileProperties.getHost().equals(valcash[0])) {
-                // Sebastian - Solo inicializar caja sin monto inicial (se pedirá después del login)
                 setActiveCash(UUID.randomUUID().toString(),
-                        m_dlSystem.getSequenceCash(appFileProperties.getHost()) + 1, new Date(), null, 0.0);
+                        m_dlSystem.getSequenceCash(appFileProperties.getHost()) + 1, new Date(), null);
                 m_dlSystem.execInsertCash(
                         new Object[]{getActiveCashIndex(), appFileProperties.getHost(),
                             getActiveCashSequence(),
                             getActiveCashDateStart(),
-                            getActiveCashDateEnd(), 0.0}); // Sebastian - Monto inicial temporal
-                needsInitialCashSetup = true; // Sebastian - Marcar que necesita configuración de fondo
-                return false; // Continuar normalmente
+                            getActiveCashDateEnd()});
             } else {
-                // Sebastian - Recuperar fondo inicial guardado (si existe)
-                LOGGER.log(Level.INFO, "🔍 Sebastian - Datos de caja recuperados - Array length: " + valcash.length);
-                for (int i = 0; i < valcash.length; i++) {
-                    LOGGER.log(Level.INFO, "🔍 Sebastian - valcash[" + i + "] = " + valcash[i] + " (tipo: " + (valcash[i] != null ? valcash[i].getClass().getSimpleName() : "null") + ")");
-                }
-                
-                double savedInitialAmount = valcash.length > 5 ? (Double) valcash[5] : 0.0;
                 setActiveCash(sActiveCashIndex,
                         (Integer) valcash[1],
                         (Date) valcash[2],
-                        (Date) valcash[3],
-                        savedInitialAmount);
-                
-                LOGGER.log(Level.INFO, "💰 Sebastian POS - Caja activa recuperada con fondo inicial: $" + savedInitialAmount);
-                
-                // Sebastian - Solo necesita configuración si el fondo inicial es 0 o null
-                needsInitialCashSetup = (savedInitialAmount <= 0.0);
-                
-                return false; // Continuar normalmente
+                        (Date) valcash[3]);
             }
         } catch (BasicException e) {
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
                     AppLocal.getIntString("message.cannotclosecash"), e);
             msg.show(this);
-            return true; // Error crítico
+            return true;
         }
+        return false;
     }
 
     private void logStartup() {
@@ -293,34 +275,28 @@ public class JRootApp extends JPanel implements AppView {
         activeCash.setCashSequence(iSeq);
         activeCash.setCashDateStart(dStart);
         activeCash.setCashDateEnd(dEnd);
-        activeCash.setInitialAmount(0.0); // Sebastian - Fondo inicial por defecto
 
         hostSavedProperties.setProperty("activecash", activeCash.getCashIndex());
         m_dlSystem.setResourceAsProperties(getHostID(), hostSavedProperties);
     }
 
-    // Sebastian - Método para establecer caja activa con fondo inicial
+    // Sebastian - Implementación del método con fondo inicial
     @Override
     public void setActiveCash(String sIndex, int iSeq, Date dStart, Date dEnd, double initialAmount) {
         activeCash.setCashIndex(sIndex);
         activeCash.setCashSequence(iSeq);
         activeCash.setCashDateStart(dStart);
         activeCash.setCashDateEnd(dEnd);
-        activeCash.setInitialAmount(initialAmount);
+        activeCash.setInitialAmount(initialAmount); // Sebastian - Establecer fondo inicial
 
         hostSavedProperties.setProperty("activecash", activeCash.getCashIndex());
         m_dlSystem.setResourceAsProperties(getHostID(), hostSavedProperties);
     }
 
-    // Sebastian - Obtener fondo inicial de la caja activa
+    // Sebastian - Implementación del método para obtener fondo inicial
     @Override
     public double getActiveCashInitialAmount() {
         return activeCash.getInitialAmount();
-    }
-
-    // Sebastian - Actualizar solo el fondo inicial de la caja activa
-    public void setActiveCashInitialAmount(double initialAmount) {
-        activeCash.setInitialAmount(initialAmount);
     }
 
     @Override
@@ -415,26 +391,53 @@ public class JRootApp extends JPanel implements AppView {
     private void openAppView(AppUser user) {
 
         LOGGER.log(Level.WARNING, "INFO :: showMainAppPanel");
+        
+        // 🔍 Sebastian - Debug: Verificar rol del usuario
+        LOGGER.log(Level.INFO, "🔍 DEBUG - Usuario: " + user.getName() + ", Rol ID: '" + user.getRole() + "'");
+        
+        // 💰 Sebastian - Verificar si es empleado/manager usando IDs de roles de la BD
+        // Roles en BD: '0'=Administrator, '1'=Manager, '2'=Employee, '3'=Guest
+        if ("2".equals(user.getRole()) || "1".equals(user.getRole())) {
+            String roleName = "2".equals(user.getRole()) ? "EMPLOYEE" : "MANAGER";
+            LOGGER.log(Level.INFO, "💰 Solicitando dinero inicial para: " + user.getName() + " (Rol ID: " + user.getRole() + " = " + roleName + ")");
+            
+            // ⚠️ Este método es OBLIGATORIO y siempre retorna un valor válido
+            Double dineroInicial = solicitarDineroInicialCaja(user);
+            
+            // Verificación adicional por seguridad
+            if (dineroInicial == null) {
+                LOGGER.log(Level.SEVERE, "🚨 ERROR CRÍTICO: dineroInicial es null después del método obligatorio");
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    "� Error crítico en el sistema.\nNo se pudo registrar el dinero inicial.\nContacta al administrador.");
+                msg.show(this);
+                return; // No continuar sin dinero inicial
+            }
+            
+            // Registrar el dinero inicial en el sistema
+            registrarDineroInicialCaja(user, dineroInicial);
+            
+        } else {
+            String roleName = "0".equals(user.getRole()) ? "ADMINISTRATOR" : "3".equals(user.getRole()) ? "GUEST" : "UNKNOWN";
+            LOGGER.log(Level.INFO, "ℹ️ Usuario " + user.getName() + " con rol ID '" + user.getRole() + "' (" + roleName + ") no requiere dinero inicial");
+        }
+        
         if (closeAppView()) {
 
             m_principalapp = new JPrincipalApp(this, user);
 
+            // 🔧 Sebastian - Limpiar jPanel3 antes de agregar para evitar duplicados
+            jPanel3.removeAll();
             jPanel3.add(m_principalapp.getNotificator());
+            // Reagregar el botón de cerrar que se eliminó con removeAll()
+            jPanel3.add(m_jClose);
             jPanel3.revalidate();
+            jPanel3.repaint();
 
             String viewID = "_" + m_principalapp.getUser().getId();
             m_jPanelContainer.add(m_principalapp, viewID);
             showView(viewID);
 
             m_principalapp.activate();
-            
-            // Sebastian - Solo verificar monto inicial si realmente necesita configuración
-            if (needsInitialCashSetup) {
-                LOGGER.log(Level.INFO, "🔧 Sebastian - Configurando fondo inicial para nueva caja o caja sin fondo configurado");
-                checkAndSetupInitialCash();
-            } else {
-                LOGGER.log(Level.INFO, "✅ Sebastian - Caja activa ya tiene fondo inicial configurado, omitiendo solicitud");
-            }
             
             // Inicializar Firebase Sync Manager después de activar la aplicación principal
             initializeFirebaseSync();
@@ -463,98 +466,6 @@ public class JRootApp extends JPanel implements AppView {
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error al inicializar Firebase Sync Manager: " + e.getMessage(), e);
-        }
-    }
-    
-    /**
-     * Sebastian - Configurar monto inicial (solo se llama cuando realmente se necesita)
-     */
-    private void checkAndSetupInitialCash() {
-        LOGGER.log(Level.INFO, "� Sebastian - Solicitando configuración de fondo inicial para caja: " + getActiveCashIndex());
-        SwingUtilities.invokeLater(() -> {
-            showInitialCashDialog();
-        });
-    }
-    
-    /**
-     * Sebastian - Mostrar diálogo para configurar monto inicial
-     */
-    private void showInitialCashDialog() {
-        try {
-            LOGGER.log(Level.INFO, "🔔 Sebastian - Mostrando diálogo de monto inicial...");
-            
-            // Ejecutar en EDT si no estamos ya en él
-            if (!SwingUtilities.isEventDispatchThread()) {
-                SwingUtilities.invokeAndWait(() -> showInitialCashDialog());
-                return;
-            }
-            
-            // Usar la aplicación principal como padre
-            JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
-            if (parentFrame == null && getTopLevelAncestor() instanceof JFrame) {
-                parentFrame = (JFrame) getTopLevelAncestor();
-            }
-            
-            JDialogInitialCash dialog = new JDialogInitialCash(parentFrame);
-            dialog.setInitialAmount(4000.0);
-            
-            // Asegurar que el diálogo esté al frente
-            dialog.setAlwaysOnTop(true);
-            dialog.toFront();
-            dialog.requestFocus();
-            
-            dialog.setVisible(true);
-            
-            if (dialog.isAccepted()) {
-                double initialAmount = dialog.getInitialAmount();
-                LOGGER.log(Level.INFO, "💰 Sebastian POS - Fondo inicial establecido: $" + initialAmount);
-                updateActiveCashInitialAmount(initialAmount);
-            }
-        } catch (Exception ex) {
-            LOGGER.log(Level.WARNING, "Error mostrando diálogo de monto inicial", ex);
-        }
-    }
-    
-    /**
-     * Sebastian - Actualizar monto inicial de la caja activa
-     */
-    private void updateActiveCashInitialAmount(double initialAmount) {
-        try {
-            String activeCashIndex = getActiveCashIndex();
-            LOGGER.log(Level.INFO, "🔄 Sebastian - Actualizando monto inicial en BD. Caja: " + activeCashIndex + ", Monto: $" + initialAmount);
-            
-            // Actualizar en la base de datos
-            try {
-                m_dlSystem.execUpdateCashInitialAmount(activeCashIndex, initialAmount);
-                LOGGER.log(Level.INFO, "✅ Sebastian - Monto inicial actualizado en BD correctamente");
-            } catch (Exception sqlEx) {
-                LOGGER.log(Level.SEVERE, "❌ Sebastian - ERROR CRÍTICO en execUpdateCashInitialAmount: " + sqlEx.getMessage(), sqlEx);
-                throw sqlEx; // Re-lanzar para que se vea el error completo
-            }
-            
-            // Verificar que el cambio se guardó consultando la BD inmediatamente
-            Object[] verificationData = m_dlSystem.findActiveCash(activeCashIndex);
-            if (verificationData != null && verificationData.length > 5) {
-                double savedAmount = (verificationData[5] != null) ? ((Number) verificationData[5]).doubleValue() : 0.0;
-                LOGGER.log(Level.INFO, "🔍 Sebastian - Verificación BD: Monto guardado = $" + savedAmount);
-                
-                if (Math.abs(savedAmount - initialAmount) < 0.01) {
-                    LOGGER.log(Level.INFO, "✅ Sebastian - Verificación EXITOSA: BD actualizada correctamente");
-                } else {
-                    LOGGER.log(Level.WARNING, "❌ Sebastian - Verificación FALLÓ: BD muestra $" + savedAmount + ", esperaba $" + initialAmount);
-                }
-            }
-            
-            // Actualizar en memoria
-            setActiveCashInitialAmount(initialAmount);
-            LOGGER.log(Level.INFO, "✅ Sebastian - Monto inicial actualizado en memoria correctamente");
-            
-            // Sebastian - Marcar que ya no necesita configuración de fondo inicial
-            needsInitialCashSetup = false;
-            
-            LOGGER.log(Level.INFO, "✅ Sebastian - PROCESO COMPLETO: Monto inicial actualizado: $" + initialAmount);
-        } catch (Exception ex) {
-            LOGGER.log(Level.WARNING, "❌ Sebastian - Error actualizando monto inicial: " + ex.getMessage(), ex);
         }
     }
     
@@ -604,7 +515,8 @@ public class JRootApp extends JPanel implements AppView {
         } else if (!m_principalapp.deactivate()) {
             return false;
         } else {
-            jPanel3.remove(m_principalapp.getNotificator());
+            // 🔧 Sebastian - Limpiar completamente jPanel3 para evitar duplicados
+            jPanel3.removeAll();
             jPanel3.revalidate();
             jPanel3.repaint();
 
@@ -750,4 +662,105 @@ public class JRootApp extends JPanel implements AppView {
     private javax.swing.JLabel poweredby;
     private javax.swing.JPanel statusBarPanel;
     // End of variables declaration//GEN-END:variables
+
+    // 💰 Sebastian - Métodos para manejo de dinero inicial en caja
+    
+    /**
+     * Solicita al empleado/manager que ingrese el dinero inicial en caja
+     * @param user Usuario que está iniciando sesión
+     * @return Monto de dinero inicial (OBLIGATORIO - no puede ser null)
+     */
+    private Double solicitarDineroInicialCaja(AppUser user) {
+        Double monto = null;
+        boolean esObligatorio = true;
+        
+        while (monto == null && esObligatorio) {
+            try {
+                LOGGER.log(Level.INFO, "🚀 INICIANDO solicitarDineroInicialCaja para: " + user.getName());
+                
+                String titulo = "💰 Dinero Inicial - " + user.getName() + " (OBLIGATORIO)";
+                String mensaje = "¡Hola " + user.getName() + "!\n\n" +
+                               "🎯 CAMPO OBLIGATORIO: Debes ingresar el monto\n" +
+                               "    de dinero que hay en la caja para comenzar\n" +
+                               "    con las ventas del día.\n\n" +
+                               "💡 Ejemplo: 100.00\n" +
+                               "⚠️ No puedes continuar sin ingresar este dato.";
+                
+                LOGGER.log(Level.INFO, "📱 Mostrando JDoubleDialog...");
+                monto = JDoubleDialog.showComponent(this, titulo, mensaje);
+                LOGGER.log(Level.INFO, "📱 JDoubleDialog cerrado. Monto: " + monto);
+                
+                if (monto != null && monto >= 0) {
+                    LOGGER.log(Level.INFO, 
+                        String.format("💰 Dinero inicial ingresado: $%.2f - Usuario: %s", 
+                        monto, user.getName()));
+                    return monto; // Valor válido, salir del bucle
+                } else if (monto != null && monto < 0) {
+                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                        "❌ El monto no puede ser negativo.\nPor favor, ingresa un valor válido mayor o igual a 0.");
+                    msg.show(this);
+                    monto = null; // Resetear para continuar el bucle
+                } else {
+                    // Usuario canceló - mostrar advertencia y volver a preguntar
+                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                        "⚠️ CAMPO OBLIGATORIO\n\n" +
+                        "Debes ingresar el dinero inicial para continuar.\n" +
+                        "Este campo es obligatorio para empleados y gerentes.\n\n" +
+                        "Si no hay dinero en caja, ingresa 0 (cero).");
+                    msg.show(this);
+                    monto = null; // Continuar el bucle
+                }
+                
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error al solicitar dinero inicial", e);
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    "❌ Error al solicitar dinero inicial: " + e.getMessage() + 
+                    "\n\nIntentando nuevamente...");
+                msg.show(this);
+                monto = null; // Continuar el bucle en caso de error
+            }
+        }
+        
+        // Esta línea nunca debería ejecutarse debido al bucle while
+        return monto != null ? monto : 0.0;
+    }
+    
+    /**
+     * Registra el dinero inicial en el sistema de caja
+     * @param user Usuario que registra el dinero
+     * @param monto Monto de dinero inicial
+     */
+    private void registrarDineroInicialCaja(AppUser user, Double monto) {
+        try {
+            // Crear un registro en draweropened para marcar el dinero inicial
+            // Usar ID del usuario para consistencia con la base de datos
+            m_dlSystem.execDrawerOpened(new Object[] {
+                user.getId(),  // ✅ Corregido: usar ID en lugar de nombre
+                String.format("Dinero Inicial: $%.2f por %s", monto, user.getName())
+            });
+            
+            LOGGER.log(Level.INFO, 
+                String.format("✅ Dinero inicial registrado: $%.2f por %s (ID: %s)", 
+                monto, user.getName(), user.getId()));
+            
+            // Mostrar confirmación al usuario
+            MessageInf msg = new MessageInf(MessageInf.SGN_SUCCESS,
+                String.format("✅ Dinero inicial registrado exitosamente\n\n" +
+                             "💰 Monto: $%.2f\n" +
+                             "👤 Usuario: %s\n" +
+                             "🆔 ID: %s\n" +
+                             "🕐 Hora: %s", 
+                             monto, user.getName(), user.getId(),
+                             new java.text.SimpleDateFormat("HH:mm:ss").format(new Date())));
+            msg.show(this);
+            
+        } catch (BasicException e) {
+            LOGGER.log(Level.WARNING, "Error al registrar dinero inicial", e);
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                "⚠️ Advertencia: No se pudo registrar el dinero inicial en el sistema.\n" +
+                "El sistema funcionará normalmente, pero recomendamos\n" +
+                "anotar el monto manualmente.\n\nError: " + e.getMessage());
+            msg.show(this);
+        }
+    }
 }

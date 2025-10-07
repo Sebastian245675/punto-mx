@@ -1,28 +1,8 @@
 //    KriolOS POS
 //    Copyright (c) 2019-2023 KriolOS
 //
-//    This program is free software: you can redistribute it and/or mo    @Override
-    public void writeValueEdit(Object value) {
-        Object[] myprod = (Object[]) value;
-        id = myprod[0];
-        prodid = myprod[1];
-        prodref = (String) myprod[2];
-        prodname = (String) myprod[3];
-        location = myprod[4];
-        m_jTitle.setText(Formats.STRING.formatValue((String)myprod[2]) + " - " + Formats.STRING.formatValue((String)myprod[3]));
-        
-        // Formatear stock con decimales para mejor visualización
-        double quantity = myprod[7] != null ? ((Double) myprod[7]).doubleValue() : 0.0;
-        double minimum = myprod[5] != null ? ((Double) myprod[5]).doubleValue() : 0.0;
-        double maximum = myprod[6] != null ? ((Double) myprod[6]).doubleValue() : 100.0;
-        
-        m_jQuantity.setText(DECIMAL_FORMAT.format(quantity));
-        m_jMinimum.setText(DECIMAL_FORMAT.format(minimum));
-        m_jMaximum.setText(DECIMAL_FORMAT.format(maximum));
-        
-        m_jMinimum.setEnabled(true);
-        m_jMaximum.setEnabled(true);
-     }under the terms of the GNU General Public License as published by
+//    This program is free software: you can redistribute it and/or modify
+//    it under the terms of the GNU General Public License as published by
 //    the Free Software Foundation, either version 3 of the License, or
 //    (at your option) any later version.
 //
@@ -33,7 +13,6 @@
 //
 //    You should have received a copy of the GNU General Public License
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-//    Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-130
 
 package com.openbravo.pos.inventory;
 

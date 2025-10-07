@@ -12,3 +12,16 @@
 /**/kriolopos/
 /**/kriolopos.lck
 /**/kriolopos.log
+
+# Archivos de seguridad - NO SUBIR
+CREDENCIALES-PRIVADAS.txt
+**/credenciales*
+**/passwords*
+**/*private*
+**/*secret*
+
+# Archivos temporales de desarrollo
+generate_hashes.py
+GeneratePasswordHashes.java
+GeneratePasswordHashes.class
+debug_database.java
