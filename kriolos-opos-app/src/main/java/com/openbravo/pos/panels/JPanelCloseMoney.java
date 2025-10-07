@@ -29,6 +29,11 @@ import com.openbravo.data.gui.TableRendererBasic;
 import com.openbravo.data.loader.Datas;
 import com.openbravo.data.loader.SerializerWriteBasic;
 import com.openbravo.data.loader.Session;
+import java.awt.*;
+import java.awt.event.*;
+import javax.swing.*;
+import javax.swing.border.*;
+import javax.swing.table.DefaultTableCellRenderer;
 import com.openbravo.data.loader.StaticSentence;
 import com.openbravo.format.Formats;
 import com.openbravo.pos.forms.*;
@@ -80,7 +85,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     
     /** Creates new form JPanelCloseMoney */
     public JPanelCloseMoney() {
-        initComponents();                   
+        initComponents();
+        
+        // Aplicar diseño moderno
+        setupModernUI();
              
     }
     
@@ -792,5 +800,617 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private javax.swing.JTable m_jTicketTable;
     private javax.swing.JTable m_jsalestable;
     // End of variables declaration//GEN-END:variables
+    
+    /**
+     * Configura el diseño moderno de la interfaz con características avanzadas
+     */
+    private void setupModernUI() {
+        // Configurar tema principal
+        configurarTemaModerno();
+        
+        // Crear layout con cards
+        crearLayoutConCards();
+        
+        // Modernizar todos los componentes
+        modernizarComponentesAvanzados();
+        
+        // Agregar animaciones y efectos
+        agregarEfectosVisuales();
+        
+        // Configurar responsive design
+        configurarResponsiveDesign();
+    }
+    
+    /**
+     * Configura el tema moderno avanzado
+     */
+    private void configurarTemaModerno() {
+        // Fondo principal con gradiente sutil
+        if (jPanel1 != null) {
+            jPanel1.setBackground(new Color(248, 250, 252));
+            jPanel1.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+                BorderFactory.createEmptyBorder(24, 24, 24, 24)
+            ));
+        }
+        
+        // Configurar fuente principal
+        try {
+            Font modernaFont = new Font("Inter", Font.PLAIN, 14);
+            UIManager.put("Label.font", modernaFont);
+            UIManager.put("Button.font", modernaFont);
+            UIManager.put("TextField.font", modernaFont);
+        } catch (Exception e) {
+            // Fallback a Segoe UI
+            Font fallbackFont = new Font("Segoe UI", Font.PLAIN, 14);
+            UIManager.put("Label.font", fallbackFont);
+        }
+    }
+    
+    /**
+     * Moderniza los botones con efectos premium y gradientes
+     */
+    private void modernizarBotones() {
+        // Botón cerrar caja - Estilo premium rojo
+        if (m_jCloseCash != null) {
+            crearBotonPremium(m_jCloseCash, 
+                new Color(239, 68, 68), new Color(220, 38, 38), 
+                "💰 " + AppLocal.getIntString("label.closecash"), 
+                AppLocal.getIntString("label.finishshift"));
+        }
+        
+        // Botón reporte parcial - Estilo premium azul
+        if (m_jPrintCashPreview != null) {
+            crearBotonPremium(m_jPrintCashPreview, 
+                new Color(59, 130, 246), new Color(37, 99, 235), 
+                "📊 " + AppLocal.getIntString("label.partialreport"), 
+                AppLocal.getIntString("label.currentsalesview"));
+        }
+        
+        // Botón vista previa - Estilo premium gris
+        if (m_jPrintCash1 != null) {
+            crearBotonPremium(m_jPrintCash1, 
+                new Color(107, 114, 128), new Color(75, 85, 99), 
+                "👁️ " + AppLocal.getIntString("label.preview"), 
+                AppLocal.getIntString("label.previewreport"));
+        }
+        
+        // Botón reimprimir - Estilo premium verde
+        if (m_jReprintCash != null) {
+            crearBotonPremium(m_jReprintCash, 
+                new Color(34, 197, 94), new Color(22, 163, 74), 
+                "🖨️ " + AppLocal.getIntString("label.reprint"), 
+                AppLocal.getIntString("label.reprintlast"));
+        }
+    }
+    
+    /**
+     * Crea un botón premium con efectos avanzados y mejor visibilidad de texto
+     */
+    private void crearBotonPremium(JButton boton, Color colorPrincipal, Color colorHover, String texto, String tooltip) {
+        boton.setText(texto);
+        boton.setToolTipText(tooltip);
+        
+        // Fuente más grande y legible
+        boton.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        boton.setForeground(Color.WHITE);
+        boton.setBackground(colorPrincipal);
+        
+        // Tamaño mínimo para asegurar visibilidad del texto
+        boton.setPreferredSize(new Dimension(180, 50));
+        boton.setMinimumSize(new Dimension(160, 45));
+        
+        // Borde con mejor padding
+        boton.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(colorPrincipal.darker(), 1),
+            BorderFactory.createEmptyBorder(12, 20, 12, 20)
+        ));
+        
+        boton.setFocusPainted(false);
+        boton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        boton.setOpaque(true);
+        
+        // Centrar el texto correctamente
+        boton.setHorizontalAlignment(SwingConstants.CENTER);
+        boton.setVerticalAlignment(SwingConstants.CENTER);
+        
+        // Efectos premium con transiciones mejoradas
+        boton.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                boton.setBackground(colorHover);
+                boton.setFont(new Font("Segoe UI", Font.BOLD, 16)); // Texto más grande en hover
+                boton.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(colorHover.darker(), 2),
+                    BorderFactory.createEmptyBorder(11, 19, 11, 19)
+                ));
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                boton.setBackground(colorPrincipal);
+                boton.setFont(new Font("Segoe UI", Font.BOLD, 15)); // Volver al tamaño normal
+                boton.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(colorPrincipal.darker(), 1),
+                    BorderFactory.createEmptyBorder(12, 20, 12, 20)
+                ));
+            }
+            
+            @Override
+            public void mousePressed(MouseEvent e) {
+                boton.setBackground(colorHover.darker());
+                // Efecto de "presionado"
+                boton.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(colorHover.darker(), 3),
+                    BorderFactory.createEmptyBorder(10, 18, 10, 18)
+                ));
+            }
+            
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (boton.contains(e.getPoint())) {
+                    boton.setBackground(colorHover);
+                } else {
+                    boton.setBackground(colorPrincipal);
+                }
+                boton.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(colorPrincipal.darker(), 1),
+                    BorderFactory.createEmptyBorder(12, 20, 12, 20)
+                ));
+            }
+        });
+    }
+    
+    /**
+     * Moderniza los campos de texto con mejor visualización de números
+     */
+    private void modernizarCamposTexto() {
+        JTextField[] campos = {
+            m_jSequence, m_jMinDate, m_jMaxDate, m_jCount,
+            m_jSales, m_jSalesSubtotal, m_jSalesTaxes, m_jSalesTotal,
+            m_jCash, m_jLinesRemoved
+        };
+        
+        for (JTextField campo : campos) {
+            if (campo != null) {
+                // Aplicar estilo mejorado para números
+                if (esUnCampoNumerico(campo)) {
+                    estilizarCampoNumerico(campo);
+                } else {
+                    estilizarCampoTexto(campo);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Aplica estilo premium a un campo de texto con mejor visibilidad
+     */
+    private void estilizarCampoTexto(JTextField campo) {
+        campo.setFont(new Font("Inter", Font.PLAIN, 14));
+        
+        // Tamaño mínimo para asegurar visibilidad completa
+        campo.setPreferredSize(new Dimension(120, 42));
+        campo.setMinimumSize(new Dimension(100, 42));
+        
+        campo.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(12, 16, 12, 16)
+        ));
+        campo.setBackground(Color.WHITE);
+        campo.setForeground(new Color(17, 24, 39));
+        campo.setCaretColor(new Color(59, 130, 246));
+        
+        // Efectos de enfoque premium
+        campo.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
+                    BorderFactory.createEmptyBorder(11, 15, 11, 15)
+                ));
+                campo.setBackground(new Color(248, 250, 252));
+            }
+            
+            @Override
+            public void focusLost(FocusEvent e) {
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+                    BorderFactory.createEmptyBorder(12, 16, 12, 16)
+                ));
+                campo.setBackground(Color.WHITE);
+            }
+        });
+        
+        // Efecto hover sutil
+        campo.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (!campo.hasFocus()) {
+                    campo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(156, 163, 175), 1),
+                        BorderFactory.createEmptyBorder(12, 16, 12, 16)
+                    ));
+                }
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (!campo.hasFocus()) {
+                    campo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+                        BorderFactory.createEmptyBorder(12, 16, 12, 16)
+                    ));
+                }
+            }
+        });
+    }
+    
+    /**
+     * Moderniza las tablas
+     */
+    private void modernizarTablas() {
+        if (m_jTicketTable != null) {
+            estilizarTabla(m_jTicketTable);
+        }
+        if (m_jsalestable != null) {
+            estilizarTabla(m_jsalestable);
+        }
+        
+        // Modernizar scroll panes
+        if (m_jScrollTableTicket != null) {
+            estilizarScrollPane(m_jScrollTableTicket, "💳 " + AppLocal.getIntString("label.paymentdetail"));
+        }
+        if (m_jScrollSales != null) {
+            estilizarScrollPane(m_jScrollSales, "📊 " + AppLocal.getIntString("label.salesummary"));
+        }
+    }
+    
+    /**
+     * Aplica estilo moderno a una tabla
+     */
+    private void estilizarTabla(JTable tabla) {
+        tabla.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        tabla.setRowHeight(32);
+        tabla.setShowGrid(true);
+        tabla.setGridColor(new Color(243, 244, 246));
+        tabla.setSelectionBackground(new Color(239, 246, 255));
+        tabla.setSelectionForeground(new Color(30, 64, 175));
+        tabla.setBackground(Color.WHITE);
+        tabla.setForeground(new Color(17, 24, 39));
+        
+        // Encabezado moderno
+        if (tabla.getTableHeader() != null) {
+            tabla.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+            tabla.getTableHeader().setBackground(new Color(249, 250, 251));
+            tabla.getTableHeader().setForeground(new Color(55, 65, 81));
+            tabla.getTableHeader().setBorder(BorderFactory.createMatteBorder(0, 0, 2, 0, new Color(229, 231, 235)));
+            tabla.getTableHeader().setPreferredSize(new Dimension(0, 36));
+        }
+    }
+    
+    /**
+     * Aplica estilo moderno a un scroll pane
+     */
+    private void estilizarScrollPane(JScrollPane scrollPane, String titulo) {
+        scrollPane.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
+            titulo,
+            TitledBorder.LEFT,
+            TitledBorder.TOP,
+            new Font("Segoe UI", Font.BOLD, 14),
+            new Color(55, 65, 81)
+        ));
+        scrollPane.setBackground(Color.WHITE);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+    }
+    
+    /**
+     * Configura el layout principal
+     */
+    private void configurarLayoutPrincipal() {
+        // Agregar efectos sutiles y espaciado
+        if (getParent() != null) {
+            setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        }
+    }
+    
+    /**
+     * Crea layout avanzado con sistema de cards
+     */
+    private void crearLayoutConCards() {
+        // Implementar cards para secciones principales
+        // Esto se puede expandir según necesidades específicas
+        SwingUtilities.invokeLater(() -> {
+            aplicarSombrasComponentes();
+        });
+    }
+    
+    /**
+     * Moderniza todos los componentes con características avanzadas
+     */
+    private void modernizarComponentesAvanzados() {
+        // Modernizar campos de texto
+        modernizarCamposTexto();
+        
+        // Modernizar tablas
+        modernizarTablas();
+        
+        // Modernizar botones
+        modernizarBotones();
+        
+        // Agregar labels con iconos
+        agregarIconosYLabels();
+    }
+    
+    /**
+     * Agrega efectos visuales y animaciones sutiles
+     */
+    private void agregarEfectosVisuales() {
+        // Efectos de hover para paneles
+        if (jPanel1 != null) {
+            jPanel1.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseEntered(MouseEvent e) {
+                    jPanel1.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(203, 213, 225), 1),
+                        BorderFactory.createEmptyBorder(24, 24, 24, 24)
+                    ));
+                }
+                
+                @Override
+                public void mouseExited(MouseEvent e) {
+                    jPanel1.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+                        BorderFactory.createEmptyBorder(24, 24, 24, 24)
+                    ));
+                }
+            });
+        }
+    }
+    
+    /**
+     * Configura diseño responsive
+     */
+    private void configurarResponsiveDesign() {
+        // Agregar listener para redimensionamiento
+        addComponentListener(new ComponentAdapter() {
+            @Override
+            public void componentResized(ComponentEvent e) {
+                ajustarComponentesSegunTamano();
+            }
+        });
+    }
+    
+    /**
+     * Aplica sombras a los componentes principales
+     */
+    private void aplicarSombrasComponentes() {
+        // Sombras para scroll panes
+        if (m_jScrollTableTicket != null) {
+            aplicarSombraPanel(m_jScrollTableTicket);
+        }
+        if (m_jScrollSales != null) {
+            aplicarSombraPanel(m_jScrollSales);
+        }
+    }
+    
+    /**
+     * Aplica efecto de sombra a un panel
+     */
+    private void aplicarSombraPanel(JComponent componente) {
+        componente.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(226, 232, 240), 1),
+            BorderFactory.createCompoundBorder(
+                BorderFactory.createMatteBorder(0, 0, 3, 3, new Color(0, 0, 0, 10)),
+                BorderFactory.createEmptyBorder(12, 12, 12, 12)
+            )
+        ));
+    }
+    
+    /**
+     * Agrega iconos y mejora los labels
+     */
+    private void agregarIconosYLabels() {
+        // Buscar y mejorar labels existentes
+        mejorarLabelsExistentes(this);
+    }
+    
+    /**
+     * Mejora recursivamente los labels en el contenedor
+     */
+    private void mejorarLabelsExistentes(Container contenedor) {
+        for (Component comp : contenedor.getComponents()) {
+            if (comp instanceof JLabel) {
+                JLabel label = (JLabel) comp;
+                label.setFont(new Font("Inter", Font.BOLD, 13));
+                label.setForeground(new Color(55, 65, 81));
+            } else if (comp instanceof Container) {
+                mejorarLabelsExistentes((Container) comp);
+            }
+        }
+    }
+    
+    /**
+     * Ajusta componentes según el tamaño de la ventana
+     */
+    private void ajustarComponentesSegunTamano() {
+        int ancho = getWidth();
+        int alto = getHeight();
+        
+        // Ajustar fuentes según tamaño
+        if (ancho < 800) {
+            // Pantalla pequeña - fuentes más pequeñas
+            ajustarFuentesParaPantallaChica();
+        } else {
+            // Pantalla normal - fuentes normales
+            ajustarFuentesParaPantallaNormal();
+        }
+    }
+    
+    /**
+     * Ajusta fuentes para pantalla pequeña
+     */
+    private void ajustarFuentesParaPantallaChica() {
+        Font fuentePequena = new Font("Inter", Font.PLAIN, 12);
+        aplicarFuenteAComponentes(this, fuentePequena);
+    }
+    
+    /**
+     * Ajusta fuentes para pantalla normal
+     */
+    private void ajustarFuentesParaPantallaNormal() {
+        Font fuenteNormal = new Font("Inter", Font.PLAIN, 14);
+        aplicarFuenteAComponentes(this, fuenteNormal);
+    }
+    
+    /**
+     * Aplica fuente recursivamente a todos los componentes
+     */
+    private void aplicarFuenteAComponentes(Container contenedor, Font fuente) {
+        for (Component comp : contenedor.getComponents()) {
+            if (comp instanceof JLabel || comp instanceof JTextField || comp instanceof JButton) {
+                comp.setFont(fuente);
+            } else if (comp instanceof Container) {
+                aplicarFuenteAComponentes((Container) comp, fuente);
+            }
+        }
+    }
+    
+    /**
+     * Personaliza las scrollbars para un look más moderno
+     */
+    private void personalizarScrollBar(JScrollPane scrollPane) {
+        try {
+            // Personalizar scrollbar vertical
+            JScrollBar vertical = scrollPane.getVerticalScrollBar();
+            vertical.setBackground(new Color(248, 250, 252));
+            vertical.setPreferredSize(new Dimension(12, 0));
+            
+            // Personalizar scrollbar horizontal
+            JScrollBar horizontal = scrollPane.getHorizontalScrollBar();
+            horizontal.setBackground(new Color(248, 250, 252));
+            horizontal.setPreferredSize(new Dimension(0, 12));
+            
+        } catch (Exception e) {
+            // Ignorar errores de personalización
+        }
+    }
+    
+    /**
+     * Verifica si un campo es numérico basándose en su nombre
+     */
+    private boolean esUnCampoNumerico(JTextField campo) {
+        String nombre = campo.getName();
+        if (nombre == null) return false;
+        
+        // Determinar si es un campo numérico por el nombre del componente
+        return campo == m_jCount || campo == m_jSales || campo == m_jSalesSubtotal || 
+               campo == m_jSalesTaxes || campo == m_jSalesTotal || campo == m_jCash || 
+               campo == m_jLinesRemoved || campo == m_jSequence;
+    }
+    
+    /**
+     * Aplica estilo específico para campos numéricos con mejor visualización
+     */
+    private void estilizarCampoNumerico(JTextField campo) {
+        // Fuente monoespaciada para mejor alineación de números
+        campo.setFont(new Font("JetBrains Mono", Font.PLAIN, 14));
+        
+        // Si no está disponible JetBrains Mono, usar Consolas o monospace
+        if (!campo.getFont().getFamily().equals("JetBrains Mono")) {
+            campo.setFont(new Font("Consolas", Font.PLAIN, 14));
+            if (!campo.getFont().getFamily().equals("Consolas")) {
+                campo.setFont(new Font(Font.MONOSPACED, Font.PLAIN, 14));
+            }
+        }
+        
+        // Tamaño más amplio para números largos
+        campo.setPreferredSize(new Dimension(160, 44));
+        campo.setMinimumSize(new Dimension(140, 44));
+        
+        // Alineación a la derecha para números
+        campo.setHorizontalAlignment(JTextField.RIGHT);
+        
+        campo.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+            BorderFactory.createEmptyBorder(12, 20, 12, 20)
+        ));
+        
+        campo.setBackground(new Color(249, 250, 251));
+        campo.setForeground(new Color(17, 24, 39));
+        campo.setCaretColor(new Color(59, 130, 246));
+        
+        // Efectos de enfoque para campos numéricos
+        campo.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent e) {
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(34, 197, 94), 2),
+                    BorderFactory.createEmptyBorder(11, 19, 11, 19)
+                ));
+                campo.setBackground(new Color(240, 253, 244));
+            }
+            
+            @Override
+            public void focusLost(FocusEvent e) {
+                campo.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+                    BorderFactory.createEmptyBorder(12, 20, 12, 20)
+                ));
+                campo.setBackground(new Color(249, 250, 251));
+                
+                // Formatear el número al perder el foco
+                formatearNumero(campo);
+            }
+        });
+        
+        // Efecto hover para campos numéricos
+        campo.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                if (!campo.hasFocus()) {
+                    campo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(34, 197, 94), 1),
+                        BorderFactory.createEmptyBorder(12, 20, 12, 20)
+                    ));
+                }
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                if (!campo.hasFocus()) {
+                    campo.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(209, 213, 219), 1),
+                        BorderFactory.createEmptyBorder(12, 20, 12, 20)
+                    ));
+                }
+            }
+        });
+    }
+    
+    /**
+     * Formatea un número en el campo de texto para mejor visualización
+     */
+    private void formatearNumero(JTextField campo) {
+        try {
+            String texto = campo.getText().trim();
+            if (!texto.isEmpty() && !texto.equals("-")) {
+                // Intentar formatear como número decimal
+                double numero = Double.parseDouble(texto);
+                
+                // Formatear según el tipo de campo
+                if (campo == m_jCount || campo == m_jLinesRemoved || campo == m_jSequence) {
+                    // Campos enteros
+                    campo.setText(String.format("%,d", (long)numero));
+                } else {
+                    // Campos decimales (dinero)
+                    campo.setText(String.format("%,.2f", numero));
+                }
+            }
+        } catch (NumberFormatException e) {
+            // Si no es un número válido, dejar como está
+        }
+    }
     
 }

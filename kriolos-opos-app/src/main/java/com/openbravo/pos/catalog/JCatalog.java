@@ -24,6 +24,7 @@ import java.awt.CardLayout;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Image;
@@ -48,7 +49,7 @@ import javax.swing.event.ListSelectionListener;
  */
 public class JCatalog extends JPanel implements ListSelectionListener, CatalogSelector {
 
-    private static final int DEFAULT_CATALOG_PANEL_HEIGHT = 245;
+    private static final int DEFAULT_CATALOG_PANEL_HEIGHT = 280; // Aumentado para mejor visualización
 
     protected EventListenerList listeners = new EventListenerList();
 
@@ -75,7 +76,13 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
         setPreferredSize(new Dimension(0, DEFAULT_CATALOG_PANEL_HEIGHT));
 
         categoriesJList.addListSelectionListener(this);
-        categoriesScrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
+        categoriesScrollPane.getVerticalScrollBar().setPreferredSize(new Dimension(12, 12)); // Scrollbar más delgado
+        categoriesScrollPane.setBorder(null); // Sin borde para apariencia limpia
+        
+        // Mejorar apariencia de la lista de categorías
+        categoriesJList.setBackground(new Color(248, 249, 250));
+        categoriesJList.setSelectionBackground(new Color(66, 165, 245));
+        categoriesJList.setSelectionForeground(Color.WHITE);
 
         controller = new CatalogController(dlSales);
     }
@@ -478,8 +485,25 @@ public class JCatalog extends JPanel implements ListSelectionListener, CatalogSe
             super.getListCellRendererComponent(list, null, index, isSelected, cellHasFocus);
             CategoryInfo cat = (CategoryInfo) value;
             setText(cat.getName());
+            
+            // Mejorar la apariencia de las categorías
+            setFont(new Font("Segoe UI", Font.PLAIN, 12));
+            setBorder(BorderFactory.createEmptyBorder(8, 10, 8, 10));
+            
+            if (isSelected) {
+                setBackground(new Color(66, 165, 245)); // Azul material
+                setForeground(Color.WHITE);
+            } else {
+                setBackground(Color.WHITE);
+                setForeground(new Color(33, 33, 33));
+            }
+            
             Image imageIcons = controller.getThumbNailOrDefaultCat(cat.getImage());
-            setIcon(new ImageIcon(imageIcons));
+            if (imageIcons != null) {
+                // Escalar imagen para mejor visualización
+                ImageIcon scaledIcon = new ImageIcon(imageIcons.getScaledInstance(24, 24, Image.SCALE_SMOOTH));
+                setIcon(scaledIcon);
+            }
 
             return this;
         }

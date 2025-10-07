@@ -104,7 +104,7 @@ public class AppViewConnection {
 
     private static String choseDB(Component parent, AppProperties props, Object[] dbs) {
 
-        ImageIcon icon = new ImageIcon("/com/openbravo/images/app_logo_48x48");
+        ImageIcon icon = new ImageIcon(AppViewConnection.class.getResource("/com/openbravo/images/app_logo_48x48.png"));
         Object chosedDbName = JOptionPane.showInputDialog(
                 parent,
                 AppLocal.getIntString("message.databasechoose"),

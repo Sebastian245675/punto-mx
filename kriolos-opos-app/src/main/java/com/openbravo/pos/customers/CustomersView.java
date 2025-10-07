@@ -48,6 +48,11 @@ import java.awt.datatransfer.Clipboard;
 import java.awt.datatransfer.StringSelection;
 import javax.swing.table.JTableHeader;
 import org.netbeans.validation.api.builtin.stringvalidation.StringValidators;
+// Sebastian - Importaciones para mejoras de diseño
+import java.awt.Color;
+import javax.swing.BorderFactory;
+import java.awt.Dimension;
+import javax.swing.UIManager;
 
 /**
  *
@@ -83,6 +88,8 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
             puntosLogic = new PuntosDataLogic(dlSales); // Sebastian - Inicializar lógica de puntos con dlSales
 
             initComponents();
+            // Sebastian - Aplicar mejoras de diseño modernas
+            aplicarMejorasVisuales();
 
             m_sentcat = dlSales.getTaxCustCategoriesList();
             m_CategoryModel = new ComboBoxValModel();
@@ -129,6 +136,204 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         valGroup.add(m_jSearchkey, StringValidators.REQUIRE_NON_EMPTY_STRING);
         valGroup.add(m_jName, StringValidators.REQUIRE_NON_EMPTY_STRING);
         valGroup.add(txtMaxdebt, StringValidators.REQUIRE_NON_NEGATIVE_NUMBER);
+    }
+    
+    /**
+     * Sebastian - Aplicar mejoras visuales modernas y sutiles
+     */
+    private void aplicarMejorasVisuales() {
+        // Aplicar mejoras después de que todos los componentes estén inicializados
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            mejorarFuentesYColores();
+            mejorarBotones();
+            mejorarCamposDeTexto();
+            mejorarTablaYPestanas();
+        });
+    }
+    
+    /**
+     * Sebastian - Mejorar fuentes y colores generales
+     */
+    private void mejorarFuentesYColores() {
+        Font fuenteModerna = new Font("Segoe UI", Font.PLAIN, 12);
+        Color colorPrimario = new Color(0, 123, 255);
+        
+        // Mejorar pestañas
+        if (jTabbedPane1 != null) {
+            jTabbedPane1.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            jTabbedPane1.setBackground(Color.WHITE);
+            jTabbedPane1.setForeground(new Color(52, 58, 64));
+        }
+        
+        // Aplicar fuente moderna a etiquetas
+        aplicarFuenteAEtiquetas(fuenteModerna);
+    }
+    
+    /**
+     * Sebastian - Aplicar fuente moderna a etiquetas principales
+     */
+    private void aplicarFuenteAEtiquetas(Font fuente) {
+        if (jLabel1 != null) jLabel1.setFont(fuente);
+        if (jLabel2 != null) jLabel2.setFont(fuente);
+        if (jLabel3 != null) jLabel3.setFont(fuente);
+        if (jLabel4 != null) jLabel4.setFont(fuente);
+        if (jLabel5 != null) jLabel5.setFont(fuente);
+        if (jLabel6 != null) jLabel6.setFont(fuente);
+        if (jLabel7 != null) jLabel7.setFont(fuente);
+        if (jLabel8 != null) jLabel8.setFont(fuente);
+        if (jLabel9 != null) jLabel9.setFont(fuente);
+        if (jLabel10 != null) jLabel10.setFont(fuente);
+        
+        // Etiquetas de contacto
+        if (jLabel13 != null) jLabel13.setFont(fuente);
+        if (jLabel14 != null) jLabel14.setFont(fuente);
+        if (jLabel15 != null) jLabel15.setFont(fuente);
+        if (jLabel16 != null) jLabel16.setFont(fuente);
+        if (jLabel17 != null) jLabel17.setFont(fuente);
+        if (jLabel18 != null) jLabel18.setFont(fuente);
+        if (jLabel19 != null) jLabel19.setFont(fuente);
+        
+        // Etiquetas de dirección
+        if (jLabel20 != null) jLabel20.setFont(fuente);
+        if (jLabel21 != null) jLabel21.setFont(fuente);
+        if (jLabel22 != null) jLabel22.setFont(fuente);
+        if (jLabel23 != null) jLabel23.setFont(fuente);
+        if (jLabel24 != null) jLabel24.setFont(fuente);
+        
+        // Etiquetas de puntos
+        if (jLabelPuntosActuales != null) jLabelPuntosActuales.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        if (jLabelAjustarPuntos != null) jLabelAjustarPuntos.setFont(new Font("Segoe UI", Font.BOLD, 12));
+    }
+    
+    /**
+     * Sebastian - Mejorar botones con colores modernos
+     */
+    private void mejorarBotones() {
+        Color colorExito = new Color(40, 167, 69);
+        Color colorPeligro = new Color(220, 53, 69);
+        Color colorPrimario = new Color(0, 123, 255);
+        Color colorSecundario = new Color(108, 117, 125);
+        Color colorAdvertencia = new Color(255, 193, 7);
+        
+        // Botones principales
+        mejorarBoton(jBtnCreateCard, colorExito, Color.WHITE);
+        mejorarBoton(jBtnClearCard, colorPeligro, Color.WHITE);
+        mejorarBoton(jBtnShowTrans, colorPrimario, Color.WHITE);
+        mejorarBoton(webBtnMail, colorSecundario, Color.WHITE);
+        mejorarBoton(m_jbtndate, new Color(23, 162, 184), Color.WHITE);
+        
+        // Botones de puntos
+        mejorarBoton(btnAgregarPuntos, colorExito, Color.WHITE);
+        mejorarBoton(btnQuitarPuntos, colorPeligro, Color.WHITE);
+        mejorarBoton(btnActualizarPuntos, colorAdvertencia, new Color(52, 58, 64));
+    }
+    
+    /**
+     * Sebastian - Mejorar un botón individual
+     */
+    private void mejorarBoton(javax.swing.JButton boton, Color colorFondo, Color colorTexto) {
+        if (boton != null) {
+            boton.setBackground(colorFondo);
+            boton.setForeground(colorTexto);
+            boton.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            boton.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(colorFondo.darker(), 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)
+            ));
+            boton.setFocusPainted(false);
+        }
+    }
+    
+    /**
+     * Sebastian - Mejorar campos de texto
+     */
+    private void mejorarCamposDeTexto() {
+        Color bordeCampo = new Color(206, 212, 218);
+        Font fuenteCampo = new Font("Segoe UI", Font.PLAIN, 11);
+        
+        // Aplicar mejoras a campos principales
+        mejorarCampoTexto(m_jTaxID, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(m_jSearchkey, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(m_jName, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(jcard, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtMaxdebt, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtCurdebt, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtCurdate, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtDiscount, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(m_jdate, fuenteCampo, bordeCampo);
+        
+        // Campos de contacto
+        mejorarCampoTexto(txtFirstName, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtLastName, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtEmail, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtPhone, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtPhone2, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtFax, fuenteCampo, bordeCampo);
+        
+        // Campos de dirección
+        mejorarCampoTexto(txtAddress, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtAddress2, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtPostal, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtCity, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtRegion, fuenteCampo, bordeCampo);
+        mejorarCampoTexto(txtCountry, fuenteCampo, bordeCampo);
+        
+        // Campos de puntos
+        mejorarCampoTexto(txtPuntosActuales, new Font("Segoe UI", Font.BOLD, 12), new Color(40, 167, 69));
+        mejorarCampoTexto(txtAjustarPuntos, fuenteCampo, bordeCampo);
+        
+        // Área de notas
+        if (m_jNotes != null) {
+            m_jNotes.setFont(fuenteCampo);
+            m_jNotes.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(bordeCampo, 1),
+                BorderFactory.createEmptyBorder(6, 8, 6, 8)
+            ));
+        }
+    }
+    
+    /**
+     * Sebastian - Mejorar un campo de texto individual
+     */
+    private void mejorarCampoTexto(javax.swing.JTextField campo, Font fuente, Color borde) {
+        if (campo != null) {
+            campo.setFont(fuente);
+            campo.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borde, 1),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+            ));
+        }
+    }
+    
+    /**
+     * Sebastian - Mejorar tabla y pestañas
+     */
+    private void mejorarTablaYPestanas() {
+        // Mejorar tabla si existe
+        if (jTableCustomerTransactions != null) {
+            jTableCustomerTransactions.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+            jTableCustomerTransactions.setRowHeight(28);
+            jTableCustomerTransactions.setGridColor(new Color(233, 236, 239));
+            jTableCustomerTransactions.setSelectionBackground(new Color(0, 123, 255, 30));
+        }
+        
+        // Mejorar paneles de pestañas con espaciado
+        mejorarPanelPestana(jPanelGeneral);
+        mejorarPanelPestana(jPanel1);
+        mejorarPanelPestana(jPanel2);
+        mejorarPanelPestana(jPanel3);
+        mejorarPanelPestana(jPanel4);
+        mejorarPanelPestana(jPanel5);
+        mejorarPanelPestana(jPanelPuntaje);
+    }
+    
+    /**
+     * Sebastian - Mejorar un panel de pestaña individual
+     */
+    private void mejorarPanelPestana(javax.swing.JPanel panel) {
+        if (panel != null) {
+            panel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        }
     }
 
     private void init() {
@@ -478,22 +683,60 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
 
     public void resetTranxTable() {
 
-        jTableCustomerTransactions.getColumnModel().getColumn(0).setPreferredWidth(50);
-        jTableCustomerTransactions.getColumnModel().getColumn(1).setPreferredWidth(70);
-        jTableCustomerTransactions.getColumnModel().getColumn(2).setPreferredWidth(280);
-        jTableCustomerTransactions.getColumnModel().getColumn(3).setPreferredWidth(30);
-        jTableCustomerTransactions.getColumnModel().getColumn(4).setPreferredWidth(50);
+        jTableCustomerTransactions.getColumnModel().getColumn(0).setPreferredWidth(60);
+        jTableCustomerTransactions.getColumnModel().getColumn(1).setPreferredWidth(100);
+        jTableCustomerTransactions.getColumnModel().getColumn(2).setPreferredWidth(250);
+        jTableCustomerTransactions.getColumnModel().getColumn(3).setPreferredWidth(50);
+        jTableCustomerTransactions.getColumnModel().getColumn(4).setPreferredWidth(70);
         jTableCustomerTransactions.getColumnModel().getColumn(5).setPreferredWidth(60); // Sebastian - Columna de puntos
 
-        // set font for headers
-        Font f = new Font("Arial", Font.BOLD, 14);
+        // Configurar header con estilo moderno
         JTableHeader header = jTableCustomerTransactions.getTableHeader();
-        header.setFont(f);
+        header.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        header.setBackground(new Color(248, 249, 250));
+        header.setForeground(new Color(52, 58, 64));
+        header.setPreferredSize(new Dimension(header.getPreferredSize().width, 35));
+        header.setBorder(BorderFactory.createMatteBorder(0, 0, 1, 0, new Color(233, 236, 239)));
+
+        // Configurar tabla con mejor apariencia
+        jTableCustomerTransactions.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+        jTableCustomerTransactions.setRowHeight(30);
+        jTableCustomerTransactions.setGridColor(new Color(233, 236, 239));
+        jTableCustomerTransactions.setSelectionBackground(new Color(0, 123, 255, 25));
+        jTableCustomerTransactions.setSelectionForeground(new Color(33, 37, 41));
+        jTableCustomerTransactions.setShowGrid(true);
+        jTableCustomerTransactions.setIntercellSpacing(new Dimension(1, 1));
+        
+        // Alternar colores de filas para mejor legibilidad
+        jTableCustomerTransactions.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                    boolean isSelected, boolean hasFocus, int row, int column) {
+                Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                
+                if (!isSelected) {
+                    if (row % 2 == 0) {
+                        c.setBackground(Color.WHITE);
+                    } else {
+                        c.setBackground(new Color(248, 249, 250));
+                    }
+                }
+                
+                // Alinear números a la derecha
+                if (column == 3 || column == 4 || column == 5) { // Cantidad, Total, Puntos
+                    ((javax.swing.table.DefaultTableCellRenderer) c).setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+                    c.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                } else {
+                    ((javax.swing.table.DefaultTableCellRenderer) c).setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+                }
+                
+                return c;
+            }
+        });
 
         jTableCustomerTransactions.getTableHeader().setReorderingAllowed(true);
         jTableCustomerTransactions.setAutoCreateRowSorter(true);
         jTableCustomerTransactions.repaint();
-
     }
 
     /**

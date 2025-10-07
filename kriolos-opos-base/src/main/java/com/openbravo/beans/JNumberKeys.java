@@ -29,7 +29,8 @@ public class JNumberKeys extends javax.swing.JPanel {
     private final List<JNumberEventListener> m_Listeners = new ArrayList();
     
     private boolean minusenabled = true;
-    private boolean equalsenabled = true;
+    // Sebastian - Deshabilitar el botón '=' por defecto
+    private boolean equalsenabled = false;
     
     /** Creates new form JNumberKeys */
     public JNumberKeys() {
@@ -49,8 +50,7 @@ public class JNumberKeys extends javax.swing.JPanel {
         m_jMultiply.addActionListener(new MyKeyNumberListener('*'));
         m_jCE.addActionListener(new MyKeyNumberListener('\u007f'));
         m_jPlus.addActionListener(new MyKeyNumberListener('+'));        
-        m_jMinus.addActionListener(new MyKeyNumberListener('-'));        
-        m_jEquals.addActionListener(new MyKeyNumberListener('='));
+        m_jMinus.addActionListener(new MyKeyNumberListener('-'));
     }
 
     /**
@@ -58,7 +58,7 @@ public class JNumberKeys extends javax.swing.JPanel {
      * @param value
      */
     public void setNumbersOnly(boolean value) {
-        m_jEquals.setVisible(value);
+        // m_jEquals eliminado - ya no existe
         m_jMinus.setVisible(value);
         m_jPlus.setVisible(value);
         m_jMultiply.setVisible(value);
@@ -81,9 +81,8 @@ public class JNumberKeys extends javax.swing.JPanel {
         m_jKeyDot.setEnabled(b);
         m_jMultiply.setEnabled(b);
         m_jCE.setEnabled(b);
-        m_jPlus.setEnabled(b);       
+        m_jPlus.setEnabled(b);
         m_jMinus.setEnabled(minusenabled && b);
-        m_jEquals.setEnabled(equalsenabled && b);   
     }
     
     /**
@@ -146,7 +145,44 @@ public class JNumberKeys extends javax.swing.JPanel {
      */
     public void setEqualsEnabled(boolean b) {
         equalsenabled = b;
-        m_jEquals.setEnabled(equalsenabled && isEnabled());
+        // m_jEquals eliminado - método deshabilitado
+    }
+    
+    /**
+     * Sebastian - Método para ocultar el botón '='
+     * @param visible
+     */
+    public void setEqualsVisible(boolean visible) {
+        // Buscar y ocultar cualquier botón que pueda ser el '='
+        hideEqualsButton();
+    }
+    
+    /**
+     * Sebastian - Método para buscar y ocultar el botón de igual
+     */
+    public void hideEqualsButton() {
+        // Recorrer todos los componentes buscando botones con texto "="
+        removeEqualsButtonRecursively(this);
+    }
+    
+    /**
+     * Sebastian - Buscar recursivamente y eliminar botones con "="
+     */
+    private void removeEqualsButtonRecursively(java.awt.Container container) {
+        for (java.awt.Component comp : container.getComponents()) {
+            if (comp instanceof javax.swing.JButton) {
+                javax.swing.JButton btn = (javax.swing.JButton) comp;
+                if ("=".equals(btn.getText()) || 
+                    (btn.getIcon() != null && btn.getIcon().toString().contains("btnequals")) ||
+                    (btn.getToolTipText() != null && btn.getToolTipText().contains("equals"))) {
+                    btn.setVisible(false);
+                    btn.setEnabled(false);
+                    container.remove(btn);
+                }
+            } else if (comp instanceof java.awt.Container) {
+                removeEqualsButtonRecursively((java.awt.Container) comp);
+            }
+        }
     }
     
     /**
@@ -190,7 +226,7 @@ public class JNumberKeys extends javax.swing.JPanel {
      * @return
      */
     public boolean isNumbersOnly() {
-        return m_jEquals.isVisible();
+        return false; // m_jEquals eliminado
     }
     
     /**
@@ -251,7 +287,7 @@ public class JNumberKeys extends javax.swing.JPanel {
         m_jKey1 = new javax.swing.JButton();
         m_jKey0 = new javax.swing.JButton();
         m_jKeyDot = new javax.swing.JButton();
-        m_jEquals = new javax.swing.JButton();
+        // m_jEquals eliminado
 
         setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         setMinimumSize(new java.awt.Dimension(193, 200));
@@ -505,27 +541,12 @@ public class JNumberKeys extends javax.swing.JPanel {
         gridBagConstraints.insets = new java.awt.Insets(5, 5, 0, 0);
         add(m_jKeyDot, gridBagConstraints);
 
-        m_jEquals.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/btnequals.png"))); // NOI18N
-        m_jEquals.setFocusPainted(false);
-        m_jEquals.setFocusable(false);
-        m_jEquals.setMargin(new java.awt.Insets(4, 8, 4, 8)); // Márgenes más pequeños
-        m_jEquals.setPreferredSize(new java.awt.Dimension(42, 24)); // Altura aún más pequeña
-        m_jEquals.setRequestFocusEnabled(false);
-        gridBagConstraints = new java.awt.GridBagConstraints();
-        gridBagConstraints.gridx = 3;
-        gridBagConstraints.gridy = 5; // Mover a una fila más abajo
-        gridBagConstraints.gridheight = 1; // Solo una fila
-        gridBagConstraints.fill = java.awt.GridBagConstraints.BOTH;
-        gridBagConstraints.weightx = 1.0;
-        gridBagConstraints.weighty = 0.5; // Aún menos peso vertical
-        gridBagConstraints.insets = new java.awt.Insets(10, 5, 5, 0); // Más margen superior para separarlo
-        add(m_jEquals, gridBagConstraints);
+        // m_jEquals completamente eliminado - no más configuración
     }// </editor-fold>//GEN-END:initComponents
 
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton m_jCE;
-    private javax.swing.JButton m_jEquals;
     private javax.swing.JButton m_jKey0;
     private javax.swing.JButton m_jKey1;
     private javax.swing.JButton m_jKey2;

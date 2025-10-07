@@ -25,6 +25,7 @@ import com.openbravo.pos.forms.DataLogicSystem;
 import com.openbravo.pos.suppliers.DataLogicSuppliers;
 import com.openbravo.pos.panels.JProductFinder;
 import java.awt.Component;
+import java.awt.Container;
 import com.openbravo.basic.BasicException;
 import com.openbravo.beans.DateUtils;
 import com.openbravo.beans.JCalendarDialog;
@@ -38,12 +39,21 @@ import com.openbravo.pos.printer.TicketParser;
 import com.openbravo.pos.sales.JProductAttEdit;
 import com.openbravo.pos.ticket.ProductInfoExt;
 import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Font;
 import java.awt.Toolkit;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.util.Date;
 import java.util.UUID;
+import javax.swing.BorderFactory;
+import javax.swing.JButton;
+import javax.swing.JComboBox;
+import javax.swing.JLabel;
 import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 
 public final class StockDiaryEditor extends javax.swing.JPanel implements EditorRecord {
     
@@ -88,12 +98,9 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
         m_dlSuppliers = (DataLogicSuppliers) m_App.getBean("com.openbravo.pos.suppliers.DataLogicSuppliers");        
         m_TTP = new TicketParser(m_App.getDeviceTicket(), m_dlSystem);
         
-        initComponents();
-        
-        user = m_App.getAppUserView().getUser().getName();        
+        // Inicializar variables final
         m_sentlocations = m_dlSales.getLocationsList();
-        m_LocationsModel = new ComboBoxValModel();
-        m_LocationsModel =  new ComboBoxValModel();        
+        m_LocationsModel = new ComboBoxValModel();       
         m_LocationsModelDes = new ComboBoxValModel();  
         
         m_sentsuppliers = m_dlSuppliers.getSupplierList();
@@ -109,11 +116,13 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
         m_ReasonModel.add(MovementReason.OUT_MOVEMENT);   
         m_ReasonModel.add(MovementReason.OUT_CROSSING);          
 
-        m_jreason.setModel(m_ReasonModel);
-
         m_cat = new JCatalog(m_dlSales);
         m_cat.addActionListener(new CatalogListener());
-
+        
+        initComponents();
+        
+        // Configurar modelos y listeners
+        m_jreason.setModel(m_ReasonModel);
         catcontainer.add(m_cat.getComponent(), BorderLayout.CENTER);        
         
         m_jdate.getDocument().addDocumentListener(dirty);
@@ -125,10 +134,251 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
         jattributes.getDocument().addDocumentListener(dirty);
         m_junits.getDocument().addDocumentListener(dirty);
         m_jprice.getDocument().addDocumentListener(dirty);
-
         m_jSupplier.addActionListener(dirty);  
         
         writeValueEOF();
+        
+        // Aplicar mejoras estructurales avanzadas
+        reestructurarLayoutProfesional();
+        aplicarMejorasVisuales();
+        
+        user = m_App.getAppUserView().getUser().getName();        
+    }
+    
+    /**
+     * Reestructurar el layout con diseño profesional avanzado
+     */
+    private void reestructurarLayoutProfesional() {
+        SwingUtilities.invokeLater(() -> {
+            // Mejorar estructura general
+            optimizarEstructuraGeneral();
+            
+            // Reorganizar campos en grupos lógicos
+            crearAgrupacionesLogicas();
+            
+            // Mejorar tipografía y espaciado
+            aplicarTipografiaProfesional();
+            
+            // Optimizar tabla de resultados
+            optimizarTablaResultados();
+        });
+    }
+    
+    /**
+     * Optimizar la estructura general del panel
+     */
+    private void optimizarEstructuraGeneral() {
+        // Aplicar espaciado más profesional
+        this.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Mejorar el panel principal si existe
+        Component[] components = this.getComponents();
+        for (Component comp : components) {
+            if (comp instanceof javax.swing.JPanel) {
+                javax.swing.JPanel panel = (javax.swing.JPanel) comp;
+                panel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+            }
+        }
+    }
+    
+    /**
+     * Crear agrupaciones lógicas de campos
+     */
+    private void crearAgrupacionesLogicas() {
+        // Buscar y agrupar campos relacionados
+        mejorarGrupoProducto();
+        mejorarGrupoMovimiento();
+        mejorarGrupoUbicacion();
+        mejorarGrupoFechaYUsuario();
+    }
+    
+    /**
+     * Mejorar el grupo de información del producto
+     */
+    private void mejorarGrupoProducto() {
+        // Encontrar componentes relacionados con producto
+        Component[] components = this.getComponents();
+        
+        // Aplicar mejoras a campos de producto
+        for (Component comp : components) {
+            if (comp instanceof javax.swing.JPanel) {
+                buscarYMejorarCamposProducto((javax.swing.JPanel) comp);
+            }
+        }
+    }
+    
+    /**
+     * Buscar y mejorar campos de producto en un panel
+     */
+    private void buscarYMejorarCamposProducto(javax.swing.JPanel panel) {
+        Component[] components = panel.getComponents();
+        
+        for (Component comp : components) {
+            if (comp instanceof JTextField) {
+                JTextField field = (JTextField) comp;
+                // Aplicar estilo profesional a campos de texto
+                field.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                field.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(220, 220, 220), 1),
+                    BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                ));
+            } else if (comp instanceof JLabel) {
+                JLabel label = (JLabel) comp;
+                // Mejorar tipografía de etiquetas
+                label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                label.setForeground(new Color(60, 60, 60));
+            }
+        }
+    }
+    
+    /**
+     * Mejorar el grupo de información del movimiento
+     */
+    private void mejorarGrupoMovimiento() {
+        // Aplicar mejoras específicas para campos de movimiento
+        optimizarCamposNumericos();
+    }
+    
+    /**
+     * Optimizar campos numéricos (cantidades, precios)
+     */
+    private void optimizarCamposNumericos() {
+        Component[] allComponents = getAllComponents(this);
+        
+        for (Component comp : allComponents) {
+            if (comp instanceof JTextField) {
+                JTextField field = (JTextField) comp;
+                String name = field.getName();
+                
+                // Identificar campos numéricos y aplicar formato especial
+                if (name != null && (name.contains("quantity") || name.contains("price") || name.contains("units"))) {
+                    field.setFont(new Font("Segoe UI", Font.BOLD, 12));
+                    field.setHorizontalAlignment(JTextField.RIGHT);
+                    field.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(180, 180, 180), 1),
+                        BorderFactory.createEmptyBorder(8, 12, 8, 12)
+                    ));
+                }
+            }
+        }
+    }
+    
+    /**
+     * Mejorar el grupo de ubicación
+     */
+    private void mejorarGrupoUbicacion() {
+        Component[] allComponents = getAllComponents(this);
+        
+        for (Component comp : allComponents) {
+            if (comp instanceof JComboBox) {
+                JComboBox<?> combo = (JComboBox<?>) comp;
+                combo.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+                combo.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                    BorderFactory.createEmptyBorder(6, 8, 6, 8)
+                ));
+            }
+        }
+    }
+    
+    /**
+     * Mejorar el grupo de fecha y usuario
+     */
+    private void mejorarGrupoFechaYUsuario() {
+        // Aplicar estilo especial a campos de fecha y usuario
+        Component[] allComponents = getAllComponents(this);
+        
+        for (Component comp : allComponents) {
+            if (comp instanceof JTextField) {
+                JTextField field = (JTextField) comp;
+                String name = field.getName();
+                
+                if (name != null && (name.contains("date") || name.contains("user"))) {
+                    field.setFont(new Font("Segoe UI", Font.ITALIC, 11));
+                    field.setForeground(new Color(100, 100, 100));
+                }
+            }
+        }
+    }
+    
+    /**
+     * Aplicar tipografía profesional
+     */
+    private void aplicarTipografiaProfesional() {
+        // Definir jerarquía tipográfica
+        Font fuenteTitulo = new Font("Segoe UI", Font.BOLD, 14);
+        Font fuenteSubtitulo = new Font("Segoe UI", Font.BOLD, 12);
+        Font fuenteNormal = new Font("Segoe UI", Font.PLAIN, 11);
+        Font fuentePequeña = new Font("Segoe UI", Font.PLAIN, 10);
+        
+        // Aplicar jerarquía a todos los componentes
+        aplicarJerarquiaTipografica(this, fuenteNormal);
+    }
+    
+    /**
+     * Aplicar jerarquía tipográfica recursivamente
+     */
+    private void aplicarJerarquiaTipografica(Container container, Font fuenteBase) {
+        Component[] components = container.getComponents();
+        
+        for (Component comp : components) {
+            if (comp instanceof JLabel) {
+                JLabel label = (JLabel) comp;
+                label.setFont(fuenteBase);
+                
+                // Detectar si es un título por el texto
+                String text = label.getText();
+                if (text != null && text.length() < 20 && text.contains(":")) {
+                    label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+                }
+            } else if (comp instanceof JTextField) {
+                JTextField field = (JTextField) comp;
+                field.setFont(fuenteBase);
+            } else if (comp instanceof JButton) {
+                JButton button = (JButton) comp;
+                button.setFont(new Font("Segoe UI", Font.BOLD, 11));
+            } else if (comp instanceof Container) {
+                aplicarJerarquiaTipografica((Container) comp, fuenteBase);
+            }
+        }
+    }
+    
+    /**
+     * Optimizar tabla de resultados
+     */
+    private void optimizarTablaResultados() {
+        Component[] allComponents = getAllComponents(this);
+        
+        for (Component comp : allComponents) {
+            if (comp instanceof javax.swing.JTable) {
+                javax.swing.JTable table = (javax.swing.JTable) comp;
+                
+                // Aplicar mejoras estructurales a la tabla
+                table.setFont(new Font("Segoe UI", Font.PLAIN, 11));
+                table.setRowHeight(32);
+                table.setGridColor(new Color(240, 240, 240));
+                table.setShowGrid(true);
+                table.setIntercellSpacing(new java.awt.Dimension(1, 1));
+                
+                // Mejorar header
+                if (table.getTableHeader() != null) {
+                    table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 11));
+                    table.getTableHeader().setBackground(new Color(250, 250, 250));
+                    table.getTableHeader().setForeground(new Color(70, 70, 70));
+                    table.getTableHeader().setPreferredSize(new java.awt.Dimension(
+                        table.getTableHeader().getPreferredSize().width, 36
+                    ));
+                }
+            } else if (comp instanceof javax.swing.JScrollPane) {
+                javax.swing.JScrollPane scroll = (javax.swing.JScrollPane) comp;
+                scroll.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220), 1));
+            }
+        }
+        
+        // Continuar con las mejoras visuales
+        SwingUtilities.invokeLater(() -> {
+            aplicarMejorasEstructurales();
+        });
     }
     
     /**
@@ -954,6 +1204,127 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
         }
     }//GEN-LAST:event_m_jreasonActionPerformed
     
+    /**
+     * Aplica mejoras visuales modernas al editor de stock
+     */
+    private void aplicarMejorasVisuales() {
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Configurar fuentes modernas
+                Font modernFont = new Font("Segoe UI", Font.PLAIN, 12);
+                Font labelFont = new Font("Segoe UI", Font.PLAIN, 11);
+                Font buttonFont = new Font("Segoe UI", Font.PLAIN, 11);
+                
+                // Colores modernos
+                Color primaryColor = new Color(0, 123, 255);
+                Color successColor = new Color(40, 167, 69);
+                Color backgroundColor = new Color(248, 249, 250);
+                Color borderColor = new Color(222, 226, 230);
+                Color textColor = new Color(73, 80, 87);
+                
+                // Configurar el panel principal
+                this.setBackground(backgroundColor);
+                
+                // Mejorar etiquetas
+                configurarLabel(jLblDate, labelFont, textColor);
+                configurarLabel(jLblReason, labelFont, textColor);
+                configurarLabel(jLblLocation, labelFont, textColor);
+                configurarLabel(jLblLocation1, labelFont, textColor);
+                configurarLabel(jLblMoveTo, labelFont, textColor);
+                configurarLabel(jLBCode, labelFont, textColor);
+                configurarLabel(jLblRef, labelFont, textColor);
+                configurarLabel(jLblName, labelFont, textColor);
+                configurarLabel(jLblAtt, labelFont, textColor);
+                configurarLabel(jLblUnits, labelFont, textColor);
+                configurarLabel(jLblPrice, labelFont, textColor);
+                
+                // Mejorar campos de texto
+                configurarTextField(m_jdate, modernFont, borderColor);
+                configurarTextField(m_jreference, modernFont, borderColor);
+                configurarTextField(m_jcodebar, modernFont, borderColor);
+                configurarTextField(jproduct, modernFont, borderColor);
+                configurarTextField(jattributes, modernFont, borderColor);
+                configurarTextField(m_junits, modernFont, borderColor);
+                configurarTextField(m_jprice, modernFont, borderColor);
+                
+                // Mejorar botones
+                configurarBoton(m_jbtndate, buttonFont, primaryColor);
+                configurarBoton(jEditProduct, buttonFont, primaryColor);
+                configurarBoton(jEditAttributes, buttonFont, primaryColor);
+                configurarBoton(m_jEnter, buttonFont, successColor);
+                configurarBoton(m_jEnter1, buttonFont, successColor);
+                
+                // Mejorar comboboxes
+                configurarComboBox(m_jreason, modernFont, borderColor);
+                configurarComboBox(m_jLocation, modernFont, borderColor);
+                configurarComboBox(m_jLocationDes, modernFont, borderColor);
+                configurarComboBox(m_jSupplier, modernFont, borderColor);
+                
+                // Mejorar paneles
+                if (jPanel1 != null) {
+                    jPanel1.setBackground(backgroundColor);
+                }
+                if (catcontainer != null) {
+                    catcontainer.setBackground(backgroundColor);
+                }
+                
+            } catch (Exception e) {
+                // En caso de error, continuar sin aplicar mejoras
+                e.printStackTrace();
+            }
+        });
+    }
+    
+    /**
+     * Configura un label con estilo moderno
+     */
+    private void configurarLabel(JLabel label, Font font, Color color) {
+        if (label != null) {
+            label.setFont(font);
+            label.setForeground(color);
+        }
+    }
+    
+    /**
+     * Configura un campo de texto con estilo moderno
+     */
+    private void configurarTextField(JTextField field, Font font, Color borderColor) {
+        if (field != null) {
+            field.setFont(font);
+            field.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(borderColor, 1),
+                BorderFactory.createEmptyBorder(5, 8, 5, 8)
+            ));
+        }
+    }
+    
+    /**
+     * Configura un botón con estilo moderno
+     */
+    private void configurarBoton(JButton button, Font font, Color backgroundColor) {
+        if (button != null) {
+            button.setFont(font);
+            button.setBackground(backgroundColor);
+            button.setForeground(Color.WHITE);
+            button.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(backgroundColor, 1),
+                BorderFactory.createEmptyBorder(6, 12, 6, 12)
+            ));
+            button.setFocusPainted(false);
+            button.setOpaque(true);
+        }
+    }
+    
+    /**
+     * Configura un combobox con estilo moderno
+     */
+    private void configurarComboBox(JComboBox comboBox, Font font, Color borderColor) {
+        if (comboBox != null) {
+            comboBox.setFont(font);
+            comboBox.setBorder(BorderFactory.createLineBorder(borderColor, 1));
+        }
+    }
+    
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel catcontainer;
@@ -986,5 +1357,187 @@ public final class StockDiaryEditor extends javax.swing.JPanel implements Editor
     private javax.swing.JTextField m_jreference;
     private javax.swing.JTextField m_junits;
     // End of variables declaration//GEN-END:variables
+    
+    /**
+     * Aplica mejoras estructurales avanzadas para crear un diseño profesional
+     */
+    private void aplicarMejorasEstructurales() {
+        try {
+            // Configurar fuente profesional
+            Font fonteProfissional = new Font("Segoe UI", Font.PLAIN, 12);
+            Font fonteLabel = new Font("Segoe UI", Font.BOLD, 11);
+            Font fonteTitulo = new Font("Segoe UI", Font.BOLD, 14);
+            
+            // Colores profesionales
+            Color corFondoPrimario = new Color(248, 249, 250);
+            Color corBordePrimario = new Color(223, 225, 229);
+            Color corTexto = new Color(33, 37, 41);
+            Color corAcento = new Color(0, 123, 255);
+            
+            // Aplicar mejoras al panel principal
+            Component[] todosComponentes = getAllComponents(this);
+            
+            for (Component comp : todosComponentes) {
+                if (comp instanceof JPanel) {
+                    JPanel panel = (JPanel) comp;
+                    panel.setBackground(corFondoPrimario);
+                    
+                    // Mejorar bordes de paneles
+                    if (panel.getBorder() != null) {
+                        panel.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(corBordePrimario, 1),
+                            BorderFactory.createEmptyBorder(12, 12, 12, 12)
+                        ));
+                    }
+                    
+                } else if (comp instanceof JLabel) {
+                    JLabel label = (JLabel) comp;
+                    label.setFont(fonteLabel);
+                    label.setForeground(corTexto);
+                    
+                } else if (comp instanceof JTextField) {
+                    JTextField field = (JTextField) comp;
+                    field.setFont(fonteProfissional);
+                    field.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(corBordePrimario, 1),
+                        BorderFactory.createEmptyBorder(4, 8, 4, 8)
+                    ));
+                    field.setBackground(Color.WHITE);
+                    
+                } else if (comp instanceof JComboBox) {
+                    JComboBox combo = (JComboBox) comp;
+                    combo.setFont(fonteProfissional);
+                    combo.setBorder(BorderFactory.createLineBorder(corBordePrimario, 1));
+                    combo.setBackground(Color.WHITE);
+                    
+                } else if (comp instanceof JButton) {
+                    JButton button = (JButton) comp;
+                    button.setFont(fonteProfissional);
+                    button.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(corAcento, 1),
+                        BorderFactory.createEmptyBorder(6, 12, 6, 12)
+                    ));
+                    button.setBackground(Color.WHITE);
+                    button.setForeground(corAcento);
+                    button.setFocusPainted(false);
+                    
+                    // Efecto hover
+                    button.addMouseListener(new java.awt.event.MouseAdapter() {
+                        @Override
+                        public void mouseEntered(java.awt.event.MouseEvent evt) {
+                            button.setBackground(corAcento);
+                            button.setForeground(Color.WHITE);
+                        }
+                        
+                        @Override
+                        public void mouseExited(java.awt.event.MouseEvent evt) {
+                            button.setBackground(Color.WHITE);
+                            button.setForeground(corAcento);
+                        }
+                    });
+                }
+            }
+            
+            // Configurar espaciado y layout profesional
+            if (this.getLayout() instanceof BorderLayout) {
+                this.setBorder(BorderFactory.createEmptyBorder(16, 16, 16, 16));
+            }
+            
+        // Aplicar mejoras específicas a componentes principales
+        aplicarMejorasComponentesEspecificos(fonteTitulo, corAcento);
+        
+        // Ocultar el catálogo/teclado de productos
+        ocultarCatalogoProductos();        } catch (Exception e) {
+            // Si hay error, continúa sin aplicar mejoras
+            System.err.println("Error aplicando mejoras estructurales: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Aplica mejoras específicas a componentes principales
+     */
+    private void aplicarMejorasComponentesEspecificos(Font fonteTitulo, Color corAcento) {
+        // Mejorar campos específicos del editor de stock
+        if (m_jdate != null) {
+            m_jdate.setToolTipText("Fecha de la transacción");
+        }
+        
+        if (m_jreason != null) {
+            m_jreason.setToolTipText("Motivo del movimiento de stock");
+        }
+        
+        if (m_jLocation != null) {
+            m_jLocation.setToolTipText("Ubicación de origen");
+        }
+        
+        if (m_jLocationDes != null) {
+            m_jLocationDes.setToolTipText("Ubicación de destino");
+        }
+        
+        if (jproduct != null) {
+            jproduct.setToolTipText("Código del producto");
+        }
+        
+        if (m_junits != null) {
+            m_junits.setToolTipText("Cantidad de unidades");
+        }
+        
+        if (m_jprice != null) {
+            m_jprice.setToolTipText("Precio unitario");
+        }
+        
+        if (m_jSupplier != null) {
+            m_jSupplier.setToolTipText("Proveedor del producto");
+        }
+    }
+    
+    /**
+     * Ocultar el catálogo/teclado de productos
+     */
+    private void ocultarCatalogoProductos() {
+        try {
+            if (catcontainer != null) {
+                catcontainer.setVisible(false);
+                catcontainer.setPreferredSize(new java.awt.Dimension(0, 0));
+                catcontainer.setMaximumSize(new java.awt.Dimension(0, 0));
+                catcontainer.setMinimumSize(new java.awt.Dimension(0, 0));
+                
+                // Revalidar el layout para aplicar los cambios
+                if (this.getParent() != null) {
+                    this.getParent().revalidate();
+                    this.getParent().repaint();
+                }
+                this.revalidate();
+                this.repaint();
+            }
+        } catch (Exception e) {
+            // Si hay error, continúa sin ocultar
+            System.err.println("Error ocultando catálogo: " + e.getMessage());
+        }
+    }
+    
+    /**
+     * Obtener todos los componentes recursivamente
+     */
+    private Component[] getAllComponents(Container container) {
+        java.util.List<Component> allComponents = new java.util.ArrayList<>();
+        addComponentsRecursively(container, allComponents);
+        return allComponents.toArray(new Component[0]);
+    }
+    
+    /**
+     * Agregar componentes recursivamente
+     */
+    private void addComponentsRecursively(Container container, java.util.List<Component> allComponents) {
+        Component[] components = container.getComponents();
+        
+        for (Component comp : components) {
+            allComponents.add(comp);
+            
+            if (comp instanceof Container) {
+                addComponentsRecursively((Container) comp, allComponents);
+            }
+        }
+    }
     
 }

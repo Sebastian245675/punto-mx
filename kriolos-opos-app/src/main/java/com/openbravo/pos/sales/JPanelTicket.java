@@ -169,7 +169,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
 // Configuration>Peripheral options        
         m_jbtnScale.setVisible(m_App.getDeviceScale().existsScale());
-        m_jPanelScripts.setVisible(false);
+        // Sebastian - Mostrar panel de scripts con solo dos botones personalizados
+        m_jPanelScripts.setVisible(true);
 
         jTBtnShow.setSelected(false);
 
@@ -207,10 +208,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         initComponentFromChild();
 
         initDeviceDisplay();
+
+        // Apply modern look and feel styles to the ticket panel (non-fatal)
+        try {
+            com.openbravo.pos.util.ModernLookAndFeel.aplicarEstiloModerno();
+            com.openbravo.pos.util.ModernLookAndFeel.estilizarComponentes(this);
+        } catch (Throwable t) {
+            LOGGER.log(System.Logger.Level.WARNING, "No se pudo aplicar estilo moderno: " + t.getMessage());
+        }
     }
 
     private void initExtButtons() {
-        // Script event buttons
+        // Script event buttons - mantener funcionalidad original pero oculta
         String resourceName = TicketConstants.RES_TICKET_BUTTONS;
 
         String sConfigRes = getResourceAsXML(resourceName);
@@ -239,15 +248,63 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 printTicket(resource);
             }
         }, sConfigRes);
+        
+        // Sebastian - Ocultar el panel original de botones
+        m_jbtnconfig.setVisible(false);
 
         m_jPanelBagExt.add(m_jbtnconfig);
-        m_jPanelBagExt.setVisible(false);
+        
+        // Sebastian - Agregar los 2 botones personalizados en lugar de los 5 originales
+        javax.swing.JPanel panelDosBotones = new javax.swing.JPanel();
+        panelDosBotones.setLayout(new java.awt.GridLayout(2, 1, 5, 5));
+        panelDosBotones.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        // Botón 1 - Cliente
+        javax.swing.JButton btnCliente = new javax.swing.JButton("Cliente");
+        btnCliente.setPreferredSize(new java.awt.Dimension(120, 40));
+        btnCliente.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11));
+        btnCliente.setBackground(new java.awt.Color(70, 130, 180));
+        btnCliente.setForeground(java.awt.Color.WHITE);
+        btnCliente.setFocusPainted(false);
+        try {
+            btnCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer.png")));
+        } catch (Exception e) {
+            // Ignorar si no se encuentra la imagen
+        }
+        btnCliente.addActionListener(e -> {
+            javax.swing.JOptionPane.showMessageDialog(this, "Función de Cliente", "Cliente", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        });
+        
+        // Botón 2 - Historial
+        javax.swing.JButton btnHistorial = new javax.swing.JButton("Historial");
+        btnHistorial.setPreferredSize(new java.awt.Dimension(120, 40));
+        btnHistorial.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11));
+        btnHistorial.setBackground(new java.awt.Color(34, 139, 34));
+        btnHistorial.setForeground(java.awt.Color.WHITE);
+        btnHistorial.setFocusPainted(false);
+        try {
+            btnHistorial.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ticket_print.png")));
+        } catch (Exception e) {
+            // Ignorar si no se encuentra la imagen
+        }
+        btnHistorial.addActionListener(e -> {
+            javax.swing.JOptionPane.showMessageDialog(this, "Función de Historial", "Historial", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        });
+        
+        panelDosBotones.add(btnCliente);
+        panelDosBotones.add(btnHistorial);
+        m_jPanelBagExt.add(panelDosBotones);
+        
+        // Sebastian - Hacer visible el panel para mostrar los 2 botones nuevos
+        m_jPanelBagExt.setVisible(true);
     }
 
     private void initComponentFromChild() {
 
         // Set Configuration>General>Tickets toolbar simple : standard : restaurant option
         m_ticketsbag = getJTicketsBag();
+        // Sebastian - Mantener el componente de bolsas de tickets visible para poder cambiar entre ventas
+        m_ticketsbag.getBagComponent().setVisible(true);
         m_jPanelBag.add(m_ticketsbag.getBagComponent(), BorderLayout.LINE_START);
         add(m_ticketsbag.getNullComponent(), "null");
 
@@ -357,7 +414,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         m_jDelete.setEnabled(m_App.hasPermission("sales.EditLines"));
         m_jNumberKeys.setMinusEnabled(m_App.hasPermission("sales.EditLines"));
-        m_jNumberKeys.setEqualsEnabled(m_App.hasPermission("sales.Total"));
+        // Sebastian - Deshabilitar permanentemente el botón '=' porque usamos el botón 'Pagar' dedicado
+        m_jNumberKeys.setEqualsEnabled(false);
         m_jbtnconfig.setPermissions(m_App.getAppUserView().getUser());
 
         m_ticketsbag.setEnabled(false);
@@ -842,7 +900,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 Toolkit.getDefaultToolkit().beep();
                 JOptionPane.showMessageDialog(null,
                         sCode + " - " + AppLocal.getIntString("message.noproduct"),
-                        "Check", JOptionPane.WARNING_MESSAGE);
+                        "Verificación", JOptionPane.WARNING_MESSAGE);
                 stateToZero();
             } else {
                 incProduct(oProduct);
@@ -1039,7 +1097,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             JOptionPane.showMessageDialog(null,
                                     sCode + " - "
                                     + AppLocal.getIntString("message.noproduct"),
-                                    "Check", JOptionPane.WARNING_MESSAGE);
+                                    "Verificación", JOptionPane.WARNING_MESSAGE);
                             stateToZero();                                          // clear the user input
 
                         } else if ("EAN-13".equals(oProduct.getCodetype())) {        // have a valid barcode
@@ -1226,7 +1284,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             JOptionPane.showMessageDialog(null,
                                     sCode + " - "
                                     + AppLocal.getIntString("message.noproduct"),
-                                    "Check", JOptionPane.WARNING_MESSAGE);
+                                    "Verificación", JOptionPane.WARNING_MESSAGE);
                             stateToZero();
                         } else if ("Upc-A".equals(oProduct.getCodetype())) {
                             oProduct.setProperty("product.barcode", sCode);
@@ -2365,8 +2423,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelMainToolbar.setLayout(new java.awt.BorderLayout());
 
         m_jPanelBag.setAutoscrolls(true);
-        m_jPanelBag.setMaximumSize(new java.awt.Dimension(10, 10));
-        m_jPanelBag.setPreferredSize(new java.awt.Dimension(0, 60));
+        m_jPanelBag.setMaximumSize(new java.awt.Dimension(300, 100)); // Sebastian - Permitir que el panel sea visible
+        m_jPanelBag.setPreferredSize(new java.awt.Dimension(200, 60)); // Sebastian - Hacer visible el panel de tickets
 
         jTBtnShow.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jTBtnShow.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/resources.png"))); // NOI18N
@@ -2376,6 +2434,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 jTBtnShowActionPerformed(evt);
             }
         });
+        // Sebastian - Ocultar botones de toolbar para interfaz más limpia
+        jTBtnShow.setVisible(false);
         m_jPanelBag.add(jTBtnShow);
 
         m_jbtnScale.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
@@ -2395,6 +2455,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 m_jbtnScaleActionPerformed(evt);
             }
         });
+        m_jbtnScale.setVisible(false);
         m_jPanelBag.add(m_jbtnScale);
 
         m_jButtons.setPreferredSize(new java.awt.Dimension(350, 55));
@@ -2482,6 +2543,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
+        // Sebastian - Ocultar panel de botones para interfaz más limpia
+        m_jButtons.setVisible(false);
         m_jPanelBag.add(m_jButtons);
 
         m_jPanelMainToolbar.add(m_jPanelBag, java.awt.BorderLayout.PAGE_START);
@@ -2504,12 +2567,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelTicket.setLayout(new java.awt.BorderLayout());
 
         m_jPanelLinesToolbar.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jPanelLinesToolbar.setPreferredSize(new java.awt.Dimension(75, 270));
+        m_jPanelLinesToolbar.setPreferredSize(new java.awt.Dimension(65, 270));
         m_jPanelLinesToolbar.setLayout(new java.awt.BorderLayout());
 
         jPanel2.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5));
-        jPanel2.setPreferredSize(new java.awt.Dimension(70, 250));
-        jPanel2.setLayout(new java.awt.GridLayout(0, 1, 5, 5));
+        jPanel2.setPreferredSize(new java.awt.Dimension(80, 250));
+        jPanel2.setLayout(new java.awt.GridLayout(3, 1, 5, 15)); // Sebastian - 3 filas para 3 botones con más espaciado
+        
+        // Sebastian - Reemplazar los 5 botones originales con solo 2 botones personalizados
+        // Los botones originales se mantienen para compatibilidad pero se hacen invisibles
+        
+        // Hacer invisibles los botones originales
 
         m_jDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/editdelete.png"))); // NOI18N
         m_jDelete.setToolTipText(bundle.getString("tooltip.saleremoveline")); // NOI18N
@@ -2599,14 +2667,88 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 jCheckStockActionPerformed(evt);
             }
         });
+        
+        // Sebastian - Hacer invisibles los 5 botones originales 
+        m_jDelete.setVisible(false);
+        m_jList.setVisible(false);
+        m_jEditLine.setVisible(false);
+        jEditAttributes.setVisible(false);
+        jCheckStock.setVisible(false);
+        
+        // Agregar los botones originales (ocultos) para mantener compatibilidad
+        jPanel2.add(m_jDelete);
+        jPanel2.add(m_jList);
+        jPanel2.add(m_jEditLine);
+        jPanel2.add(jEditAttributes);
         jPanel2.add(jCheckStock);
+        
+        // Sebastian - Limpiar el panel y agregar solo mis 2 botones personalizados
+        jPanel2.removeAll();
+        
+        // Botón 1 - Nueva Venta (Nueva Pestaña)
+        javax.swing.JButton btnNuevaVenta = new javax.swing.JButton();
+        btnNuevaVenta.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/editnew.png")));
+        btnNuevaVenta.setToolTipText("Nueva Venta (Nueva Pestaña)");
+        btnNuevaVenta.setFocusPainted(false);
+        btnNuevaVenta.setFocusable(false);
+        btnNuevaVenta.setMargin(new java.awt.Insets(8, 8, 8, 8));
+        btnNuevaVenta.setPreferredSize(new java.awt.Dimension(60, 45));
+        btnNuevaVenta.setRequestFocusEnabled(false);
+        btnNuevaVenta.setOpaque(false);
+        btnNuevaVenta.setContentAreaFilled(false);
+        btnNuevaVenta.setBorderPainted(false);
+        btnNuevaVenta.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                abrirNuevaVenta();
+            }
+        });
+        jPanel2.add(btnNuevaVenta);
+
+        // Botón 2 - Cambiar entre Ventas
+        javax.swing.JButton btnCambiarVenta = new javax.swing.JButton();
+        btnCambiarVenta.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/bookmark.png")));
+        btnCambiarVenta.setToolTipText("Ver Ventas Pendientes");
+        btnCambiarVenta.setFocusPainted(false);
+        btnCambiarVenta.setFocusable(false);
+        btnCambiarVenta.setMargin(new java.awt.Insets(8, 8, 8, 8));
+        btnCambiarVenta.setPreferredSize(new java.awt.Dimension(60, 45));
+        btnCambiarVenta.setRequestFocusEnabled(false);
+        btnCambiarVenta.setOpaque(false);
+        btnCambiarVenta.setContentAreaFilled(false);
+        btnCambiarVenta.setBorderPainted(false);
+        btnCambiarVenta.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                mostrarVentasPendientes();
+            }
+        });
+        jPanel2.add(btnCambiarVenta);
+
+        // Botón 3 - ID Cliente
+        javax.swing.JButton btnIdCliente = new javax.swing.JButton();
+        btnIdCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer.png")));
+        btnIdCliente.setToolTipText("Ingresar ID Cliente");
+        btnIdCliente.setFocusPainted(false);
+        btnIdCliente.setFocusable(false);
+        btnIdCliente.setMargin(new java.awt.Insets(8, 8, 8, 8));
+        btnIdCliente.setPreferredSize(new java.awt.Dimension(60, 45));
+        btnIdCliente.setRequestFocusEnabled(false);
+        btnIdCliente.setOpaque(false);
+        btnIdCliente.setContentAreaFilled(false);
+        btnIdCliente.setBorderPainted(false);
+        btnIdCliente.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                mostrarModalIdCliente();
+            }
+        });
+        jPanel2.add(btnIdCliente);
 
         m_jPanelLinesToolbar.add(jPanel2, java.awt.BorderLayout.NORTH);
 
         m_jPanelTicket.add(m_jPanelLinesToolbar, java.awt.BorderLayout.LINE_START);
 
         m_jPanelLines.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jPanelLines.setPreferredSize(new java.awt.Dimension(450, 240));
+        // Sebastian - Expandir el panel de líneas para ocupar más espacio horizontal
+        m_jPanelLines.setPreferredSize(new java.awt.Dimension(750, 240));
         m_jPanelLines.setLayout(new java.awt.BorderLayout());
 
         m_jPanelLinesSum.setLayout(new java.awt.BorderLayout());
@@ -2639,6 +2781,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jCustomerName.setForeground(new java.awt.Color(0, 100, 0));
         m_jCustomerName.setText("");
         customerPanel.add(m_jCustomerName, java.awt.BorderLayout.CENTER);
+        
+        // Ocultar el panel de ID de cliente
+        customerPanel.setVisible(false);
         
         m_jPanelLinesSum.add(customerPanel, java.awt.BorderLayout.NORTH);
 
@@ -2732,7 +2877,95 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jTotalEuros.setRequestFocusEnabled(false);
         m_jPanelTotals.add(m_jTotalEuros);
 
-        m_jPanelLinesSum.add(m_jPanelTotals, java.awt.BorderLayout.LINE_END);
+        // Sebastian - Panel para botón Pagar ANTES del subtotal
+        javax.swing.JPanel payBeforePanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 6));
+        payBeforePanel.setOpaque(false);
+        
+        // Botón Pagar (verde, destacado) - colocado antes del subtotal
+        m_jPayNow = new javax.swing.JButton();
+        m_jPayNow.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
+        m_jPayNow.setText(AppLocal.getIntString("button.pay")); // "Pagar" desde pos_messages.properties
+        m_jPayNow.setFocusPainted(false);
+        m_jPayNow.setPreferredSize(new java.awt.Dimension(140, 40));
+        m_jPayNow.setBackground(new java.awt.Color(46, 139, 87)); // SeaGreen
+        m_jPayNow.setForeground(java.awt.Color.WHITE);
+        m_jPayNow.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(34, 120, 60), 1, true));
+        m_jPayNow.setOpaque(true);
+        
+        // Acción: reutiliza el flujo de cierre/pago de ticket
+        m_jPayNow.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
+                    if (closeTicket(m_oTicket, m_oTicketExt)) {
+                        setActiveTicket(null, null);
+                        refreshTicket();
+                        m_ticketsbag.deleteTicket();
+                        createNewTicket();
+                    }
+                    refreshTicket();
+                }
+            }
+        });
+        payBeforePanel.add(m_jPayNow);
+        
+        // Crear un panel wrapper que contenga los totales y el botón Pagar abajo a la derecha
+        javax.swing.JPanel totalsWithPay = new javax.swing.JPanel(new java.awt.BorderLayout());
+        totalsWithPay.setOpaque(false);
+        totalsWithPay.add(payBeforePanel, java.awt.BorderLayout.NORTH); // Botón arriba
+        totalsWithPay.add(m_jPanelTotals, java.awt.BorderLayout.CENTER);
+
+        // Sebastian - Panel original del botón comentado porque ya está arriba
+        /*
+        // Panel para contener el botón y alinearlo a la derecha
+        javax.swing.JPanel payPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 6, 6));
+        payPanel.setOpaque(false);
+
+        // Botón Pagar (verde, destacado)
+        m_jPayNow = new javax.swing.JButton();
+        m_jPayNow.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
+        m_jPayNow.setText(AppLocal.getIntString("button.pay")); // "Pagar" desde pos_messages.properties
+        m_jPayNow.setFocusPainted(false);
+        m_jPayNow.setPreferredSize(new java.awt.Dimension(140, 40));
+        m_jPayNow.setBackground(new java.awt.Color(46, 139, 87)); // SeaGreen
+        m_jPayNow.setForeground(java.awt.Color.WHITE);
+        m_jPayNow.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(34, 120, 60), 1, true));
+        m_jPayNow.setOpaque(true);
+        */
+
+        // Sebastian - Comentado porque ya está definido arriba
+        /*
+        // Acción: reutiliza el flujo de cierre/pago de ticket
+        m_jPayNow.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                if (m_oTicket == null || m_oTicket.getLinesCount() == 0) {
+                    Toolkit.getDefaultToolkit().beep();
+                    return;
+                }
+
+                if (closeTicket(m_oTicket, m_oTicketExt)) {
+                    setActiveTicket(null, null);
+                    refreshTicket();
+                    // Delete will create an empty ticket
+                    m_ticketsbag.deleteTicket();
+
+                    if (isAutoLogout()) {
+                        if (isRestaurantMode() && isAutoLogoutRestaurant()) {
+                            deactivate();
+                        } else {
+                            ((JRootApp) m_App).closeAppView();
+                        }
+                    }
+
+                    createNewTicket();
+                }
+            }
+        });
+
+        payPanel.add(m_jPayNow);
+        totalsWithPay.add(payPanel, java.awt.BorderLayout.SOUTH);
+        */
+
+        m_jPanelLinesSum.add(totalsWithPay, java.awt.BorderLayout.LINE_END);
 
         m_jPanelLines.add(m_jPanelLinesSum, java.awt.BorderLayout.SOUTH);
 
@@ -2760,8 +2993,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jNumberKeys.setMultiplyVisible(false);
         m_jNumberKeys.setPlusVisible(false);  // Ocultar botón + visual
         m_jNumberKeys.setMinusVisible(false); // Ocultar botón - visual
+        // m_jNumberKeys.setEqualsVisible(false); // Sebastian - Comentado temporalmente
         
-        m_jPanEntries.add(m_jNumberKeys);
+        // Sebastian - Ocultar completamente el panel del teclado numérico para expandir el área de ventas
+        m_jContEntries.setVisible(false);
+        
+        // NO agregamos el teclado numérico ya que ocultamos todo el container
+        // m_jPanEntries.add(m_jNumberKeys);
+        
+        // Sebastian - TODO: Investigar de dónde viene el botón '=' azul
 
         jPanelScanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         jPanelScanner.setMaximumSize(new java.awt.Dimension(800, 50));
@@ -2851,7 +3091,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         m_jContEntries.add(m_jPanEntries, java.awt.BorderLayout.LINE_START);
 
-        m_jPanelTicket.add(m_jContEntries, java.awt.BorderLayout.LINE_END);
+        // Sebastian - Comentar la adición del panel de entradas para liberar espacio
+        // m_jPanelTicket.add(m_jContEntries, java.awt.BorderLayout.LINE_END);
 
         // Crear panel para la barra de búsqueda en la parte superior
         javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
@@ -2865,6 +3106,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         
         // Crear un panel contenedor para el toolbar y la búsqueda
         javax.swing.JPanel topPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        // Sebastian - Ocultar todo el toolbar principal para interfaz ultramoderna
+        m_jPanelMainToolbar.setVisible(false);
         topPanel.add(m_jPanelMainToolbar, java.awt.BorderLayout.NORTH);
         topPanel.add(searchPanel, java.awt.BorderLayout.SOUTH);
         
@@ -3454,6 +3697,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private javax.swing.JLabel m_jTotalEuros;
     private javax.swing.JCheckBox m_jaddtax;
     private javax.swing.JButton m_jbtnScale;
+    private javax.swing.JButton m_jPayNow; // Botón Pagar añadido
     
     // Sebastian - Campos para gestión de clientes
     private javax.swing.JTextField m_jCustomerId;
@@ -3799,6 +4043,209 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
          */
         public static final String RES_TICKET_LINES = "Ticket.Line";
 
+    }
+    
+    /**
+     * Sebastian - Lista simple para almacenar ventas múltiples
+     */
+    private static java.util.List<TicketInfo> ventasActivas = new java.util.ArrayList<>();
+    private static int ventaActualIndex = 0;
+    
+    /**
+     * Sebastian - Método para abrir nueva venta (nueva pestaña)
+     */
+    private void abrirNuevaVenta() {
+        try {
+            // Guardar la venta actual si tiene contenido
+            if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
+                // Agregar a la lista si no está ya
+                boolean yaExiste = false;
+                for (int i = 0; i < ventasActivas.size(); i++) {
+                    if (ventasActivas.get(i) == m_oTicket) {
+                        yaExiste = true;
+                        ventaActualIndex = i;
+                        break;
+                    }
+                }
+                if (!yaExiste) {
+                    ventasActivas.add(m_oTicket);
+                    ventaActualIndex = ventasActivas.size() - 1;
+                }
+            }
+            
+            // Crear un nuevo ticket vacío
+            TicketInfo nuevoTicket = new TicketInfo();
+            ventasActivas.add(nuevoTicket);
+            ventaActualIndex = ventasActivas.size() - 1;
+            
+            // Establecer el nuevo ticket como activo
+            setActiveTicket(nuevoTicket, null);
+            
+            // Sebastian - Sin mensaje para mayor velocidad
+            
+        } catch (Exception e) {
+            System.err.println("Error al crear nueva venta: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Sebastian - Método para cambiar entre ventas existentes
+     */
+    private void cambiarEntreVentas() {
+        try {
+            // Mostrar/ocultar la lista de tickets para cambiar entre ventas
+            if (m_ticketsbag != null) {
+                javax.swing.JComponent bagComponent = m_ticketsbag.getBagComponent();
+                boolean wasVisible = bagComponent.isVisible();
+                
+                // Cambiar visibilidad
+                bagComponent.setVisible(!wasVisible);
+                bagComponent.revalidate();
+                bagComponent.repaint();
+                
+                if (!wasVisible) {
+                    // Si se está mostrando, dar instrucciones
+                    javax.swing.SwingUtilities.invokeLater(() -> {
+                        javax.swing.JLabel mensaje = new javax.swing.JLabel("<html><div style='text-align: center;'>" +
+                            "<b>� Lista de Ventas Activas</b><br/>" +
+                            "✓ Haz clic en cualquier venta para cambiar a ella<br/>" +
+                            "✓ Haz clic de nuevo en el botón naranja para ocultar<br/>" +
+                            "✓ Cada venta mantiene sus productos y estado" +
+                            "</div></html>");
+                        mensaje.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+                        
+                        javax.swing.JOptionPane optionPane = new javax.swing.JOptionPane(mensaje, javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                        javax.swing.JDialog dialog = optionPane.createDialog(this, "Cambiar entre Ventas");
+                        
+                        // Auto-cerrar el diálogo después de 3 segundos
+                        javax.swing.Timer timer = new javax.swing.Timer(3000, e -> dialog.dispose());
+                        timer.setRepeats(false);
+                        timer.start();
+                        
+                        dialog.setVisible(true);
+                    });
+                } else {
+                    // Si se está ocultando, confirmar
+                    System.out.println("Lista de ventas ocultada");
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error al cambiar entre ventas: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Error al cambiar entre ventas: " + e.getMessage(), 
+                "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Sebastian - Método mejorado para mostrar ventas pendientes
+     */
+    private void mostrarVentasPendientes() {
+        try {
+            if (ventasActivas.isEmpty()) {
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "No hay ventas pendientes.\nUsa el botón verde para crear una nueva venta.", 
+                    "Sin Ventas Pendientes", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            // Crear lista de opciones
+            String[] opciones = new String[ventasActivas.size()];
+            for (int i = 0; i < ventasActivas.size(); i++) {
+                TicketInfo ticket = ventasActivas.get(i);
+                String estado = (i == ventaActualIndex) ? " ← ACTUAL" : "";
+                opciones[i] = "Venta #" + (i + 1) + " (" + ticket.getLinesCount() + " productos)" + estado;
+            }
+            
+            // Mostrar diálogo de selección
+            String seleccion = (String) javax.swing.JOptionPane.showInputDialog(
+                this,
+                "Selecciona la venta a la que quieres cambiar:",
+                "Cambiar entre Ventas",
+                javax.swing.JOptionPane.QUESTION_MESSAGE,
+                null,
+                opciones,
+                opciones[ventaActualIndex]
+            );
+            
+            if (seleccion != null) {
+                // Encontrar el índice seleccionado
+                for (int i = 0; i < opciones.length; i++) {
+                    if (opciones[i].equals(seleccion)) {
+                        if (i != ventaActualIndex) {
+                            ventaActualIndex = i;
+                            setActiveTicket(ventasActivas.get(i), null);
+                            javax.swing.JOptionPane.showMessageDialog(this, 
+                                "✅ Cambiado a Venta #" + (i + 1), 
+                                "Venta Cambiada", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                        }
+                        break;
+                    }
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error al mostrar ventas pendientes: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Error: " + e.getMessage(), 
+                "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+    
+    /**
+     * Sebastian - Método para mostrar modal de ID cliente
+     */
+    private void mostrarModalIdCliente() {
+        try {
+            String idCliente = javax.swing.JOptionPane.showInputDialog(
+                this,
+                "Ingresa el ID del cliente:",
+                "ID Cliente",
+                javax.swing.JOptionPane.QUESTION_MESSAGE
+            );
+            
+            if (idCliente != null && !idCliente.trim().isEmpty()) {
+                // Usar el método existente para procesar el ID del cliente
+                m_jCustomerId.setText(idCliente.trim());
+                
+                // Buscar el cliente usando la lógica existente
+                String customerId = idCliente.trim();
+                CustomerInfo customer = null;
+                
+                // Buscar en todos los clientes por searchkey
+                java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
+                for (CustomerInfo c : allCustomers) {
+                    if (customerId.equals(c.getSearchkey())) {
+                        customer = c;
+                        break;
+                    }
+                }
+                
+                if (customer != null) {
+                    // Cliente encontrado - ejecutar la lógica completa sin mostrar mensaje
+                    searchCustomerById();
+                } else {
+                    // Cliente no encontrado
+                    searchCustomerById(); // Esto actualizará el label con "Cliente no encontrado"
+                    
+                    javax.swing.JOptionPane.showMessageDialog(this, 
+                        "❌ Cliente no encontrado\n\nEl ID '" + customerId + "' no existe en la base de datos.\nVerifica el ID e inténtalo nuevamente.", 
+                        "Cliente No Encontrado", 
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                }
+            }
+            
+        } catch (Exception e) {
+            System.err.println("Error al configurar ID cliente: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Error al buscar cliente: " + e.getMessage(), 
+                "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
     }
 
 }

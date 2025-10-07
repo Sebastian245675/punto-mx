@@ -126,7 +126,14 @@ public class StockManagement extends JPanel implements JPanelView {
 
         user = m_App.getAppUserView().getUser().getName();
 
-        jNumberKeys.setEnabled(true);
+        // jNumberKeys.setEnabled(true); // ELIMINADO - TECLADO NUMERICO
+        // jNumberKeys.setVisible(false); // Ocultar el teclado numérico // ELIMINADO - TECLADO NUMERICO
+        // jPanel1.setVisible(false); // Ocultar completamente el panel que contiene el teclado // ELIMINADO - TECLADO NUMERICO
+        
+        // Remover físicamente el panel del contenedor padre
+        // if (jPanel1.getParent() != null) { // ELIMINADO - TECLADO NUMERICO
+        //     jPanel1.getParent().remove(jPanel1);
+        // }
 
         lblTotalQtyValue.setText(null);
         lbTotalValue.setText(null);
@@ -202,6 +209,10 @@ public class StockManagement extends JPanel implements JPanelView {
         m_SuppliersModel = new ComboBoxValModel(sl);
         m_jSupplier.setModel(m_SuppliersModel);
 
+        // Asegurar que el teclado esté oculto
+        // jNumberKeys.setVisible(false); // ELIMINADO - TECLADO NUMERICO
+        // jPanel1.setVisible(false); // Ocultar el panel completo del teclado // ELIMINADO - TECLADO NUMERICO
+
         stateToInsert();
 
         java.awt.EventQueue.invokeLater(() -> {
@@ -224,6 +235,10 @@ public class StockManagement extends JPanel implements JPanelView {
         m_jSupplierDoc.setText(null);
         m_invlines.clear();
         resetTranxTable();
+        
+        // Mantener el teclado oculto
+        // jNumberKeys.setVisible(false); // ELIMINADO - TECLADO NUMERICO
+        // jPanel1.setVisible(false); // Mantener el panel del teclado oculto // ELIMINADO - TECLADO NUMERICO
     }
 
     /**
@@ -482,7 +497,10 @@ public class StockManagement extends JPanel implements JPanelView {
                 Toolkit.getDefaultToolkit().beep();
             } else {
                 saveData();
-                jNumberKeys.setEnabled(true);
+                // jNumberKeys.setEnabled(true); // ELIMINADO - TECLADO NUMERICO
+                // Mantener el teclado oculto después de guardar
+                // jNumberKeys.setVisible(false); // ELIMINADO - TECLADO NUMERICO
+                // jPanel1.setVisible(false); // ELIMINADO - TECLADO NUMERICO
             }
         } else if (Character.isDigit(cTrans)) {
             if (m_jcodebar.getText() == null) {
@@ -786,7 +804,13 @@ public class StockManagement extends JPanel implements JPanelView {
         m_jEditAttributes = new javax.swing.JButton();
         m_jBtnDelete = new javax.swing.JButton();
         jPanel1 = new javax.swing.JPanel();
-        jNumberKeys = new com.openbravo.beans.JNumberKeys();
+        // PANEL TECLADO COMPLETAMENTE DESHABILITADO Y OCULTO
+        jPanel1.setVisible(false);
+        jPanel1.setSize(0, 0);
+        jPanel1.setPreferredSize(new java.awt.Dimension(0, 0));
+        jPanel1.setMinimumSize(new java.awt.Dimension(0, 0));
+        jPanel1.setMaximumSize(new java.awt.Dimension(0, 0));
+        // jNumberKeys = new com.openbravo.beans.JNumberKeys(); // ELIMINADO - TECLADO NUMERICO
         jScrollPane2 = new javax.swing.JScrollPane();
         jTableProductStock = new javax.swing.JTable();
         m_jBtnShowStock = new javax.swing.JButton();
@@ -1028,38 +1052,39 @@ public class StockManagement extends JPanel implements JPanelView {
 
         jPanel8.add(jPanel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(705, 0, -1, -1));
 
-        jPanel1.setMinimumSize(new java.awt.Dimension(150, 250));
-        jPanel1.setPreferredSize(new java.awt.Dimension(200, 250));
+        // PANEL TECLADO COMPLETAMENTE DESHABILITADO
+        // jPanel1.setMinimumSize(new java.awt.Dimension(150, 250));
+        // jPanel1.setPreferredSize(new java.awt.Dimension(200, 250));
 
-        jNumberKeys.setPreferredSize(new java.awt.Dimension(210, 240));
-        jNumberKeys.addJNumberEventListener(new com.openbravo.beans.JNumberEventListener() {
-            public void keyPerformed(com.openbravo.beans.JNumberEvent evt) {
-                jNumberKeysKeyPerformed(evt);
-            }
-        });
+        // jNumberKeys.setPreferredSize(new java.awt.Dimension(210, 240)); // ELIMINADO - TECLADO NUMERICO
+        // jNumberKeys.addJNumberEventListener(new com.openbravo.beans.JNumberEventListener() { // ELIMINADO - TECLADO NUMERICO
+        //     public void keyPerformed(com.openbravo.beans.JNumberEvent evt) {
+        //         jNumberKeysKeyPerformed(evt);
+        //     }
+        // });
 
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 230, Short.MAX_VALUE)
-            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel1Layout.createSequentialGroup()
-                    .addGap(0, 10, Short.MAX_VALUE)
-                    .addComponent(jNumberKeys, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGap(0, 10, Short.MAX_VALUE)))
+            // .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING) // ELIMINADO - TECLADO NUMERICO
+            //     .addGroup(jPanel1Layout.createSequentialGroup()
+            //         .addGap(0, 10, Short.MAX_VALUE)
+            //         .addComponent(jNumberKeys, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            //         .addGap(0, 10, Short.MAX_VALUE)))
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGap(0, 260, Short.MAX_VALUE)
-            .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(jPanel1Layout.createSequentialGroup()
-                    .addGap(0, 0, Short.MAX_VALUE)
-                    .addComponent(jNumberKeys, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGap(0, 0, Short.MAX_VALUE)))
+            // .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING) // ELIMINADO - TECLADO NUMERICO
+            //     .addGroup(jPanel1Layout.createSequentialGroup()
+            //         .addGap(0, 0, Short.MAX_VALUE)
+            //         .addComponent(jNumberKeys, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+            //         .addGap(0, 0, Short.MAX_VALUE)))
         );
 
-        jPanel8.add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(760, 0, 230, 260));
+        // jPanel8.add(jPanel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(760, 0, 230, 260)); // OCULTAR TECLADO NUMERICO
 
         jScrollPane2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
 
@@ -1127,6 +1152,10 @@ public class StockManagement extends JPanel implements JPanelView {
         catcontainer.setLayout(new java.awt.BorderLayout());
         add(catcontainer, java.awt.BorderLayout.CENTER);
         catcontainer.getAccessibleContext().setAccessibleParent(jPanel8);
+        
+        // Ocultar el teclado numérico al final de la inicialización
+        // jNumberKeys.setVisible(false); // ELIMINADO - TECLADO NUMERICO
+        // jPanel1.setVisible(false); // ELIMINADO - TECLADO NUMERICO
     }// </editor-fold>//GEN-END:initComponents
 
     private void jTextField1KeyTyped(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_jTextField1KeyTyped

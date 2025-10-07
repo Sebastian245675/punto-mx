@@ -15,23 +15,23 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package com.openbravo.pos.catalog;
 
-import com.openbravo.beans.JFlowPanel;
 import java.awt.BorderLayout;
+import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Insets;
 import java.awt.event.ActionListener;
 import javax.swing.*;
 
 /**
- *
- * @author adrianromero
+ * Panel de catálogo modernizado con mejor distribución de productos
+ * @author Sebastian - Versión mejorada
  */
 public class JCatalogTab extends javax.swing.JPanel {
 
     private static final long serialVersionUID = 1L;
     
-    private static final int CATALOG_BUTTON_WITH = 96;
-    private static final int CATALOG_BUTTON_HEIGHT = 82;
+    private static final int CATALOG_BUTTON_WITH = 170; // Aumentado para mejor apariencia
+    private static final int CATALOG_BUTTON_HEIGHT = 200; // Aumentado para mejor proporción
 
     private final JFlowPanel flowpanel;
 
@@ -39,10 +39,14 @@ public class JCatalogTab extends javax.swing.JPanel {
         initComponents();
 
         flowpanel = new JFlowPanel();
+        
         JScrollPane scroll = new JScrollPane(flowpanel);
         scroll.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
-        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
+        scroll.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scroll.getVerticalScrollBar().setPreferredSize(new Dimension(12, 12)); // Scrollbar más delgado
+        scroll.setBorder(null); // Sin borde para apariencia limpia
+        scroll.getViewport().setBackground(new Color(248, 250, 252));
+        scroll.getVerticalScrollBar().setUnitIncrement(16); // Desplazamiento más suave
 
         add(scroll, BorderLayout.CENTER);
     }
@@ -57,15 +61,17 @@ public class JCatalogTab extends javax.swing.JPanel {
         
         CatalogItem item = new CatalogItem(text);
         item.setTextTip(textTip);
-        //item.setImage((ImageIcon)icon);
-        ProductCardV1 prodCard = new ProductCardV1(item, actionListener);
-   
+        // Convertir Icon a Image si es necesario
+        if (icon instanceof ImageIcon) {
+            item.setImage(((ImageIcon)icon).getImage());
+        }
+        ProductCardV3 prodCard = new ProductCardV3(item, actionListener);
         
         flowpanel.add(prodCard);
     }
     
     public void addCatalogItem(CatalogItem catalogItem, ActionListener actionListener) {
-        ProductCardV2 prodCard = new ProductCardV2(catalogItem, actionListener);
+        ProductCardV3 prodCard = new ProductCardV3(catalogItem, actionListener);
         flowpanel.add(prodCard);
     }
     

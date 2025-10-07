@@ -7,6 +7,8 @@ package com.openbravo.pos.util;
 
 import javax.swing.*;
 import java.awt.*;
+import java.lang.reflect.Method;
+import com.formdev.flatlaf.FlatLightLaf;
 
 /**
  * Clase para aplicar estilos modernos a la aplicación
@@ -18,27 +20,53 @@ public class ModernLookAndFeel {
      */
     public static void aplicarEstiloModerno() {
         try {
-            // Buscar y aplicar Nimbus
+            // Preferir FlatLaf (si está disponible) porque ofrece un aspecto moderno y consistente
+            try {
+                FlatLightLaf.setup();
+                aplicarPropiedadesModernas();
+                aplicarFuenteGlobal(new Font("Segoe UI", Font.PLAIN, 13));
+                return;
+            } catch (Throwable t) {
+                // FlatLaf no disponible o fallo al arrancar: intentar Nimbus como fallback
+            }
+
+            // Buscar y aplicar Nimbus si FlatLaf no está disponible
             for (UIManager.LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
                 if ("Nimbus".equals(info.getName())) {
                     UIManager.setLookAndFeel(info.getClassName());
-                    
+
                     // Personalizaciones adicionales para Nimbus
                     personalizarNimbus();
-                    
+
                     // Aplicar propiedades globales modernas
                     aplicarPropiedadesModernas();
-                    
+                    aplicarFuenteGlobal(new Font("Segoe UI", Font.PLAIN, 13));
                     return; // Éxito, salir
                 }
             }
-            
+
             // Si no se encuentra Nimbus, aplicar propiedades básicas al LAF actual
             aplicarPropiedadesModernas();
+            aplicarFuenteGlobal(new Font("Segoe UI", Font.PLAIN, 13));
             
         } catch (Exception e) {
             System.err.println("Error aplicando Look and Feel moderno: " + e.getMessage());
         }
+    }
+
+    /**
+     * Aplica un tema con color primario y fuente base personalizados en tiempo de ejecución.
+     */
+    public static void aplicarTemaPersonalizado(Color primary, Font baseFont) {
+        if (primary != null) {
+            UIManager.put("nimbusBase", primary);
+            UIManager.put("Button.background", primary);
+            UIManager.put("nimbusSelectionBackground", primary);
+        }
+        if (baseFont != null) {
+            aplicarFuenteGlobal(baseFont);
+        }
+        aplicarPropiedadesModernas();
     }
     
     /**
@@ -99,6 +127,60 @@ public class ModernLookAndFeel {
         UIManager.put("ScrollBar.background", new Color(240, 240, 240));
         UIManager.put("ScrollBar.thumb", new Color(180, 180, 180));
         UIManager.put("ScrollBar.track", new Color(245, 245, 245));
+
+        // Bordes redondeados y apariencia general para FlatLaf/Nimbus
+        UIManager.put("Button.arc", 12);
+        UIManager.put("Component.arc", 8);
+        UIManager.put("TextComponent.arc", 8);
+        UIManager.put("ProgressBar.arc", 8);
+        UIManager.put("ScrollBar.thumbArc", 8);
+        UIManager.put("TabbedPane.contentBorderInsets", new Insets(8, 8, 8, 8));
+
+        // Mejoras adicionales para tablas, menús y barras de herramientas
+        UIManager.put("Table.rowHeight", 28);
+        UIManager.put("Table.showGrid", Boolean.FALSE);
+        UIManager.put("Table.selectionBackground", new Color(63, 81, 181));
+        UIManager.put("Table.selectionForeground", Color.WHITE);
+        UIManager.put("TableHeader.background", new Color(245, 245, 245));
+        UIManager.put("TableHeader.font", new Font("Segoe UI", Font.BOLD, 12));
+
+        UIManager.put("ToolBar.background", new Color(250, 250, 250));
+        UIManager.put("Menu.background", new Color(250, 250, 250));
+        UIManager.put("Menu.selectionBackground", new Color(230, 230, 230));
+
+        // Mejorar aspecto de popups y tooltips
+        UIManager.put("PopupMenu.border", BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        UIManager.put("ScrollPane.viewportBorder", BorderFactory.createEmptyBorder(8, 8, 8, 8));
+    }
+
+    /**
+     * Aplica una fuente por defecto a todos los componentes Swing.
+     */
+    private static void aplicarFuenteGlobal(Font font) {
+        if (font == null) return;
+        UIDefaults defaults = UIManager.getDefaults();
+        for (Object key : defaults.keySet()) {
+            if (key != null && key.toString().toLowerCase().contains("font")) {
+                try {
+                    UIManager.put(key, font);
+                } catch (Exception e) {
+                    // ignorar claves que no aceptan Font
+                }
+            }
+        }
+
+        // Force some common keys as well
+        UIManager.put("defaultFont", font);
+        UIManager.put("Button.font", font.deriveFont(Font.BOLD, 13f));
+        UIManager.put("Label.font", font.deriveFont(12f));
+        UIManager.put("TextField.font", font.deriveFont(13f));
+        UIManager.put("TextArea.font", font.deriveFont(13f));
+        UIManager.put("Table.font", font.deriveFont(12f));
+        UIManager.put("TableHeader.font", font.deriveFont(Font.BOLD, 12f));
+
+        // Improve option panes and dialogs
+        UIManager.put("OptionPane.messageFont", font.deriveFont(13f));
+        UIManager.put("OptionPane.buttonFont", font.deriveFont(Font.BOLD, 12f));
     }
     
     /**
@@ -151,6 +233,15 @@ public class ModernLookAndFeel {
                 aplicarEstilosRecursivamente((Container) comp);
             }
         }
+    }
+
+    /**
+     * Public helper to apply modern styles recursively to any container.
+     * Useful for modules that want to restyle existing UI components at runtime.
+     */
+    public static void estilizarComponentes(Container container) {
+        if (container == null) return;
+        aplicarEstilosRecursivamente(container);
     }
     
     /**
