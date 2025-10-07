@@ -44,10 +44,12 @@ public interface AppView {
      
     /*ActiveCash*/
     public void setActiveCash(String value, int iSeq, Date dStart, Date dEnd);
+    public void setActiveCash(String value, int iSeq, Date dStart, Date dEnd, double initialAmount); // Sebastian - Con fondo inicial
     public String getActiveCashIndex();
     public int getActiveCashSequence();
     public Date getActiveCashDateStart();
     public Date getActiveCashDateEnd();
+    public double getActiveCashInitialAmount(); // Sebastian - Fondo inicial
 
     /*ClosedCash*/
     public void setClosedCash(String value, int iSeq, Date dStart, Date dEnd);    
