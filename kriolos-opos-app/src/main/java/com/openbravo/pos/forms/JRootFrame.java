@@ -64,6 +64,7 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
         try {
             // Intentar cargar desde múltiples ubicaciones
             String[] iconPaths = {
+                "/com/openbravo/images/connecting_pos_icon.png",
                 "/com/openbravo/images/app_logo_48x48.png",
                 "/com/openbravo/pos/templates/app_logo_48x48.png",
                 "/images/app_logo_48x48.png",

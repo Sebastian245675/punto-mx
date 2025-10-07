@@ -30,10 +30,10 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>25</maven.compiler.source>
-    <maven.compiler.target>25</maven.compiler.target>
+    <maven.compiler.source>21</maven.compiler.source>
+    <maven.compiler.target>21</maven.compiler.target>
     <!-- Use release to set the platform and system modules location correctly -->
-    <maven.compiler.release>25</maven.compiler.release>
+    <maven.compiler.release>21</maven.compiler.release>
 
         <netbeans.version>RELEASE240</netbeans.version>
 

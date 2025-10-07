@@ -46,7 +46,7 @@ public class JFrmConfig extends javax.swing.JFrame {
 
         initComponents();
 
-        String image = "/com/openbravo/images/app_logo_48x48.png";
+        String image = "/com/openbravo/images/connecting_pos_icon.png";
         try {
             // Configurar múltiples tamaños de iconos para mejor compatibilidad
             java.util.List<java.awt.Image> iconList = new java.util.ArrayList<>();
