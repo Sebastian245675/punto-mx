@@ -38,6 +38,14 @@ import java.util.List;
 import java.util.ArrayList;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonParser;
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.io.BufferedReader;
+import java.io.InputStreamReader;
 
 /**
  * Servicio para sincronización con Firebase usando REST API
@@ -179,6 +187,48 @@ public class FirebaseServiceREST {
      */
     public CompletableFuture<Boolean> syncCategorias(List<Map<String, Object>> categorias) {
         return syncCollection("categorias", categorias);
+    }
+    
+    /**
+     * Sebastian - Sincroniza puntos de clientes a Firestore
+     */
+    public CompletableFuture<Boolean> syncPuntosClientes(List<Map<String, Object>> puntos) {
+        return syncCollection("puntos_clientes", puntos);
+    }
+    
+    /**
+     * Sebastian - Sincroniza cierres de caja a Firestore
+     */
+    public CompletableFuture<Boolean> syncCierresCaja(List<Map<String, Object>> cierres) {
+        return syncCollection("cierres_caja", cierres);
+    }
+    
+    /**
+     * Sebastian - Sincroniza formas de pago a Firestore
+     */
+    public CompletableFuture<Boolean> syncFormasPago(List<Map<String, Object>> pagos) {
+        return syncCollection("formas_pago", pagos);
+    }
+    
+    /**
+     * Sebastian - Sincroniza impuestos a Firestore
+     */
+    public CompletableFuture<Boolean> syncImpuestos(List<Map<String, Object>> impuestos) {
+        return syncCollection("impuestos", impuestos);
+    }
+    
+    /**
+     * Sebastian - Sincroniza configuraciones a Firestore
+     */
+    public CompletableFuture<Boolean> syncConfiguraciones(List<Map<String, Object>> configuraciones) {
+        return syncCollection("configuraciones", configuraciones);
+    }
+    
+    /**
+     * Sebastian - Sincroniza inventario a Firestore
+     */
+    public CompletableFuture<Boolean> syncInventario(List<Map<String, Object>> inventario) {
+        return syncCollection("inventario", inventario);
     }
     
     /**
@@ -407,5 +457,207 @@ public class FirebaseServiceREST {
      */
     public String getProjectId() {
         return projectId;
+    }
+    
+    // ===== MÉTODOS DE DESCARGA DESDE FIREBASE =====
+    
+    /**
+     * Descarga usuarios desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadUsuarios() {
+        return downloadCollection("usuarios");
+    }
+    
+    /**
+     * Descarga clientes desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadClientes() {
+        return downloadCollection("clientes");
+    }
+    
+    /**
+     * Descarga categorías desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadCategorias() {
+        return downloadCollection("categorias");
+    }
+    
+    /**
+     * Descarga productos desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadProductos() {
+        return downloadCollection("productos");
+    }
+    
+    /**
+     * Descarga ventas desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadVentas() {
+        return downloadCollection("ventas");
+    }
+    
+    /**
+     * Descarga puntos de clientes desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadPuntosClientes() {
+        return downloadCollection("puntos_clientes");
+    }
+    
+    /**
+     * Descarga cierres de caja desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadCierresCaja() {
+        return downloadCollection("cierres_caja");
+    }
+    
+    /**
+     * Descarga formas de pago desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadFormasPago() {
+        return downloadCollection("formas_pago");
+    }
+    
+    /**
+     * Descarga impuestos desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadImpuestos() {
+        return downloadCollection("impuestos");
+    }
+    
+    /**
+     * Descarga configuraciones desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadConfiguraciones() {
+        return downloadCollection("configuraciones");
+    }
+    
+    /**
+     * Descarga inventario desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadInventario() {
+        return downloadCollection("inventario");
+    }
+    
+    /**
+     * Método genérico para descargar una colección desde Firebase
+     */
+    private CompletableFuture<List<Map<String, Object>>> downloadCollection(String collectionName) {
+        return CompletableFuture.supplyAsync(() -> {
+            if (!initialized) {
+                LOGGER.warning("Firebase no está inicializado");
+                return new ArrayList<>();
+            }
+            
+            List<Map<String, Object>> documents = new ArrayList<>();
+            
+            try {
+                String url = baseUrl + "/" + collectionName;
+                LOGGER.info("Descargando colección: " + collectionName + " desde " + url);
+                
+                HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+                connection.setRequestMethod("GET");
+                connection.setRequestProperty("Content-Type", "application/json");
+                
+                int responseCode = connection.getResponseCode();
+                
+                if (responseCode == 200) {
+                    // Leer la respuesta
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+                    StringBuilder response = new StringBuilder();
+                    String line;
+                    
+                    while ((line = reader.readLine()) != null) {
+                        response.append(line);
+                    }
+                    reader.close();
+                    
+                    // Parsear la respuesta JSON
+                    JsonObject jsonResponse = JsonParser.parseString(response.toString()).getAsJsonObject();
+                    
+                    if (jsonResponse.has("documents")) {
+                        JsonArray documentsArray = jsonResponse.getAsJsonArray("documents");
+                        
+                        for (JsonElement element : documentsArray) {
+                            JsonObject document = element.getAsJsonObject();
+                            Map<String, Object> docData = parseFirebaseDocument(document);
+                            if (docData != null) {
+                                documents.add(docData);
+                            }
+                        }
+                    }
+                    
+                    LOGGER.info("Descargados " + documents.size() + " documentos de " + collectionName);
+                } else {
+                    LOGGER.warning("Error descargando " + collectionName + ": " + responseCode);
+                }
+                
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error descargando " + collectionName, e);
+            }
+            
+            return documents;
+        });
+    }
+    
+    /**
+     * Parsea un documento de Firebase y convierte sus campos al formato local
+     */
+    private Map<String, Object> parseFirebaseDocument(JsonObject document) {
+        try {
+            Map<String, Object> data = new HashMap<>();
+            
+            // Obtener el ID del documento
+            String documentName = document.get("name").getAsString();
+            String documentId = documentName.substring(documentName.lastIndexOf("/") + 1);
+            data.put("id", documentId);
+            
+            // Parsear los campos del documento
+            if (document.has("fields")) {
+                JsonObject fields = document.getAsJsonObject("fields");
+                
+                for (Map.Entry<String, JsonElement> entry : fields.entrySet()) {
+                    String fieldName = entry.getKey();
+                    JsonElement fieldValue = entry.getValue();
+                    
+                    Object value = parseFirebaseFieldValue(fieldValue);
+                    data.put(fieldName, value);
+                }
+            }
+            
+            return data;
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error parseando documento Firebase", e);
+            return null;
+        }
+    }
+    
+    /**
+     * Parsea el valor de un campo de Firebase según su tipo
+     */
+    private Object parseFirebaseFieldValue(JsonElement fieldElement) {
+        if (fieldElement == null || fieldElement.isJsonNull()) {
+            return null;
+        }
+        
+        JsonObject field = fieldElement.getAsJsonObject();
+        
+        // Determinar el tipo de campo y extraer el valor
+        if (field.has("stringValue")) {
+            return field.get("stringValue").getAsString();
+        } else if (field.has("doubleValue")) {
+            return field.get("doubleValue").getAsDouble();
+        } else if (field.has("integerValue")) {
+            return field.get("integerValue").getAsLong();
+        } else if (field.has("booleanValue")) {
+            return field.get("booleanValue").getAsBoolean();
+        } else if (field.has("timestampValue")) {
+            return field.get("timestampValue").getAsString();
+        } else if (field.has("nullValue")) {
+            return null;
+        } else {
+            // Para otros tipos, retornar como string
+            return field.toString();
+        }
     }
 }

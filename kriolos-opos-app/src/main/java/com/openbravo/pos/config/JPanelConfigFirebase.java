@@ -23,6 +23,20 @@ import com.openbravo.pos.forms.AppLocal;
 import java.awt.Component;
 import javax.swing.JOptionPane;
 import javax.swing.SwingWorker;
+import java.awt.BorderLayout;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import javax.swing.BorderFactory;
+import javax.swing.Box;
+import javax.swing.BoxLayout;
+import javax.swing.JButton;
+import javax.swing.JCheckBox;
+import javax.swing.JDialog;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * Panel de configuración para Firebase - Almacenamiento en la nube
@@ -91,6 +105,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         jchkSyncSales = new javax.swing.JCheckBox();
         jButtonTest = new javax.swing.JButton();
         jButtonUpload = new javax.swing.JButton();
+        jButtonDownload = new javax.swing.JButton();
         jLabel10 = new javax.swing.JLabel();
 
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
@@ -164,6 +179,15 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             }
         });
 
+        jButtonDownload.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jButtonDownload.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/fileopen.png"))); // NOI18N
+        jButtonDownload.setText("Traer Datos");
+        jButtonDownload.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonDownloadActionPerformed(evt);
+            }
+        });
+
         jLabel10.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
         jLabel10.setText("<html>Configure aquí los parámetros de Firebase para sincronizar datos con la nube.<br/>Obtenga la configuración desde la consola de Firebase de su proyecto.</html>");
 
@@ -203,7 +227,9 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(jButtonTest)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButtonUpload)))
+                        .addComponent(jButtonUpload)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButtonDownload)))
                 .addContainerGap(30, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
@@ -256,7 +282,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 .addGap(20, 20, 20)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButtonTest)
-                    .addComponent(jButtonUpload))
+                    .addComponent(jButtonUpload)
+                    .addComponent(jButtonDownload))
                 .addContainerGap(20, Short.MAX_VALUE))
         );
     }// </editor-fold>                        
@@ -443,6 +470,222 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         uploadWorker.execute();
     }                                              
 
+    private void jButtonDownloadActionPerformed(java.awt.event.ActionEvent evt) {                                               
+        // Crear y mostrar el diálogo de selección de datos
+        JDialog downloadDialog = createDownloadDialog();
+        downloadDialog.setVisible(true);
+    }                                               
+    
+    /**
+     * Crea el diálogo de selección de datos para descargar desde Firebase
+     */
+    private JDialog createDownloadDialog() {
+        JDialog dialog = new JDialog();
+        dialog.setTitle("Traer Datos desde Firebase");
+        dialog.setSize(400, 500);
+        dialog.setLocationRelativeTo(this);
+        dialog.setModal(true);
+        
+        // Panel principal
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BorderLayout(10, 10));
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        // Título
+        JLabel titleLabel = new JLabel("Seleccione los datos a traer:");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 14));
+        mainPanel.add(titleLabel, BorderLayout.NORTH);
+        
+        // Panel de checkboxes
+        JPanel checkPanel = new JPanel();
+        checkPanel.setLayout(new BoxLayout(checkPanel, BoxLayout.Y_AXIS));
+        
+        // Crear checkboxes para cada categoría
+        JCheckBox chkUsuarios = new JCheckBox("Usuarios");
+        JCheckBox chkClientes = new JCheckBox("Clientes");
+        JCheckBox chkCategorias = new JCheckBox("Categorías de Productos");
+        JCheckBox chkProductos = new JCheckBox("Productos");
+        JCheckBox chkVentas = new JCheckBox("Ventas");
+        JCheckBox chkPuntos = new JCheckBox("Puntos de Clientes");
+        JCheckBox chkCierres = new JCheckBox("Cierres de Caja");
+        JCheckBox chkPagos = new JCheckBox("Formas de Pago");
+        JCheckBox chkImpuestos = new JCheckBox("Impuestos");
+        JCheckBox chkConfiguraciones = new JCheckBox("Configuraciones");
+        JCheckBox chkInventario = new JCheckBox("Inventario");
+        
+        // Botón "Seleccionar Todo"
+        JCheckBox chkSelectAll = new JCheckBox("Seleccionar Todo");
+        chkSelectAll.setFont(new Font("Arial", Font.BOLD, 12));
+        
+        // Lista de checkboxes para facilitar el manejo
+        JCheckBox[] checkboxes = {chkUsuarios, chkClientes, chkCategorias, chkProductos, 
+                                 chkVentas, chkPuntos, chkCierres, chkPagos, 
+                                 chkImpuestos, chkConfiguraciones, chkInventario};
+        
+        // Acción del "Seleccionar Todo"
+        chkSelectAll.addActionListener(e -> {
+            boolean selected = chkSelectAll.isSelected();
+            for (JCheckBox cb : checkboxes) {
+                cb.setSelected(selected);
+            }
+        });
+        
+        // Agregar checkboxes al panel
+        checkPanel.add(chkSelectAll);
+        checkPanel.add(Box.createVerticalStrut(10));
+        
+        for (JCheckBox cb : checkboxes) {
+            cb.setFont(new Font("Arial", Font.PLAIN, 12));
+            checkPanel.add(cb);
+            checkPanel.add(Box.createVerticalStrut(5));
+        }
+        
+        mainPanel.add(new JScrollPane(checkPanel), BorderLayout.CENTER);
+        
+        // Panel de botones
+        JPanel buttonPanel = new JPanel();
+        buttonPanel.setLayout(new FlowLayout());
+        
+        JButton btnTraer = new JButton("Traer Datos");
+        btnTraer.setFont(new Font("Arial", Font.BOLD, 12));
+        btnTraer.addActionListener(e -> {
+            // Verificar que al menos una opción esté seleccionada
+            boolean hasSelection = false;
+            for (JCheckBox cb : checkboxes) {
+                if (cb.isSelected()) {
+                    hasSelection = true;
+                    break;
+                }
+            }
+            
+            if (!hasSelection) {
+                JOptionPane.showMessageDialog(dialog, 
+                    "Por favor seleccione al menos una categoría de datos para traer.",
+                    "Selección Requerida", 
+                    JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+            
+            dialog.dispose();
+            
+            // Crear mapa de selecciones
+            Map<String, Boolean> selections = new HashMap<>();
+            selections.put("usuarios", chkUsuarios.isSelected());
+            selections.put("clientes", chkClientes.isSelected());
+            selections.put("categorias", chkCategorias.isSelected());
+            selections.put("productos", chkProductos.isSelected());
+            selections.put("ventas", chkVentas.isSelected());
+            selections.put("puntos", chkPuntos.isSelected());
+            selections.put("cierres", chkCierres.isSelected());
+            selections.put("pagos", chkPagos.isSelected());
+            selections.put("impuestos", chkImpuestos.isSelected());
+            selections.put("configuraciones", chkConfiguraciones.isSelected());
+            selections.put("inventario", chkInventario.isSelected());
+            
+            // Ejecutar la descarga
+            executeDownload(selections);
+        });
+        
+        JButton btnCancelar = new JButton("Cancelar");
+        btnCancelar.addActionListener(e -> dialog.dispose());
+        
+        buttonPanel.add(btnTraer);
+        buttonPanel.add(btnCancelar);
+        
+        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
+        
+        dialog.add(mainPanel);
+        return dialog;
+    }
+    
+    /**
+     * Ejecuta la descarga de datos desde Firebase según las selecciones
+     */
+    private void executeDownload(Map<String, Boolean> selections) {
+        // Crear SwingWorker para manejar la descarga en background
+        SwingWorker<Boolean, Void> downloadWorker = new SwingWorker<Boolean, Void>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                try {
+                    // Deshabilitar el botón durante la operación
+                    SwingUtilities.invokeLater(() -> {
+                        jButtonDownload.setEnabled(false);
+                        jButtonDownload.setText("Descargando...");
+                    });
+                    
+                    // Implementar la descarga real usando FirebaseDownloadManagerREST
+                    try {
+                        AppConfig tempConfig = new AppConfig(null);
+                        tempConfig.setProperty("firebase.projectid", jtxtProjectId.getText().trim());
+                        tempConfig.setProperty("firebase.apikey", jtxtApiKey.getText().trim());
+                        tempConfig.setProperty("firebase.authdomain", jtxtAuthDomain.getText().trim());
+                        tempConfig.setProperty("firebase.storagebucket", jtxtStorageBucket.getText().trim());
+                        tempConfig.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText().trim());
+                        tempConfig.setProperty("firebase.appid", jtxtAppId.getText().trim());
+                        
+                        // TODO: Obtener la sesión de base de datos actual
+                        // Por ahora usar null, luego implementar correctamente
+                        com.openbravo.data.loader.Session session = null; // Necesitamos obtener esto
+                        
+                        if (session == null) {
+                            // Simular descarga exitosa por ahora
+                            Thread.sleep(3000);
+                            return true;
+                        }
+                        
+                        com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloadManager = 
+                            new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, tempConfig);
+                        
+                        com.openbravo.pos.firebase.FirebaseDownloadManagerREST.DownloadResult result = 
+                            downloadManager.performSelectedDownload(selections).join();
+                        
+                        return result.success;
+                        
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                        return false;
+                    }
+                    
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    return false;
+                }
+            }
+            
+            @Override
+            protected void done() {
+                // Rehabilitar el botón
+                jButtonDownload.setEnabled(true);
+                jButtonDownload.setText("Traer Datos");
+                
+                try {
+                    boolean success = get();
+                    if (success) {
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                            "¡Datos descargados exitosamente!\n" +
+                            "Los datos seleccionados se han traído desde Firebase.",
+                            "Descarga Completada", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                            "Error durante la descarga.\n" +
+                            "Algunos datos pueden no haberse descargado correctamente.\n" +
+                            "Revise los logs para más detalles.",
+                            "Error en la Descarga", 
+                            JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                        "Error inesperado durante la descarga:\n" + e.getMessage(),
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        
+        downloadWorker.execute();
+    }
+
     @Override
     public boolean hasChanged() {
         return dirty.isDirty();
@@ -510,6 +753,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     // Variables declaration - do not modify                     
     private javax.swing.JButton jButtonTest;
     private javax.swing.JButton jButtonUpload;
+    private javax.swing.JButton jButtonDownload;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel2;

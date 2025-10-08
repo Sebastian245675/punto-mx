@@ -301,6 +301,13 @@ public class PuntosDataLogic {
      * Inicializa las tablas de puntos si no existen
      */
     public void initTables() throws BasicException {
+        // Sebastian - Primero verificamos si las tablas ya existen para evitar logs SEVERE
+        if (tablasYaExisten()) {
+            System.out.println("ℹ️ Sistema de puntos: Tablas ya existen");
+            verificarMigraciones(); // Verificar si necesitamos agregar columnas nuevas
+            return;
+        }
+        
         try {
             // Crear tabla de configuración si no existe
             String createConfigTable = 
@@ -318,21 +325,9 @@ public class PuntosDataLogic {
                 new StaticSentence(s, createConfigTable).exec();
                 System.out.println("✅ Tabla PUNTOS_CONFIGURACION creada exitosamente");
             } catch (BasicException e) {
-                if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe")) {
+                if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe") || 
+                    e.getMessage().contains("nombre del objeto ya existe")) {
                     System.out.println("ℹ️ Tabla PUNTOS_CONFIGURACION ya existe");
-                    
-                    // Sebastian - Migración: Agregar columna LIMITE_DIARIO_PUNTOS si no existe
-                    try {
-                        String addLimitColumn = "ALTER TABLE PUNTOS_CONFIGURACION ADD COLUMN LIMITE_DIARIO_PUNTOS INTEGER DEFAULT 500";
-                        new StaticSentence(s, addLimitColumn).exec();
-                        System.out.println("✅ Columna LIMITE_DIARIO_PUNTOS agregada exitosamente");
-                    } catch (BasicException addColEx) {
-                        if (addColEx.getMessage().contains("already exists") || addColEx.getMessage().contains("ya existe")) {
-                            System.out.println("ℹ️ Columna LIMITE_DIARIO_PUNTOS ya existe");
-                        } else {
-                            System.out.println("⚠️ Error al agregar columna LIMITE_DIARIO_PUNTOS: " + addColEx.getMessage());
-                        }
-                    }
                 } else {
                     System.err.println("⚠️ Error creando tabla PUNTOS_CONFIGURACION: " + e.getMessage());
                 }
@@ -353,7 +348,8 @@ public class PuntosDataLogic {
                 new StaticSentence(s, createPuntosTable).exec();
                 System.out.println("✅ Tabla CLIENTE_PUNTOS creada exitosamente");
             } catch (BasicException e) {
-                if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe")) {
+                if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe") || 
+                    e.getMessage().contains("nombre del objeto ya existe")) {
                     System.out.println("ℹ️ Tabla CLIENTE_PUNTOS ya existe");
                 } else {
                     System.err.println("⚠️ Error creando tabla CLIENTE_PUNTOS: " + e.getMessage());
@@ -374,7 +370,8 @@ public class PuntosDataLogic {
                 new StaticSentence(s, createHistorialTable).exec();
                 System.out.println("✅ Tabla PUNTOS_HISTORIAL creada exitosamente");
             } catch (BasicException e) {
-                if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe")) {
+                if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe") || 
+                    e.getMessage().contains("nombre del objeto ya existe")) {
                     System.out.println("ℹ️ Tabla PUNTOS_HISTORIAL ya existe");
                 } else {
                     System.err.println("⚠️ Error creando tabla PUNTOS_HISTORIAL: " + e.getMessage());
@@ -562,5 +559,39 @@ public class PuntosDataLogic {
         // Crear tablas nuevamente
         initTables();
         System.out.println("✅ Tablas recreadas exitosamente");
+    }
+    
+    /**
+     * Sebastian - Verifica si las tablas del sistema de puntos ya existen
+     */
+    private boolean tablasYaExisten() {
+        try {
+            // Intentamos hacer una consulta simple a cada tabla
+            new StaticSentence(s, "SELECT COUNT(*) FROM PUNTOS_CONFIGURACION").exec();
+            new StaticSentence(s, "SELECT COUNT(*) FROM CLIENTE_PUNTOS").exec();
+            new StaticSentence(s, "SELECT COUNT(*) FROM PUNTOS_HISTORIAL").exec();
+            return true;
+        } catch (Exception e) {
+            return false;
+        }
+    }
+    
+    /**
+     * Sebastian - Verifica y aplica migraciones necesarias (nuevas columnas)
+     */
+    private void verificarMigraciones() {
+        try {
+            // Intentar agregar columna LIMITE_DIARIO_PUNTOS si no existe
+            String addLimitColumn = "ALTER TABLE PUNTOS_CONFIGURACION ADD COLUMN LIMITE_DIARIO_PUNTOS INTEGER DEFAULT 500";
+            new StaticSentence(s, addLimitColumn).exec();
+            System.out.println("✅ Migración: Columna LIMITE_DIARIO_PUNTOS agregada");
+        } catch (BasicException e) {
+            if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe") || 
+                e.getMessage().contains("duplicate column")) {
+                // La columna ya existe, todo bien
+            } else {
+                System.out.println("ℹ️ Migración: " + e.getMessage());
+            }
+        }
     }
 }

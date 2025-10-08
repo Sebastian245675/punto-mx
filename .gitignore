@@ -12,3 +12,8 @@
 /**/kriolopos/
 /**/kriolopos.lck
 /**/kriolopos.log
+
+# GraalVM files (too large for GitHub)
+graalvm-java21.zip
+graalvm-java21/
+jdk-install.log
