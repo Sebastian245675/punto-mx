@@ -1,0 +1,103 @@
+╔═══════════════════════════════════════════════════════════════╗
+║                    SEBASTIAN POS - v1.0.0                     ║
+║            Sistema de Punto de Venta Empresarial              ║
+╚═══════════════════════════════════════════════════════════════╝
+
+📋 REQUISITOS DEL SISTEMA
+─────────────────────────────────────────────────────────────────
+✓ Windows 7/8/10/11 (64-bit)
+✓ Java 21 o superior instalado
+✓ Mínimo 2 GB RAM
+✓ 500 MB espacio en disco
+✓ Resolución mínima: 1024x768
+
+🚀 INSTALACIÓN Y USO
+─────────────────────────────────────────────────────────────────
+1. Extraer todos los archivos a una carpeta de su elección
+2. Ejecutar "SebastianPOS.exe" con doble clic
+3. En el primer inicio, la aplicación creará la base de datos
+   (puede tardar 30-60 segundos)
+4. Aparecerá el panel de login con 3 usuarios predeterminados
+
+👤 USUARIOS PREDETERMINADOS
+─────────────────────────────────────────────────────────────────
+• Administrador / contraseña: admin
+• Gerente / contraseña: manager  
+• Empleado / contraseña: employee
+
+📁 UBICACIÓN DE LA BASE DE DATOS
+─────────────────────────────────────────────────────────────────
+Los datos se guardan en: C:\Users\[TU_USUARIO]\kriolopos\
+
+
+⚠️ IMPORTANTE
+─────────────────────────────────────────────────────────────────
+• NO mover la base de datos mientras la aplicación esté abierta
+• NO eliminar los archivos .lck (archivos de bloqueo)
+• Hacer respaldos periódicos de la carpeta kriolopos
+
+🔧 SOLUCIÓN DE PROBLEMAS
+─────────────────────────────────────────────────────────────────
+
+❌ Error: "Application fail to start"
+   Solución: Ejecutar "Limpiar-y-Ejecutar.bat" para regenerar la BD
+
+❌ La aplicación se cierra inmediatamente
+   • Verificar que Java 21 esté instalado
+   • Revisar el archivo "SebastianPOS-log.txt" 
+
+❌ Error de base de datos bloqueada
+   Solución:
+   1. Cerrar completamente la aplicación
+   2. Ir a: C:\Users\[TU_USUARIO]\kriolopos\
+   3. Eliminar el archivo "kriolopos.lck"
+   4. Reiniciar la aplicación
+
+📊 ARCHIVO DE LOG
+─────────────────────────────────────────────────────────────────
+Todos los eventos y errores se registran automáticamente en:
+   → SebastianPOS-log.txt (en esta misma carpeta)
+
+Este archivo es ESENCIAL para diagnosticar problemas. Si la 
+aplicación falla en otro equipo, envíe este archivo al soporte 
+técnico para identificar la causa exacta del error.
+
+El log incluye:
+• Fecha y hora de cada sesión
+• Versión de Java utilizada
+• Sistema operativo
+• Migraciones de base de datos
+• Errores y excepciones detalladas
+• Eventos de la aplicación
+
+🛠️ HERRAMIENTAS INCLUIDAS
+─────────────────────────────────────────────────────────────────
+
+📄 Limpiar-y-Ejecutar.bat
+   Elimina la base de datos corrupta y regenera una nueva.
+   Usar SOLO si hay problemas con la BD.
+
+📄 Ejecutar.bat
+   Inicia la aplicación de forma normal.
+
+📄 Ver-Log.bat
+   Abre el archivo de log en el Bloc de notas.
+
+📞 SOPORTE TÉCNICO
+─────────────────────────────────────────────────────────────────
+Para reportar errores, enviar:
+1. Archivo "SebastianPOS-log.txt"
+2. Descripción del error
+3. Versión de Windows
+4. Pasos para reproducir el problema
+
+🎉 ¡LISTO PARA USAR!
+─────────────────────────────────────────────────────────────────
+La aplicación está lista para gestionar su negocio.
+Configure los productos, categorías, impuestos y usuarios
+desde el panel de administración.
+
+═══════════════════════════════════════════════════════════════
+            Desarrollado por Sebastian245675
+                   © 2025 - v1.0.0
+═══════════════════════════════════════════════════════════════

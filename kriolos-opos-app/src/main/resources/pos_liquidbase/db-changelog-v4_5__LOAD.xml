@@ -414,7 +414,7 @@
             <column name="id" value="56"/>
             <column name="name" value="Printer.Ticket.Logo"/>
             <column name="restype" value=" 1"/>
-            <column name="content" valueBlobFile="../com/openbravo/images/app_logo_100x100.png" />
+            <column name="content" valueBlobFile="../com/openbravo/images/app_logo_48x48.png" />
         </insert>
         <!-- FILE RESOURCE MISSING (2021/01/21) 
         <insert tableName="resources">
