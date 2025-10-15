@@ -85,21 +85,32 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     }
 
     private void setMenuIcon() {
-        if (colapseButton.getComponentOrientation().isLeftToRight()) {
-            menu_open = new ImageIcon(getClass().getResource(
-                    "/com/openbravo/images/menu-right.png"));
-            menu_close = new ImageIcon(getClass().getResource(
-                    "/com/openbravo/images/menu-left.png"));
-        } else {
-            menu_open = new ImageIcon(getClass().getResource(
-                    "/com/openbravo/images/menu-left.png"));
-            menu_close = new ImageIcon(getClass().getResource(
-                    "/com/openbravo/images/menu-right.png"));
+        try {
+            if (colapseButton.getComponentOrientation().isLeftToRight()) {
+                java.net.URL menuRightUrl = getClass().getResource("/com/openbravo/images/menu-right.png");
+                java.net.URL menuLeftUrl = getClass().getResource("/com/openbravo/images/menu-left.png");
+                
+                menu_open = (menuRightUrl != null) ? new ImageIcon(menuRightUrl) : null;
+                menu_close = (menuLeftUrl != null) ? new ImageIcon(menuLeftUrl) : null;
+            } else {
+                java.net.URL menuLeftUrl = getClass().getResource("/com/openbravo/images/menu-left.png");
+                java.net.URL menuRightUrl = getClass().getResource("/com/openbravo/images/menu-right.png");
+                
+                menu_open = (menuLeftUrl != null) ? new ImageIcon(menuLeftUrl) : null;
+                menu_close = (menuRightUrl != null) ? new ImageIcon(menuRightUrl) : null;
+            }
+        } catch (Exception e) {
+            // Si no se puede cargar, continuar sin iconos
+            menu_open = null;
+            menu_close = null;
         }
     }
 
     private void assignMenuButtonIcon() {
-        colapseButton.setIcon(m_jPanelMenu.isVisible() ? menu_close : menu_open);
+        Icon icon = m_jPanelMenu.isVisible() ? menu_close : menu_open;
+        if (icon != null) {
+            colapseButton.setIcon(icon);
+        }
     }
 
     private void setMenuVisible(boolean value) {

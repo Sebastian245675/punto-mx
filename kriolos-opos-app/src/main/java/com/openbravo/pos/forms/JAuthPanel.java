@@ -253,7 +253,15 @@ public class JAuthPanel extends javax.swing.JPanel {
 
         // 🖼️ LOGO MODERNIZADO
         m_vendorImageLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_vendorImageLabel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/logo_100×100.png"))); // NOI18N
+        // Cargar icono de forma segura
+        try {
+            java.net.URL logoUrl = getClass().getResource("/com/openbravo/images/logo_100×100.png");
+            if (logoUrl != null) {
+                m_vendorImageLabel.setIcon(new javax.swing.ImageIcon(logoUrl));
+            }
+        } catch (Exception e) {
+            // Si no se puede cargar, continuar sin icono
+        }
         m_vendorImageLabel.setText("🚀 Sebastian POS"); 
         m_vendorImageLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         m_vendorImageLabel.setForeground(MODERN_DARK);
