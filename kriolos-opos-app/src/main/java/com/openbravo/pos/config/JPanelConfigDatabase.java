@@ -268,16 +268,7 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
         jtxtDbPassword.setPreferredSize(new java.awt.Dimension(150, 30));
 
         jButtonTest.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        // Sebastian - Manejo robusto de imagen database
-        try {
-            java.net.URL databaseUrl = getClass().getResource("/com/openbravo/images/database.png");
-            if (databaseUrl != null) {
-                jButtonTest.setIcon(new javax.swing.ImageIcon(databaseUrl));
-            }
-        } catch (Exception e) {
-            // Ignorar errores de imagen y continuar sin icono
-            System.out.println("⚠️ No se pudo cargar database.png: " + e.getMessage());
-        }
+        jButtonTest.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/database.png"))); // NOI18N
         jButtonTest.setText(bundle.getString("button.test")); // NOI18N
         jButtonTest.setPreferredSize(new java.awt.Dimension(110, 45));
         jButtonTest.addActionListener(new java.awt.event.ActionListener() {
@@ -288,39 +279,14 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
 
         jLabel5.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jLabel5.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        // Sebastian - Manejo robusto de imágenes faltantes
-        try {
-            java.net.URL logoUrl = getClass().getResource("/com/openbravo/images/logo.png");
-            if (logoUrl != null) {
-                jLabel5.setIcon(new javax.swing.ImageIcon(logoUrl));
-            } else {
-                // Intentar ubicación alternativa
-                logoUrl = getClass().getResource("/com/openbravo/reports/logo.png");
-                if (logoUrl != null) {
-                    jLabel5.setIcon(new javax.swing.ImageIcon(logoUrl));
-                }
-                // Si ninguna funciona, simplemente no mostrar icono
-            }
-        } catch (Exception e) {
-            // Ignorar errores de imagen y continuar sin icono
-            System.out.println("⚠️ No se pudo cargar logo.png: " + e.getMessage());
-        }
+        jLabel5.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/app_logo_48x48.png"))); // NOI18N
         jLabel5.setText(bundle.getString("message.DBDefault")); // NOI18N
         jLabel5.setToolTipText("");
         jLabel5.setVerticalAlignment(javax.swing.SwingConstants.TOP);
         jLabel5.setPreferredSize(new java.awt.Dimension(889, 120));
 
         jButtonTest1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        // Sebastian - Manejo robusto de imagen database
-        try {
-            java.net.URL databaseUrl = getClass().getResource("/com/openbravo/images/database.png");
-            if (databaseUrl != null) {
-                jButtonTest1.setIcon(new javax.swing.ImageIcon(databaseUrl));
-            }
-        } catch (Exception e) {
-            // Ignorar errores de imagen y continuar sin icono
-            System.out.println("⚠️ No se pudo cargar database.png: " + e.getMessage());
-        }
+        jButtonTest1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/database.png"))); // NOI18N
         jButtonTest1.setText(bundle.getString("button.test")); // NOI18N
         jButtonTest1.setEnabled(false);
         jButtonTest1.setPreferredSize(new java.awt.Dimension(110, 45));

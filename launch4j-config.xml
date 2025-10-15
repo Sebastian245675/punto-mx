@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>kriolos-opos-app\target\kriolos-pos.jar</jar>
+  <outfile>installer\output-final\SebastianPOS\SebastianPOS.exe</outfile>
+  <errTitle>SebastianPOS Error</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptium.net/</downloadUrl>
+  <supportUrl>https://github.com/Sebastian245675/punto-mx</supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>kriolos-opos-app\src\main\resources\com\openbravo\images\favicon.ico</icon>
+  <jre>
+    <path>jre</path>
+    <requiresJdk>false</requiresJdk>
+    <requires64Bit>false</requires64Bit>
+    <minVersion>21</minVersion>
+    <maxVersion></maxVersion>
+  </jre>
+  <versionInfo>
+    <fileVersion>1.0.0.0</fileVersion>
+    <txtFileVersion>1.0.0</txtFileVersion>
+    <fileDescription>SebastianPOS - Sistema de Punto de Venta</fileDescription>
+    <copyright>2025 SebastianPOS</copyright>
+    <productVersion>1.0.0.0</productVersion>
+    <txtProductVersion>1.0.0</txtProductVersion>
+    <productName>SebastianPOS</productName>
+    <companyName>SebastianPOS</companyName>
+    <internalName>SebastianPOS</internalName>
+    <originalFilename>SebastianPOS.exe</originalFilename>
+    <trademarks></trademarks>
+    <language>SPANISH</language>
+  </versionInfo>
+</launch4jConfig>

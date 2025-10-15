@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>D:\unicenta-pos\kriolos-opos-app\target\kriolos-pos.jar</jar>
+  <outfile>D:\unicenta-pos\installer\output-final\SebastianPOS.exe</outfile>
+  <errTitle>SebastianPOS - Error</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptium.net/</downloadUrl>
+  <supportUrl></supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon></icon>
+  <jre>
+    <path></path>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <bundledJreAsFallback>false</bundledJreAsFallback>
+    <minVersion>21</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64</runtimeBits>
+    <opt>-Djava.io.tmpdir=%TEMP%</opt>
+    <opt>-Xms512m</opt>
+    <opt>-Xmx2048m</opt>
+    <opt>-XX:+UseG1GC</opt>
+    <opt>-XX:MaxGCPauseMillis=200</opt>
+    <opt>-Dsun.java2d.d3d=false</opt>
+    <opt>-Dsun.java2d.opengl=false</opt>
+  </jre>
+  <versionInfo>
+    <fileVersion>4.6.3.0</fileVersion>
+    <txtFileVersion>4.6.3</txtFileVersion>
+    <fileDescription>Sistema de Punto de Venta Sebastian</fileDescription>
+    <copyright>2025 KriolOS - Sebastian Edition</copyright>
+    <productVersion>4.6.3.0</productVersion>
+    <txtProductVersion>4.6.3</txtProductVersion>
+    <productName>SebastianPOS</productName>
+    <companyName>Sebastian</companyName>
+    <internalName>SebastianPOS</internalName>
+    <originalFilename>SebastianPOS.exe</originalFilename>
+  </versionInfo>
+</launch4jConfig>
