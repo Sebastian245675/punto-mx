@@ -17,3 +17,18 @@
 graalvm-java21.zip
 graalvm-java21/
 jdk-install.log
+
+# Build output and installer files (too large for GitHub)
+installer/output-jpackage/
+installer/output-final/
+custom-jre/
+SebastianPOS-Distribuible/
+
+# Launch4j tools (too large, can be downloaded)
+launch4j.zip
+launch4j-installer.zip
+launch4j/
+
+# Large JAR and binary files
+**/*.jar.original
+**/kriolos-pos.jar

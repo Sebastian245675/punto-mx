@@ -3,7 +3,7 @@
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
   <jar>kriolos-opos-app\target\kriolos-pos.jar</jar>
-  <outfile>installer\output-final\SebastianPOS\SebastianPOS.exe</outfile>
+  <outfile>D:\intento 99\SebastianPOS.exe</outfile>
   <errTitle>SebastianPOS Error</errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>
@@ -13,13 +13,15 @@
   <stayAlive>false</stayAlive>
   <restartOnCrash>false</restartOnCrash>
   <manifest></manifest>
-  <icon>kriolos-opos-app\src\main\resources\com\openbravo\images\favicon.ico</icon>
+  <icon></icon>
   <jre>
     <path>jre</path>
     <requiresJdk>false</requiresJdk>
     <requires64Bit>false</requires64Bit>
     <minVersion>21</minVersion>
     <maxVersion></maxVersion>
+    <opt>-Xmx2048m</opt>
+    <opt>-Djava.util.logging.config.file=logging.properties</opt>
   </jre>
   <versionInfo>
     <fileVersion>1.0.0.0</fileVersion>
@@ -32,7 +34,5 @@
     <companyName>SebastianPOS</companyName>
     <internalName>SebastianPOS</internalName>
     <originalFilename>SebastianPOS.exe</originalFilename>
-    <trademarks></trademarks>
-    <language>SPANISH</language>
   </versionInfo>
 </launch4jConfig>
