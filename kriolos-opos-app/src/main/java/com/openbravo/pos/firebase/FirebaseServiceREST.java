@@ -1,22 +1,10 @@
-//    KriolOS POS
-//    Copyright (c) 2019-2023 KriolOS
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>
+
 
 package com.openbravo.pos.firebase;
 
-import com.openbravo.pos.forms.AppConfig;
+import com.openbravo.pos.forms.AppProperties;
+import com.openbravo.pos.forms.AppUserView;
+import com.openbravo.pos.forms.AppUser;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.concurrent.CompletableFuture;
@@ -56,12 +44,14 @@ public class FirebaseServiceREST {
     private static final Logger LOGGER = Logger.getLogger(FirebaseServiceREST.class.getName());
     private static FirebaseServiceREST instance;
     
-    private AppConfig config;
+    private AppProperties config;
+    private AppUserView appUserView;
     private HttpClient httpClient;
     private Gson gson;
     private String projectId;
     private String apiKey;
     private String baseUrl;
+    private String userId;
     private boolean initialized = false;
     
     private FirebaseServiceREST() {
@@ -80,10 +70,19 @@ public class FirebaseServiceREST {
     }
     
     /**
-     * Inicializa el servicio Firebase con la configuración
+     * Inicializa el servicio Firebase con la configuración (sin AppUserView)
+     * Mantiene compatibilidad con código existente
      */
-    public boolean initialize(AppConfig config) {
+    public boolean initialize(AppProperties config) {
+        return initialize(config, null);
+    }
+    
+    /**
+     * Inicializa el servicio Firebase con la configuración y el usuario actual
+     */
+    public boolean initialize(AppProperties config, AppUserView appUserView) {
         this.config = config;
+        this.appUserView = appUserView;
         
         if (initialized) {
             LOGGER.info("Firebase REST Service ya está inicializado");
@@ -104,6 +103,9 @@ public class FirebaseServiceREST {
                 return false;
             }
             
+            // El userId ahora se obtiene del usuario actual cuando se necesite
+            updateUserId();
+            
             // URL base para Firestore REST API
             baseUrl = "https://firestore.googleapis.com/v1/projects/" + projectId + "/databases/(default)/documents";
             
@@ -119,6 +121,53 @@ public class FirebaseServiceREST {
     }
     
     /**
+     * Actualiza el userId desde el usuario actual del sistema
+     * Si no hay usuario logueado, usa system_[PC] como fallback
+     */
+    private void updateUserId() {
+        try {
+            if (appUserView != null && appUserView.getUser() != null) {
+                AppUser currentUser = appUserView.getUser();
+                String userCard = currentUser.getCard();
+                
+                if (userCard != null && !userCard.trim().isEmpty()) {
+                    userId = userCard.trim();
+                    LOGGER.info("Usuario ID obtenido del usuario actual: " + userId);
+                    return;
+                }
+            }
+            
+            // Fallback: usar nombre del sistema
+            try {
+                String hostname = InetAddress.getLocalHost().getHostName();
+                userId = "system_" + hostname;
+                LOGGER.info("Usuario ID usando hostname del sistema: " + userId);
+            } catch (UnknownHostException e) {
+                userId = "system_unknown";
+                LOGGER.warning("No se pudo obtener hostname, usando system_unknown");
+            }
+            
+        } catch (Exception e) {
+            userId = "system_unknown";
+            LOGGER.log(Level.WARNING, "Error al obtener el usuario, usando system_unknown", e);
+        }
+    }
+
+    /**
+     * Fuerza el userId que será usado por las operaciones de sincronización.
+     * Esto permite que el gestor de sincronización (que conoce el contexto UI)
+     * le pase un identificador obtenido desde la vista de usuario.
+     */
+    public void setUserId(String userId) {
+        if (userId == null || userId.trim().isEmpty()) {
+            LOGGER.warning("setUserId recibido nulo o vacío, ignorando");
+            return;
+        }
+        this.userId = userId.trim();
+        LOGGER.info("FirebaseServiceREST: userId forzado a: " + this.userId);
+    }
+    
+    /**
      * Prueba la conexión con Firebase
      */
     public CompletableFuture<Boolean> testConnection() {
@@ -129,7 +178,13 @@ public class FirebaseServiceREST {
                     return false;
                 }
                 
-                if (!initialize(AppConfig.getInstance())) {
+                // Si no está inicializado y tenemos config, inicializar
+                if (!initialized && config != null) {
+                    if (!initialize(config)) {
+                        return false;
+                    }
+                } else if (!initialized) {
+                    LOGGER.warning("Firebase no está inicializado y no hay configuración disponible");
                     return false;
                 }
                 
@@ -217,9 +272,6 @@ public class FirebaseServiceREST {
         return syncCollection("impuestos", impuestos);
     }
     
-    /**
-     * Sebastian - Sincroniza configuraciones a Firestore
-     */
     public CompletableFuture<Boolean> syncConfiguraciones(List<Map<String, Object>> configuraciones) {
         return syncCollection("configuraciones", configuraciones);
     }
@@ -237,54 +289,82 @@ public class FirebaseServiceREST {
     private CompletableFuture<Boolean> syncCollection(String collectionName, List<Map<String, Object>> documents) {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                LOGGER.info("[" + collectionName + "] Verificando inicialización...");
+                
                 if (!initialized) {
-                    LOGGER.warning("Firebase no está inicializado");
+                    LOGGER.warning("Firebase no está inicializado para " + collectionName);
                     return false;
                 }
                 
+                LOGGER.info("[" + collectionName + "] Verificando conexión a internet...");
                 if (!hasInternetConnection()) {
                     LOGGER.warning("No hay conexión a internet para sincronizar " + collectionName);
                     return false;
                 }
                 
-                LOGGER.info("Iniciando sincronización de " + collectionName + " - " + documents.size() + " documentos");
+                // Actualizar el userId del usuario actual antes de sincronizar
+                LOGGER.info("[" + collectionName + "] Actualizando userId...");
+                updateUserId();
+                LOGGER.info("[" + collectionName + "] Usuario ID: " + (userId != null ? userId : "unknown"));
+                
+                LOGGER.info("[" + collectionName + "] Iniciando sincronización - " + documents.size() + " documentos");
                 
                 int sincronizados = 0;
                 int errores = 0;
+                int total = documents.size();
                 
-                for (Map<String, Object> document : documents) {
+                for (int i = 0; i < total; i++) {
+                    Map<String, Object> document = documents.get(i);
                     try {
-                        // Agregar metadatos de sincronización
+                        LOGGER.info("[" + collectionName + "] Procesando documento " + (i+1) + "/" + total);
+                        
                         Map<String, Object> docWithMetadata = new HashMap<>(document);
                         docWithMetadata.put("fechaSincronizacion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                         docWithMetadata.put("origen", "kriolos-pos");
                         docWithMetadata.put("version", "1.0");
                         
-                        // Generar ID único para el documento
+                        // Para usuarios, usar su propio ID Remoto (tarjeta); para otros, usar el userId global
+                        String documentUserId;
+                        if ("usuarios".equals(collectionName) && document.containsKey("tarjeta")) {
+                            String tarjeta = (String) document.get("tarjeta");
+                            documentUserId = (tarjeta != null && !tarjeta.trim().isEmpty()) 
+                                ? tarjeta.trim() 
+                                : (userId != null ? userId : "unknown");
+                            LOGGER.info("[" + collectionName + "] Usando ID Remoto del usuario: " + documentUserId);
+                        } else {
+                            documentUserId = userId != null ? userId : "unknown";
+                        }
+                        
+                        docWithMetadata.put("usuario_id", documentUserId);
+                        
                         String documentId = generateDocumentId(document);
                         
                         if (uploadDocument(collectionName, documentId, docWithMetadata)) {
                             sincronizados++;
+                            LOGGER.info("[" + collectionName + "] ✓ Documento " + (i+1) + " subido");
                         } else {
                             errores++;
+                            LOGGER.warning("[" + collectionName + "] ✗ Error en documento " + (i+1));
                         }
                         
-                        // Pausa pequeña para no sobrecargar la API
-                        Thread.sleep(100);
+                        // Pausa pequeña para no sobrecargar la API (reducida de 100ms a 50ms)
+                        if (i < total - 1) {
+                            Thread.sleep(50);
+                        }
                         
                     } catch (Exception e) {
                         errores++;
-                        LOGGER.log(Level.WARNING, "Error sincronizando documento de " + collectionName, e);
+                        LOGGER.log(Level.WARNING, "[" + collectionName + "] Error en documento " + (i+1) + "/" + total, e);
                     }
                 }
                 
-                LOGGER.info("Sincronización de " + collectionName + " completada - " + 
-                           sincronizados + " exitosos, " + errores + " errores");
+                LOGGER.info("[" + collectionName + "] Sincronización completada - " + 
+                           sincronizados + " exitosos, " + errores + " errores de " + total + " totales");
                 
                 return errores == 0;
                 
             } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error en sincronización de " + collectionName, e);
+                LOGGER.log(Level.SEVERE, "[" + collectionName + "] Error crítico en sincronización", e);
                 return false;
             }
         });
@@ -466,6 +546,16 @@ public class FirebaseServiceREST {
      */
     public CompletableFuture<List<Map<String, Object>>> downloadUsuarios() {
         return downloadCollection("usuarios");
+    }
+    
+    /**
+     * Descarga roles desde Firebase
+     * La colección roles contiene documentos donde:
+     * - El ID del documento es el ID del usuario
+     * - Los campos incluyen: nombre, rol, usuario
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadRoles() {
+        return downloadCollection("roles");
     }
     
     /**
@@ -659,5 +749,19 @@ public class FirebaseServiceREST {
             // Para otros tipos, retornar como string
             return field.toString();
         }
+    }
+    
+    /**
+     * Obtiene el ID del usuario configurado
+     */
+    public String getUserId() {
+        return userId != null ? userId : "unknown";
+    }
+    
+    /**
+     * Verifica si el usuario está configurado
+     */
+    public boolean isUserConfigured() {
+        return userId != null && !userId.trim().isEmpty() && !"unknown".equals(userId);
     }
 }

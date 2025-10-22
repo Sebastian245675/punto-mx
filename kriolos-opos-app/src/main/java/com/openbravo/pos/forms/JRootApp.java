@@ -394,9 +394,14 @@ public class JRootApp extends JPanel implements AppView {
      */
     private void initializeFirebaseSync() {
         try {
-            if (session != null) {
-                // Crear el FirebaseSyncManagerREST con la sesión actual
-                firebaseSyncManager = new FirebaseSyncManagerREST(session);
+            if (session != null && m_principalapp != null) {
+                // Crear el FirebaseSyncManagerREST con la sesión actual y el AppUserView
+                firebaseSyncManager = new FirebaseSyncManagerREST(session, m_principalapp);
+                
+                // Inicializar Firebase con el usuario actual
+                com.openbravo.pos.firebase.FirebaseServiceREST firebaseService = 
+                    com.openbravo.pos.firebase.FirebaseServiceREST.getInstance();
+                firebaseService.initialize(appFileProperties, m_principalapp);
                 
                 // Ejecutar sincronización completa en segundo plano
                 CompletableFuture.runAsync(() -> {

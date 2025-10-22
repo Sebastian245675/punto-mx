@@ -69,6 +69,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         jtxtStorageBucket.getDocument().addDocumentListener(dirty);
         jtxtMessagingSenderId.getDocument().addDocumentListener(dirty);
         jtxtAppId.getDocument().addDocumentListener(dirty);
+        jtxtUserId.getDocument().addDocumentListener(dirty);
         jchkFirebaseEnabled.addActionListener(dirty);
         jchkSyncCustomers.addActionListener(dirty);
         jchkSyncProducts.addActionListener(dirty);
@@ -96,6 +97,10 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         jtxtMessagingSenderId = new javax.swing.JTextField();
         jLabel7 = new javax.swing.JLabel();
         jtxtAppId = new javax.swing.JTextField();
+        jLabel11 = new javax.swing.JLabel();
+        jtxtUserId = new javax.swing.JTextField();
+        jButtonValidateUser = new javax.swing.JButton();
+        jLabelUserStatus = new javax.swing.JLabel();
         jSeparator2 = new javax.swing.JSeparator();
         jLabel8 = new javax.swing.JLabel();
         jchkFirebaseEnabled = new javax.swing.JCheckBox();
@@ -142,6 +147,24 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         jLabel7.setText("App ID:");
 
         jtxtAppId.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+
+        jLabel11.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jLabel11.setText("ID Usuario:");
+
+        jtxtUserId.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jtxtUserId.setToolTipText("Ingrese el número de usuario (ej: 6767)");
+
+        jButtonValidateUser.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
+        jButtonValidateUser.setText("Validar");
+        jButtonValidateUser.setToolTipText("Validar que el número de usuario existe en la colección roles de Firebase");
+        jButtonValidateUser.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonValidateUserActionPerformed(evt);
+            }
+        });
+
+        jLabelUserStatus.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
+        jLabelUserStatus.setText(" ");
 
         jLabel8.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
         jLabel8.setText("Estado del Servicio:");
@@ -208,7 +231,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                             .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jLabel11, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                         .addGap(18, 18, 18)
                         .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
                             .addComponent(jtxtProjectId)
@@ -216,7 +240,14 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                             .addComponent(jtxtAuthDomain)
                             .addComponent(jtxtStorageBucket)
                             .addComponent(jtxtMessagingSenderId)
-                            .addComponent(jtxtAppId, javax.swing.GroupLayout.PREFERRED_SIZE, 280, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                            .addComponent(jtxtAppId, javax.swing.GroupLayout.PREFERRED_SIZE, 280, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addGroup(layout.createSequentialGroup()
+                                .addComponent(jtxtUserId, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jButtonValidateUser, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                    .addGroup(layout.createSequentialGroup()
+                        .addGap(168, 168, 168)
+                        .addComponent(jLabelUserStatus, javax.swing.GroupLayout.PREFERRED_SIZE, 280, javax.swing.GroupLayout.PREFERRED_SIZE))
                     .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 450, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jLabel8)
                     .addComponent(jchkFirebaseEnabled)
@@ -235,58 +266,172 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
-                .addGap(20, 20, 20)
+                .addGap(15, 15, 15)
                 .addComponent(jLabel1)
-                .addGap(10, 10, 10)
-                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(10, 10, 10)
-                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(10, 10, 10)
+                .addGap(8, 8, 8)
+                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(8, 8, 8)
+                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 8, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(8, 8, 8)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2)
                     .addComponent(jtxtProjectId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(10, 10, 10)
+                .addGap(8, 8, 8)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel3)
                     .addComponent(jtxtApiKey, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(10, 10, 10)
+                .addGap(8, 8, 8)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel4)
                     .addComponent(jtxtAuthDomain, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(10, 10, 10)
+                .addGap(8, 8, 8)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel5)
                     .addComponent(jtxtStorageBucket, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(10, 10, 10)
+                .addGap(8, 8, 8)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel6)
                     .addComponent(jtxtMessagingSenderId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(10, 10, 10)
+                .addGap(8, 8, 8)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel7)
                     .addComponent(jtxtAppId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(15, 15, 15)
-                .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 10, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(10, 10, 10)
+                .addGap(8, 8, 8)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel11)
+                    .addComponent(jtxtUserId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButtonValidateUser))
+                .addGap(3, 3, 3)
+                .addComponent(jLabelUserStatus)
+                .addGap(8, 8, 8)
+                .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 8, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(8, 8, 8)
                 .addComponent(jLabel8)
-                .addGap(5, 5, 5)
+                .addGap(3, 3, 3)
                 .addComponent(jchkFirebaseEnabled)
-                .addGap(15, 15, 15)
+                .addGap(10, 10, 10)
                 .addComponent(jLabel9)
-                .addGap(5, 5, 5)
+                .addGap(3, 3, 3)
                 .addComponent(jchkSyncCustomers)
-                .addGap(5, 5, 5)
+                .addGap(3, 3, 3)
                 .addComponent(jchkSyncProducts)
-                .addGap(5, 5, 5)
+                .addGap(3, 3, 3)
                 .addComponent(jchkSyncSales)
-                .addGap(20, 20, 20)
+                .addGap(15, 15, 15)
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButtonTest)
                     .addComponent(jButtonUpload)
                     .addComponent(jButtonDownload))
-                .addContainerGap(20, Short.MAX_VALUE))
+                .addContainerGap(15, Short.MAX_VALUE))
         );
     }// </editor-fold>                        
+
+    private void jButtonValidateUserActionPerformed(java.awt.event.ActionEvent evt) {
+        String userId = jtxtUserId.getText().trim();
+        
+        // Validar que el campo no esté vacío
+        if (userId.isEmpty()) {
+            jLabelUserStatus.setText("⚠️ Ingrese un ID de usuario");
+            jLabelUserStatus.setForeground(java.awt.Color.ORANGE);
+            return;
+        }
+        
+        // Validar que la configuración de Firebase esté completa
+        if (jtxtProjectId.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "Por favor complete la configuración de Firebase antes de validar el usuario.",
+                "Error de Configuración", 
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Deshabilitar el botón durante la validación
+        jButtonValidateUser.setEnabled(false);
+        jButtonValidateUser.setText("Validando...");
+        jLabelUserStatus.setText("⏳ Verificando...");
+        jLabelUserStatus.setForeground(java.awt.Color.BLUE);
+        
+        // Crear configuración temporal
+        AppConfig tempConfig = new AppConfig(null);
+        tempConfig.setProperty("firebase.projectid", jtxtProjectId.getText().trim());
+        tempConfig.setProperty("firebase.apikey", jtxtApiKey.getText().trim());
+        tempConfig.setProperty("firebase.authdomain", jtxtAuthDomain.getText().trim());
+        tempConfig.setProperty("firebase.storagebucket", jtxtStorageBucket.getText().trim());
+        tempConfig.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText().trim());
+        tempConfig.setProperty("firebase.appid", jtxtAppId.getText().trim());
+        
+        // Ejecutar validación en background
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            private String userName = null;
+            
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                try {
+                    com.openbravo.pos.firebase.FirebaseServiceREST service = 
+                        com.openbravo.pos.firebase.FirebaseServiceREST.getInstance();
+                    
+                    // Inicializar el servicio
+                    if (!service.initialize(tempConfig)) {
+                        return false;
+                    }
+                    
+                    // Validar que el usuario existe en Firebase (colección roles)
+                    java.util.List<java.util.Map<String, Object>> roles = 
+                        service.downloadRoles().get();
+                    
+                    for (java.util.Map<String, Object> role : roles) {
+                        // Obtener el campo "usuario" que puede ser número o string
+                        Object usuarioObj = role.get("usuario");
+                        String usuarioStr = usuarioObj != null ? usuarioObj.toString() : "";
+                        
+                        // Comparar con el ID ingresado
+                        if (userId.equals(usuarioStr)) {
+                            userName = (String) role.get("nombre");
+                            return true;
+                        }
+                    }
+                    
+                    return false;
+                } catch (Exception e) {
+                    java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
+                        .log(java.util.logging.Level.SEVERE, "Error al validar usuario", e);
+                    return false;
+                }
+            }
+            
+            @Override
+            protected void done() {
+                // Rehabilitar el botón
+                jButtonValidateUser.setEnabled(true);
+                jButtonValidateUser.setText("Validar");
+                
+                try {
+                    boolean exists = get();
+                    if (exists) {
+                        jLabelUserStatus.setText("✓ Usuario válido: " + (userName != null ? userName : userId));
+                        jLabelUserStatus.setForeground(new java.awt.Color(0, 150, 0));
+                    } else {
+                        jLabelUserStatus.setText("✗ Usuario no encontrado en la colección roles");
+                        jLabelUserStatus.setForeground(java.awt.Color.RED);
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                            "El ID de usuario '" + userId + "' no existe en la colección roles de Firebase.\n" +
+                            "Por favor verifique el ID o cree el rol en Firebase primero.",
+                            "Usuario No Encontrado", 
+                            JOptionPane.WARNING_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    jLabelUserStatus.setText("✗ Error al validar");
+                    jLabelUserStatus.setForeground(java.awt.Color.RED);
+                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                        "Error al validar el usuario:\n" + e.getMessage(),
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        
+        worker.execute();
+    }
 
     private void jButtonTestActionPerformed(java.awt.event.ActionEvent evt) {                                            
         // Guardar temporalmente la configuración para la prueba
@@ -717,6 +862,12 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         String appId = config.getProperty("firebase.appid");
         jtxtAppId.setText(appId != null ? appId : "");
         
+        String userId = config.getProperty("firebase.userid");
+        jtxtUserId.setText(userId != null ? userId : "");
+        
+        // Limpiar el estado de validación
+        jLabelUserStatus.setText(" ");
+        
         String enabled = config.getProperty("firebase.enabled");
         jchkFirebaseEnabled.setSelected("true".equals(enabled));
         
@@ -741,6 +892,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         config.setProperty("firebase.storagebucket", jtxtStorageBucket.getText());
         config.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText());
         config.setProperty("firebase.appid", jtxtAppId.getText());
+        // Nota: El usuario_id ahora se toma del campo "ID Remoto" del usuario actual en Maintenance > Users
+        // config.setProperty("firebase.userid", jtxtUserId.getText().trim());
         
         config.setProperty("firebase.enabled", Boolean.toString(jchkFirebaseEnabled.isSelected()));
         config.setProperty("firebase.sync.customers", Boolean.toString(jchkSyncCustomers.isSelected()));
@@ -754,8 +907,10 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     private javax.swing.JButton jButtonTest;
     private javax.swing.JButton jButtonUpload;
     private javax.swing.JButton jButtonDownload;
+    private javax.swing.JButton jButtonValidateUser;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
+    private javax.swing.JLabel jLabel11;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
@@ -764,6 +919,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
+    private javax.swing.JLabel jLabelUserStatus;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JSeparator jSeparator2;
     private javax.swing.JCheckBox jchkFirebaseEnabled;
@@ -776,5 +932,6 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     private javax.swing.JTextField jtxtMessagingSenderId;
     private javax.swing.JTextField jtxtProjectId;
     private javax.swing.JTextField jtxtStorageBucket;
+    private javax.swing.JTextField jtxtUserId;
     // End of variables declaration                   
 }

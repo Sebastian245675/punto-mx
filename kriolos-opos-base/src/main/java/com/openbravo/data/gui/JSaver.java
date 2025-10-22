@@ -80,8 +80,14 @@ public class JSaver extends JPanel implements StateListener {
         jbtnSave = new javax.swing.JButton();
 
         jbtnNew.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/editnew.png"))); // NOI18N
-        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
-        jbtnNew.setToolTipText(bundle.getString("tooltip.addnew")); // NOI18N
+        java.util.ResourceBundle bundle = null;
+        try {
+            bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
+        } catch (java.util.MissingResourceException e) {
+            // Si no encuentra el bundle, usar valores por defecto
+            System.err.println("⚠️ Warning: pos_messages bundle not found, using defaults");
+        }
+        jbtnNew.setToolTipText(bundle != null ? bundle.getString("tooltip.addnew") : "Add New"); // NOI18N
         jbtnNew.setFocusPainted(false);
         jbtnNew.setFocusable(false);
         jbtnNew.setMargin(new java.awt.Insets(2, 2, 2, 2));
@@ -94,7 +100,7 @@ public class JSaver extends JPanel implements StateListener {
         });
 
         jbtnDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_delete.png"))); // NOI18N
-        jbtnDelete.setToolTipText(bundle.getString("tooltip.delete")); // NOI18N
+        jbtnDelete.setToolTipText(bundle != null ? bundle.getString("tooltip.delete") : "Delete"); // NOI18N
         jbtnDelete.setFocusPainted(false);
         jbtnDelete.setFocusable(false);
         jbtnDelete.setMargin(new java.awt.Insets(2, 2, 2, 2));
@@ -107,7 +113,7 @@ public class JSaver extends JPanel implements StateListener {
         });
 
         jbtnSave.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/filesave.png"))); // NOI18N
-        jbtnSave.setToolTipText(bundle.getString("tooltip.save")); // NOI18N
+        jbtnSave.setToolTipText(bundle != null ? bundle.getString("tooltip.save") : "Save"); // NOI18N
         jbtnSave.setFocusPainted(false);
         jbtnSave.setFocusable(false);
         jbtnSave.setMargin(new java.awt.Insets(2, 2, 2, 2));

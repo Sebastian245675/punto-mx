@@ -34,6 +34,11 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 /**
  * Gestor de sincronización con Firebase usando REST API
@@ -50,8 +55,21 @@ public class FirebaseSyncManagerREST {
     private final DataLogicSystem dlSystem;
     private final DataLogicAdmin dlAdmin;
     
+    private final com.openbravo.pos.forms.AppUserView appUserView;
+    
+    /**
+     * Constructor compatible con código existente (sin AppUserView)
+     */
     public FirebaseSyncManagerREST(Session session) {
+        this(session, null);
+    }
+    
+    /**
+     * Constructor con soporte para tracking por usuario
+     */
+    public FirebaseSyncManagerREST(Session session, com.openbravo.pos.forms.AppUserView appUserView) {
         this.session = session;
+        this.appUserView = appUserView;
         this.firebaseService = FirebaseServiceREST.getInstance();
         this.dlCustomers = new DataLogicCustomers();
         this.dlSales = new DataLogicSales();
@@ -63,22 +81,84 @@ public class FirebaseSyncManagerREST {
         this.dlSales.init(session);
         this.dlSystem.init(session);
         this.dlAdmin.init(session);
+        
+        // Log para diagnóstico
+        if (appUserView != null) {
+            LOGGER.info("FirebaseSyncManagerREST inicializado con AppUserView");
+        } else {
+            LOGGER.warning("FirebaseSyncManagerREST inicializado sin AppUserView - modo compatibilidad");
+        }
+    }
+    
+    /**
+     * Obtiene el ID Remoto del usuario actual desde la base de datos o el AppUserView
+     */
+    private String getCurrentUserId() {
+        try {
+            // Primero intentar desde AppUserView si está disponible
+            if (appUserView != null && appUserView.getUser() != null) {
+                com.openbravo.pos.forms.AppUser currentUser = appUserView.getUser();
+                String userCard = currentUser.getCard();
+                if (userCard != null && !userCard.trim().isEmpty()) {
+                    return userCard.trim();
+                }
+            }
+            
+            // Si no hay AppUserView, intentar obtener desde las propiedades del sistema
+            // (el usuario que está ejecutando la aplicación)
+            String systemUser = System.getProperty("user.name");
+            LOGGER.info("Usuario del sistema: " + systemUser);
+            
+            // Alternativamente, podríamos obtener el último usuario que hizo login
+            // desde la tabla de configuración o logs, pero por ahora retornamos "system"
+            return "system_" + systemUser;
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error obteniendo usuario actual", e);
+            return "unknown";
+        }
     }
     
     /**
      * Realiza una sincronización completa de todos los datos
+     * IMPORTANTE: Este método se ejecuta en el thread del caller para evitar
+     * problemas de concurrencia con la conexión de base de datos
      */
     public CompletableFuture<SyncResult> performFullSync() {
-        return CompletableFuture.supplyAsync(() -> {
-            SyncResult result = new SyncResult();
+        SyncResult result = new SyncResult();
+        
+        try {
+            LOGGER.info("=== INICIANDO SINCRONIZACIÓN COMPLETA CON FIREBASE ===");
+            result.startTime = LocalDateTime.now();
             
-            try {
-                LOGGER.info("=== INICIANDO SINCRONIZACIÓN COMPLETA CON FIREBASE ===");
-                result.startTime = LocalDateTime.now();
-                
-                // 1. Sincronizar usuarios
-                LOGGER.info("1. Sincronizando usuarios...");
-                boolean usuariosOk = syncUsuarios().join();
+            // Obtener el usuario actual para el tracking
+            String currentUserId = getCurrentUserId();
+            LOGGER.info("Usuario actual para tracking: " + (currentUserId != null ? currentUserId : "unknown"));
+            
+            // Inicializar Firebase con la configuración
+            com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
+            config.load();
+            
+            // Si tenemos appUserView, usarlo; sino, Firebase usará el userId obtenido de BD
+            if (appUserView != null) {
+                firebaseService.initialize(config, appUserView);
+                LOGGER.info("Firebase inicializado con AppUserView");
+            } else {
+                firebaseService.initialize(config);
+                LOGGER.info("Firebase inicializado sin AppUserView (modo compatibilidad)");
+            }
+            // Forzar el userId en el servicio Firebase para asegurar que
+            // los documentos subidos contengan el usuario correcto
+            if (currentUserId != null) {
+                firebaseService.setUserId(currentUserId);
+            }
+            
+            // 1. Sincronizar usuarios
+            LOGGER.info("1. Sincronizando usuarios...");
+            CompletableFuture<Boolean> usuariosFuture = syncUsuarios();
+            LOGGER.info("1.1 CompletableFuture de usuarios creado, esperando resultado...");
+            boolean usuariosOk = usuariosFuture.join();
+            LOGGER.info("1.2 Usuarios sincronizados con resultado: " + usuariosOk);
                 result.usuariosSincronizados = usuariosOk;
                 if (usuariosOk) result.successCount++; else result.errorCount++;
                 
@@ -142,77 +222,105 @@ public class FirebaseSyncManagerREST {
                 result.inventarioSincronizado = inventarioOk;
                 if (inventarioOk) result.successCount++; else result.errorCount++;
                 
-                result.endTime = LocalDateTime.now();
-                result.success = result.errorCount == 0;
-                
-                String mensaje = String.format(
-                    "=== SINCRONIZACIÓN COMPLETA COMPLETADA ===\n" +
-                    "Tiempo: %s\n" +
-                    "Exitosas: %d | Errores: %d\n" +
-                    "✓ Usuarios: %s | Clientes: %s | Categorías: %s\n" +
-                    "✓ Productos: %s | Ventas: %s | Puntos: %s\n" +
-                    "✓ Cierres: %s | Pagos: %s | Impuestos: %s\n" +
-                    "✓ Configs: %s | Inventario: %s",
-                    java.time.Duration.between(result.startTime, result.endTime).toString(),
-                    result.successCount, result.errorCount,
-                    usuariosOk ? "✓" : "✗",
-                    clientesOk ? "✓" : "✗", 
-                    categoriasOk ? "✓" : "✗",
-                    productosOk ? "✓" : "✗", ventasOk ? "✓" : "✗", puntosOk ? "✓" : "✗",
-                    cierresOk ? "✓" : "✗", pagosOk ? "✓" : "✗", impuestosOk ? "✓" : "✗",
-                    configuracionesOk ? "✓" : "✗", inventarioOk ? "✓" : "✗");
-                
-                LOGGER.info(mensaje);
-                
-                return result;
-                
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error en sincronización completa", e);
-                result.endTime = LocalDateTime.now();
-                result.success = false;
-                result.errorMessage = e.getMessage();
-                return result;
-            }
-        });
-    }
-    
-    /**
+            result.endTime = LocalDateTime.now();
+            result.success = result.errorCount == 0;
+            
+            String mensaje = String.format(
+                "=== SINCRONIZACIÓN COMPLETA COMPLETADA ===\n" +
+                "Tiempo: %s\n" +
+                "Exitosas: %d | Errores: %d\n" +
+                "✓ Usuarios: %s | Clientes: %s | Categorías: %s\n" +
+                "✓ Productos: %s | Ventas: %s | Puntos: %s\n" +
+                "✓ Cierres: %s | Pagos: %s | Impuestos: %s\n" +
+                "✓ Configs: %s | Inventario: %s",
+                java.time.Duration.between(result.startTime, result.endTime).toString(),
+                result.successCount, result.errorCount,
+                usuariosOk ? "✓" : "✗",
+                clientesOk ? "✓" : "✗", 
+                categoriasOk ? "✓" : "✗",
+                productosOk ? "✓" : "✗", ventasOk ? "✓" : "✗", puntosOk ? "✓" : "✗",
+                cierresOk ? "✓" : "✗", pagosOk ? "✓" : "✗", impuestosOk ? "✓" : "✗",
+                configuracionesOk ? "✓" : "✗", inventarioOk ? "✓" : "✗");
+            
+            LOGGER.info(mensaje);
+            
+            // Devolver el resultado como un CompletableFuture ya completado
+            return CompletableFuture.completedFuture(result);
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error en sincronización completa", e);
+            result.endTime = LocalDateTime.now();
+            result.success = false;
+            result.errorMessage = e.getMessage();
+            return CompletableFuture.completedFuture(result);
+        }
+    }    /**
      * Sincroniza usuarios desde la tabla people
+     * SOLUCIÓN DEFINITIVA: Ejecuta en thread separado con timeout para evitar deadlocks
      */
     private CompletableFuture<Boolean> syncUsuarios() {
         return CompletableFuture.supplyAsync(() -> {
-            try {
-                List<Map<String, Object>> usuarios = new ArrayList<>();
+            LOGGER.info("[syncUsuarios] Iniciando extracción en thread separado...");
+            
+            // Ejecutar con timeout de 10 segundos
+            ExecutorService executor = Executors.newSingleThreadExecutor();
+            Future<List<Map<String, Object>>> future = executor.submit(() -> {
+                PreparedStatement stmt = null;
+                ResultSet rs = null;
                 
-                String sql = "SELECT ID, NAME, CARD, ROLE, VISIBLE, IMAGE " +
-                           "FROM people WHERE VISIBLE = true";
-                
-                PreparedStatement stmt = session.getConnection().prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery();
-                
-                while (rs.next()) {
-                    Map<String, Object> usuario = new HashMap<>();
-                    usuario.put("id", rs.getString("ID"));
-                    usuario.put("nombre", rs.getString("NAME"));
-                    usuario.put("tarjeta", rs.getString("CARD"));
-                    usuario.put("rol", rs.getString("ROLE"));
-                    usuario.put("visible", rs.getBoolean("VISIBLE"));
-                    usuario.put("tieneImagen", rs.getBytes("IMAGE") != null);
-                    usuario.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    usuario.put("tabla", "people");
+                try {
+                    LOGGER.info("[syncUsuarios] Ejecutando consulta SQL...");
+                    List<Map<String, Object>> usuarios = new ArrayList<>();
                     
-                    usuarios.add(usuario);
+                    String sql = "SELECT ID, NAME, CARD, ROLE, VISIBLE, IMAGE " +
+                               "FROM people WHERE VISIBLE = true";
+                    
+                    stmt = session.getConnection().prepareStatement(sql);
+                    rs = stmt.executeQuery();
+                    
+                    while (rs.next()) {
+                        Map<String, Object> usuario = new HashMap<>();
+                        usuario.put("id", rs.getString("ID"));
+                        usuario.put("nombre", rs.getString("NAME"));
+                        usuario.put("tarjeta", rs.getString("CARD"));
+                        usuario.put("rol", rs.getString("ROLE"));
+                        usuario.put("visible", rs.getBoolean("VISIBLE"));
+                        usuario.put("tieneImagen", rs.getBytes("IMAGE") != null);
+                        usuario.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                        usuario.put("tabla", "people");
+                        
+                        usuarios.add(usuario);
+                    }
+                    
+                    LOGGER.info("[syncUsuarios] Extraídos " + usuarios.size() + " usuarios");
+                    return usuarios;
+                    
+                } finally {
+                    try {
+                        if (rs != null) rs.close();
+                        if (stmt != null) stmt.close();
+                    } catch (SQLException e) {
+                        LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
+                    }
                 }
+            });
+            
+            try {
+                // Esperar máximo 10 segundos
+                List<Map<String, Object>> usuarios = future.get(10, TimeUnit.SECONDS);
+                executor.shutdown();
                 
-                rs.close();
-                stmt.close();
-                
-                LOGGER.info("Extraídos " + usuarios.size() + " usuarios de la base de datos local");
-                
+                // Subir a Firebase
                 return firebaseService.syncUsuarios(usuarios).join();
                 
-            } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "Error extrayendo usuarios", e);
+            } catch (TimeoutException e) {
+                LOGGER.severe("[syncUsuarios] TIMEOUT - La consulta tardó más de 10 segundos. Cancelando...");
+                future.cancel(true);
+                executor.shutdownNow();
+                return false;
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "[syncUsuarios] Error en extracción", e);
+                executor.shutdownNow();
                 return false;
             }
         });

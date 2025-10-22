@@ -216,6 +216,75 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         } catch (Throwable t) {
             LOGGER.log(System.Logger.Level.WARNING, "No se pudo aplicar estilo moderno: " + t.getMessage());
         }
+        
+        // Sebastian - Configurar atajos de teclado
+        setupKeyboardShortcuts();
+    }
+    
+    /**
+     * Sebastian - Configura los atajos de teclado para el módulo de ventas
+     * F12: Cobrar/Pagar
+     * F2: Ingresar cliente (simula clic en botón)
+     * F3: Historial de pestañas
+     * F4: Nueva pestaña de venta
+     */
+    private void setupKeyboardShortcuts() {
+        javax.swing.InputMap inputMap = this.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);
+        javax.swing.ActionMap actionMap = this.getActionMap();
+        
+        // F12: Cobrar/Pagar
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F12, 0), "cobrar");
+        actionMap.put("cobrar", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
+                    if (m_jPayNow != null && m_jPayNow.isEnabled()) {
+                        LOGGER.log(System.Logger.Level.DEBUG, "F12 → Cobrar: Simulando clic en botón Pagar");
+                        m_jPayNow.doClick();
+                    }
+                } else {
+                    java.awt.Toolkit.getDefaultToolkit().beep();
+                }
+            }
+        });
+        
+        // F2: Ingresar cliente (simula clic en jBtnCustomer)
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0), "ingresarCliente");
+        actionMap.put("ingresarCliente", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (jBtnCustomer != null && jBtnCustomer.isEnabled()) {
+                    LOGGER.log(System.Logger.Level.DEBUG, "F2 → Ingresar Cliente: Simulando clic en botón de cliente");
+                    jBtnCustomer.doClick();
+                } else {
+                    LOGGER.log(System.Logger.Level.WARNING, "F2 → Botón de cliente no disponible");
+                }
+            }
+        });
+        
+        // F3: Historial de pestañas
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F3, 0), "historialPestañas");
+        actionMap.put("historialPestañas", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (m_ticketsbag != null) {
+                    LOGGER.log(System.Logger.Level.DEBUG, "F3 → Historial: Activando lista de tickets");
+                    m_ticketsbag.activate();
+                }
+            }
+        });
+        
+        // F4: Nueva pestaña de venta
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0), "nuevaPestaña");
+        actionMap.put("nuevaPestaña", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                LOGGER.log(System.Logger.Level.DEBUG, "F4 → Nueva Pestaña: Creando nuevo ticket");
+                createNewTicket();
+            }
+        });
+        
+        LOGGER.log(System.Logger.Level.INFO, "✅ Atajos de teclado configurados: F12=Cobrar, F2=Cliente, F3=Historial, F4=Nueva");
     }
 
     private void initExtButtons() {

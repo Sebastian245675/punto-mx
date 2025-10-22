@@ -581,17 +581,26 @@ public class PuntosDataLogic {
      */
     private void verificarMigraciones() {
         try {
-            // Intentar agregar columna LIMITE_DIARIO_PUNTOS si no existe
-            String addLimitColumn = "ALTER TABLE PUNTOS_CONFIGURACION ADD COLUMN LIMITE_DIARIO_PUNTOS INTEGER DEFAULT 500";
-            new StaticSentence(s, addLimitColumn).exec();
-            System.out.println("✅ Migración: Columna LIMITE_DIARIO_PUNTOS agregada");
-        } catch (BasicException e) {
-            if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe") || 
-                e.getMessage().contains("duplicate column")) {
-                // La columna ya existe, todo bien
-            } else {
-                System.out.println("ℹ️ Migración: " + e.getMessage());
+
+
+
+
+
+
+
+            // Verificar si la columna LIMITE_DIARIO_PUNTOS existe antes de agregarla
+            String checkColumn = "SELECT LIMITE_DIARIO_PUNTOS FROM PUNTOS_CONFIGURACION WHERE 1=0";
+            try {
+                new StaticSentence(s, checkColumn).exec();
+                // Si no hay error, la columna ya existe
+            } catch (BasicException checkEx) {
+                // La columna no existe, agregarla
+                String addLimitColumn = "ALTER TABLE PUNTOS_CONFIGURACION ADD COLUMN LIMITE_DIARIO_PUNTOS INTEGER DEFAULT 500";
+                new StaticSentence(s, addLimitColumn).exec();
+                System.out.println("✅ Migración: Columna LIMITE_DIARIO_PUNTOS agregada");
             }
+        } catch (BasicException e) {
+            // Silencioso si hay error al agregar (probablemente ya existe)
         }
     }
 }
