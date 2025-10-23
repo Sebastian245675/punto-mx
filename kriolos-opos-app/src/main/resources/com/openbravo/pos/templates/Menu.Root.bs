@@ -20,6 +20,7 @@ group = menu.addGroup("Menu.Main");
         group.addPanel("/com/openbravo/images/customerpay.png", "Menu.CustomersPayment", "com.openbravo.pos.customers.CustomersPayment");
         group.addPanel("/com/openbravo/images/payments.png", "Menu.Payments", "com.openbravo.pos.panels.JPanelPayments");
         group.addPanel("/com/openbravo/images/calculator.png", "Menu.CloseTPV", "com.openbravo.pos.panels.JPanelCloseMoney");
+        group.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesManagement");
 
 group = menu.addGroup("Menu.Backoffice");
     
@@ -116,6 +117,7 @@ group = menu.addGroup("Menu.Backoffice");
         submenu.addPanel("/com/openbravo/images/bookmark.png", "Menu.Taxes", "com.openbravo.pos.inventory.TaxPanel");
         submenu.addPanel("/com/openbravo/images/location.png", "Menu.Locations", "com.openbravo.pos.inventory.LocationsPanel");
         submenu.addPanel("/com/openbravo/images/floors.png", "Menu.Floors", "com.openbravo.pos.sales.restaurant.JPanelFloors");
+        submenu.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesTest");
         submenu.addPanel("/com/openbravo/images/tables.png", "Menu.Tables", "com.openbravo.pos.sales.restaurant.JPanelPlaces");
         submenu.addPanel("/com/openbravo/images/products.png", "Menu.Vouchers", "com.openbravo.pos.voucher.VoucherPanel");
 
