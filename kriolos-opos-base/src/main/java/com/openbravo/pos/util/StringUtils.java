@@ -130,7 +130,21 @@ public class StringUtils {
      */
     public static String readResource(String resource) throws IOException {
         
-        InputStream in = StringUtils.class.getResourceAsStream(resource);
+        // Intentar primero con el ClassLoader del Thread actual (funciona mejor en Spring Boot)
+        InputStream in = Thread.currentThread().getContextClassLoader().getResourceAsStream(
+            resource.startsWith("/") ? resource.substring(1) : resource
+        );
+        
+        // Si falla, intentar con el ClassLoader de la clase StringUtils
+        if (in == null) {
+            in = StringUtils.class.getResourceAsStream(resource);
+        }
+        
+        // Si aún falla, intentar sin la barra inicial
+        if (in == null && resource.startsWith("/")) {
+            in = StringUtils.class.getResourceAsStream(resource.substring(1));
+        }
+        
         if (in == null) {
             throw new FileNotFoundException(resource);
         }

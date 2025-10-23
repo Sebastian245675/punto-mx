@@ -405,11 +405,11 @@ public class DataLogicPresenceManagement extends BeanFactoryDataSingle {
         CheckOut(user);
     }
 
-    TableDefinition getTableBreaks() {
+    public TableDefinition getTableBreaks() {
         return tbreaks;
     }
 
-    TableDefinition getTableLeaves() {
+    public TableDefinition getTableLeaves() {
         return tleaves;
     }
 

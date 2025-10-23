@@ -72,9 +72,10 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     
     @Override
     public void init(AppView app) throws BeanFactoryException {
-        System.out.println("*** JPanelBranchesManagement - init() ***");
+        System.out.println("*** JPanelBranchesManagement - init() INICIADO ***");
         this.app = app;
         this.session = app.getSession();
+        System.out.println("*** JPanelBranchesManagement - Session: " + (session != null ? "OK" : "NULL") + " ***");
     }
     
     @Override
@@ -84,6 +85,7 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     
     @Override
     public JComponent getComponent() {
+        System.out.println("*** JPanelBranchesManagement - getComponent() llamado ***");
         return this;
     }
 
@@ -94,8 +96,13 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
 
     @Override
     public void activate() throws BasicException {
-        System.out.println("*** JPanelBranchesManagement - activate() ***");
+        System.out.println("*** JPanelBranchesManagement - activate() INICIADO ***");
+        if (session == null) {
+            System.err.println("*** ERROR: Session es NULL en activate() ***");
+            return;
+        }
         loadAllData();
+        System.out.println("*** JPanelBranchesManagement - activate() COMPLETADO ***");
     }
 
     @Override
