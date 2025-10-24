@@ -45,6 +45,8 @@ import java.util.Map;
 public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelConfig {
     
     private final DirtyManager dirty = new DirtyManager();
+    private boolean userIdValidated = false;
+    private String validatedUserId = null;
     
     /** Creates new form JPanelConfigFirebase */
     public JPanelConfigFirebase() {
@@ -74,6 +76,38 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         jchkSyncCustomers.addActionListener(dirty);
         jchkSyncProducts.addActionListener(dirty);
         jchkSyncSales.addActionListener(dirty);
+        
+        // Listener para invalidar la validación cuando cambie el ID de usuario
+        jtxtUserId.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+            @Override
+            public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                invalidateUserValidation();
+            }
+            @Override
+            public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                invalidateUserValidation();
+            }
+            @Override
+            public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                invalidateUserValidation();
+            }
+        });
+        
+        // Deshabilitar los botones de subida/descarga hasta que se valide el ID
+        updateButtonsState();
+    }
+    
+    /**
+     * Invalida la validación del usuario cuando se cambia el ID
+     */
+    private void invalidateUserValidation() {
+        if (userIdValidated) {
+            userIdValidated = false;
+            validatedUserId = null;
+            jLabelUserStatus.setText("⚠️ ID modificado - debe validar nuevamente");
+            jLabelUserStatus.setForeground(java.awt.Color.ORANGE);
+            updateButtonsState();
+        }
     }
 
     /**
@@ -211,6 +245,17 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             }
         });
 
+        jButtonViewUsers = new javax.swing.JButton();
+        jButtonViewUsers.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jButtonViewUsers.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/user.png"))); // NOI18N
+        jButtonViewUsers.setText("Ver Usuarios");
+        jButtonViewUsers.setToolTipText("Ver todos los usuarios de la colección roles en Firebase");
+        jButtonViewUsers.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jButtonViewUsersActionPerformed(evt);
+            }
+        });
+
         jLabel10.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
         jLabel10.setText("<html>Configure aquí los parámetros de Firebase para sincronizar datos con la nube.<br/>Obtenga la configuración desde la consola de Firebase de su proyecto.</html>");
 
@@ -260,7 +305,9 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addComponent(jButtonUpload)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButtonDownload)))
+                        .addComponent(jButtonDownload)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButtonViewUsers)))
                 .addContainerGap(30, Short.MAX_VALUE))
         );
         layout.setVerticalGroup(
@@ -321,7 +368,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jButtonTest)
                     .addComponent(jButtonUpload)
-                    .addComponent(jButtonDownload))
+                    .addComponent(jButtonDownload)
+                    .addComponent(jButtonViewUsers))
                 .addContainerGap(15, Short.MAX_VALUE))
         );
     }// </editor-fold>                        
@@ -410,9 +458,28 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     if (exists) {
                         jLabelUserStatus.setText("✓ Usuario válido: " + (userName != null ? userName : userId));
                         jLabelUserStatus.setForeground(new java.awt.Color(0, 150, 0));
+                        
+                        // Marcar como validado y guardar el ID
+                        userIdValidated = true;
+                        validatedUserId = userId;
+                        
+                        // Habilitar los botones de subida/descarga
+                        updateButtonsState();
+                        
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                            "Usuario validado correctamente: " + (userName != null ? userName : userId) + "\n" +
+                            "Ahora puede subir y traer datos desde Firebase.",
+                            "Validación Exitosa", 
+                            JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         jLabelUserStatus.setText("✗ Usuario no encontrado en la colección roles");
                         jLabelUserStatus.setForeground(java.awt.Color.RED);
+                        
+                        // Marcar como no validado
+                        userIdValidated = false;
+                        validatedUserId = null;
+                        updateButtonsState();
+                        
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
                             "El ID de usuario '" + userId + "' no existe en la colección roles de Firebase.\n" +
                             "Por favor verifique el ID o cree el rol en Firebase primero.",
@@ -422,8 +489,104 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 } catch (Exception e) {
                     jLabelUserStatus.setText("✗ Error al validar");
                     jLabelUserStatus.setForeground(java.awt.Color.RED);
+                    
+                    // Marcar como no validado
+                    userIdValidated = false;
+                    validatedUserId = null;
+                    updateButtonsState();
+                    
                     JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
                         "Error al validar el usuario:\n" + e.getMessage(),
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        };
+        
+        worker.execute();
+    }
+    
+    /**
+     * Actualiza el estado de los botones según si el ID está validado
+     */
+    private void updateButtonsState() {
+        jButtonUpload.setEnabled(userIdValidated);
+        jButtonDownload.setEnabled(userIdValidated);
+        
+        if (!userIdValidated) {
+            jButtonUpload.setToolTipText("Debe validar el ID de usuario antes de subir datos");
+            jButtonDownload.setToolTipText("Debe validar el ID de usuario antes de traer datos");
+        } else {
+            jButtonUpload.setToolTipText("Subir datos a Firebase con identificador: " + validatedUserId);
+            jButtonDownload.setToolTipText("Traer datos desde Firebase con identificador: " + validatedUserId);
+        }
+    }
+
+    private void jButtonViewUsersActionPerformed(java.awt.event.ActionEvent evt) {
+        // Validar que la configuración de Firebase esté completa
+        if (jtxtProjectId.getText().trim().isEmpty()) {
+            JOptionPane.showMessageDialog(this, 
+                "Por favor complete la configuración de Firebase antes de ver usuarios.",
+                "Error de Configuración", 
+                JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+        
+        // Deshabilitar el botón durante la carga
+        jButtonViewUsers.setEnabled(false);
+        jButtonViewUsers.setText("Cargando...");
+        
+        // Crear configuración temporal
+        AppConfig tempConfig = new AppConfig(null);
+        tempConfig.setProperty("firebase.projectid", jtxtProjectId.getText().trim());
+        tempConfig.setProperty("firebase.apikey", jtxtApiKey.getText().trim());
+        tempConfig.setProperty("firebase.authdomain", jtxtAuthDomain.getText().trim());
+        tempConfig.setProperty("firebase.storagebucket", jtxtStorageBucket.getText().trim());
+        tempConfig.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText().trim());
+        tempConfig.setProperty("firebase.appid", jtxtAppId.getText().trim());
+        
+        // Descargar roles en background
+        SwingWorker<java.util.List<java.util.Map<String, Object>>, Void> worker = new SwingWorker<java.util.List<java.util.Map<String, Object>>, Void>() {
+            @Override
+            protected java.util.List<java.util.Map<String, Object>> doInBackground() throws Exception {
+                com.openbravo.pos.firebase.FirebaseServiceREST service = 
+                    com.openbravo.pos.firebase.FirebaseServiceREST.getInstance();
+                
+                if (!service.initialize(tempConfig)) {
+                    throw new Exception("No se pudo inicializar el servicio Firebase");
+                }
+                
+                return service.downloadRoles().get();
+            }
+            
+            @Override
+            protected void done() {
+                // Rehabilitar el botón
+                jButtonViewUsers.setEnabled(true);
+                jButtonViewUsers.setText("Ver Usuarios");
+                
+                try {
+                    java.util.List<java.util.Map<String, Object>> roles = get();
+                    
+                    if (roles == null || roles.isEmpty()) {
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                            "No se encontraron usuarios en la colección 'roles' de Firebase.",
+                            "Sin Usuarios", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                        return;
+                    }
+                    
+                    // Abrir el diálogo con los roles
+                    com.openbravo.pos.firebase.JPanelFirebaseUsersDialog dialog = 
+                        new com.openbravo.pos.firebase.JPanelFirebaseUsersDialog(
+                            javax.swing.SwingUtilities.getWindowAncestor(JPanelConfigFirebase.this),
+                            roles
+                        );
+                    dialog.setVisible(true);
+                    
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                        "Error al cargar usuarios desde Firebase:\n" + e.getMessage(),
                         "Error", 
                         JOptionPane.ERROR_MESSAGE);
                 }
@@ -512,6 +675,16 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     }                                           
 
     private void jButtonUploadActionPerformed(java.awt.event.ActionEvent evt) {                                              
+        // Verificar que el ID esté validado
+        if (!userIdValidated || validatedUserId == null) {
+            JOptionPane.showMessageDialog(this, 
+                "Debe validar el ID de usuario antes de subir datos.\n" +
+                "Ingrese un ID y haga clic en 'Validar'.",
+                "ID No Validado", 
+                JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
         // Verificar que Firebase esté habilitado
         if (!jchkFirebaseEnabled.isSelected()) {
             JOptionPane.showMessageDialog(this, 
@@ -524,7 +697,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         // Confirmar la operación
         int choice = JOptionPane.showConfirmDialog(this,
             "¿Está seguro de que desea subir todos los datos a Firebase?\n" +
-            "Esta operación puede tomar varios minutos dependiendo de la cantidad de datos.",
+            "Esta operación puede tomar varios minutos dependiendo de la cantidad de datos.\n\n" +
+            "Se agregará el identificador '" + validatedUserId + "' a cada documento.",
             "Confirmar Subida de Datos",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE);
@@ -908,6 +1082,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     private javax.swing.JButton jButtonUpload;
     private javax.swing.JButton jButtonDownload;
     private javax.swing.JButton jButtonValidateUser;
+    private javax.swing.JButton jButtonViewUsers;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel10;
     private javax.swing.JLabel jLabel11;

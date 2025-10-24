@@ -22,33 +22,31 @@ if errorlevel 1 (
 echo ✓ Java detectado correctamente
 echo.
 
-REM Verificar si Maven está disponible
-where mvn >nul 2>&1
-if errorlevel 1 (
-    echo ADVERTENCIA: Maven no encontrado, usando método alternativo...
-    echo.
-    
-    REM Método alternativo: ejecutar directamente con Java
-    cd /d "%~dp0kriolos-opos-app"
-    
-    if not exist "target\classes" (
-        echo ERROR: La aplicación no está compilada
-        echo Ejecuta primero: mvn clean install
-        pause
-        exit /b 1
+REM Buscar el JAR compilado
+cd /d "%~dp0kriolos-opos-app\target"
+
+REM Buscar el JAR principal (no el -original)
+for %%f in (kriolos-pos-*.jar) do (
+    if not "%%f"=="kriolos-pos.jar.original" (
+        set JAR_FILE=%%f
+        goto :found_jar
     )
-    
-    echo Iniciando Sebastian POS...
-    echo.
-    java -cp "target\classes;target\dependency\*" com.openbravo.pos.forms.StartPOS
-) else (
-    echo ✓ Maven detectado correctamente
-    echo.
-    echo Iniciando Sebastian POS...
-    echo.
-    cd /d "%~dp0kriolos-opos-app"
-    mvn exec:java -q
 )
+
+:found_jar
+if not defined JAR_FILE (
+    echo ERROR: No se encontró el JAR compilado
+    echo.
+    echo Por favor ejecuta primero: mvn clean install -DskipTests
+    echo.
+    pause
+    exit /b 1
+)
+
+echo Iniciando Sebastian POS con %JAR_FILE%...
+echo.
+cd /d "%~dp0kriolos-opos-app\target"
+java -jar "%JAR_FILE%"
 
 if errorlevel 1 (
     echo.

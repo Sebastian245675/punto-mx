@@ -158,25 +158,94 @@ public class FirebaseDownloadManagerREST {
      */
     private CompletableFuture<Boolean> downloadUsuarios() {
         return CompletableFuture.supplyAsync(() -> {
+            PreparedStatement checkStmt = null;
+            PreparedStatement insertStmt = null;
+            PreparedStatement updateStmt = null;
+            java.sql.ResultSet rs = null;
+            
             try {
                 List<Map<String, Object>> usuarios = firebaseService.downloadUsuarios().join();
                 LOGGER.info("Descargados " + usuarios.size() + " usuarios desde Firebase");
                 
                 int insertados = 0;
                 int actualizados = 0;
+                int errores = 0;
+                
+                // Preparar statements
+                String checkSql = "SELECT ID FROM people WHERE ID = ?";
+                String insertSql = "INSERT INTO people (ID, NAME, APPPASSWORD, CARD, ROLE, VISIBLE, IMAGE) " +
+                                  "VALUES (?, ?, NULL, ?, ?, ?, NULL)";
+                String updateSql = "UPDATE people SET NAME = ?, CARD = ?, ROLE = ?, VISIBLE = ? WHERE ID = ?";
+                
+                checkStmt = session.getConnection().prepareStatement(checkSql);
+                insertStmt = session.getConnection().prepareStatement(insertSql);
+                updateStmt = session.getConnection().prepareStatement(updateSql);
                 
                 for (Map<String, Object> usuario : usuarios) {
-                    // TODO: Implementar inserción/actualización en base local
-                    // Por ahora solo contar
-                    insertados++;
+                    try {
+                        String id = (String) usuario.get("id");
+                        String nombre = (String) usuario.get("nombre");
+                        String tarjeta = (String) usuario.get("tarjeta");
+                        String rol = (String) usuario.get("rol");
+                        Boolean visible = (Boolean) usuario.get("visible");
+                        
+                        // Validar que tenga ID
+                        if (id == null || id.trim().isEmpty()) {
+                            LOGGER.warning("Usuario sin ID, saltando: " + usuario);
+                            errores++;
+                            continue;
+                        }
+                        
+                        // Verificar si existe
+                        checkStmt.setString(1, id);
+                        rs = checkStmt.executeQuery();
+                        boolean existe = rs.next();
+                        rs.close();
+                        
+                        if (existe) {
+                            // Actualizar usuario existente
+                            updateStmt.setString(1, nombre != null ? nombre : "Usuario sin nombre");
+                            updateStmt.setString(2, tarjeta); // Puede ser null
+                            updateStmt.setString(3, rol != null ? rol : "3"); // Role por defecto: Guest
+                            updateStmt.setBoolean(4, visible != null ? visible : true);
+                            updateStmt.setString(5, id);
+                            updateStmt.executeUpdate();
+                            actualizados++;
+                            LOGGER.fine("Usuario actualizado: " + id + " - " + nombre + " (ID Remoto: " + tarjeta + ")");
+                        } else {
+                            // Insertar nuevo usuario
+                            insertStmt.setString(1, id);
+                            insertStmt.setString(2, nombre != null ? nombre : "Usuario sin nombre");
+                            insertStmt.setString(3, tarjeta); // Puede ser null
+                            insertStmt.setString(4, rol != null ? rol : "3"); // Role por defecto: Guest
+                            insertStmt.setBoolean(5, visible != null ? visible : true);
+                            insertStmt.executeUpdate();
+                            insertados++;
+                            LOGGER.fine("Usuario insertado: " + id + " - " + nombre + " (ID Remoto: " + tarjeta + ")");
+                        }
+                        
+                    } catch (Exception e) {
+                        errores++;
+                        LOGGER.log(Level.WARNING, "Error procesando usuario: " + usuario, e);
+                    }
                 }
                 
-                LOGGER.info("Usuarios procesados: " + insertados + " insertados, " + actualizados + " actualizados");
-                return true;
+                LOGGER.info("Usuarios procesados: " + insertados + " insertados, " + 
+                           actualizados + " actualizados, " + errores + " errores");
+                return errores == 0;
                 
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando usuarios", e);
                 return false;
+            } finally {
+                try {
+                    if (rs != null) rs.close();
+                    if (checkStmt != null) checkStmt.close();
+                    if (insertStmt != null) insertStmt.close();
+                    if (updateStmt != null) updateStmt.close();
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
+                }
             }
         });
     }
@@ -186,24 +255,130 @@ public class FirebaseDownloadManagerREST {
      */
     private CompletableFuture<Boolean> downloadClientes() {
         return CompletableFuture.supplyAsync(() -> {
+            PreparedStatement checkStmt = null;
+            PreparedStatement insertStmt = null;
+            PreparedStatement updateStmt = null;
+            java.sql.ResultSet rs = null;
+            
             try {
                 List<Map<String, Object>> clientes = firebaseService.downloadClientes().join();
                 LOGGER.info("Descargados " + clientes.size() + " clientes desde Firebase");
                 
                 int insertados = 0;
                 int actualizados = 0;
+                int errores = 0;
+                
+                // Preparar statements
+                String checkSql = "SELECT ID FROM customers WHERE ID = ?";
+                String insertSql = "INSERT INTO customers (ID, SEARCHKEY, TAXID, NAME, CARD, TAXCATEGORY, " +
+                                  "NOTES, VISIBLE, CURDATE, CURDEBT, MAXDEBT) " +
+                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                String updateSql = "UPDATE customers SET SEARCHKEY = ?, TAXID = ?, NAME = ?, CARD = ?, " +
+                                  "TAXCATEGORY = ?, NOTES = ?, VISIBLE = ?, CURDATE = ?, CURDEBT = ?, " +
+                                  "MAXDEBT = ? WHERE ID = ?";
+                
+                checkStmt = session.getConnection().prepareStatement(checkSql);
+                insertStmt = session.getConnection().prepareStatement(insertSql);
+                updateStmt = session.getConnection().prepareStatement(updateSql);
                 
                 for (Map<String, Object> cliente : clientes) {
-                    // TODO: Implementar inserción/actualización en base local
-                    insertados++;
+                    try {
+                        String id = (String) cliente.get("id");
+                        String searchkey = (String) cliente.get("searchkey");
+                        String taxid = (String) cliente.get("taxid");
+                        String name = (String) cliente.get("nombre");
+                        String card = (String) cliente.get("tarjeta");
+                        String taxcategory = (String) cliente.get("taxcategory");
+                        String notes = (String) cliente.get("notes");
+                        Boolean visible = (Boolean) cliente.get("visible");
+                        String curdate = (String) cliente.get("curdate");
+                        Object curdebtObj = cliente.get("curdebt");
+                        Object maxdebtObj = cliente.get("maxdebt");
+                        
+                        // Validar que tenga ID
+                        if (id == null || id.trim().isEmpty()) {
+                            LOGGER.warning("Cliente sin ID, saltando: " + cliente);
+                            errores++;
+                            continue;
+                        }
+                        
+                        // Verificar si existe
+                        checkStmt.setString(1, id);
+                        rs = checkStmt.executeQuery();
+                        boolean existe = rs.next();
+                        rs.close();
+                        
+                        // Convertir deudas a BigDecimal
+                        BigDecimal curdebt = BigDecimal.ZERO;
+                        BigDecimal maxdebt = BigDecimal.ZERO;
+                        
+                        if (curdebtObj != null) {
+                            if (curdebtObj instanceof Number) {
+                                curdebt = new BigDecimal(((Number) curdebtObj).doubleValue());
+                            }
+                        }
+                        if (maxdebtObj != null) {
+                            if (maxdebtObj instanceof Number) {
+                                maxdebt = new BigDecimal(((Number) maxdebtObj).doubleValue());
+                            }
+                        }
+                        
+                        if (existe) {
+                            // Actualizar cliente existente
+                            updateStmt.setString(1, searchkey != null ? searchkey : id);
+                            updateStmt.setString(2, taxid);
+                            updateStmt.setString(3, name != null ? name : "Cliente sin nombre");
+                            updateStmt.setString(4, card);
+                            updateStmt.setString(5, taxcategory != null ? taxcategory : "000");
+                            updateStmt.setString(6, notes);
+                            updateStmt.setBoolean(7, visible != null ? visible : true);
+                            updateStmt.setString(8, curdate);
+                            updateStmt.setBigDecimal(9, curdebt);
+                            updateStmt.setBigDecimal(10, maxdebt);
+                            updateStmt.setString(11, id);
+                            updateStmt.executeUpdate();
+                            actualizados++;
+                            LOGGER.fine("Cliente actualizado: " + id + " - " + name);
+                        } else {
+                            // Insertar nuevo cliente
+                            insertStmt.setString(1, id);
+                            insertStmt.setString(2, searchkey != null ? searchkey : id);
+                            insertStmt.setString(3, taxid);
+                            insertStmt.setString(4, name != null ? name : "Cliente sin nombre");
+                            insertStmt.setString(5, card);
+                            insertStmt.setString(6, taxcategory != null ? taxcategory : "000");
+                            insertStmt.setString(7, notes);
+                            insertStmt.setBoolean(8, visible != null ? visible : true);
+                            insertStmt.setString(9, curdate);
+                            insertStmt.setBigDecimal(10, curdebt);
+                            insertStmt.setBigDecimal(11, maxdebt);
+                            insertStmt.executeUpdate();
+                            insertados++;
+                            LOGGER.fine("Cliente insertado: " + id + " - " + name);
+                        }
+                        
+                    } catch (Exception e) {
+                        errores++;
+                        LOGGER.log(Level.WARNING, "Error procesando cliente: " + cliente, e);
+                    }
                 }
                 
-                LOGGER.info("Clientes procesados: " + insertados + " insertados, " + actualizados + " actualizados");
-                return true;
+                LOGGER.info("Clientes procesados: " + insertados + " insertados, " + 
+                           actualizados + " actualizados, " + errores + " errores");
+                return errores == 0;
                 
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando clientes", e);
                 return false;
+            } finally {
+                try {
+                    if (rs != null) rs.close();
+                    if (checkStmt != null) checkStmt.close();
+                    if (insertStmt != null) insertStmt.close();
+                    if (updateStmt != null) updateStmt.close();
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
+                }
             }
         });
     }
