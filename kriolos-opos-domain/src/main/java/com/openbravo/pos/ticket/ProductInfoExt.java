@@ -65,6 +65,7 @@ public class ProductInfoExt {
     public String supplierid;
     private String uomid;   
     protected String memodate;
+    protected boolean m_bAccumulatesPoints; // Sebastian - Si el producto acumula puntos
 
     public ProductInfoExt() {
         m_ID = null;
@@ -97,6 +98,7 @@ public class ProductInfoExt {
         supplierid = "0";
         uomid = "0";        
         memodate = null;
+        m_bAccumulatesPoints = true; // Sebastian - Por defecto sí acumula puntos
     }
 
     /**
@@ -325,7 +327,15 @@ public class ProductInfoExt {
     }
     public String printMemoDate() {       
         return Formats.STRING.formatValue(memodate);
-    }    
+    }
+    
+    // Sebastian - Getter y setter para accumulates_points
+    public final boolean getAccumulatesPoints() {
+        return m_bAccumulatesPoints;
+    }
+    public final void setAccumulatesPoints(boolean bValue) {
+        m_bAccumulatesPoints = bValue;
+    }
 
     public static SerializerRead<ProductInfoExt> getSerializerRead() {
         return new SerializerRead<ProductInfoExt>() {
@@ -362,6 +372,7 @@ public class ProductInfoExt {
                 product.supplierid = dr.getString(28);
                 product.uomid = dr.getString(29);
                 product.memodate = dr.getString(30);
+                product.m_bAccumulatesPoints = dr.getBoolean(31); // Sebastian - Acumula puntos
 
                 return product;
             }

@@ -278,7 +278,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "PRINTTO, "
                 + "SUPPLIER, "
                 + "UOM, "
-                + "MEMODATE "
+                + "MEMODATE, "
+                + "ACCUMULATES_POINTS "
                 + "FROM products WHERE ID = ?",
                 SerializerWriteString.INSTANCE,
                 ProductInfoExt.getSerializerRead()).find(id);
@@ -322,7 +323,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "PRINTTO, "
                 + "SUPPLIER, "
                 + "UOM, "
-                + "MEMODATE "
+                + "MEMODATE, "
+                + "ACCUMULATES_POINTS "
                 + "FROM products WHERE CODE = ?",
                 SerializerWriteString.INSTANCE,
                 ProductInfoExt.getSerializerRead()).find(sCode);
@@ -367,7 +369,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "PRINTTO, "
                 + "SUPPLIER, "
                 + "UOM, "
-                + "MEMODATE "
+                + "MEMODATE, "
+                + "ACCUMULATES_POINTS "
                 + "FROM products "
                 + "WHERE SUBSTRING( CODE, 3, 6 ) = ?",
                 SerializerWriteString.INSTANCE,
@@ -419,7 +422,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "PRINTTO, "
                 + "SUPPLIER, "
                 + "UOM, "
-                + "MEMODATE "
+                + "MEMODATE, "
+                + "ACCUMULATES_POINTS "
                 + "FROM products "
                 + "WHERE LEFT( CODE, 7 ) = ? AND CODETYPE = 'UPC-A' ",
                 SerializerWriteString.INSTANCE,
@@ -464,7 +468,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "PRINTTO, "
                 + "SUPPLIER, "
                 + "UOM, "
-                + "MEMODATE "
+                + "MEMODATE, "
+                + "ACCUMULATES_POINTS "
                 + "FROM products WHERE REFERENCE = ?",
                 SerializerWriteString.INSTANCE,
                 ProductInfoExt.getSerializerRead()).find(sReference);
@@ -549,7 +554,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "P.PRINTTO, "
                 + "P.SUPPLIER, "
                 + "P.UOM, "
-                + "P.MEMODATE "
+                + "P.MEMODATE, "
+                + "P.ACCUMULATES_POINTS "
                 + "FROM products P, products_cat O "
                 + "WHERE P.ID = O.PRODUCT AND P.CATEGORY = ? "
                 + "ORDER BY O.CATORDER, P.NAME ",
@@ -595,7 +601,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "P.PRINTTO, "
                 + "P.SUPPLIER, "
                 + "P.UOM, "
-                + "P.MEMODATE "
+                + "P.MEMODATE, "
+                + "P.ACCUMULATES_POINTS "
                 + "FROM products P, "
                 + "products_cat O, products_com M "
                 + "WHERE P.ID = O.PRODUCT AND P.ID = M.PRODUCT2 AND M.PRODUCT = ? "
@@ -730,7 +737,8 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         + "PRINTTO, "
                         + "SUPPLIER, "
                         + "UOM, "
-                        + "MEMODATE "
+                        + "MEMODATE, "
+                        + "ACCUMULATES_POINTS "
                         + "FROM products "
                         + "WHERE ?(QBF_FILTER) "
                         + "ORDER BY REFERENCE",
@@ -781,8 +789,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         + "PRINTTO, "
                         + "SUPPLIER, "
                         + "UOM, "
-                        + "MEMODATE "
-                        + "FROM products "
+                        + "MEMODATE, " + "ACCUMULATES_POINTS " + "FROM products "
                         + "WHERE ISCOM = " + s.DB.FALSE() + " AND ?(QBF_FILTER) ORDER BY REFERENCE",
                         new String[]{"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE"}),
                 new SerializerWriteBasic(new Datas[]{
@@ -830,8 +837,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "PRINTTO, "
                 + "SUPPLIER, "
                 + "UOM, "
-                + "MEMODATE "
-                + "FROM products "
+                + "MEMODATE, " + "ACCUMULATES_POINTS " + "FROM products "
                 + "ORDER BY NAME",
                 ProductInfo.getSerializerRead());
     }
@@ -909,8 +915,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         + "PRINTTO, "
                         + "SUPPLIER, "
                         + "UOM, "
-                        + "MEMODATE "
-                        + "FROM products "
+                        + "MEMODATE, " + "ACCUMULATES_POINTS " + "FROM products "
                         + "WHERE ISCOM = " + s.DB.TRUE() + " AND ?(QBF_FILTER) "
                         + "ORDER BY REFERENCE", new String[]{"NAME", "PRICEBUY", "PRICESELL", "CATEGORY", "CODE"}),
                 new SerializerWriteBasic(new Datas[]{
@@ -2816,3 +2821,5 @@ public class DataLogicSales extends BeanFactoryDataSingle {
     }
 
 }
+
+

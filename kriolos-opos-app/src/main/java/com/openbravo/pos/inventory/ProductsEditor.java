@@ -297,6 +297,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jSendStatus.setVisible(false);
         m_jStockUnits.setVisible(false);
         m_jdate.setText(null);
+        m_jAccumulatesPoints.setSelected(false);
 
 // Tab Image
         m_jImage.setImage(null);
@@ -392,6 +393,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jstockcost.setText("0");
         m_jstockvolume.setText("0");
         m_jdate.setText(null);
+        m_jAccumulatesPoints.setSelected(true);
 
 // Tab Image
         m_jImage.setImage(null);
@@ -461,7 +463,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     @Override
     public Object createValue() throws BasicException {
 
-        Object[] myprod = new Object[32];
+        Object[] myprod = new Object[33];
 
         myprod[0] = productId == null ? UUID.randomUUID().toString() : productId;
         myprod[1] = m_jRef.getText();
@@ -496,6 +498,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         myprod[30] = m_jInCatalog.isSelected();
         myprod[31] = Formats.INT.parseValue(m_jCatalogOrder.getText());
+        myprod[32] = m_jAccumulatesPoints.isSelected();
 
         return myprod;
     }
@@ -543,6 +546,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jstockcost.setEnabled(true);
         m_jstockvolume.setEnabled(true);
         m_jdate.setEnabled(true);
+        m_jAccumulatesPoints.setEnabled(true);
         jTableProductStock.setVisible(false);
         jTableProductStock.setEnabled(true);
 
@@ -604,6 +608,13 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jdate.setText(Formats.DATE.formatValue((Date) myprod[29]));
         m_jInCatalog.setSelected(((Boolean) myprod[30]));
         m_jCatalogOrder.setText(Formats.INT.formatValue((Integer) myprod[31]));
+        // Verificar si el campo accumulates_points existe (para compatibilidad con productos antiguos)
+        if (myprod.length > 32 && myprod[32] != null) {
+            m_jAccumulatesPoints.setSelected(((Boolean) myprod[32]));
+        } else {
+            // Por defecto, productos antiguos acumulan puntos
+            m_jAccumulatesPoints.setSelected(true);
+        }
     }
 
     /**
@@ -651,6 +662,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jTableProductStock.setModel(new StockTableModel(new ArrayList<>()));
         jTableProductStock.setEnabled(false);
         m_jdate.setEnabled(false);
+        m_jAccumulatesPoints.setEnabled(false);
 
 // Tab Image
         m_jImage.setEnabled(false);
@@ -1166,6 +1178,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jLabel14 = new javax.swing.JLabel();
         jLabel20 = new javax.swing.JLabel();
         m_jVprice = new javax.swing.JCheckBox();
+        jLabelAccumPoints = new javax.swing.JLabel();
         jLabel33 = new javax.swing.JLabel();
         m_jCheckWarrantyReceipt = new javax.swing.JCheckBox();
         jLabel23 = new javax.swing.JLabel();
@@ -1176,6 +1189,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jTableProductStock = new javax.swing.JTable();
         m_jPrintKB = new javax.swing.JCheckBox();
         m_jSendStatus = new javax.swing.JCheckBox();
+        m_jAccumulatesPoints = new javax.swing.JCheckBox();
         m_jStockUnits = new javax.swing.JTextField();
         jLblDate = new javax.swing.JLabel();
         m_jbtndate = new javax.swing.JButton();
@@ -1342,12 +1356,16 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addComponent(jLabel17, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGap(6, 6, 6)))
+                                .addGap(6, 6, 6))
+                            .addGroup(jPanel1Layout.createSequentialGroup()
+                                .addComponent(jLabelAccumPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addComponent(m_jSupplier, javax.swing.GroupLayout.PREFERRED_SIZE, 228, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(jBtnSupplier))
+                            .addComponent(m_jAccumulatesPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addGroup(jPanel1Layout.createSequentialGroup()
                                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                     .addComponent(m_jRef, javax.swing.GroupLayout.PREFERRED_SIZE, 248, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -1387,7 +1405,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                     .addComponent(jLabel17, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(m_jSupplier, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jBtnSupplier))
-                .addGap(26, 26, 26)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabelAccumPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jAccumulatesPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(10, 10, 10)
                 .addComponent(m_jTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
@@ -1610,6 +1632,13 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         m_jVprice.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         m_jVprice.setPreferredSize(new java.awt.Dimension(30, 30));
+
+        jLabelAccumPoints.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelAccumPoints.setText(bundle.getString("label.prodaccumulatespoints")); // NOI18N
+        jLabelAccumPoints.setPreferredSize(new java.awt.Dimension(130, 30));
+
+        m_jAccumulatesPoints.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
+        m_jAccumulatesPoints.setPreferredSize(new java.awt.Dimension(30, 30));
 
         jLabel33.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel33.setText(bundle.getString("label.warranty")); // NOI18N
@@ -2301,6 +2330,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
+    private javax.swing.JLabel jLabelAccumPoints;
     private javax.swing.JLabel jLblDate;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
@@ -2342,6 +2372,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private javax.swing.JComboBox m_jUom;
     private javax.swing.JCheckBox m_jVerpatrib;
     private javax.swing.JCheckBox m_jVprice;
+    private javax.swing.JCheckBox m_jAccumulatesPoints;
     private javax.swing.JButton m_jbtndate;
     private javax.swing.JTextField m_jdate;
     private javax.swing.JTextField m_jmargin;

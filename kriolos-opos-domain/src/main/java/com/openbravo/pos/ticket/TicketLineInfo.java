@@ -152,6 +152,7 @@ public class TicketLineInfo implements SerializableWrite, SerializableRead, Seri
             attributes.setProperty("product.service", product.isService() ? "true" : "false");
             attributes.setProperty("product.vprice", product.isVprice() ? "true" : "false");
             attributes.setProperty("product.verpatrib", product.isVerpatrib() ? "true" : "false");
+            attributes.setProperty("product.accumulates_points", product.getAccumulatesPoints() ? "true" : "false");
 
             if (product.getTextTip() != null) {
                 attributes.setProperty("product.texttip", product.getTextTip());
@@ -623,6 +624,16 @@ public class TicketLineInfo implements SerializableWrite, SerializableRead, Seri
 
     public boolean isProductWarranty() {
         return "true".equals(attributes.getProperty("product.warranty"));
+    }
+
+    /**
+     * Check if product accumulates loyalty points
+     *
+     * @return true if product accumulates points, false otherwise
+     */
+    public boolean isProductAccumulatesPoints() {
+        // Default to true if property is not set (for backward compatibility)
+        return !"false".equals(attributes.getProperty("product.accumulates_points"));
     }
 
     /**

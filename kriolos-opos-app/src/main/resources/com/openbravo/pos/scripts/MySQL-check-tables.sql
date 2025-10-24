@@ -330,6 +330,7 @@ CREATE TABLE IF NOT EXISTS `products` (
 	`supplier` varchar(255) default NULL,
         `uom` varchar(255) default '0',
 	`memodate` datetime default '1900-01-01 00:00:01',
+	`accumulates_points` bit(1) NOT NULL default b'1',
 
 	PRIMARY KEY  ( `id` ),
 	KEY `products_attrset_fx` ( `attributeset_id` ),

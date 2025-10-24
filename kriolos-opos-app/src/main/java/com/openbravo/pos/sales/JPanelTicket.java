@@ -2354,22 +2354,31 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 
                 System.out.println("💯 Puntos actuales del cliente: " + puntosActuales);
                 
-                // Calcular puntos que ganará con la compra actual
-                double totalTicket = m_oTicket.getTotal();
+                // Calcular total solo de productos que acumulan puntos
+                double totalAcumulable = 0.0;
+                for (TicketLineInfo line : m_oTicket.getLines()) {
+                    if (line.isProductAccumulatesPoints()) {
+                        totalAcumulable += line.getValue();
+                    }
+                }
+                
+                System.out.println("💰 Total ticket: $" + m_oTicket.getTotal());
+                System.out.println("✅ Total acumulable (solo productos marcados): $" + totalAcumulable);
+                
                 PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
                 int puntosNuevos = 0;
                 
                 if (config != null && config.isSistemaActivo()) {
-                    // Sebastian - Usar el mismo método que se usa en el procesamiento real
-                    puntosNuevos = config.calcularPuntos(totalTicket);
+                    // Sebastian - Calcular puntos solo sobre el monto acumulable
+                    puntosNuevos = config.calcularPuntos(totalAcumulable);
                     
                     // Debug adicional
-                    System.out.println("🔧 DEBUG - Total ticket: $" + totalTicket);
+                    System.out.println("🔧 DEBUG - Total acumulable: $" + totalAcumulable);
                     System.out.println("🔧 DEBUG - Monto por punto: $" + config.getMontoPorPunto());
                     System.out.println("🔧 DEBUG - Puntos otorgados: " + config.getPuntosOtorgados());
                     
                     // Calcular tramos para mostrar la lógica
-                    int tramosCompletos = (int) Math.floor(totalTicket / config.getMontoPorPunto());
+                    int tramosCompletos = (int) Math.floor(totalAcumulable / config.getMontoPorPunto());
                     System.out.println("🔧 DEBUG - Tramos completos: " + tramosCompletos + " (cada tramo = $" + config.getMontoPorPunto() + ")");
                     System.out.println("🔧 DEBUG - Cálculo por tramos: " + tramosCompletos + " × " + config.getPuntosOtorgados() + " = " + puntosNuevos + " puntos");
                     
@@ -3969,47 +3978,54 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 return;
             }
             
-            // Obtener el total del ticket
-            double totalTicket = ticket.getTotal();
-            if (totalTicket <= 0) {
-                LOGGER.log(System.Logger.Level.DEBUG, "Total del ticket <= 0, no se otorgan puntos");
+            // Calcular total solo de productos que acumulan puntos
+            double totalAcumulable = 0.0;
+            for (TicketLineInfo line : ticket.getLines()) {
+                if (line.isProductAccumulatesPoints()) {
+                    totalAcumulable += line.getValue();
+                }
+            }
+            
+            if (totalAcumulable <= 0) {
+                LOGGER.log(System.Logger.Level.DEBUG, "Total acumulable <= 0, no se otorgan puntos");
                 return;
             }
             
-            // Calcular puntos según la configuración
-            int puntosAOtorgar = config.calcularPuntos(totalTicket);
+            // Calcular puntos según la configuración sobre el monto acumulable
+            int puntosAOtorgar = config.calcularPuntos(totalAcumulable);
             
             // Sebastian - Debug adicional para comparar
-            System.out.println("🛒 PROCESAMIENTO REAL - Total ticket: $" + totalTicket);
+            System.out.println("🛒 PROCESAMIENTO REAL - Total ticket: $" + ticket.getTotal());
+            System.out.println("🛒 PROCESAMIENTO REAL - Total acumulable: $" + totalAcumulable);
             System.out.println("🛒 PROCESAMIENTO REAL - Monto por punto: $" + config.getMontoPorPunto());
             System.out.println("🛒 PROCESAMIENTO REAL - Puntos otorgados: " + config.getPuntosOtorgados());
             
             // Mostrar lógica de tramos
-            int tramosCompletos = (int) Math.floor(totalTicket / config.getMontoPorPunto());
+            int tramosCompletos = (int) Math.floor(totalAcumulable / config.getMontoPorPunto());
             System.out.println("🛒 PROCESAMIENTO REAL - Tramos completos: " + tramosCompletos);
             System.out.println("🛒 PROCESAMIENTO REAL - Cálculo: " + tramosCompletos + " × " + config.getPuntosOtorgados() + " = " + puntosAOtorgar + " puntos");
             
             if (puntosAOtorgar <= 0) {
                 LOGGER.log(System.Logger.Level.DEBUG, 
-                    String.format("No se otorgan puntos: total=%.2f, configuración=%.2f %s = %d puntos", 
-                                totalTicket, config.getMontoPorPunto(), config.getMoneda(), config.getPuntosOtorgados()));
+                    String.format("No se otorgan puntos: total acumulable=%.2f, configuración=%.2f %s = %d puntos", 
+                                totalAcumulable, config.getMontoPorPunto(), config.getMoneda(), config.getPuntosOtorgados()));
                 return;
             }
             
             // Crear descripción de la transacción
-            String descripcion = String.format("Venta automática #%d - Total: $%.2f %s", 
+            String descripcion = String.format("Venta automática #%d - Total acumulable: $%.2f %s", 
                                              ticket.getTicketId(),
-                                             totalTicket, 
+                                             totalAcumulable, 
                                              config.getMoneda());
             
             // Otorgar puntos al cliente
             String clienteId = cliente.getId();
-            puntosDataLogic.agregarPuntosPorCompra(clienteId, totalTicket, descripcion);
+            puntosDataLogic.agregarPuntosPorCompra(clienteId, totalAcumulable, descripcion);
             
             // Log exitoso
             LOGGER.log(System.Logger.Level.INFO, 
-                String.format("✅ PUNTOS OTORGADOS AUTOMÁTICAMENTE: Cliente=%s, Total=$%.2f, Puntos=%d, Desc='%s'", 
-                            clienteId, totalTicket, puntosAOtorgar, descripcion));
+                String.format("✅ PUNTOS OTORGADOS AUTOMÁTICAMENTE: Cliente=%s, Total acumulable=$%.2f, Puntos=%d, Desc='%s'", 
+                            clienteId, totalAcumulable, puntosAOtorgar, descripcion));
             
             // Mostrar notificación opcional al usuario (comentada por defecto)
             /*
@@ -4033,19 +4049,27 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
                     if (config != null && config.isSistemaActivo()) {
                         CustomerInfo cliente = ticket.getCustomer();
-                        double totalTicket = ticket.getTotal();
-                        int puntosAOtorgar = config.calcularPuntos(totalTicket);
+                        
+                        // Calcular total acumulable
+                        double totalAcumulable = 0.0;
+                        for (TicketLineInfo line : ticket.getLines()) {
+                            if (line.isProductAccumulatesPoints()) {
+                                totalAcumulable += line.getValue();
+                            }
+                        }
+                        
+                        int puntosAOtorgar = config.calcularPuntos(totalAcumulable);
                         
                         if (puntosAOtorgar > 0) {
                             String descripcion = String.format("Venta automática #%d - Total: $%.2f %s", 
                                                              ticket.getTicketId(),
-                                                             totalTicket, 
+                                                             totalAcumulable, 
                                                              config.getMoneda());
                             
-                            puntosDataLogic.agregarPuntosPorCompra(cliente.getId(), totalTicket, descripcion);
+                            puntosDataLogic.agregarPuntosPorCompra(cliente.getId(), totalAcumulable, descripcion);
                             LOGGER.log(System.Logger.Level.INFO, 
-                                String.format("✅ PUNTOS OTORGADOS (después de crear tablas): Cliente=%s, Total=$%.2f, Puntos=%d", 
-                                            cliente.getId(), totalTicket, puntosAOtorgar));
+                                String.format("✅ PUNTOS OTORGADOS (después de crear tablas): Cliente=%s, Total acumulable=$%.2f, Puntos=%d", 
+                                            cliente.getId(), totalAcumulable, puntosAOtorgar));
                         }
                     }
                 } catch (Exception retryEx) {
