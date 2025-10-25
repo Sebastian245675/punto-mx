@@ -184,6 +184,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         
         m_jCount.setText(null);
         m_jCash.setText(null);
+        m_jInitialAmount.setText(null);
 
         m_jSales.setText(null);
         m_jSalesSubtotal.setText(null);
@@ -210,6 +211,43 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             
             m_jCount.setText(m_PaymentsToClose.printPayments());
             m_jCash.setText(m_PaymentsToClose.printPaymentsTotal());
+            
+            // Obtener el monto inicial de la caja abierta
+            try {
+                String sequenceToFind = m_PaymentsToClose.printSequence();
+                if (sequenceToFind != null && !sequenceToFind.trim().isEmpty()) {
+                    s = m_App.getSession();
+                    con = s.getConnection();
+                    
+                    SQL = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE HOST = ? AND MONEY = ? ORDER BY DATEEND DESC LIMIT 1";
+                    
+                    // Para HSQLDB cambiar LIMIT por TOP
+                    String sdbmanager = m_dlSystem.getDBVersion();
+                    if ("HSQL Database Engine".equals(sdbmanager)) {
+                        SQL = "SELECT TOP 1 INITIAL_AMOUNT FROM CLOSEDCASH WHERE HOST = ? AND MONEY = ? ORDER BY DATEEND DESC";
+                    }
+                    
+                    java.sql.PreparedStatement pstmt = con.prepareStatement(SQL);
+                    pstmt.setString(1, m_App.getProperties().getHost());
+                    pstmt.setString(2, sequenceToFind);
+                    
+                    ResultSet rsInitial = pstmt.executeQuery();
+                    if (rsInitial.next()) {
+                        double initialAmount = rsInitial.getDouble("INITIAL_AMOUNT");
+                        m_jInitialAmount.setText(Formats.CURRENCY.formatValue(initialAmount));
+                    } else {
+                        m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
+                    }
+                    
+                    rsInitial.close();
+                    pstmt.close();
+                } else {
+                    m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo monto inicial: " + e.getMessage(), e);
+                m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
+            }
             
             m_jSales.setText(m_PaymentsToClose.printSales());
             m_jSalesSubtotal.setText(m_PaymentsToClose.printSalesBase());
@@ -319,7 +357,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         m_App.getProperties().getHost(), 
                         m_App.getActiveCashSequence(), 
                         m_App.getActiveCashDateStart(), 
-                        m_App.getActiveCashDateEnd(),0});
+                        m_App.getActiveCashDateEnd(),0.0});
 
                 m_dlSystem.execDrawerOpened(
                     new Object[] {m_App.getAppUserView().getUser().getName(),"Close Cash"});
@@ -406,6 +444,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         jLabel5 = new javax.swing.JLabel();
         m_jCash = new javax.swing.JTextField();
         jLabel4 = new javax.swing.JLabel();
+        m_jInitialAmount = new javax.swing.JTextField();
+        jLabelInitialAmount = new javax.swing.JLabel();
         m_jCount = new javax.swing.JTextField();
         m_jLinesRemoved = new javax.swing.JTextField();
         jLabel1 = new javax.swing.JLabel();
@@ -484,6 +524,17 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         jLabel4.setText(AppLocal.getIntString("label.cash")); // NOI18N
         jLabel4.setPreferredSize(new java.awt.Dimension(150, 30));
         jPanel1.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 260, -1, -1));
+
+        m_jInitialAmount.setEditable(false);
+        m_jInitialAmount.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jInitialAmount.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        m_jInitialAmount.setPreferredSize(new java.awt.Dimension(150, 30));
+        jPanel1.add(m_jInitialAmount, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 230, -1, -1));
+
+        jLabelInitialAmount.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelInitialAmount.setText("💰 Fondo Inicial"); // NOI18N
+        jLabelInitialAmount.setPreferredSize(new java.awt.Dimension(150, 30));
+        jPanel1.add(jLabelInitialAmount, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 230, -1, -1));
 
         m_jCount.setEditable(false);
         m_jCount.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -718,7 +769,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         m_App.getProperties().getHost(), 
                         m_App.getActiveCashSequence(), 
                         m_App.getActiveCashDateStart(), 
-                        m_App.getActiveCashDateEnd(),0});
+                        m_App.getActiveCashDateEnd(),0.0});
 
                 m_dlSystem.execDrawerOpened(
                     new Object[] {m_App.getAppUserView().getUser().getName(),"Close Cash"});
@@ -778,11 +829,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
+    private javax.swing.JLabel jLabelInitialAmount;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JSeparator jSeparator1;
     private javax.swing.JTextField m_jCash;
     private javax.swing.JButton m_jCloseCash;
     private javax.swing.JTextField m_jCount;
+    private javax.swing.JTextField m_jInitialAmount;
     private javax.swing.JTextField m_jLinesRemoved;
     private javax.swing.JTextField m_jMaxDate;
     private javax.swing.JTextField m_jMinDate;
