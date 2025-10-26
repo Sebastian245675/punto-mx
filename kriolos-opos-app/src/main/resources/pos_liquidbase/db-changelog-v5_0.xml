@@ -28,4 +28,13 @@
             </column>
         </addColumn>
     </changeSet>
+    
+    <!-- Sebastian - Agregar columna accumulates_points para controlar acumulación de puntos por producto -->
+    <changeSet author="sebastian (unicenta-pos)" id="20241026-01">
+        <addColumn tableName="products">
+            <column name="accumulates_points" type="BOOLEAN" defaultValueBoolean="true">
+                <constraints nullable="false"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

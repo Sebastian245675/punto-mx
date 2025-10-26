@@ -189,10 +189,10 @@
   <properties>
     <artifact.build.scmbranch>${git.branch}</artifact.build.scmbranch>
     <artifact.build.scmnumber>${git.buildNumber}</artifact.build.scmnumber>
-    <flatlaf.version>2.6</flatlaf.version>
-    <artifact.build.scmrevision>${git.revision}</artifact.build.scmrevision>
     <artifact.build.scmbuildtime>${git.buildDate}</artifact.build.scmbuildtime>
+    <flatlaf.version>2.6</flatlaf.version>
     <maven.build.timestamp.format>yyyyMMddHHmm</maven.build.timestamp.format>
+    <artifact.build.scmrevision>${git.revision}</artifact.build.scmrevision>
     <artifact.build.timestamp>${maven.build.timestamp}</artifact.build.timestamp>
     <jasperreports.version>7.0.1</jasperreports.version>
     <mysql.version>9.2.0</mysql.version>

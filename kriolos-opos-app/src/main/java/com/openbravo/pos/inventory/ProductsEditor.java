@@ -181,6 +181,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jstockvolume.getDocument().addDocumentListener(dirty);
         m_jPrintKB.addActionListener(dirty);
         m_jSendStatus.addActionListener(dirty);
+        m_jAccumulatesPoints.addActionListener(dirty);
 
 // Tab Image
         m_jImage.addPropertyChangeListener("image", dirty);
@@ -499,6 +500,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         myprod[30] = m_jInCatalog.isSelected();
         myprod[31] = Formats.INT.parseValue(m_jCatalogOrder.getText());
         myprod[32] = m_jAccumulatesPoints.isSelected();
+        
+        System.out.println("DEBUG createValue: ACCUMULATES_POINTS = " + myprod[32] + " (checkbox state: " + m_jAccumulatesPoints.isSelected() + ")");
 
         return myprod;
     }
@@ -611,9 +614,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // Verificar si el campo accumulates_points existe (para compatibilidad con productos antiguos)
         if (myprod.length > 32 && myprod[32] != null) {
             m_jAccumulatesPoints.setSelected(((Boolean) myprod[32]));
+            System.out.println("DEBUG setValues: ACCUMULATES_POINTS desde BD = " + myprod[32] + " (array length: " + myprod.length + ")");
         } else {
             // Por defecto, productos antiguos acumulan puntos
             m_jAccumulatesPoints.setSelected(true);
+            System.out.println("DEBUG setValues: Campo ACCUMULATES_POINTS no encontrado, usando default TRUE (array length: " + myprod.length + ")");
         }
     }
 
