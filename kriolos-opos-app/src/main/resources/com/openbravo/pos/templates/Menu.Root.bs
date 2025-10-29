@@ -1,19 +1,3 @@
-//    KriolOS POS
-//    Copyright (c) 2019-2023 KriolOS
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 group = menu.addGroup("Menu.Main");
         group.addPanel("/com/openbravo/images/sale.png", "Menu.Ticket", "com.openbravo.pos.sales.JPanelTicketSales");
         group.addPanel("/com/openbravo/images/saleedit.png", "Menu.TicketEdit", "com.openbravo.pos.sales.JPanelTicketEdits");
@@ -117,7 +101,7 @@ group = menu.addGroup("Menu.Backoffice");
         submenu.addPanel("/com/openbravo/images/bookmark.png", "Menu.Taxes", "com.openbravo.pos.inventory.TaxPanel");
         submenu.addPanel("/com/openbravo/images/location.png", "Menu.Locations", "com.openbravo.pos.inventory.LocationsPanel");
         submenu.addPanel("/com/openbravo/images/floors.png", "Menu.Floors", "com.openbravo.pos.sales.restaurant.JPanelFloors");
-        submenu.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesTest");
+        submenu.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesManagement");
         submenu.addPanel("/com/openbravo/images/tables.png", "Menu.Tables", "com.openbravo.pos.sales.restaurant.JPanelPlaces");
         submenu.addPanel("/com/openbravo/images/products.png", "Menu.Vouchers", "com.openbravo.pos.voucher.VoucherPanel");
 

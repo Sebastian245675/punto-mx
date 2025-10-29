@@ -195,8 +195,7 @@ public class PermissionsCatalog {
         maintenance.add(new PermissionInfo("com.openbravo.pos.sales.restaurant.JPanelFloors", "Gestión de Pisos (Restaurant)", "Mantenimiento"));
         maintenance.add(new PermissionInfo("com.openbravo.pos.sales.restaurant.JPanelPlaces", "Gestión de Mesas (Restaurant)", "Mantenimiento"));
         maintenance.add(new PermissionInfo("com.openbravo.pos.voucher.VoucherPanel", "Gestión de Vales", "Mantenimiento"));
-        maintenance.add(new PermissionInfo("com.openbravo.pos.branches.JPanelBranchesTest", "Prueba de Sucursales", "Mantenimiento"));
-        maintenance.add(new PermissionInfo("com.openbravo.pos.branches.JPanelBranchesManagement", "Gestión de Sucursales", "Mantenimiento"));
+        maintenance.add(new PermissionInfo("com.openbravo.pos.branches.JPanelBranchesManagement", "Administrar Sucursales", "Mantenimiento"));
         maintenance.add(new PermissionInfo("com.openbravo.pos.panels.JPanelPrinter", "Configuración de Impresoras", "Mantenimiento"));
         maintenance.add(new PermissionInfo("com.openbravo.pos.config.JPanelConfiguration", "Configuración del Sistema", "Mantenimiento"));
         maintenance.add(new PermissionInfo("Menu.ChangePassword", "Cambiar Contraseña", "Mantenimiento"));

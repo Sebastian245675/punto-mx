@@ -1,25 +1,10 @@
-//    KriolOS POS
-//    Copyright (c) 2019-2023 KriolOS
-//
-//    This program is free software: you can redistribute it and/or modify
-//    it under the terms of the GNU General Public License as published by
-//    the Free Software Foundation, either version 3 of the License, or
-//    (at your option) any later version.
-//
-//    This program is distributed in the hope that it will be useful,
-//    but WITHOUT ANY WARRANTY; without even the implied warranty of
-//    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-//    GNU General Public License for more details.
-//
-//    You should have received a copy of the GNU General Public License
-//    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-
 group = menu.addGroup("Menu.Main");
         group.addPanel("/com/openbravo/images/sale.png", "Menu.Ticket", "com.openbravo.pos.sales.JPanelTicketSales");
         group.addPanel("/com/openbravo/images/saleedit.png", "Menu.TicketEdit", "com.openbravo.pos.sales.JPanelTicketEdits");
         group.addPanel("/com/openbravo/images/customerpay.png", "Menu.CustomersPayment", "com.openbravo.pos.customers.CustomersPayment");
         group.addPanel("/com/openbravo/images/payments.png", "Menu.Payments", "com.openbravo.pos.panels.JPanelPayments");
         group.addPanel("/com/openbravo/images/calculator.png", "Menu.CloseTPV", "com.openbravo.pos.panels.JPanelCloseMoney");
+        group.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesManagement");
 
 group = menu.addGroup("Menu.Backoffice");
     
@@ -115,10 +100,8 @@ group = menu.addGroup("Menu.Backoffice");
         submenu.addPanel("/com/openbravo/images/bookmark.png", "Menu.TaxCustCategories", "com.openbravo.pos.inventory.TaxCustCategoriesPanel");
         submenu.addPanel("/com/openbravo/images/bookmark.png", "Menu.Taxes", "com.openbravo.pos.inventory.TaxPanel");
         submenu.addPanel("/com/openbravo/images/location.png", "Menu.Locations", "com.openbravo.pos.inventory.LocationsPanel");
-        System.out.println("*** Menu.Root.bs - Agregando Panel Branches Management ***");
-        submenu.addPanel("/com/openbravo/images/stockmaint.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesManagement");
-        System.out.println("*** Menu.Root.bs - Panel Branches Management agregado exitosamente ***");
         submenu.addPanel("/com/openbravo/images/floors.png", "Menu.Floors", "com.openbravo.pos.sales.restaurant.JPanelFloors");
+        submenu.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesManagement");
         submenu.addPanel("/com/openbravo/images/tables.png", "Menu.Tables", "com.openbravo.pos.sales.restaurant.JPanelPlaces");
         submenu.addPanel("/com/openbravo/images/products.png", "Menu.Vouchers", "com.openbravo.pos.voucher.VoucherPanel");
 

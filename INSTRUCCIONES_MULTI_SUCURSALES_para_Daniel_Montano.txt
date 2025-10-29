@@ -1,0 +1,321 @@
+Destinatario: Daniel Montaño
+Asunto: Instrucciones técnicas y operativas detalladas para habilitar Multi-sucursales (Sistema compartido por diferentes puntos)
+
+Resumen ejecutivo (1 línea):
+Este documento describe paso a paso, con detalles técnicos y operativos, cómo convertir la instalación actual en una plataforma multi-sucursales segura y administrable, permitiendo que el administrador central cree IDs remotos para cada punto, que los puntos se sincronicen (productos, clientes, ventas, cortes, etc.) con Firebase y/o la base de datos central, y cómo desplegar, probar y asegurar la solución.
+
+Nota del autor: Este texto es largo y altamente detallado; incluye criterios de diseño, estructura de datos, reglas de seguridad, cambios en UI y ejemplos de código y queries. No se definen plazos; solo instrucciones. Si algo no queda claro, contactarme para puntualizar pasos técnicos.
+
+INDICE (navegación rápida)
+1. Objetivo y alcance
+2. Requisitos previos
+3. Concepto de arquitectura propuesta (resumen)
+4. Diseño de datos y cambios en BD
+5. Integración con Firebase (configuración, auth, reglas)
+6. Flujo de creación y asignación de IDs remotos (admin-only)
+7. Cambios en vistas y UX (maintenance -> usuarios)
+8. API endpoints y contratos (ejemplos)
+9. Sincronización de datos (push/pull, conflict resolution)
+10. Seguridad y permisos
+11. Pruebas y validaciones
+12. Migración y despliegue
+13. Monitoreo, backup y recovery
+14. Casos de uso y flujos concretos
+15. Tareas opcionales y mejoras posteriores
+16. Anexos: snippets, reglas Firebase, ejemplos SQL
+
+1. Objetivo y alcance
+- Objetivo: Permitir administrar múltiples puntos (sucursales) desde un único sistema centralizado, de manera que cada punto pueda conectarse con un identificador remoto (ID remoto) y sincronizar catálogos y transacciones relevantes (productos, clientes, ventas, cortes). Solo el administrador debe poder crear/emitir IDs remotos. El administrador debe disponer de un panel para gestionar sucursales y ver datos agregados o por punto.
+- Alcance: Cambios en backend, base de datos, integración con Firebase (autenticación y sincronización), cambios en UI (solo las vistas de administración/sucursales) y procedimientos de despliegue y pruebas.
+
+2. Requisitos previos
+- Acceso al repositorio del proyecto y permisos para ejecutar builds y desplegar localmente.
+- Cuenta y proyecto en Firebase (Firestore o Realtime DB según elección; en este documento uso Firestore para ejemplos).
+- Acceso a la base de datos principal (credenciales de admin para migraciones).
+- Entender que algunos datos sensibles no deben replicarse a Firebase si no se desea.
+
+3. Concepto de arquitectura propuesta (resumen)
+- Rol central: Administrador (admin) — puede crear IDs remotos y gestionar sucursales.
+- Puntos (sucursales): cada instalación local se registra con un ID remoto que el admin crea y le asigna. La instalación local usa ese ID para autenticarse/identificarse ante la API/Firebase.
+- Sincronización híbrida: uso de Firebase para mensajería y sincronización en tiempo real (opcional) y la base de datos relacional principal para registro definitivo y reportes. Firebase se usará para replicar catálogos ligeros y eventos (venta, cierre), y la API central se encargará de recepcionar y persistir en la BD principal.
+- Restricción de vistas: todas las UI genéricas se mantienen con el mismo acceso; las vistas que muestran listados de IDs remotos o funciones de gestión de sucursales se despliegan exclusivamente en la sección "Gestión de Sucursales" visible solo para el rol admin.
+
+4. Diseño de datos y cambios en BD
+Recomendación: crear nuevas tablas para modelar sucursales y asignaciones de IDs remotos.
+
+Tablas nuevas mínimas (SQL generico):
+- branches (sucursales)
+  - id BIGINT AUTO_INCREMENT
+  - name VARCHAR(255)
+  - address VARCHAR(500) NULL
+  - created_at TIMESTAMP
+  - updated_at TIMESTAMP
+  - active BOOLEAN DEFAULT true
+
+- branch_remote_ids (IDs remotos asignados)
+  - id BIGINT AUTO_INCREMENT
+  - branch_id BIGINT (FK -> branches.id) NULL (opcional: se puede crear ID y luego asignarlo)
+  - remote_id VARCHAR(128) UNIQUE NOT NULL
+  - created_by_user_id BIGINT (FK users)
+  - created_at TIMESTAMP
+  - expires_at TIMESTAMP NULL (opcional)
+  - note TEXT NULL
+
+- branch_permissions (opcional, para asignar que usuarios locales pueden pertenecer a que branch)
+  - id BIGINT
+  - user_id BIGINT
+  - branch_id BIGINT
+  - role ENUM('viewer','manager','cashier','admin_branch')
+
+Cambios a tablas existentes:
+- products -> añadir column branch_id NULLABLE si se quiere asociación directa por defecto. Sin embargo, preferible: mantener productos globales y usar tabla product_branch_stock para stock por sucursal.
+
+- product_branch_stock
+  - id
+  - product_id
+  - branch_id
+  - stock INT
+  - price DECIMAL
+
+Para la etapa inicial no es necesario duplicar todo, solo asociar los datos que deban ser por sucursal (stock, ventas, cortes, etc.).
+
+Asociación de datos al ID remoto:
+- Cada registro que provenga de una sucursal debe llegar acompañado del remote_id (o branch_id) y el backend debe validar el remote_id y asociar el branch_id real.
+- Evitar usar tarjetas o identificadores locales visibles; usar exclusivamente `remote_id` como token público que se envía desde la sucursal.
+
+5. Integración con Firebase (configuración, auth, reglas)
+Decisión: usar Firebase sólo como canal de sincronización y/o caché en tiempo real. La fuente de verdad es la BD relacional. Firebase se usará para replicar y notificar eventos en tiempo real.
+
+Pasos de configuración:
+- Crear proyecto en Firebase Console.
+- Habilitar Firestore (modo reglas) o Realtime DB según preferencia.
+- Configurar un servicio con credenciales (JSON) para el backend y otro archivo de configuración para el cliente (si la app la necesita).
+- Añadir SDK en la app (Java backend: firebase-admin SDK; cliente: firebase SDK si se usa Web/Electron).
+
+Estructura recomendada en Firestore (colecciones):
+- branches/{branchId}/products/{productId}
+- branches/{branchId}/customers/{customerId}
+- branches/{branchId}/sales/{saleId}
+- branches/{branchId}/cortes/{corteId}
+- system/remote_ids/{remoteId}  (meta de remote ids - solo admin puede ver/editar)
+
+Reglas de seguridad (Firestore) - ejemplo básico:
+- Solo el servicio backend (con admin SDK) puede escribir en collections globales y en `system/remote_ids/`.
+- Los usuarios que se autentiquen con un remote id (o con token) sólo deben poder leer y escribir dentro de su `branches/{branchId}`.
+
+Ejemplo de reglas (pseudocódigo Firestore Rules):
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /branches/{branchId}/{documents=**} {
+      allow read, write: if request.auth != null && request.auth.token.branch == branchId;
+    }
+    match /system/remote_ids/{remoteId} {
+      allow read, write: if request.auth != null && request.auth.token.role == 'admin';
+    }
+  }
+}
+
+Notas: para que request.auth.token.branch y role existan, se deben emitir custom tokens (o claims) desde el backend cuando el remote_id sea validado.
+
+Uso de Firebase Admin SDK en backend (Java):
+- Inicializar con la credencial JSON (service account)
+- Usar Firestore client para realizar lecturas/escrituras, y para escuchar cambios (listeners) si se desea replicar eventos rápidamente.
+
+6. Flujo de creación y asignación de IDs remotos (admin-only)
+Requisitos funcionales:
+- Solo usuarios con rol global "admin" (o permiso crear_remote_ids) pueden crear remote IDs.
+- El admin accede a la vista "Gestión de Sucursales" -> "Crear nuevo ID" -> rellena: nombre sucursal, nota, asociación (opcional), y el sistema genera `remote_id` (recomendado con UUID v4 o código de 8 dígitos seguro).
+- El remote_id se guarda en `branch_remote_ids` (y en Firebase `system/remote_ids` con meta si se requiera).
+- El admin entrega el remote_id al contacto del nuevo punto (por comunicación segura). El punto lo ingresa en la app local para identificarse.
+
+Generación de remote_id:
+- remote_id = base62(UUID) o UUID v4 string.
+- También se puede generar un token JWT firmado con claims mínimos si se desea control de expiración y acceso.
+
+Proceso: cuando un punto usa remote_id para autenticarse:
+- La app local envía al backend: {remote_id, device_info, client_version}
+- Backend valida remote_id contra tabla branch_remote_ids y retorna branch_id y un token temporal (JWT) con claims: branch, role(s), expiration.
+- La app local usa ese token para posteriores llamadas a la API y para inicializar Firebase (si se usa custom token para Firebase).
+
+7. Cambios en vistas y UX (maintenance -> usuarios)
+Regla de oro: no añadir funciones en vistas generales para evitar exposición accidental; todas las funciones de gestión de IDs y sucursales deben estar en la vista `Administración -> Gestión de Sucursales` que solo ve el admin.
+
+Cambios concretos:
+- En la sección `Maintenance -> Usuarios` NO mostrar la columna de `remote_id` ni botones para crear IDs. Reemplazar la tarjeta/identificador por `id_remoto` como campo de solo lectura y ocultarlo para usuarios normales.
+- Crear una nueva vista `Gestión de Sucursales` (menú lateral o pestaña en Administración):
+  - Listado de sucursales
+  - Botón: "Crear ID Remoto" (solo admin)
+  - Formulario para asignar ID a usuario (ej: Juan Carlos)
+  - Buscador por `remote_id` que muestra: Ventas, Cortes, Clientes, Productos del punto
+  - Dashboard por sucursal con KPIs (Ventas del día, Corte actual, Top productos)
+
+Flujo de asignación (ejemplo):
+- Admin -> Crear ID
+- Relacionar con un usuario (ej. Juan Carlos) o dejar sin asignar
+- Enviar por email/WhatsApp el remote_id a Juan Carlos
+- Juan Carlos en su instalación local pone `remote_id` en la pantalla de configuración de la app (una vez solo) y la app recibe token de acceso.
+
+UI: Validaciones
+- Mostrar advertencia si el admin intenta generar más de N IDs por día (opcional)
+- Mostrar auditoría: quien creó el ID, cuándo y a qué branch fue asignado
+
+8. API endpoints y contratos (ejemplos)
+Recomendación: centralizar operaciones en endpoints REST seguros con JWT.
+
+Endopoints sugeridos (path relativo /api):
+- POST /api/auth/remote-login
+  - body: { remote_id: "xxx", device_info: { name, os, version } }
+  - response: { token: "JWT", branch_id, branch_name }
+  - permisos: anyone with remote_id
+
+- POST /api/admin/branches
+  - body: { name, address }
+  - response: { branch_id }
+  - perms: admin only
+
+- POST /api/admin/branches/{branchId}/remote-ids
+  - body: { note, expires_at (opcional) }
+  - response: { remote_id }
+  - perms: admin only
+
+- GET /api/admin/branches/{branchId}/overview?from=...&to=...
+  - response: { ventas, cortes, clientes, productos }
+  - perms: admin only (o branch manager)
+
+- POST /api/replicate/sale (desde punto -> central)
+  - body: { sale, remote_id }
+  - backend valida remote_id y persiste sale con branch_id
+
+Validaciones de seguridad:
+- Todos los endpoints deben validar que el token enviado proviene de una sesión válida y que el claim branch coincide con el recurso solicitado cuando aplique.
+
+9. Sincronización de datos (push/pull, conflict resolution)
+Modelos posibles:
+- Push-only desde punto -> central: los puntos envían datos a central, la central es la fuente de verdad. Para catálogos, la central empuja cambios hacia puntos bajo demanda.
+- Bidireccional con conflict resolution: usar timestamps y versiones (vector clocks o last-writer-wins). Para evitar complejidad inicial, recomendamos push-only de las transacciones y pull/caché para catálogos.
+
+Estrategia recomendada (fase 1):
+- Catálogos: central los administra; puntos consumen catálogos vía API o Firestore cache en lectura.
+- Transacciones (ventas, cortes): los puntos envían eventos al backend (o los escriben en Firestore y backend los consume). Backend persiste y confirma.
+- Si la sucursal se queda offline: almacenar localmente las transacciones en una cola, luego reintentar push.
+
+Conflict resolution:
+- Para clientes/productos: usar central como autoridad. Si punto local crea cliente nuevo, enviar push al central y central asigne global id. En caso de duplicados, reconciliar manualmente en admin.
+
+10. Seguridad y permisos
+- Solo admin puede crear/editar remote_ids.
+- Los remote_ids funcionan como credenciales de sucursal; tratarlos como secretos y enviarlos a la sucursal por canales seguros.
+- Emplear HTTPS y JWT para comunicación API.
+- Auditoría: registrar en DB quien creó cada remote_id, y todas las acciones relevantes.
+- Firebase rules estrictas para evitar exposición
+
+11. Pruebas y validaciones
+Pruebas mínimas a pasar antes de despliegue:
+- Login remoto: remote_id válido genera token y branch_id correcto.
+- Push de venta: la venta creada en sucursal llega al backend y aparece en la base de datos central con branch_id correcto.
+- Búsqueda por remote_id en la vista admin muestra la información completa.
+- Rechazo de remote_id inválido.
+- Roles: usuario sin rol admin no ve `Gestión de Sucursales` ni endpoints admin devolviendo 403.
+
+Tests automatizados sugeridos:
+- Unit tests para la validación de remote_id y la generación del token.
+- Integration tests: usar un test double para Firebase (o entorno de test) y simular push de venta.
+- End-to-end: simular un punto que arranca, se autentica con remote_id, sincroniza catálogo y hace una venta.
+
+12. Migración y despliegue
+- Crear changelog DB con nuevas tablas (branches, branch_remote_ids, product_branch_stock).
+- Desplegar DB migrations primero (mantener compatibilidad hacia atrás si hay instalaciones activas).
+- Desplegar backend con nuevas rutas en modo maintenance (si se quiere probar con feature flag).
+
+Estrategia de rollout:
+- Habilitar feature flag `multi_branch` en la configuración.
+- Activar primero la vista admin y probar con un remote_id de prueba.
+- Probar sincronización con 1-2 sucursales piloto antes de abrir para todos.
+
+13. Monitoreo, backup y recovery
+- Logueo: añadir logs estructurados para eventos de remote_id, autenticaciones y fallos de sincronización.
+- Backup: copia diaria de BD; especialmente las tablas nuevas.
+- Reversión: si se detecta error crítico, deshabilitar feature flag y detener envíos desde puntos (o invalidar remote_ids temporalmente).
+
+14. Casos de uso y flujos concretos (paso a paso)
+Caso: crear y asignar ID a 'Juan Carlos' y conectar su punto
+1) Admin -> Gestión de Sucursales -> Crear sucursal "Sucursal A".
+2) Admin -> Crear ID Remoto -> genera remote_id = "6768-abc-XYZ". Guarda en DB y en Firestore (meta).
+3) Admin envía remote_id a Juan Carlos.
+4) Juan Carlos en su instalación local: Settings -> Conectar a central -> introduce remote_id y presiona "Conectar".
+5) La app local hace POST /api/auth/remote-login {remote_id, device}.
+6) Backend valida remote_id y responde {token, branch_id}.
+7) La app guarda token y lo usa para futuros requests. También puede inicializar Firestore con Custom Token si se implementa.
+8) La app solicita productos y clientes desde /api/catalog?branch=branch_id (o usa Firestore local cache).
+9) Juan Carlos realiza ventas: la app guarda local y hace POST /api/replicate/sale con token. Backend persiste con branch_id y confirma.
+10) Admin en "Gestión de Sucursales" busca por remote_id y ve las ventas asociadas, los cortes y clientes.
+
+15. Tareas opcionales y mejoras posteriores
+- Implementar expiración de remote_ids y opciones de revocación.
+- Añadir MFA o verificación adicional al registrar un nuevo punto.
+- Dashboards agregados por región/ciudad.
+- Permitir que branch_mgr cree usuarios locales pero no remote_ids.
+- Implementar sincronización fina de stocks con conflictos.
+
+16. Anexos: snippets, reglas Firebase, ejemplos SQL
+- SQL migration snippet (Liquibase / Flyway / raw SQL):
+
+-- Crear tabla branches
+CREATE TABLE branches (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  name VARCHAR(255) NOT NULL,
+  address VARCHAR(500),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  active BOOLEAN DEFAULT TRUE
+);
+
+-- Crear tabla branch_remote_ids
+CREATE TABLE branch_remote_ids (
+  id BIGINT PRIMARY KEY AUTO_INCREMENT,
+  branch_id BIGINT,
+  remote_id VARCHAR(128) NOT NULL UNIQUE,
+  created_by_user_id BIGINT,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  expires_at TIMESTAMP NULL,
+  note TEXT
+);
+
+- Firebase rules (ejemplo básico):
+{
+ "rules": {
+   "branches": {
+     "$branchId": {
+       ".read": "auth != null && auth.token.branch == $branchId",
+       ".write": "auth != null && auth.token.branch == $branchId"
+     }
+   },
+   "system": {
+     "remote_ids": {
+       ".read": "auth != null && auth.token.role == 'admin'",
+       ".write": "auth != null && auth.token.role == 'admin'"
+     }
+   }
+ }
+}
+
+- Ejemplo Java (pseudocódigo) para validar remote_id y emitir JWT:
+public ResponseEntity<?> remoteLogin(String remoteId, DeviceInfo device) {
+    Optional<BranchRemoteId> opt = repo.findByRemoteId(remoteId);
+    if (!opt.isPresent()) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Remote ID inválido");
+    }
+    BranchRemoteId info = opt.get();
+    Branch branch = info.getBranch();
+    String jwt = jwtService.createToken(Map.of("branch", branch.getId(), "role", "branch"), Duration.ofHours(8));
+    // registrar device info
+    return ResponseEntity.ok(Map.of("token", jwt, "branch_id", branch.getId()));
+}
+
+- Recomendación sobre storage de remote_id: guardar hashed remote_id en DB para mayor seguridad (similar a contraseñas) y comparar hashed, pero si se requiere lookup directo (listar IDs en la vista admin), entonces guardar en claro con control de acceso.
+
+ENTREGA
+- Archivo: INSTRUCCIONES_MULTI_SUCURSALES_para_Daniel_Montano.txt (este documento)
+- Observación: se recibió instrucción de no definir tiempos y que el destinatario sea Daniel Montaño: cumplido.
+
+FIN DEL DOCUMENTO
