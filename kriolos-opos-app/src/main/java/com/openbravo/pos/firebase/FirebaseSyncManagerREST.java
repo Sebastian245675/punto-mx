@@ -15,11 +15,15 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 package com.openbravo.pos.firebase;
+import java.sql.Timestamp;
+import java.time.Instant;
+import java.time.ZoneId;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.openbravo.data.loader.Session;
 import com.openbravo.pos.customers.DataLogicCustomers;
-import com.openbravo.pos.forms.DataLogicSales;
 import com.openbravo.pos.forms.DataLogicSystem;
+import com.openbravo.pos.supabase.SupabaseServiceREST;
 import com.openbravo.pos.admin.DataLogicAdmin;
 import com.openbravo.pos.forms.DataLogicSales;
 import java.util.concurrent.CompletableFuture;
@@ -34,11 +38,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.Future;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
+ 
 
 /**
  * Gestor de sincronización con Firebase usando REST API
@@ -260,68 +260,44 @@ public class FirebaseSyncManagerREST {
      */
     private CompletableFuture<Boolean> syncUsuarios() {
         return CompletableFuture.supplyAsync(() -> {
-            LOGGER.info("[syncUsuarios] Iniciando extracción en thread separado...");
-            
-            // Ejecutar con timeout de 10 segundos
-            ExecutorService executor = Executors.newSingleThreadExecutor();
-            Future<List<Map<String, Object>>> future = executor.submit(() -> {
-                PreparedStatement stmt = null;
-                ResultSet rs = null;
-                
-                try {
-                    LOGGER.info("[syncUsuarios] Ejecutando consulta SQL...");
-                    List<Map<String, Object>> usuarios = new ArrayList<>();
-                    
-                    String sql = "SELECT ID, NAME, CARD, ROLE, VISIBLE, IMAGE " +
-                               "FROM people WHERE VISIBLE = true";
-                    
-                    stmt = session.getConnection().prepareStatement(sql);
-                    rs = stmt.executeQuery();
-                    
-                    while (rs.next()) {
-                        Map<String, Object> usuario = new HashMap<>();
-                        usuario.put("id", rs.getString("ID"));
-                        usuario.put("nombre", rs.getString("NAME"));
-                        usuario.put("tarjeta", rs.getString("CARD"));
-                        usuario.put("rol", rs.getString("ROLE"));
-                        usuario.put("visible", rs.getBoolean("VISIBLE"));
-                        usuario.put("tieneImagen", rs.getBytes("IMAGE") != null);
-                        usuario.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                        usuario.put("tabla", "people");
-                        
-                        usuarios.add(usuario);
-                    }
-                    
-                    LOGGER.info("[syncUsuarios] Extraídos " + usuarios.size() + " usuarios");
-                    return usuarios;
-                    
-                } finally {
-                    try {
-                        if (rs != null) rs.close();
-                        if (stmt != null) stmt.close();
-                    } catch (SQLException e) {
-                        LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
-                    }
-                }
-            });
-            
+            LOGGER.info("[syncUsuarios] Iniciando extracción...");
+            PreparedStatement stmt = null;
+            ResultSet rs = null;
             try {
-                // Esperar máximo 10 segundos
-                List<Map<String, Object>> usuarios = future.get(10, TimeUnit.SECONDS);
-                executor.shutdown();
-                
-                // Subir a Firebase
-                return firebaseService.syncUsuarios(usuarios).join();
-                
-            } catch (TimeoutException e) {
-                LOGGER.severe("[syncUsuarios] TIMEOUT - La consulta tardó más de 10 segundos. Cancelando...");
-                future.cancel(true);
-                executor.shutdownNow();
-                return false;
-            } catch (Exception e) {
+                List<Map<String, Object>> usuarios = new ArrayList<>();
+                String sql = "SELECT ID, NAME, CARD, ROLE, VISIBLE, IMAGE FROM people WHERE VISIBLE = true";
+                stmt = session.getConnection().prepareStatement(sql);
+                try {
+                    stmt.setQueryTimeout(10); // segundos
+                } catch (Throwable t) {
+                    // Algunos drivers no soportan setQueryTimeout; ignorar
+                }
+                rs = stmt.executeQuery();
+                while (rs.next()) {
+                    Map<String, Object> usuario = new HashMap<>();
+                    usuario.put("id", rs.getString("ID"));
+                    usuario.put("nombre", rs.getString("NAME"));
+                    usuario.put("tarjeta", rs.getString("CARD"));
+                    usuario.put("rol", rs.getString("ROLE"));
+                    usuario.put("visible", rs.getBoolean("VISIBLE"));
+                    usuario.put("tieneimagen", rs.getBytes("IMAGE") != null);
+                    usuario.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    usuario.put("tabla", "people");
+                    usuarios.add(usuario);
+                }
+                LOGGER.info("[syncUsuarios] Extraídos " + usuarios.size() + " usuarios");
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("usuarios", usuarios);
+            } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "[syncUsuarios] Error en extracción", e);
-                executor.shutdownNow();
                 return false;
+            } finally {
+                try {
+                    if (rs != null) rs.close();
+                    if (stmt != null) stmt.close();
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
+                }
             }
         });
     }
@@ -346,30 +322,30 @@ public class FirebaseSyncManagerREST {
                 while (rs.next()) {
                     Map<String, Object> cliente = new HashMap<>();
                     cliente.put("id", rs.getString("ID"));
-                    cliente.put("codigoBusqueda", rs.getString("SEARCHKEY"));
-                    cliente.put("numeroIdentificacion", rs.getString("TAXID"));
+                    cliente.put("codigobusqueda", rs.getString("SEARCHKEY"));
+                    cliente.put("numeroidentificacion", rs.getString("TAXID"));
                     cliente.put("nombre", rs.getString("NAME"));
                     cliente.put("tarjeta", rs.getString("CARD"));
-                    cliente.put("categoriaImpuesto", rs.getString("TAXCATEGORY"));
-                    cliente.put("primerNombre", rs.getString("FIRSTNAME"));
+                    cliente.put("categoriaimpuesto", rs.getString("TAXCATEGORY"));
+                    cliente.put("primernombre", rs.getString("FIRSTNAME"));
                     cliente.put("apellido", rs.getString("LASTNAME"));
                     cliente.put("email", rs.getString("EMAIL"));
                     cliente.put("telefono", rs.getString("PHONE"));
                     cliente.put("telefono2", rs.getString("PHONE2"));
                     cliente.put("direccion", rs.getString("ADDRESS"));
                     cliente.put("direccion2", rs.getString("ADDRESS2"));
-                    cliente.put("codigoPostal", rs.getString("POSTAL"));
+                    cliente.put("codigopostal", rs.getString("POSTAL"));
                     cliente.put("ciudad", rs.getString("CITY"));
                     cliente.put("region", rs.getString("REGION"));
                     cliente.put("pais", rs.getString("COUNTRY"));
                     
                     // Sin fecha de registro - campo CURDATE no existe en la tabla
-                    cliente.put("fechaRegistro", null);
+                    cliente.put("fecharegistro", null);
                     
-                    cliente.put("deudaActual", rs.getDouble("CURDEBT"));
-                    cliente.put("deudaMaxima", rs.getDouble("MAXDEBT"));
+                    cliente.put("deudaactual", rs.getDouble("CURDEBT"));
+                    cliente.put("deudamaxima", rs.getDouble("MAXDEBT"));
                     cliente.put("visible", rs.getBoolean("VISIBLE"));
-                    cliente.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    cliente.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     cliente.put("tabla", "customers");
                     
                     clientes.add(cliente);
@@ -380,8 +356,8 @@ public class FirebaseSyncManagerREST {
                 
                 LOGGER.info("Extraídos " + clientes.size() + " clientes de la base de datos local");
                 
-                return firebaseService.syncClientes(clientes).join();
-                
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("clientes", clientes);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo clientes", e);
                 return false;
@@ -407,9 +383,9 @@ public class FirebaseSyncManagerREST {
                     Map<String, Object> categoria = new HashMap<>();
                     categoria.put("id", rs.getString("ID"));
                     categoria.put("nombre", rs.getString("NAME"));
-                    categoria.put("categoriaPadre", rs.getString("PARENTID"));
-                    categoria.put("tieneImagen", rs.getBytes("IMAGE") != null);
-                    categoria.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    categoria.put("categoriapadre", rs.getString("PARENTID"));
+                    categoria.put("tieneimagen", rs.getBytes("IMAGE") != null);
+                    categoria.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     categoria.put("tabla", "categories");
                     
                     categorias.add(categoria);
@@ -420,8 +396,8 @@ public class FirebaseSyncManagerREST {
                 
                 LOGGER.info("Extraídas " + categorias.size() + " categorías de la base de datos local");
                 
-                return firebaseService.syncCategorias(categorias).join();
-                
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("categorias", categorias);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo categorías", e);
                 return false;
@@ -456,20 +432,20 @@ public class FirebaseSyncManagerREST {
                     producto.put("id", rs.getString("ID"));
                     producto.put("referencia", rs.getString("REFERENCE"));
                     producto.put("codigo", rs.getString("CODE"));
-                    producto.put("tipoCodigoBarras", rs.getString("CODETYPE"));
+                    producto.put("tipocodigobarras", rs.getString("CODETYPE"));
                     producto.put("nombre", rs.getString("NAME"));
-                    producto.put("precioCompra", rs.getDouble("PRICEBUY"));
-                    producto.put("precioVenta", rs.getDouble("PRICESELL"));
-                    producto.put("categoriaId", rs.getString("CATEGORY"));
-                    producto.put("categoriaNombre", rs.getString("CATEGORY_NAME"));
-                    producto.put("categoriaImpuesto", rs.getString("TAXCAT"));
-                    producto.put("categoriaImpuestoNombre", rs.getString("TAXCAT_NAME"));
+                    producto.put("preciocompra", rs.getDouble("PRICEBUY"));
+                    producto.put("precioventa", rs.getDouble("PRICESELL"));
+                    producto.put("categoriaid", rs.getString("CATEGORY"));
+                    producto.put("categorianombre", rs.getString("CATEGORY_NAME"));
+                    producto.put("categoriaimpuesto", rs.getString("TAXCAT"));
+                    producto.put("categoriaimpuestonombre", rs.getString("TAXCAT_NAME"));
                     producto.put("atributos", rs.getString("ATTRIBUTESET_ID"));
-                    producto.put("tieneImagen", rs.getBytes("IMAGE") != null);
-                    producto.put("esCompuesto", rs.getBoolean("ISCOM"));
-                    producto.put("imprimirEnCocina", rs.getBoolean("PRINTKB"));
-                    producto.put("estadoEnvio", rs.getBoolean("SENDSTATUS"));
-                    producto.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    producto.put("tieneimagen", rs.getBytes("IMAGE") != null);
+                    producto.put("escompuesto", rs.getBoolean("ISCOM"));
+                    producto.put("imprimirencocina", rs.getBoolean("PRINTKB"));
+                    producto.put("estadoenvio", rs.getBoolean("SENDSTATUS"));
+                    producto.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     producto.put("tabla", "products");
                     
                     productos.add(producto);
@@ -480,8 +456,8 @@ public class FirebaseSyncManagerREST {
                 
                 LOGGER.info("Extraídos " + productos.size() + " productos de la base de datos local");
                 
-                return firebaseService.syncProductos(productos).join();
-                
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("productos", productos);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo productos", e);
                 return false;
@@ -515,11 +491,11 @@ public class FirebaseSyncManagerREST {
                     Map<String, Object> venta = new HashMap<>();
                     venta.put("id", rs.getString("ID"));
                     venta.put("caja", rs.getString("MONEY"));
-                    venta.put("fechaVenta", rs.getTimestamp("DATENEW"));
-                    venta.put("vendedorId", rs.getString("PERSON"));
-                    venta.put("vendedorNombre", rs.getString("PERSON_NAME"));
+                    venta.put("fechaventa", rs.getTimestamp("DATENEW"));
+                    venta.put("vendedorid", rs.getString("PERSON"));
+                    venta.put("vendedornombre", rs.getString("PERSON_NAME"));
                     venta.put("total", rs.getDouble("TOTAL"));
-                    venta.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    venta.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     venta.put("tabla", "receipts");
                     
                     // Obtener líneas del ticket
@@ -535,8 +511,8 @@ public class FirebaseSyncManagerREST {
                 
                 LOGGER.info("Extraídas " + ventas.size() + " ventas de la base de datos local");
                 
-                return firebaseService.syncVentas(ventas).join();
-                
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("ventas", ventas);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo ventas", e);
                 return false;
@@ -564,14 +540,14 @@ public class FirebaseSyncManagerREST {
             
             while (rs.next()) {
                 Map<String, Object> linea = new HashMap<>();
-                linea.put("numeroLinea", rs.getInt("LINE"));
-                linea.put("productoId", rs.getString("PRODUCT"));
-                linea.put("productoNombre", rs.getString("PRODUCT_NAME"));
-                linea.put("productoReferencia", rs.getString("PRODUCT_REF"));
+                linea.put("numerolinea", rs.getInt("LINE"));
+                linea.put("productoid", rs.getString("PRODUCT"));
+                linea.put("productonombre", rs.getString("PRODUCT_NAME"));
+                linea.put("productoreferencia", rs.getString("PRODUCT_REF"));
                 linea.put("atributos", rs.getString("ATTRIBUTESETINSTANCE_ID"));
                 linea.put("cantidad", rs.getDouble("UNITS"));
                 linea.put("precio", rs.getDouble("PRICE"));
-                linea.put("impuestoId", rs.getString("TAXID"));
+                linea.put("impuestoid", rs.getString("TAXID"));
                 
                 // ATTRIBUTES es un campo BLOB, no intentar convertir a String
                 byte[] attributesBlob = rs.getBytes("ATTRIBUTES");
@@ -614,15 +590,15 @@ public class FirebaseSyncManagerREST {
                 while (rs1.next()) {
                     Map<String, Object> punto = new HashMap<>();
                     punto.put("id", rs1.getString("ID"));
-                    punto.put("clienteId", rs1.getString("CLIENTE_ID"));
-                    punto.put("clienteNombre", rs1.getString("CLIENTE_NOMBRE"));
-                    punto.put("puntosActuales", rs1.getInt("PUNTOS_ACTUALES"));
-                    punto.put("puntosTotales", rs1.getInt("PUNTOS_TOTALES"));
-                    punto.put("ultimaTransaccion", rs1.getString("ULTIMA_TRANSACCION"));
-                    punto.put("fechaUltimaTransaccion", rs1.getTimestamp("FECHA_ULTIMA_TRANSACCION"));
-                    punto.put("fechaCreacion", rs1.getTimestamp("FECHA_CREACION"));
+                    punto.put("clienteid", rs1.getString("CLIENTE_ID"));
+                    punto.put("clientenombre", rs1.getString("CLIENTE_NOMBRE"));
+                    punto.put("puntosactuales", rs1.getInt("PUNTOS_ACTUALES"));
+                    punto.put("puntostotales", rs1.getInt("PUNTOS_TOTALES"));
+                    punto.put("ultimatransaccion", rs1.getString("ULTIMA_TRANSACCION"));
+                    punto.put("fechaultimatransaccion", rs1.getTimestamp("FECHA_ULTIMA_TRANSACCION"));
+                    punto.put("fechacreacion", rs1.getTimestamp("FECHA_CREACION"));
                     punto.put("tipo", "puntos_actuales");
-                    punto.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    punto.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     punto.put("tabla", "cliente_puntos");
                     puntos.add(punto);
                 }
@@ -642,14 +618,14 @@ public class FirebaseSyncManagerREST {
                 while (rs2.next()) {
                     Map<String, Object> historial = new HashMap<>();
                     historial.put("id", rs2.getString("ID"));
-                    historial.put("clienteId", rs2.getString("CLIENTE_ID"));
-                    historial.put("clienteNombre", rs2.getString("CLIENTE_NOMBRE"));
-                    historial.put("puntosOtorgados", rs2.getInt("PUNTOS_OTORGADOS"));
+                    historial.put("clienteid", rs2.getString("CLIENTE_ID"));
+                    historial.put("clientenombre", rs2.getString("CLIENTE_NOMBRE"));
+                    historial.put("puntosotorgados", rs2.getInt("PUNTOS_OTORGADOS"));
                     historial.put("descripcion", rs2.getString("DESCRIPCION"));
-                    historial.put("montoCompra", rs2.getDouble("MONTO_COMPRA"));
-                    historial.put("fechaTransaccion", rs2.getTimestamp("FECHA_TRANSACCION"));
+                    historial.put("montocompra", rs2.getDouble("MONTO_COMPRA"));
+                    historial.put("fechatransaccion", rs2.getTimestamp("FECHA_TRANSACCION"));
                     historial.put("tipo", "historial_puntos");
-                    historial.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    historial.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     historial.put("tabla", "puntos_historial");
                     puntos.add(historial);
                 }
@@ -657,8 +633,8 @@ public class FirebaseSyncManagerREST {
                 stmt2.close();
                 
                 LOGGER.info("Extraídos " + puntos.size() + " registros de puntos de clientes");
-                return firebaseService.syncPuntosClientes(puntos).join();
-                
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("puntos_historial", puntos);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo puntos de clientes", e);
                 return false;
@@ -689,14 +665,14 @@ public class FirebaseSyncManagerREST {
                 while (rs.next()) {
                     Map<String, Object> cierre = new HashMap<>();
                     cierre.put("id", rs.getString("HOST") + "_" + rs.getInt("HOSTSEQUENCE"));
-                    cierre.put("dineroId", rs.getString("MONEY")); // ID de referencia al dinero
-                    cierre.put("dineroMonto", rs.getDouble("MONTO_TOTAL")); // Monto calculado del período
+                    cierre.put("dineroid", rs.getString("MONEY")); // ID de referencia al dinero
+                    cierre.put("dineromonto", rs.getDouble("MONTO_TOTAL")); // Monto calculado del período
                     cierre.put("host", rs.getString("HOST"));
                     cierre.put("secuencia", rs.getInt("HOSTSEQUENCE"));
-                    cierre.put("fechaInicio", rs.getTimestamp("DATESTART"));
-                    cierre.put("fechaFin", rs.getTimestamp("DATEEND"));
-                    cierre.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    cierre.put("fechaSincronizacion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    cierre.put("fechainicio", rs.getTimestamp("DATESTART"));
+                    cierre.put("fechafin", rs.getTimestamp("DATEEND"));
+                    cierre.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    cierre.put("fechasincronizacion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     cierre.put("origen", "kriolos-pos");
                     cierre.put("version", "1.0");
                     cierre.put("tabla", "closedcash");
@@ -706,8 +682,8 @@ public class FirebaseSyncManagerREST {
                 stmt.close();
                 
                 LOGGER.info("Extraídos " + cierres.size() + " cierres de caja");
-                return firebaseService.syncCierresCaja(cierres).join();
-                
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("cierres", cierres);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo cierres de caja", e);
                 return false;
@@ -736,14 +712,14 @@ public class FirebaseSyncManagerREST {
                     Map<String, Object> pago = new HashMap<>();
                     pago.put("id", rs.getString("ID"));
                     pago.put("recibo", rs.getString("RECEIPT"));
-                    pago.put("metodoPago", rs.getString("PAYMENT"));
+                    pago.put("metodopago", rs.getString("PAYMENT"));
                     pago.put("total", rs.getDouble("TOTAL"));
                     pago.put("recibido", rs.getDouble("TENDERED"));
-                    pago.put("nombreTarjeta", rs.getString("CARDNAME"));
+                    pago.put("nombretarjeta", rs.getString("CARDNAME"));
                     pago.put("voucher", rs.getString("VOUCHER"));
-                    pago.put("fechaVenta", rs.getTimestamp("DATENEW"));
-                    pago.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    pago.put("fechaSincronizacion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    pago.put("fechaventa", rs.getTimestamp("DATENEW"));
+                    pago.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    pago.put("fechasincronizacion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     pago.put("origen", "kriolos-pos");
                     pago.put("version", "1.0");
                     pago.put("tabla", "payments");
@@ -753,8 +729,8 @@ public class FirebaseSyncManagerREST {
                 stmt.close();
                 
                 LOGGER.info("Extraídos " + pagos.size() + " registros de pagos");
-                return firebaseService.syncFormasPago(pagos).join();
-                
+                    SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                    return supabase.syncData("formas_de_pago", pagos);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo formas de pago", e);
                 return false;
@@ -770,26 +746,7 @@ public class FirebaseSyncManagerREST {
             try {
                 List<Map<String, Object>> impuestos = new ArrayList<>();
                 
-                // Categorías de impuestos (estructura simplificada)
-                try {
-                    String sql1 = "SELECT ID, NAME FROM taxcategories ORDER BY NAME";
-                    PreparedStatement stmt1 = session.getConnection().prepareStatement(sql1);
-                    ResultSet rs1 = stmt1.executeQuery();
-                    
-                    while (rs1.next()) {
-                        Map<String, Object> categoria = new HashMap<>();
-                        categoria.put("id", rs1.getString("ID"));
-                        categoria.put("nombre", rs1.getString("NAME"));
-                        categoria.put("tipo", "categoria_impuesto");
-                        categoria.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                        categoria.put("tabla", "taxcategories");
-                        impuestos.add(categoria);
-                    }
-                    rs1.close();
-                    stmt1.close();
-                } catch (SQLException e) {
-                    LOGGER.info("Error en taxcategories: " + e.getMessage());
-                }
+                
                 
                 // Impuestos (estructura simplificada)
                 try {
@@ -804,7 +761,7 @@ public class FirebaseSyncManagerREST {
                         impuesto.put("categoria", rs2.getString("CATEGORY"));
                         impuesto.put("tasa", rs2.getDouble("RATE"));
                         impuesto.put("tipo", "impuesto");
-                        impuesto.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                        impuesto.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                         impuesto.put("tabla", "taxes");
                         impuestos.add(impuesto);
                     }
@@ -815,8 +772,8 @@ public class FirebaseSyncManagerREST {
                 }
                 
                 LOGGER.info("Extraídos " + impuestos.size() + " registros de impuestos");
-                return firebaseService.syncImpuestos(impuestos).join();
-                
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("impuestos", impuestos);                
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo impuestos", e);
                 return false;
@@ -827,66 +784,141 @@ public class FirebaseSyncManagerREST {
     /**
      * Sebastian - Sincroniza configuraciones del sistema
      */
-    private CompletableFuture<Boolean> syncConfiguraciones() {
-        return CompletableFuture.supplyAsync(() -> {
-            try {
-                List<Map<String, Object>> configuraciones = new ArrayList<>();
-                
-                // Configuración de puntos
-                String sql1 = "SELECT ID, MONTO_POR_PUNTO, PUNTOS_OTORGADOS, SISTEMA_ACTIVO, " +
-                             "MONEDA, LIMITE_DIARIO_PUNTOS, FECHA_CREACION, FECHA_ACTUALIZACION " +
-                             "FROM PUNTOS_CONFIGURACION ORDER BY FECHA_CREACION";
-                
-                try (PreparedStatement stmt1 = session.getConnection().prepareStatement(sql1);
-                     ResultSet rs1 = stmt1.executeQuery()) {
-                    
-                    while (rs1.next()) {
-                        Map<String, Object> config = new HashMap<>();
-                        config.put("id", rs1.getString("ID"));
-                        config.put("montoPorPunto", rs1.getDouble("MONTO_POR_PUNTO"));
-                        config.put("puntosOtorgados", rs1.getInt("PUNTOS_OTORGADOS"));
-                        config.put("sistemaActivo", rs1.getBoolean("SISTEMA_ACTIVO"));
-                        config.put("moneda", rs1.getString("MONEDA"));
-                        config.put("limiteDiario", rs1.getInt("LIMITE_DIARIO_PUNTOS"));
-                        config.put("fechaCreacion", rs1.getTimestamp("FECHA_CREACION"));
-                        config.put("fechaActualizacion", rs1.getTimestamp("FECHA_ACTUALIZACION"));
-                        config.put("tipo", "configuracion_puntos");
-                        config.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                        config.put("tabla", "puntos_configuracion");
-                        configuraciones.add(config);
+private CompletableFuture<Boolean> syncConfiguraciones() {
+    return CompletableFuture.supplyAsync(() -> {
+        try {
+            List<Map<String, Object>> configuraciones = new ArrayList<>();
+
+            // Configuración de puntos
+            String sql1 = "SELECT ID, MONTO_POR_PUNTO, PUNTOS_OTORGADOS, SISTEMA_ACTIVO, " +
+                         "MONEDA, LIMITE_DIARIO_PUNTOS, FECHA_CREACION, FECHA_ACTUALIZACION " +
+                         "FROM PUNTOS_CONFIGURACION ORDER BY FECHA_CREACION";
+
+            try (PreparedStatement stmt1 = session.getConnection().prepareStatement(sql1);
+                 ResultSet rs1 = stmt1.executeQuery()) {
+
+                while (rs1.next()) {
+                    Map<String, Object> config = new HashMap<>();
+                    config.put("id", rs1.getString("ID"));
+                    config.put("montoporpunto", rs1.getDouble("MONTO_POR_PUNTO"));
+                    config.put("puntosotorgados", rs1.getInt("PUNTOS_OTORGADOS"));
+                    config.put("sistemaactivo", rs1.getBoolean("SISTEMA_ACTIVO"));
+                    config.put("moneda", rs1.getString("MONEDA"));
+                    config.put("limitediario", rs1.getInt("LIMITE_DIARIO_PUNTOS"));
+
+                    // ---- FECHA_CREACION: manejar distintos formatos seguros ----
+                    try {
+                        Object rawFechaCreacion = rs1.getObject("FECHA_CREACION");
+                        if (rawFechaCreacion == null) {
+                            config.put("fechacreacion", null);
+                        } else if (rawFechaCreacion instanceof Number) {
+                            long millis = ((Number) rawFechaCreacion).longValue();
+                            Instant instant = Instant.ofEpochMilli(millis);
+                            String fechaISO = instant.atZone(ZoneId.systemDefault())
+                                                     .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                            config.put("fechacreacion", fechaISO);
+                        } else if (rawFechaCreacion instanceof Timestamp) {
+                            String fechaISO = ((Timestamp) rawFechaCreacion).toLocalDateTime()
+                                    .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                            config.put("fechacreacion", fechaISO);
+                        } else if (rawFechaCreacion instanceof String) {
+                            // intentar parsear string (si ya es ISO)
+                            String s = ((String) rawFechaCreacion).trim();
+                            if (s.isEmpty()) {
+                                config.put("fechacreacion", null);
+                            } else {
+                                config.put("fechacreacion", s);
+                            }
+                        } else {
+                            config.put("fechacreacion", null);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error parseando FECHA_CREACION", e);
+                        config.put("fechacreacion", null);
                     }
-                } catch (SQLException e) {
-                    LOGGER.info("Tabla PUNTOS_CONFIGURACION no encontrada, saltando...");
-                }
-                
-                // Roles y recursos del sistema
-                String sql2 = "SELECT ID, NAME, PERMISSIONS FROM roles ORDER BY NAME";
-                try (PreparedStatement stmt2 = session.getConnection().prepareStatement(sql2);
-                     ResultSet rs2 = stmt2.executeQuery()) {
-                    
-                    while (rs2.next()) {
-                        Map<String, Object> rol = new HashMap<>();
-                        rol.put("id", rs2.getString("ID"));
-                        rol.put("nombre", rs2.getString("NAME"));
-                        rol.put("permisos", rs2.getString("PERMISSIONS"));
-                        rol.put("tipo", "rol");
-                        rol.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                        rol.put("tabla", "roles");
-                        configuraciones.add(rol);
+
+                    // ---- FECHA_ACTUALIZACION: manejar distintos formatos seguros ----
+                    try {
+                        Object rawFechaAct = rs1.getObject("FECHA_ACTUALIZACION");
+                        if (rawFechaAct == null) {
+                            config.put("fechaactualizacion", null);
+                        } else if (rawFechaAct instanceof Number) {
+                            long millis = ((Number) rawFechaAct).longValue();
+                            Instant instant = Instant.ofEpochMilli(millis);
+                            String fechaISO = instant.atZone(ZoneId.systemDefault())
+                                                     .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                            config.put("fechaactualizacion", fechaISO);
+                        } else if (rawFechaAct instanceof Timestamp) {
+                            String fechaISO = ((Timestamp) rawFechaAct).toLocalDateTime()
+                                    .format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                            config.put("fechaactualizacion", fechaISO);
+                        } else if (rawFechaAct instanceof String) {
+                            String s = ((String) rawFechaAct).trim();
+                            if (s.isEmpty()) {
+                                config.put("fechaactualizacion", null);
+                            } else {
+                                config.put("fechaactualizacion", s);
+                            }
+                        } else {
+                            config.put("fechaactualizacion", null);
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error parseando FECHA_ACTUALIZACION", e);
+                        config.put("fechaactualizacion", null);
                     }
-                } catch (SQLException e) {
-                    LOGGER.info("Tabla roles no encontrada, saltando...");
+
+                    config.put("tipo", "configuracion_puntos");
+                    config.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    config.put("tabla", "puntos_configuracion");
+                    configuraciones.add(config);
                 }
-                
-                LOGGER.info("Extraídos " + configuraciones.size() + " registros de configuración");
-                return firebaseService.syncConfiguraciones(configuraciones).join();
-                
-            } catch (Exception e) {
-                LOGGER.log(Level.SEVERE, "Error extrayendo configuraciones", e);
-                return false;
+            } catch (SQLException e) {
+                LOGGER.info("Tabla PUNTOS_CONFIGURACION no encontrada, saltando...");
             }
-        });
-    }
+
+            // Roles y recursos del sistema
+            String sql2 = "SELECT ID, NAME, PERMISSIONS FROM roles ORDER BY NAME";
+            try (PreparedStatement stmt2 = session.getConnection().prepareStatement(sql2);
+                 ResultSet rs2 = stmt2.executeQuery()) {
+
+                while (rs2.next()) {
+                    Map<String, Object> rol = new HashMap<>();
+                    rol.put("id", rs2.getString("ID"));
+                    rol.put("nombre", rs2.getString("NAME"));
+                    rol.put("permisos", rs2.getString("PERMISSIONS"));
+                    rol.put("tipo", "rol");
+                    rol.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    rol.put("tabla", "roles");
+                    configuraciones.add(rol);
+                }
+            } catch (SQLException e) {
+                LOGGER.info("Tabla roles no encontrada, saltando...");
+            }
+
+            LOGGER.info("Extraídos " + configuraciones.size() + " registros de configuración");
+
+            // Opcional: loggear el JSON que vamos a enviar (útil para depuración de errores rojos)
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                LOGGER.info("JSON a enviar a Supabase (config) — ejemplo primeros 3 elementos: " +
+                            mapper.writeValueAsString(configuraciones.stream().limit(3).toArray()));
+            } catch (Exception ex) {
+                LOGGER.fine("No se pudo serializar JSON para logging: " + ex.getMessage());
+            }
+
+            SupabaseServiceREST supabase = new SupabaseServiceREST(
+                "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+            );
+            return supabase.syncData("config", configuraciones);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error extrayendo configuraciones", e);
+            return false;
+        }
+    });
+}
+
+
     
     /**
      * Sebastian - Sincroniza inventario (STOCKDIARY + STOCKCURRENT)
@@ -909,12 +941,12 @@ public class FirebaseSyncManagerREST {
                 while (rs1.next()) {
                     Map<String, Object> stock = new HashMap<>();
                     stock.put("ubicacion", rs1.getString("LOCATION"));
-                    stock.put("productoId", rs1.getString("PRODUCT"));
-                    stock.put("productoNombre", rs1.getString("PRODUCT_NAME"));
-                    stock.put("productoReferencia", rs1.getString("PRODUCT_REF"));
+                    stock.put("productoid", rs1.getString("PRODUCT"));
+                    stock.put("productonombre", rs1.getString("PRODUCT_NAME"));
+                    stock.put("productoreferencia", rs1.getString("PRODUCT_REF"));
                     stock.put("unidades", rs1.getDouble("UNITS"));
                     stock.put("tipo", "stock_actual");
-                    stock.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    stock.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     stock.put("tabla", "stockcurrent");
                     inventario.add(stock);
                 }
@@ -939,14 +971,14 @@ public class FirebaseSyncManagerREST {
                     movimiento.put("fecha", rs2.getTimestamp("DATENEW"));
                     movimiento.put("razon", rs2.getInt("REASON"));
                     movimiento.put("ubicacion", rs2.getString("LOCATION"));
-                    movimiento.put("productoId", rs2.getString("PRODUCT"));
-                    movimiento.put("productoNombre", rs2.getString("PRODUCT_NAME"));
-                    movimiento.put("productoReferencia", rs2.getString("PRODUCT_REF"));
+                    movimiento.put("productoid", rs2.getString("PRODUCT"));
+                    movimiento.put("productonombre", rs2.getString("PRODUCT_NAME"));
+                    movimiento.put("productoreferencia", rs2.getString("PRODUCT_REF"));
                     movimiento.put("atributos", rs2.getString("ATTRIBUTESETINSTANCE_ID"));
                     movimiento.put("unidades", rs2.getDouble("UNITS"));
                     movimiento.put("precio", rs2.getDouble("PRICE"));
                     movimiento.put("tipo", "movimiento_stock");
-                    movimiento.put("fechaExtraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                    movimiento.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     movimiento.put("tabla", "stockdiary");
                     inventario.add(movimiento);
                 }
@@ -954,8 +986,8 @@ public class FirebaseSyncManagerREST {
                 stmt2.close();
                 
                 LOGGER.info("Extraídos " + inventario.size() + " registros de inventario");
-                return firebaseService.syncInventario(inventario).join();
-                
+                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+                return supabase.syncData("inventario", inventario);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo inventario", e);
                 return false;

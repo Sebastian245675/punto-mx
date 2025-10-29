@@ -33,7 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import org.openide.util.Exceptions;
-
+import com.openbravo.pos.firebase.FirebaseDownloadManagerREST;
 /**
  *
  * @author adrianromero
@@ -112,6 +112,24 @@ public class JRootApp extends JPanel implements AppView {
             LOGGER.log(Level.WARNING, "Fail on verify ActiveCash");
             throw new BasicException("Fail on verify ActiveCash");
         }
+        com.openbravo.pos.forms.AppConfig dlConfig = new com.openbravo.pos.forms.AppConfig(null);
+        dlConfig.load();
+        com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
+            new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
+        java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
+        selections.put("usuarios", true);
+        selections.put("clientes", true);
+        selections.put("categorias", true);
+        selections.put("productos", true);
+        selections.put("ventas", true);
+        selections.put("puntos_historial", true);
+        selections.put("cierres", true);
+        selections.put("formas_de_pago", true);
+        selections.put("impuestos", true);
+        selections.put("config", true);
+        selections.put("inventario", true);
+        selections.put("ticketlines", true);
+        downloader.performSelectedDownload(selections).join();
 
         setInventoryLocation();
 
@@ -459,10 +477,27 @@ public class JRootApp extends JPanel implements AppView {
                 // Ejecutar sincronización completa en segundo plano
                 CompletableFuture.runAsync(() -> {
                     try {
-                        LOGGER.info("Firebase sync iniciado automáticamente después del login");
-                        firebaseSyncManager.performFullSync().join();
+                        LOGGER.info("supabase sync iniciado automáticamente después del login");
+                        com.openbravo.pos.forms.AppConfig dlConfig = new com.openbravo.pos.forms.AppConfig(null);
+                        dlConfig.load();
+                        com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
+                            new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
+                        java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
+                        selections.put("usuarios", true);
+                        selections.put("clientes", true);
+                        selections.put("categorias", true);
+                        selections.put("productos", true);
+                        selections.put("ventas", true);
+                        selections.put("puntos_historial", true);
+                        selections.put("cierres", true);
+                        selections.put("formas_de_pago", true);
+                        selections.put("impuestos", true);
+                        selections.put("config", true);
+                        selections.put("inventario", true);
+                        selections.put("ticketlines", true);
+                        downloader.performSelectedDownload(selections).join();
                     } catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "Error al ejecutar sincronización completa con Firebase: " + e.getMessage(), e);
+                        LOGGER.log(Level.WARNING, "Error al ejecutar sincronización completa con supabase: " + e.getMessage(), e);
                     }
                 });
             }
@@ -628,6 +663,7 @@ public class JRootApp extends JPanel implements AppView {
                 @Override
                 public void onSucess(AppUser user) {
                     openAppView(user);
+                    
                 }
             });
             m_jPanelContainer.add(mAuthPanel, "login");
