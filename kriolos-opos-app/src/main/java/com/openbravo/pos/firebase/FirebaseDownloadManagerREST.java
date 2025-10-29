@@ -53,6 +53,43 @@ public class FirebaseDownloadManagerREST {
             throw new IllegalStateException("No se pudo inicializar Firebase Service");
         }
     }
+
+    private static java.sql.Timestamp toSqlTimestamp(Object value) {
+        try {
+            if (value == null) return null;
+            if (value instanceof java.sql.Timestamp) {
+                return (java.sql.Timestamp) value;
+            }
+            if (value instanceof java.util.Date) {
+                return new java.sql.Timestamp(((java.util.Date) value).getTime());
+            }
+            if (value instanceof Number) {
+                long millis = ((Number) value).longValue();
+                return new java.sql.Timestamp(millis);
+            }
+            if (value instanceof CharSequence) {
+                String s = value.toString().trim();
+                if (s.isEmpty()) return null;
+                // Try ISO-8601: 2025-10-29T14:41:07 or with zone suffix
+                try {
+                    java.time.OffsetDateTime odt = java.time.OffsetDateTime.parse(s);
+                    return java.sql.Timestamp.from(odt.toInstant());
+                } catch (Exception ignore) {}
+                try {
+                    java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(s);
+                    return java.sql.Timestamp.valueOf(ldt);
+                } catch (Exception ignore) {}
+                // Fallback: parse as millis in string
+                try {
+                    long millis = Long.parseLong(s);
+                    return new java.sql.Timestamp(millis);
+                } catch (Exception ignore) {}
+            }
+        } catch (Exception e) {
+            // ignore and return null
+        }
+        return null;
+    }
     
     /**
      * Ejecuta la descarga completa según las selecciones especificadas
@@ -415,9 +452,8 @@ public class FirebaseDownloadManagerREST {
                 
                 // Preparar statements
                 String checkSql = "SELECT ID FROM categories WHERE ID = ?";
-                String insertSql = "INSERT INTO categories (ID, NAME, PARENTID, IMAGE) " +
-                                  "VALUES (?, ?, ?, NULL)";
-                String updateSql = "UPDATE categories SET NAME = ?, PARENTID = ?, IMAGE = ? WHERE ID = ?";
+                String insertSql = "INSERT INTO categories (ID, NAME, PARENTID, IMAGE) VALUES (?, ?, ?, NULL)";
+                String updateSql = "UPDATE categories SET NAME = ?, PARENTID = ? WHERE ID = ?";
                 
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
@@ -447,8 +483,7 @@ public class FirebaseDownloadManagerREST {
                             // Actualizar categoría existente
                             updateStmt.setString(1, nombre != null ? nombre : "Categoría sin nombre");
                             updateStmt.setString(2, categoriapadre);
-                            updateStmt.setBoolean(3, tieneimagen != null ? tieneimagen : false);
-                            updateStmt.setString(4, id);
+                            updateStmt.setString(3, id);
                             updateStmt.executeUpdate();
                             actualizados++;
                             LOGGER.fine("Categoría actualizada: " + id + " - " + nombre);
@@ -457,7 +492,6 @@ public class FirebaseDownloadManagerREST {
                             insertStmt.setString(1, id);
                             insertStmt.setString(2, nombre != null ? nombre : "Categoría sin nombre");
                             insertStmt.setString(3, categoriapadre);
-                            insertStmt.setBoolean(4, tieneimagen != null ? tieneimagen : false);
                             insertStmt.executeUpdate();
                             insertados++;
                             LOGGER.fine("Categoría insertada: " + id + " - " + nombre);
@@ -510,8 +544,8 @@ public class FirebaseDownloadManagerREST {
                 
                 // Preparar statements
                 String checkSql = "SELECT ID FROM receipts WHERE ID = ?";
-                String insertSql = "INSERT INTO receipts (ID, MONEY, DATENEW, PERSON, PERSON_NAME, TOTAL) VALUES (?, ?, ?, ?, ?, ?)";
-                String updateSql = "UPDATE receipts SET MONEY = ?, DATENEW = ?, PERSON = ?, PERSON_NAME = ?, TOTAL = ? WHERE ID = ?";   
+                String insertSql = "INSERT INTO receipts (ID, MONEY, DATENEW, PERSON) VALUES (?, ?, ?, ?)";
+                String updateSql = "UPDATE receipts SET MONEY = ?, DATENEW = ?, PERSON = ? WHERE ID = ?";   
                 
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
@@ -521,7 +555,8 @@ public class FirebaseDownloadManagerREST {
                     try {
                         String id = (String) venta.get("id");
                         String caja = (String) venta.get("caja");
-                        String fechaventa = (String) venta.get("fechaventa");
+                        Object rawFechaVenta = venta.get("fechaventa");
+                        java.sql.Timestamp fechaVentaTs = toSqlTimestamp(rawFechaVenta);
                         String vendedorid = (String) venta.get("vendedorid");
                         String vendedornombre = (String) venta.get("vendedornombre");
                         Double total = (Double) venta.get("total");
@@ -543,11 +578,9 @@ public class FirebaseDownloadManagerREST {
                         if (existe) {
                             // Actualizar venta existente
                             updateStmt.setString(1, caja);
-                            updateStmt.setString(2, fechaventa);
+                            updateStmt.setTimestamp(2, fechaVentaTs);
                             updateStmt.setString(3, vendedorid);
-                            updateStmt.setString(4, vendedornombre);
-                            updateStmt.setDouble(5, total);
-                            updateStmt.setString(6, id);
+                            updateStmt.setString(4, id);
                             updateStmt.executeUpdate();
                             actualizados++;
                             LOGGER.fine("Venta actualizada: " + id + " - " + caja);
@@ -555,10 +588,8 @@ public class FirebaseDownloadManagerREST {
                             // Insertar nueva venta
                             insertStmt.setString(1, id);
                             insertStmt.setString(2, caja);
-                            insertStmt.setString(3, fechaventa);
+                            insertStmt.setTimestamp(3, fechaVentaTs);
                             insertStmt.setString(4, vendedorid);
-                            insertStmt.setString(5, vendedornombre);
-                            insertStmt.setDouble(6, total);
                             insertStmt.executeUpdate();
                             insertados++;
                             LOGGER.fine("Venta insertada: " + id + " - " + caja);
@@ -607,9 +638,9 @@ public class FirebaseDownloadManagerREST {
                 
                 // Preparar statements
                 String checkSql = "SELECT ID FROM products WHERE ID = ?";
-                String insertSql = "INSERT INTO products (ID, REFERENCE, CODE, CODETYPE, NAME, PRICEBUY, PRICESELL, CATEGORY, TAXCAT, ATTRIBUTESET_ID, IMAGE, ISCOM, PRINTKB, SENDSTATUS) " +
-                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                String updateSql = "UPDATE products SET REFERENCE = ?, CODE = ?, CODETYPE = ?, NAME = ?, PRICEBUY = ?, PRICESELL = ?, CATEGORY = ?, TAXCAT = ?, ATTRIBUTESET_ID = ?, IMAGE = ?, ISCOM = ?, PRINTKB = ?, SENDSTATUS = ? WHERE ID = ?";
+                String insertSql = "INSERT INTO products (ID, REFERENCE, CODE, CODETYPE, NAME, PRICEBUY, PRICESELL, CATEGORY, TAXCAT, ATTRIBUTESET_ID, ISCOM, PRINTKB, SENDSTATUS) " +
+                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                String updateSql = "UPDATE products SET REFERENCE = ?, CODE = ?, CODETYPE = ?, NAME = ?, PRICEBUY = ?, PRICESELL = ?, CATEGORY = ?, TAXCAT = ?, ATTRIBUTESET_ID = ?, ISCOM = ?, PRINTKB = ?, SENDSTATUS = ? WHERE ID = ?";
                 
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
@@ -660,13 +691,10 @@ public class FirebaseDownloadManagerREST {
                             updateStmt.setString(7, categoriaid);
                             updateStmt.setString(8, categoriaimpuesto);
                             updateStmt.setString(9, atributos);
-                            updateStmt.setBoolean(10, tieneimagen != null ? tieneimagen : false);
-                            updateStmt.setBoolean(11, escompuesto != null ? escompuesto : false);
-                            updateStmt.setBoolean(12, imprimirencocina != null ? imprimirencocina : false);
-                            updateStmt.setBoolean(13, estadoenvio != null ? estadoenvio : false);
-                            updateStmt.setString(14, fechaextraccion);
-                            updateStmt.setString(15, tabla);
-                            updateStmt.setString(16, id);
+                            updateStmt.setBoolean(10, escompuesto != null ? escompuesto : false);
+                            updateStmt.setBoolean(11, imprimirencocina != null ? imprimirencocina : false);
+                            updateStmt.setBoolean(12, estadoenvio != null ? estadoenvio : false);
+                            updateStmt.setString(13, id);
                             updateStmt.executeUpdate();
                             actualizados++;
                             LOGGER.fine("Producto actualizado: " + id + " - " + nombre);
@@ -683,12 +711,9 @@ public class FirebaseDownloadManagerREST {
                             insertStmt.setString(8, categoriaid);
                             insertStmt.setString(9, categoriaimpuesto);
                             insertStmt.setString(10, atributos);
-                            insertStmt.setBoolean(11, tieneimagen != null ? tieneimagen : false);
-                            insertStmt.setBoolean(12, escompuesto != null ? escompuesto : false);
-                            insertStmt.setBoolean(13, imprimirencocina != null ? imprimirencocina : false);
-                            insertStmt.setBoolean(14, estadoenvio != null ? estadoenvio : false);
-                            insertStmt.setString(15, fechaextraccion);
-                            insertStmt.setString(16, tabla);
+                            insertStmt.setBoolean(11, escompuesto != null ? escompuesto : false);
+                            insertStmt.setBoolean(12, imprimirencocina != null ? imprimirencocina : false);
+                            insertStmt.setBoolean(13, estadoenvio != null ? estadoenvio : false);
                             insertStmt.executeUpdate();
                             insertados++;
                             LOGGER.fine("Producto insertado: " + id + " - " + nombre);
@@ -772,6 +797,10 @@ public class FirebaseDownloadManagerREST {
      */
     private CompletableFuture<Boolean> downloadFormasPago() {
         return CompletableFuture.supplyAsync(() -> {
+            PreparedStatement checkStmt = null;
+            PreparedStatement insertStmt = null;
+            PreparedStatement updateStmt = null;
+            java.sql.ResultSet rs = null;
             try {
                 SupabaseServiceREST supabase = new SupabaseServiceREST(
                     "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
@@ -780,16 +809,83 @@ public class FirebaseDownloadManagerREST {
                 List<Map<String, Object>> formas = supabase.fetchData("formas_de_pago");
                 LOGGER.info("Descargados " + formas.size() + " formas de pago desde supabase");
                 
-                // TODO: Implementar lógica de inserción/actualización
-                return true;
+                int insertados = 0;
+                int actualizados = 0;
+                int errores = 0;
                 
+                // Preparar statements
+                String checkSql = "SELECT ID FROM payment_methods WHERE ID = ?";
+                String insertSql = "INSERT INTO payment_methods (ID, NAME, DESCRIPTION) VALUES (?, ?, ?)";
+                String updateSql = "UPDATE payment_methods SET NAME = ?, DESCRIPTION = ? WHERE ID = ?";
+                
+                checkStmt = session.getConnection().prepareStatement(checkSql);
+                insertStmt = session.getConnection().prepareStatement(insertSql);
+                updateStmt = session.getConnection().prepareStatement(updateSql);
+                
+                for (Map<String, Object> forma : formas) {
+                    try {
+                        String id = (String) forma.get("id");
+                        String nombre = (String) forma.get("nombre");
+                        String descripcion = (String) forma.get("descripcion");
+                        
+                        // Validar que tenga ID
+                        if (id == null || id.trim().isEmpty()) {
+                            LOGGER.warning("Forma de pago sin ID, saltando: " + forma);
+                            errores++;
+                            continue;
+                        }
+                        
+                        // Verificar si existe
+                        checkStmt.setString(1, id);
+                        rs = checkStmt.executeQuery();
+                        boolean existe = rs.next();
+                        rs.close();
+                        
+                        if (existe) {
+                            // Actualizar forma de pago existente
+                            updateStmt.setString(1, nombre);
+                            updateStmt.setString(2, descripcion);
+                            updateStmt.setString(3, id);
+                            updateStmt.executeUpdate();
+                            actualizados++;
+                            LOGGER.fine("Forma de pago actualizada: " + id + " - " + nombre);
+                        } else {
+                            // Insertar nueva forma de pago
+                            insertStmt.setString(1, id);
+                            insertStmt.setString(2, nombre);
+                            insertStmt.setString(3, descripcion);
+                            insertStmt.executeUpdate();
+                            insertados++;
+                            LOGGER.fine("Forma de pago insertada: " + id + " - " + nombre);
+                        }
+                    } catch (Exception e) {
+                        errores++;
+                        LOGGER.log(Level.WARNING, "Error procesando forma de pago: " + forma, e);
+                    }
+                }
+                
+                LOGGER.info("Formas de pago procesadas: " + insertados + " insertadas, " + 
+                           actualizados + " actualizadas, " + errores + " errores");
+                return errores == 0;    
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando formas de pago", e);
                 return false;
+            } finally {
+                try {
+                    if (rs != null) rs.close();
+                    if (checkStmt != null) checkStmt.close();
+                    if (insertStmt != null) insertStmt.close();
+                    if (updateStmt != null) updateStmt.close();
+
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
+                }
             }
         });
     }
     
+
+
     /**
      * Descarga impuestos desde Firebase e inserta/actualiza en la base local
      */
@@ -981,19 +1077,140 @@ public class FirebaseDownloadManagerREST {
     private CompletableFuture<Boolean> downloadInventario() {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                List<Map<String, Object>> inventario = firebaseService.downloadInventario().join();
+                PreparedStatement checkStmt = null;
+                PreparedStatement insertStmt = null;
+                PreparedStatement updateStmt = null;
+                PreparedStatement deleteStmt = null;
+                java.sql.ResultSet rs = null;
+                java.sql.ResultSet rs2 = null;
+                SupabaseServiceREST supabase = new SupabaseServiceREST(
+                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+                );
+                List<Map<String, Object>> inventario = supabase.fetchData("inventario");
                 LOGGER.info("Descargado inventario con " + inventario.size() + " registros desde Firebase");
+                int insertados = 0;
+                int actualizados = 0;
+                int errores = 0;
                 
-                // TODO: Implementar lógica de inserción/actualización
-                return true;
+                // Preparar statements
+                String checkSql = "SELECT * FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ? AND ATTRIBUTESETINSTANCE_ID = ?";
+                String insertSql = "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, ?, ?)";
+                String updateSql = "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND ATTRIBUTESETINSTANCE_ID = ?";
+                
+                checkStmt = session.getConnection().prepareStatement(checkSql);
+                insertStmt = session.getConnection().prepareStatement(insertSql);
+                updateStmt = session.getConnection().prepareStatement(updateSql);
+                
+                for (Map<String, Object> movimiento : inventario) {
+                    try {
+                        String id = (String) movimiento.get("id");
+                        String location = (String) movimiento.get("location");
+                        String product = (String) movimiento.get("product");
+                        Double units = (Double) movimiento.get("units");
+                        
+                        // Validar que tenga ID
+                        if (id == null || id.trim().isEmpty()) {
+                            LOGGER.warning("Movimiento de inventario sin ID, saltando: " + movimiento);
+                            errores++;
+                            continue;
+                        }
+                        
+                        // Verificar si existe
+                        checkStmt.setString(1, id);
+                        rs = checkStmt.executeQuery();
+                        boolean existe = rs.next();
+                        rs.close();
+                        
+                        if (existe) {
+                            // Actualizar movimiento de inventario existente
+                            updateStmt.setString(1, location);
+                            updateStmt.setString(2, product);
+                            updateStmt.setDouble(3, units);
+                            updateStmt.setString(4, id);
+                            updateStmt.executeUpdate();
+                            actualizados++;
+                            LOGGER.fine("Movimiento de inventario actualizado: " + id + " - " + location);  
+                        } else {
+                            // Insertar nuevo movimiento de inventario
+                            insertStmt.setString(1, id);
+                            insertStmt.setString(2, location);
+                            insertStmt.setString(3, product);
+                            insertStmt.setDouble(4, units);
+                            insertStmt.executeUpdate();
+                            insertados++;
+                            LOGGER.fine("Movimiento de inventario insertado: " + id + " - " + location);
+                        }
+                    } catch (Exception e) {
+                        errores++;
+                        LOGGER.log(Level.WARNING, "Error procesando movimiento de inventario: " + movimiento, e);
+                    }
+                }
+                
+                LOGGER.info("Movimientos de inventario procesados: " + insertados + " insertados, " + 
+                           actualizados + " actualizados, " + errores + " errores");    
+                return errores == 0;
                 
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando inventario", e);
                 return false;
+            } finally {
+                try {
+                    PreparedStatement checkStmt = null;
+                    PreparedStatement insertStmt = null;
+                    PreparedStatement updateStmt = null;
+                    PreparedStatement deleteStmt = null;
+                    java.sql.ResultSet rs = null;
+                    java.sql.ResultSet rs2 = null;
+                    if (rs != null) rs.close();
+                    if (checkStmt != null) checkStmt.close();
+                    if (insertStmt != null) insertStmt.close();
+                    if (updateStmt != null) updateStmt.close();
+                    if (deleteStmt != null) deleteStmt.close();
+                    if (rs != null) rs.close();
+                    if (rs2 != null) rs2.close();
+                } catch (SQLException e) {
+                    LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
+                }
             }
         });
     }
     
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     /**
      * Resultado de la descarga
      */
