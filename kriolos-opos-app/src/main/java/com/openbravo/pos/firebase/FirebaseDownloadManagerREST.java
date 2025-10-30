@@ -29,6 +29,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.ArrayList;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.math.BigDecimal;
@@ -547,7 +548,10 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement checkStmt = null;
             PreparedStatement insertStmt = null;
             PreparedStatement updateStmt = null;
+            PreparedStatement checkMoneyStmt = null;
+            PreparedStatement insertMoneyStmt = null;
             java.sql.ResultSet rs = null;
+    
             try {
                 SupabaseServiceREST supabase = new SupabaseServiceREST(
                     "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
@@ -555,19 +559,24 @@ public class FirebaseDownloadManagerREST {
                 );
                 List<Map<String, Object>> ventas = supabase.fetchData("ventas");
                 LOGGER.info("Descargadas " + ventas.size() + " ventas desde Firebase");
+    
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
+    
                 // Preparar statements
                 String checkSql = "SELECT ID FROM receipts WHERE ID = ?";
                 String insertSql = "INSERT INTO receipts (ID, MONEY, DATENEW, PERSON) VALUES (?, ?, ?, ?)";
-                String updateSql = "UPDATE receipts SET MONEY = ?, DATENEW = ?, PERSON = ? WHERE ID = ?";   
-                
+                String updateSql = "UPDATE receipts SET MONEY = ?, DATENEW = ?, PERSON = ? WHERE ID = ?";
+                String checkMoneySql = "SELECT MONEY FROM closedcash WHERE MONEY = ?";
+                String insertMoneySql = "INSERT INTO closedcash (MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND) VALUES (?, ?, ?, ?, ?)";
+    
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+                checkMoneyStmt = session.getConnection().prepareStatement(checkMoneySql);
+                insertMoneyStmt = session.getConnection().prepareStatement(insertMoneySql);
+    
                 for (Map<String, Object> venta : ventas) {
                     try {
                         String id = (String) venta.get("id");
@@ -575,23 +584,37 @@ public class FirebaseDownloadManagerREST {
                         Object rawFechaVenta = venta.get("fechaventa");
                         java.sql.Timestamp fechaVentaTs = toSqlTimestamp(rawFechaVenta);
                         String vendedorid = (String) venta.get("vendedorid");
-                        String vendedornombre = (String) venta.get("vendedornombre");
-                        Double total = (Double) venta.get("total");
-                        // Campos extra ignorados si existen en payload: fechaextraccion, tabla
-                        
+    
                         // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Venta sin ID, saltando: " + venta);
                             errores++;
                             continue;
                         }
-                        
-                        // Verificar si existe
+    
+                        // Validar que exista el MONEY en CLOSEDCASH
+                        checkMoneyStmt.setString(1, caja);
+                        java.sql.ResultSet rsMoney = checkMoneyStmt.executeQuery();
+                        boolean moneyExiste = rsMoney.next();
+                        rsMoney.close();
+    
+                        if (!moneyExiste) {
+                            // Insertar MONEY automáticamente
+                            insertMoneyStmt.setString(1, caja);
+                            insertMoneyStmt.setString(2, "unknown"); // Host
+                            insertMoneyStmt.setInt(3, 1); // HostSequence
+                            insertMoneyStmt.setTimestamp(4, new java.sql.Timestamp(System.currentTimeMillis())); // DATESTART
+                            insertMoneyStmt.setNull(5, java.sql.Types.TIMESTAMP); // DATEEND NULL
+                            insertMoneyStmt.executeUpdate();
+                            LOGGER.info("Se creó cierre de caja automáticamente: " + caja);
+                        }
+    
+                        // Verificar si existe la venta
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
+    
                         if (existe) {
                             // Actualizar venta existente
                             updateStmt.setString(1, caja);
@@ -611,15 +634,17 @@ public class FirebaseDownloadManagerREST {
                             insertados++;
                             LOGGER.fine("Venta insertada: " + id + " - " + caja);
                         }
+    
                     } catch (Exception e) {
                         errores++;
                         LOGGER.log(Level.WARNING, "Error procesando venta: " + venta, e);
                     }
                 }
-                
-                LOGGER.info("Ventas procesadas: " + insertados + " insertadas, " + 
-                           actualizados + " actualizadas, " + errores + " errores");
+    
+                LOGGER.info("Ventas procesadas: " + insertados + " insertadas, " +
+                            actualizados + " actualizadas, " + errores + " errores");
                 return errores == 0;
+    
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando ventas", e);
                 return false;
@@ -628,9 +653,12 @@ public class FirebaseDownloadManagerREST {
                 try { if (checkStmt != null) checkStmt.close(); } catch (SQLException ignore) {}
                 try { if (insertStmt != null) insertStmt.close(); } catch (SQLException ignore) {}
                 try { if (updateStmt != null) updateStmt.close(); } catch (SQLException ignore) {}
+                try { if (checkMoneyStmt != null) checkMoneyStmt.close(); } catch (SQLException ignore) {}
+                try { if (insertMoneyStmt != null) insertMoneyStmt.close(); } catch (SQLException ignore) {}
             }
         });
     }
+    
     
     /**
      * Descarga productos desde Firebase e inserta/actualiza en la base local
@@ -1093,105 +1121,116 @@ public class FirebaseDownloadManagerREST {
      */
     private CompletableFuture<Boolean> downloadInventario() {
         return CompletableFuture.supplyAsync(() -> {
+            PreparedStatement checkStmt = null;
+            PreparedStatement insertStmt = null;
+            PreparedStatement updateStmt = null;
+            ResultSet rs = null;
+    
             try {
-                PreparedStatement checkStmt = null;
-                PreparedStatement insertStmt = null;
-                PreparedStatement updateStmt = null;
-                PreparedStatement deleteStmt = null;
-                java.sql.ResultSet rs = null;
-                java.sql.ResultSet rs2 = null;
                 SupabaseServiceREST supabase = new SupabaseServiceREST(
                     "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
                     "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
                 );
+    
                 List<Map<String, Object>> inventario = supabase.fetchData("inventario");
-                LOGGER.info("Descargado inventario con " + inventario.size() + " registros desde Firebase");
+                LOGGER.info("Descargado inventario con " + inventario.size() + " registros desde Supabase");
+    
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
-                // Preparar statements
-                String checkSql = "SELECT * FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ? AND ATTRIBUTESETINSTANCE_ID = ?";
+    
+                // ✅ Compatible con HSQLDB
+                String checkSql = """
+                    SELECT * FROM stockcurrent 
+                    WHERE LOCATION = ? 
+                    AND PRODUCT = ? 
+                    AND ((ATTRIBUTESETINSTANCE_ID IS NULL AND ? IS NULL) OR ATTRIBUTESETINSTANCE_ID = ?)
+                    """;
+    
                 String insertSql = "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, ?, ?)";
-                String updateSql = "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND ATTRIBUTESETINSTANCE_ID = ?";
-                
+                String updateSql = """
+                    UPDATE stockcurrent 
+                    SET UNITS = ? 
+                    WHERE LOCATION = ? 
+                    AND PRODUCT = ? 
+                    AND ((ATTRIBUTESETINSTANCE_ID IS NULL AND ? IS NULL) OR ATTRIBUTESETINSTANCE_ID = ?)
+                    """;
+    
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+    
                 for (Map<String, Object> movimiento : inventario) {
                     try {
-                        String id = (String) movimiento.get("id");
-                        String location = (String) movimiento.get("location");
-                        String product = (String) movimiento.get("product");
-                        Double units = (Double) movimiento.get("units");
-                        
-                        // Validar que tenga ID
-                        if (id == null || id.trim().isEmpty()) {
-                            LOGGER.warning("Movimiento de inventario sin ID, saltando: " + movimiento);
+                        String location = (String) movimiento.get("ubicacion");
+                        String product = (String) movimiento.get("productoid");
+                        String attributeSetInstanceId = (String) movimiento.get("atributos");
+                        Double units = (Double) movimiento.get("unidades");
+    
+                        if (location == null || product == null || units == null) {
+                            LOGGER.warning("Movimiento de inventario incompleto, saltando: " + movimiento);
                             errores++;
                             continue;
                         }
-                        
-                        // Verificar si existe
-                        checkStmt.setString(1, id);
+    
+                        // 🔍 Verificar existencia
+                        checkStmt.setString(1, location);
+                        checkStmt.setString(2, product);
+                        checkStmt.setString(3, attributeSetInstanceId);
+                        checkStmt.setString(4, attributeSetInstanceId);
+    
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
+    
                         if (existe) {
-                            // Actualizar movimiento de inventario existente
-                            updateStmt.setString(1, location);
-                            updateStmt.setString(2, product);
-                            updateStmt.setDouble(3, units);
-                            updateStmt.setString(4, id);
+                            // 🔄 Actualizar
+                            updateStmt.setDouble(1, units);
+                            updateStmt.setString(2, location);
+                            updateStmt.setString(3, product);
+                            updateStmt.setString(4, attributeSetInstanceId);
+                            updateStmt.setString(5, attributeSetInstanceId);
+    
                             updateStmt.executeUpdate();
                             actualizados++;
-                            LOGGER.fine("Movimiento de inventario actualizado: " + id + " - " + location);  
+                            LOGGER.fine("Inventario actualizado: " + product + " en " + location);
                         } else {
-                            // Insertar nuevo movimiento de inventario
-                            insertStmt.setString(1, id);
-                            insertStmt.setString(2, location);
-                            insertStmt.setString(3, product);
+                            // 🆕 Insertar
+                            insertStmt.setString(1, location);
+                            insertStmt.setString(2, product);
+                            insertStmt.setString(3, attributeSetInstanceId);
                             insertStmt.setDouble(4, units);
+    
                             insertStmt.executeUpdate();
                             insertados++;
-                            LOGGER.fine("Movimiento de inventario insertado: " + id + " - " + location);
+                            LOGGER.fine("Inventario insertado: " + product + " en " + location);
                         }
+    
                     } catch (Exception e) {
                         errores++;
                         LOGGER.log(Level.WARNING, "Error procesando movimiento de inventario: " + movimiento, e);
                     }
                 }
-                
-                LOGGER.info("Movimientos de inventario procesados: " + insertados + " insertados, " + 
-                           actualizados + " actualizados, " + errores + " errores");    
+    
+                LOGGER.info("Inventario sincronizado: " + insertados + " insertados, " + actualizados + " actualizados, " + errores + " errores.");
                 return errores == 0;
-                
+    
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando inventario", e);
                 return false;
             } finally {
                 try {
-                    PreparedStatement checkStmt = null;
-                    PreparedStatement insertStmt = null;
-                    PreparedStatement updateStmt = null;
-                    PreparedStatement deleteStmt = null;
-                    java.sql.ResultSet rs = null;
-                    java.sql.ResultSet rs2 = null;
                     if (rs != null) rs.close();
                     if (checkStmt != null) checkStmt.close();
                     if (insertStmt != null) insertStmt.close();
                     if (updateStmt != null) updateStmt.close();
-                    if (deleteStmt != null) deleteStmt.close();
-                    if (rs != null) rs.close();
-                    if (rs2 != null) rs2.close();
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
                 }
             }
         });
     }
+    
     
 
 

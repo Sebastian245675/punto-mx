@@ -117,13 +117,13 @@ public class JRootApp extends JPanel implements AppView {
         com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
             new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
         java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
+        selections.put("cierres", true);
         selections.put("usuarios", true);
         selections.put("clientes", true);
         selections.put("categorias", true);
         selections.put("productos", true);
         selections.put("ventas", true);
         selections.put("puntos_historial", true);
-        selections.put("cierres", true);
         selections.put("formas_de_pago", true);
         selections.put("impuestos", true);
         selections.put("config", true);
@@ -483,13 +483,13 @@ public class JRootApp extends JPanel implements AppView {
                         com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
                             new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
                         java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
+                        selections.put("cierres", true);
                         selections.put("usuarios", true);
                         selections.put("clientes", true);
                         selections.put("categorias", true);
                         selections.put("productos", true);
                         selections.put("ventas", true);
                         selections.put("puntos_historial", true);
-                        selections.put("cierres", true);
                         selections.put("formas_de_pago", true);
                         selections.put("impuestos", true);
                         selections.put("config", true);

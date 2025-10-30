@@ -69,7 +69,6 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jVisible.addActionListener(dirty);
         m_jImage.addPropertyChangeListener("image", dirty);
         m_jcard.getDocument().addDocumentListener(dirty);
-        
 
         m_ReasonModel = new ComboBoxValModel<>();
         m_ReasonModel.add(AppLocal.getIntString("cboption.generate"));
