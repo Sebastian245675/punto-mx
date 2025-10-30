@@ -27,7 +27,10 @@ import com.openbravo.pos.scripting.ScriptFactory;
 import com.openbravo.pos.util.RoundUtils;
 import com.openbravo.pos.util.ThumbNailBuilder;
 import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.awt.Insets;
+import javax.swing.BorderFactory;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.beans.PropertyChangeEvent;
@@ -84,6 +87,9 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
                 msg.show(this);
             }
         }
+        
+        // Sebastian - Ajustes simples de UI
+        adjustUIComponents();
     }
 
     @Override
@@ -195,6 +201,79 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
             }
 
             printState();
+        }
+    }
+
+    // Sebastian - Método simple para ajustar UI sin complicaciones
+    private void adjustUIComponents() {
+        // 1. Hacer el keypad súper pequeño y ponerlo en esquina: 20x20
+        if (m_jKeys != null) {
+            m_jKeys.setPreferredSize(new Dimension(20, 20));
+            m_jKeys.setMinimumSize(new Dimension(20, 20));
+            m_jKeys.setMaximumSize(new Dimension(20, 20));
+        }
+        
+        // 2. Regresar el campo de entrada a su tamaño original
+        if (m_jTendered != null) {
+            // Tamaño original: 130x30 pero con fuente un poco más grande
+            m_jTendered.setPreferredSize(new Dimension(130, 30));
+            m_jTendered.setMinimumSize(new Dimension(130, 30));
+            m_jTendered.setMaximumSize(new Dimension(130, 30));
+            
+            // Solo una fuente ligeramente más grande
+            Font currentFont = m_jTendered.getFont();
+            m_jTendered.setFont(currentFont.deriveFont(currentFont.getSize() + 2f));
+        }
+        
+        // Quitar el borde personalizado - regresar al original
+        if (jPanel3 != null) {
+            jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        }
+        
+        // 3. Hacer que ambos campos de visualización sean exactamente iguales
+        Dimension fieldSize = new Dimension(300, 45);
+        
+        if (m_jMoneyEuros != null) {
+            m_jMoneyEuros.setPreferredSize(fieldSize);
+            m_jMoneyEuros.setMinimumSize(fieldSize);
+            m_jMoneyEuros.setMaximumSize(fieldSize);
+            Font currentFont = m_jMoneyEuros.getFont();
+            m_jMoneyEuros.setFont(currentFont.deriveFont(currentFont.getSize() + 4f));
+        }
+        
+        if (m_jChangeEuros != null) {
+            m_jChangeEuros.setPreferredSize(fieldSize);
+            m_jChangeEuros.setMinimumSize(fieldSize);
+            m_jChangeEuros.setMaximumSize(fieldSize);
+            Font currentFont = m_jChangeEuros.getFont();
+            m_jChangeEuros.setFont(currentFont.deriveFont(currentFont.getSize() + 4f));
+        }
+        
+        // Ajustar el panel contenedor y reposicionar los componentes
+        if (jPanel4 != null) {
+            // Hacer el panel más alto para acomodar los campos más grandes
+            jPanel4.setPreferredSize(new Dimension(500, 100));
+            
+            // Reposicionar los componentes con las posiciones absolutas correctas
+            // para que no se recorten
+            if (m_jMoneyEuros != null) {
+                // Mover el campo "Given" a una posición donde se vea completo
+                m_jMoneyEuros.setBounds(120, 4, 320, 45);
+            }
+            
+            if (m_jChangeEuros != null) {
+                // Mover el campo "Change" más abajo para que no se recorte
+                m_jChangeEuros.setBounds(120, 55, 320, 45);
+            }
+            
+            // Reposicionar las etiquetas también
+            if (jLabel8 != null) { // "InputCash"
+                jLabel8.setBounds(10, 4, 100, 45);
+            }
+            
+            if (jLabel6 != null) { // "ChangeCash"
+                jLabel6.setBounds(10, 55, 100, 45);
+            }
         }
     }
 

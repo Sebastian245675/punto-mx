@@ -1,0 +1,99 @@
+[ {
+  "timestamp" : "Thu Oct 30 11:00:21 COT 2025",
+  "table" : "usuarios",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 11:00:21 COT 2025",
+  "table" : "clientes",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 11:00:21 COT 2025",
+  "table" : "categorias",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 11:00:21 COT 2025",
+  "table" : "productos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 11:00:21 COT 2025",
+  "table" : "ventas",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 11:00:21 COT 2025",
+  "table" : "cierres",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 11:00:21 COT 2025",
+  "table" : "impuestos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 13:53:34 COT 2025",
+  "table" : "usuarios",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 13:53:34 COT 2025",
+  "table" : "clientes",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 13:53:34 COT 2025",
+  "table" : "categorias",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 13:53:34 COT 2025",
+  "table" : "productos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 13:53:34 COT 2025",
+  "table" : "ventas",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 13:53:34 COT 2025",
+  "table" : "cierres",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Thu Oct 30 13:53:34 COT 2025",
+  "table" : "impuestos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+} ]
