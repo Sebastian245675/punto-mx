@@ -285,7 +285,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jVisible.setPreferredSize(new java.awt.Dimension(0, 30));
 
         jLabel3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel3.setText("Visible"); // NOI18N
+        jLabel3.setText(AppLocal.getIntString("label.peoplevisible")); // NOI18N
         jLabel3.setPreferredSize(new java.awt.Dimension(110, 30));
 
         jButton1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -329,14 +329,14 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         jLabel6.setPreferredSize(new java.awt.Dimension(110, 30));
 
         jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel4.setText("Nombre Sucursal"); // NOI18N
+        jLabel4.setText(AppLocal.getIntString("label.peoplevisible")); // NOI18N
         jLabel4.setPreferredSize(new java.awt.Dimension(110, 30));
 
         name_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         name_sucursal.setPreferredSize(new java.awt.Dimension(0, 30));
 
         jLabel5.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jLabel5.setText("Direccion Sucursal"); // NOI18N
+        jLabel5.setText(AppLocal.getIntString("label.peoplevisible")); // NOI18N
         jLabel5.setPreferredSize(new java.awt.Dimension(110, 30));
 
         direccion_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -389,7 +389,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         generalPanelLayout.setVerticalGroup(
             generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, generalPanelLayout.createSequentialGroup()
-                .addContainerGap(248, Short.MAX_VALUE)
+                .addContainerGap(250, Short.MAX_VALUE)
                 .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(name_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
@@ -397,7 +397,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(direccion_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(127, 127, 127))
+                .addGap(125, 125, 125))
             .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(generalPanelLayout.createSequentialGroup()
                     .addContainerGap()
