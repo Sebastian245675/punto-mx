@@ -491,20 +491,26 @@ public class FirebaseSyncManagerREST {
                     Map<String, Object> venta = new HashMap<>();
                     venta.put("id", rs.getString("ID"));
                     venta.put("caja", rs.getString("MONEY"));
-                    venta.put("fechaventa", rs.getTimestamp("DATENEW"));
+                
+                    Timestamp fechaVenta = rs.getTimestamp("DATENEW");
+                    if (fechaVenta != null) {
+                        venta.put("fechaventa", fechaVenta.toInstant().toString()); // formato ISO 8601 válido para Supabase
+                    } else {
+                        venta.put("fechaventa", null);
+                    }
+                
                     venta.put("vendedorid", rs.getString("PERSON"));
                     venta.put("vendedornombre", rs.getString("PERSON_NAME"));
                     venta.put("total", rs.getDouble("TOTAL"));
                     venta.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     venta.put("tabla", "receipts");
-                    
-                    // Obtener líneas del ticket
+                
                     List<Map<String, Object>> lineas = getLineasTicket(rs.getString("ID"));
                     venta.put("lineas", lineas);
-                    venta.put("numeroLineas", lineas.size());
-                    
+                
                     ventas.add(venta);
                 }
+                
                 
                 rs.close();
                 stmt.close();
@@ -717,14 +723,24 @@ public class FirebaseSyncManagerREST {
                     pago.put("recibido", rs.getDouble("TENDERED"));
                     pago.put("nombretarjeta", rs.getString("CARDNAME"));
                     pago.put("voucher", rs.getString("VOUCHER"));
-                    pago.put("fechaventa", rs.getTimestamp("DATENEW"));
-                    pago.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    pago.put("fechasincronizacion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                
+                    Timestamp fechaVenta = rs.getTimestamp("DATENEW");
+                    if (fechaVenta != null) {
+                        pago.put("fechaventa", fechaVenta.toInstant().toString()); // ✅ formato ISO 8601
+                    } else {
+                        pago.put("fechaventa", null);
+                    }
+                
+                    String fechaActual = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                    pago.put("fechaextraccion", fechaActual);
+                    pago.put("fechasincronizacion", fechaActual);
                     pago.put("origen", "kriolos-pos");
                     pago.put("version", "1.0");
                     pago.put("tabla", "payments");
+                
                     pagos.add(pago);
                 }
+                
                 rs.close();
                 stmt.close();
                 

@@ -301,7 +301,7 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement insertStmt = null;
             PreparedStatement updateStmt = null;
             java.sql.ResultSet rs = null;
-            
+    
             try {
                 SupabaseServiceREST supabase = new SupabaseServiceREST(
                     "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
@@ -309,24 +309,23 @@ public class FirebaseDownloadManagerREST {
                 );
                 List<Map<String, Object>> clientes = supabase.fetchData("clientes");
                 LOGGER.info("Descargados " + clientes.size() + " clientes desde Firebase");
-                
+    
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
-                // Preparar statements
+    
                 String checkSql = "SELECT ID FROM customers WHERE ID = ?";
                 String insertSql = "INSERT INTO customers (ID, SEARCHKEY, TAXID, NAME, CARD, TAXCATEGORY, " +
-                                  "NOTES, VISIBLE, CURDATE, CURDEBT, MAXDEBT) " +
-                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                                   "NOTES, VISIBLE, CURDATE, CURDEBT, MAXDEBT) " +
+                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 String updateSql = "UPDATE customers SET SEARCHKEY = ?, TAXID = ?, NAME = ?, CARD = ?, " +
-                                  "TAXCATEGORY = ?, NOTES = ?, VISIBLE = ?, CURDATE = ?, CURDEBT = ?, " +
-                                  "MAXDEBT = ? WHERE ID = ?";
-                
+                                   "TAXCATEGORY = ?, NOTES = ?, VISIBLE = ?, CURDATE = ?, CURDEBT = ?, " +
+                                   "MAXDEBT = ? WHERE ID = ?";
+    
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+    
                 for (Map<String, Object> cliente : clientes) {
                     try {
                         String id = (String) cliente.get("id");
@@ -340,45 +339,55 @@ public class FirebaseDownloadManagerREST {
                         String curdate = (String) cliente.get("curdate");
                         Object curdebtObj = cliente.get("curdebt");
                         Object maxdebtObj = cliente.get("maxdebt");
-                        
-                        // Validar que tenga ID
+    
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Cliente sin ID, saltando: " + cliente);
                             errores++;
                             continue;
                         }
-                        
-                        // Verificar si existe
+    
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
-                        // Convertir deudas a BigDecimal
+    
                         BigDecimal curdebt = BigDecimal.ZERO;
                         BigDecimal maxdebt = BigDecimal.ZERO;
-                        
-                        if (curdebtObj != null) {
-                            if (curdebtObj instanceof Number) {
-                                curdebt = new BigDecimal(((Number) curdebtObj).doubleValue());
+    
+                        if (curdebtObj instanceof Number)
+                            curdebt = new BigDecimal(((Number) curdebtObj).doubleValue());
+                        if (maxdebtObj instanceof Number)
+                            maxdebt = new BigDecimal(((Number) maxdebtObj).doubleValue());
+    
+                        // ✅ Convertir fecha si viene en texto ISO (por ejemplo: 2025-10-29T16:20:39.236957+00:00)
+                        Timestamp curDateTimestamp = null;
+                        if (curdate != null && !curdate.isEmpty()) {
+                            try {
+                                curDateTimestamp = Timestamp.from(java.time.Instant.parse(curdate));
+                            } catch (Exception e) {
+                                LOGGER.fine("Fecha inválida para cliente " + id + ": " + curdate);
                             }
                         }
-                        if (maxdebtObj != null) {
-                            if (maxdebtObj instanceof Number) {
-                                maxdebt = new BigDecimal(((Number) maxdebtObj).doubleValue());
-                            }
+    
+                        // ✅ Si taxcategory está vacío o no existe, usar null (para evitar violación de FK)
+                        if (taxcategory != null && taxcategory.trim().isEmpty()) {
+                            taxcategory = null;
                         }
-                        
+    
                         if (existe) {
-                            // Actualizar cliente existente
                             updateStmt.setString(1, searchkey != null ? searchkey : id);
                             updateStmt.setString(2, taxid);
                             updateStmt.setString(3, name != null ? name : "Cliente sin nombre");
                             updateStmt.setString(4, card);
-                            updateStmt.setString(5, taxcategory != null ? taxcategory : "000");
+    
+                            if (taxcategory != null)
+                                updateStmt.setString(5, taxcategory);
+                            else
+                                updateStmt.setNull(5, java.sql.Types.VARCHAR);
+    
                             updateStmt.setString(6, notes);
                             updateStmt.setBoolean(7, visible != null ? visible : true);
-                            updateStmt.setString(8, curdate);
+                            updateStmt.setTimestamp(8, curDateTimestamp);
                             updateStmt.setBigDecimal(9, curdebt);
                             updateStmt.setBigDecimal(10, maxdebt);
                             updateStmt.setString(11, id);
@@ -386,33 +395,40 @@ public class FirebaseDownloadManagerREST {
                             actualizados++;
                             LOGGER.fine("Cliente actualizado: " + id + " - " + name);
                         } else {
-                            // Insertar nuevo cliente
                             insertStmt.setString(1, id);
                             insertStmt.setString(2, searchkey != null ? searchkey : id);
                             insertStmt.setString(3, taxid);
                             insertStmt.setString(4, name != null ? name : "Cliente sin nombre");
                             insertStmt.setString(5, card);
-                            insertStmt.setString(6, taxcategory != null ? taxcategory : "000");
+    
+                            if (taxcategory != null)
+                                insertStmt.setString(6, taxcategory);
+                            else
+                                insertStmt.setNull(6, java.sql.Types.VARCHAR);
+    
                             insertStmt.setString(7, notes);
                             insertStmt.setBoolean(8, visible != null ? visible : true);
-                            insertStmt.setString(9, curdate);
+                            insertStmt.setTimestamp(9, curDateTimestamp);
                             insertStmt.setBigDecimal(10, curdebt);
                             insertStmt.setBigDecimal(11, maxdebt);
                             insertStmt.executeUpdate();
                             insertados++;
                             LOGGER.fine("Cliente insertado: " + id + " - " + name);
                         }
-                        
+    
+                    } catch (java.sql.SQLIntegrityConstraintViolationException fkEx) {
+                        errores++;
+                        LOGGER.warning("Violación de integridad al insertar cliente (FK no válida): " + cliente);
                     } catch (Exception e) {
                         errores++;
                         LOGGER.log(Level.WARNING, "Error procesando cliente: " + cliente, e);
                     }
                 }
-                
-                LOGGER.info("Clientes procesados: " + insertados + " insertados, " + 
+    
+                LOGGER.info("Clientes procesados: " + insertados + " insertados, " +
                            actualizados + " actualizados, " + errores + " errores");
                 return errores == 0;
-                
+    
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando clientes", e);
                 return false;
@@ -428,6 +444,7 @@ public class FirebaseDownloadManagerREST {
             }
         });
     }
+    
     
     /**
      * Descarga categorías desde Firebase e inserta/actualiza en la base local
