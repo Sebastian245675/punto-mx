@@ -40,10 +40,10 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
 
         m_tpeople = new TableDefinition(s,
                 "people",
-                 new String[]{"ID", "NAME", "APPPASSWORD", "ROLE", "VISIBLE", "CARD", "IMAGE"},
-                 new String[]{"ID", AppLocal.getIntString("label.peoplename"), AppLocal.getIntString("label.Password"), AppLocal.getIntString("label.role"), AppLocal.getIntString("label.peoplevisible"), AppLocal.getIntString("label.card"), AppLocal.getIntString("label.peopleimage")},
-                 new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING, Datas.BOOLEAN, Datas.STRING, Datas.IMAGE},
-                 new Formats[]{Formats.STRING, Formats.STRING, Formats.STRING, Formats.STRING, Formats.BOOLEAN, Formats.STRING, Formats.NULL},
+                 new String[]{"ID", "NAME", "APPPASSWORD", "ROLE", "VISIBLE", "CARD", "IMAGE", "BRANCH_NAME", "BRANCH_ADDRESS"},
+                 new String[]{"ID", AppLocal.getIntString("label.peoplename"), AppLocal.getIntString("label.Password"), AppLocal.getIntString("label.role"), AppLocal.getIntString("label.peoplevisible"), AppLocal.getIntString("label.card"), AppLocal.getIntString("label.peopleimage"), "Sucursal (Nombre)", "Sucursal (Dirección)"},
+                 new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING, Datas.BOOLEAN, Datas.STRING, Datas.IMAGE, Datas.STRING, Datas.STRING},
+                 new Formats[]{Formats.STRING, Formats.STRING, Formats.STRING, Formats.STRING, Formats.BOOLEAN, Formats.STRING, Formats.NULL, Formats.STRING, Formats.STRING},
                  new int[]{0}
         );
 
@@ -68,10 +68,10 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
     
 
     private SentenceExec peopleSentenceExecUpdate(){
-        Datas[] resourcedata = new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING, Datas.BOOLEAN, Datas.STRING, Datas.IMAGE};
+        Datas[] resourcedata = new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING, Datas.BOOLEAN, Datas.STRING, Datas.IMAGE, Datas.STRING, Datas.STRING};
          SentenceExec sentupdate = new PreparedSentenceExec(this.s,
-                 "UPDATE people SET NAME = ?, APPPASSWORD = ?, ROLE = ?, VISIBLE = ?, CARD = ?, IMAGE = ? WHERE ID = ?",
-               resourcedata,new int[]{1, 2, 3, 4, 5, 6, 0});
+                 "UPDATE people SET NAME = ?, APPPASSWORD = ?, ROLE = ?, VISIBLE = ?, CARD = ?, IMAGE = ?, BRANCH_NAME = ?, BRANCH_ADDRESS = ? WHERE ID = ?",
+               resourcedata,new int[]{1, 2, 3, 4, 5, 6, 7, 8, 0});
          
         return sentupdate;
     }
@@ -86,10 +86,10 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
     }
     
     private SentenceExec peopleSentenceExecInsert(){
-        Datas[] resourcedata = new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING, Datas.BOOLEAN, Datas.STRING, Datas.IMAGE};
+        Datas[] resourcedata = new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING, Datas.BOOLEAN, Datas.STRING, Datas.IMAGE, Datas.STRING, Datas.STRING};
          SentenceExec sentinsert = new PreparedSentenceExec(this.s,
-                "INSERT INTO people(ID, NAME, APPPASSWORD, ROLE, VISIBLE, CARD, IMAGE) VALUES (?, ?, ?, ?, ?, ?, ?)",
-                resourcedata,new int[]{0, 1, 2, 3, 4, 5, 6});
+                "INSERT INTO people(ID, NAME, APPPASSWORD, ROLE, VISIBLE, CARD, IMAGE, BRANCH_NAME, BRANCH_ADDRESS) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                resourcedata,new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8});
          
         return sentinsert;
     }

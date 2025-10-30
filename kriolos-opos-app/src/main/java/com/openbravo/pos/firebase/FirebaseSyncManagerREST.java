@@ -265,7 +265,7 @@ public class FirebaseSyncManagerREST {
             ResultSet rs = null;
             try {
                 List<Map<String, Object>> usuarios = new ArrayList<>();
-                String sql = "SELECT ID, NAME, CARD, ROLE, VISIBLE, IMAGE FROM people WHERE VISIBLE = true";
+                String sql = "SELECT ID, NAME, CARD, ROLE, VISIBLE, IMAGE, BRANCH_NAME, BRANCH_ADDRESS FROM people WHERE VISIBLE = true";
                 stmt = session.getConnection().prepareStatement(sql);
                 try {
                     stmt.setQueryTimeout(10); // segundos
@@ -281,6 +281,8 @@ public class FirebaseSyncManagerREST {
                     usuario.put("rol", rs.getString("ROLE"));
                     usuario.put("visible", rs.getBoolean("VISIBLE"));
                     usuario.put("tieneimagen", rs.getBytes("IMAGE") != null);
+                    usuario.put("sucursal_nombre", rs.getString("BRANCH_NAME"));
+                    usuario.put("sucursal_direccion", rs.getString("BRANCH_ADDRESS"));
                     usuario.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     usuario.put("tabla", "people");
                     usuarios.add(usuario);

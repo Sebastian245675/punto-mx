@@ -152,4 +152,158 @@
   "response_code" : 204,
   "success" : true,
   "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:30 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 7,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:31 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:31 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:31 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:31 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:32 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST102\",\"details\":null,\"hint\":null,\"message\":\"All object keys must match\"}"
+}, {
+  "timestamp" : "Thu Oct 30 15:21:32 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:32 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:33 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:33 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:21:33 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST102\",\"details\":null,\"hint\":null,\"message\":\"All object keys must match\"}"
+}, {
+  "timestamp" : "Thu Oct 30 15:24:09 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 8,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:10 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:10 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:10 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:10 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:11 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST102\",\"details\":null,\"hint\":null,\"message\":\"All object keys must match\"}"
+}, {
+  "timestamp" : "Thu Oct 30 15:24:11 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:11 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:11 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:11 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Thu Oct 30 15:24:12 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST102\",\"details\":null,\"hint\":null,\"message\":\"All object keys must match\"}"
 } ]

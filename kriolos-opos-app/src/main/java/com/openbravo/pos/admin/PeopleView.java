@@ -92,6 +92,8 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jVisible.setSelected(false);
         m_jcard.setText(null);
         m_jImage.setImage(null);
+        name_sucursal.setText(null);
+        direccion_sucursal.setText(null);
     }
     private void disableFields(){
         m_jName.setEnabled(false);
@@ -144,6 +146,13 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jVisible.setSelected(((Boolean) people[4]));
         m_jcard.setText(Formats.STRING.formatValue((String)people[5]));
         m_jImage.setImage((BufferedImage) people[6]);
+        if (people.length > 8) {
+            name_sucursal.setText(Formats.STRING.formatValue((String)people[7]));
+            direccion_sucursal.setText(Formats.STRING.formatValue((String)people[8]));
+        } else {
+            name_sucursal.setText(null);
+            direccion_sucursal.setText(null);
+        }
         
         disableFields();
     }
@@ -162,6 +171,13 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jVisible.setSelected(((Boolean) people[4]));
         m_jcard.setText(Formats.STRING.formatValue((String)people[5]));
         m_jImage.setImage((BufferedImage) people[6]);
+        if (people.length > 8) {
+            name_sucursal.setText(Formats.STRING.formatValue((String)people[7]));
+            direccion_sucursal.setText(Formats.STRING.formatValue((String)people[8]));
+        } else {
+            name_sucursal.setText(null);
+            direccion_sucursal.setText(null);
+        }
         
         if (m_jcard.getText().length() == 16) {
             jLblCardID.setText(AppLocal.getIntString("label.ibutton"));
@@ -179,7 +195,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
      */
     @Override
     public Object createValue() throws BasicException {
-        Object[] people = new Object[7];
+        Object[] people = new Object[9];
         people[0] = m_oId == null ? UUID.randomUUID().toString() : m_oId;
         people[1] = Formats.STRING.parseValue(m_jName.getText());
         people[2] = Formats.STRING.parseValue(m_sPassword);
@@ -187,6 +203,8 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         people[4] = m_jVisible.isSelected();
         people[5] = Formats.STRING.parseValue(m_jcard.getText());
         people[6] = m_jImage.getImage();
+        people[7] = Formats.STRING.parseValue(name_sucursal != null ? name_sucursal.getText() : null);
+        people[8] = Formats.STRING.parseValue(direccion_sucursal != null ? direccion_sucursal.getText() : null);
         return people;
     }
 
@@ -238,6 +256,10 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         jLblCardID = new javax.swing.JLabel();
         webCBSecurity = new javax.swing.JComboBox();
         jLabel6 = new javax.swing.JLabel();
+        jLabel4 = new javax.swing.JLabel();
+        name_sucursal = new javax.swing.JTextField();
+        jLabel5 = new javax.swing.JLabel();
+        direccion_sucursal = new javax.swing.JTextField();
         imagePanel = new javax.swing.JPanel();
         m_jImage = new com.openbravo.data.gui.JImageEditor();
 
@@ -264,7 +286,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jVisible.setPreferredSize(new java.awt.Dimension(0, 30));
 
         jLabel3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel3.setText(AppLocal.getIntString("label.peoplevisible")); // NOI18N
+        jLabel3.setText("Visible"); // NOI18N
         jLabel3.setPreferredSize(new java.awt.Dimension(110, 30));
 
         jButton1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -307,11 +329,36 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         jLabel6.setText(AppLocal.getIntString("label.Password")); // NOI18N
         jLabel6.setPreferredSize(new java.awt.Dimension(110, 30));
 
+        jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel4.setText("Nombre Sucursal"); // NOI18N
+        jLabel4.setPreferredSize(new java.awt.Dimension(110, 30));
+
+        name_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        name_sucursal.setPreferredSize(new java.awt.Dimension(0, 30));
+
+        jLabel5.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jLabel5.setText("Direccion Sucursal"); // NOI18N
+        jLabel5.setPreferredSize(new java.awt.Dimension(110, 30));
+
+        direccion_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        direccion_sucursal.setPreferredSize(new java.awt.Dimension(0, 30));
+
         javax.swing.GroupLayout generalPanelLayout = new javax.swing.GroupLayout(generalPanel);
         generalPanel.setLayout(generalPanelLayout);
         generalPanelLayout.setHorizontalGroup(
             generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 650, Short.MAX_VALUE)
+            .addGroup(generalPanelLayout.createSequentialGroup()
+                .addContainerGap()
+                .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(generalPanelLayout.createSequentialGroup()
+                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(name_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(generalPanelLayout.createSequentialGroup()
+                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(direccion_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                .addContainerGap(186, Short.MAX_VALUE))
             .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(generalPanelLayout.createSequentialGroup()
                     .addContainerGap()
@@ -342,7 +389,16 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         );
         generalPanelLayout.setVerticalGroup(
             generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGap(0, 267, Short.MAX_VALUE)
+            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, generalPanelLayout.createSequentialGroup()
+                .addContainerGap(248, Short.MAX_VALUE)
+                .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(name_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(18, 18, 18)
+                .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(direccion_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(127, 127, 127))
             .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(generalPanelLayout.createSequentialGroup()
                     .addContainerGap()
@@ -478,12 +534,15 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JTextField direccion_sucursal;
     private javax.swing.JPanel generalPanel;
     private javax.swing.JPanel imagePanel;
     private javax.swing.JButton jButton1;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
+    private javax.swing.JLabel jLabel4;
+    private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JLabel jLblCardID;
     private javax.swing.JTabbedPane jTabbedPane1;
@@ -492,6 +551,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
     private javax.swing.JComboBox m_jRole;
     private javax.swing.JCheckBox m_jVisible;
     private javax.swing.JTextField m_jcard;
+    private javax.swing.JTextField name_sucursal;
     private javax.swing.JComboBox webCBSecurity;
     // End of variables declaration//GEN-END:variables
     
