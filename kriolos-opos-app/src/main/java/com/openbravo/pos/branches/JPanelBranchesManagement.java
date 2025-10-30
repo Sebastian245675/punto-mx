@@ -23,6 +23,13 @@ import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import com.openbravo.pos.forms.JPanelView;
 import javax.swing.JComponent;
+import com.openbravo.pos.supabase.SupabaseServiceREST;
+import java.util.List;
+import java.util.Map;
+import java.time.Instant;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class JPanelBranchesManagement extends JPanel implements JPanelView, BeanFactoryApp {
 
@@ -92,7 +99,7 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         modelBranches = new DefaultTableModel(branchColumns, 0);
         jTableBranches = new JTable(modelBranches);
 
-        String[] salesColumns = {"ID Venta", "Fecha", "Total", "Sucursal"};
+        String[] salesColumns = {"ID Venta", "Fecha", "Total", "Sucursal/Caja"};
         modelSales = new DefaultTableModel(salesColumns, 0);
         jTableSales = new JTable(modelSales);
 
@@ -184,19 +191,42 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         modelSales.setRowCount(0); // Clear previous results
 
         try {
-            String sql = "SELECT S.ID, S.DATE, S.TOTAL, L.NAME FROM SALES S JOIN LOCATIONS L ON S.LOCATION = L.ID ORDER BY S.DATE DESC";
-            new PreparedSentence<Object, Object[]>(m_session, sql, null, new SerializerRead<Object[]>() {
-                @Override
-                public Object[] readValues(DataRead dr) throws BasicException {
-                    Object[] row = new Object[4];
-                    row[0] = dr.getString(1);
-                    row[1] = dr.getTimestamp(2);
-                    row[2] = dr.getDouble(3);
-                    row[3] = dr.getString(4);
-                    return row;
+            SupabaseServiceREST supabase = new SupabaseServiceREST(
+                "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+            );
+
+            List<Map<String, Object>> ventas = supabase.fetchData("ventas");
+            List<Object[]> rows = new ArrayList<>();
+            for (Map<String, Object> venta : ventas) {
+                Object id = venta.get("id");
+                Object fechaIso = venta.get("fechaventa");
+                Object totalVal = venta.get("total");
+                Object cajaVal = venta.get("caja");
+
+                Timestamp fechaTs = null;
+                if (fechaIso instanceof String) {
+                    try {
+                        fechaTs = Timestamp.from(Instant.parse((String) fechaIso));
+                    } catch (Exception ignore) {
+                        fechaTs = null;
+                    }
                 }
-            }).list().forEach(row -> modelSales.addRow((Object[]) row));
-        } catch (BasicException ex) {
+
+                Double total = null;
+                if (totalVal instanceof Number) {
+                    total = ((Number) totalVal).doubleValue();
+                } else if (totalVal instanceof String) {
+                    try { total = Double.valueOf((String) totalVal); } catch (Exception ignore) { total = null; }
+                }
+
+                String caja = cajaVal != null ? String.valueOf(cajaVal) : null;
+
+                rows.add(new Object[] { id, fechaTs, total, caja });
+            }
+            rows.sort(Comparator.comparing((Object[] r) -> (Timestamp) r[1], Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+            for (Object[] r : rows) modelSales.addRow(r);
+        } catch (Exception ex) {
             ex.printStackTrace();
             // TODO: Handle exception gracefully
         }
