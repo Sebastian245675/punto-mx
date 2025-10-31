@@ -631,11 +631,11 @@ public class FirebaseSyncManagerREST {
                 
                 // Obtener cierres con información de dinero desde receipts
                 String sql = "SELECT cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, " +
-                           "COALESCE(SUM(p.TOTAL), 0.0) as MONTO_TOTAL " +
+                           "COALESCE(SUM(p.TOTAL), 0.0) as MONTO_TOTAL, cc.INITIAL_AMOUNT " +
                            "FROM closedcash cc " +
                            "LEFT JOIN receipts r ON r.DATENEW >= cc.DATESTART AND r.DATENEW <= cc.DATEEND " +
                            "LEFT JOIN payments p ON p.RECEIPT = r.ID " +
-                           "GROUP BY cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND " +
+                           "GROUP BY cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, cc.INITIAL_AMOUNT " +
                            "ORDER BY cc.DATEEND DESC";
                 
                 PreparedStatement stmt = session.getConnection().prepareStatement(sql);
@@ -655,6 +655,13 @@ public class FirebaseSyncManagerREST {
                     cierre.put("origen", "kriolos-pos");
                     cierre.put("version", "1.0");
                     cierre.put("tabla", "closedcash");
+                    // initial_amount es DOUBLE, manejar NULL correctamente
+                    double initialAmount = rs.getDouble("INITIAL_AMOUNT");
+                    if (rs.wasNull()) {
+                        cierre.put("initial_amount", null);
+                    } else {
+                        cierre.put("initial_amount", initialAmount);
+                    }
                     cierres.add(cierre);
                 }
                 rs.close();

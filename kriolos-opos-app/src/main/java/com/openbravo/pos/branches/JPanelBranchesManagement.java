@@ -71,6 +71,23 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
 
     @Override
     public void activate() throws BasicException {
+        // Llamar a la función RPC de Supabase para actualizar totales de cierre
+        try {
+            SupabaseServiceREST supabase = new SupabaseServiceREST(
+                "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+            );
+            boolean success = supabase.callRPC("onactualizardinero_tarjeta_cierres", null);
+            if (success) {
+                System.out.println("Función actualizar_totales_cierre ejecutada exitosamente");
+            } else {
+                System.err.println("Error al ejecutar actualizar_totales_cierre");
+            }
+        } catch (Exception e) {
+            System.err.println("Error al llamar actualizar_totales_cierre: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
         searchBranches(); // Load all branches initially
         loadSales();
         loadCashClosures();
@@ -101,7 +118,7 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         modelSales = new DefaultTableModel(salesColumns, 0);
         jTableSales = new JTable(modelSales);
 
-        String[] cashClosureColumns = {"ID Cierre", "Fecha Inicio", "Fecha Fin", "Efectivo", "Tarjeta", "Total", "Sucursal"};
+        String[] cashClosureColumns = {"ID Cierre", "Fecha Inicio", "Fecha Fin", "Monto Inicial", "Efectivo", "Tarjeta", "Total", "Sucursal"};
         modelCashClosures = new DefaultTableModel(cashClosureColumns, 0);
         jTableCashClosures = new JTable(modelCashClosures);
 
@@ -318,6 +335,7 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                 Object fechaFin = cierre.get("fechafin");
                 Object efectivoVal = cierre.get("cierre_efectivo");
                 Object tarjetaVal = cierre.get("cierre_card");
+                Object initialAmountVal = cierre.get("initial_amount");
                 Object dineroid = cierre.get("dineroid");
 
                 // Parsear fechas desde timestamp en milisegundos
@@ -363,6 +381,14 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                     continue; // Saltar esta fila si no tiene fecha fin
                 }
 
+                // Parsear monto inicial
+                Double montoInicial = null;
+                if (initialAmountVal instanceof Number) {
+                    montoInicial = ((Number) initialAmountVal).doubleValue();
+                } else if (initialAmountVal instanceof String) {
+                    try { montoInicial = Double.valueOf((String) initialAmountVal); } catch (Exception ignore) {}
+                }
+
                 // Parsear efectivo y tarjeta
                 Double efectivo = null;
                 if (efectivoVal instanceof Number) {
@@ -380,8 +406,8 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
 
                 // Calcular total
                 Double total = null;
-                if (efectivo != null && tarjeta != null) {
-                    total = efectivo + tarjeta;
+                if (efectivo != null && tarjeta != null && montoInicial != null) {
+                    total = efectivo + tarjeta + montoInicial;
                 } else if (efectivo != null) {
                     total = efectivo;
                 } else if (tarjeta != null) {
@@ -402,6 +428,7 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                     id,
                     fechaInicioTs,
                     fechaFinTs,
+                    montoInicial,
                     efectivo,
                     tarjeta,
                     total,
