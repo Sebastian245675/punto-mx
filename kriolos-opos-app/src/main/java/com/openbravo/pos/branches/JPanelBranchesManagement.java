@@ -5,9 +5,6 @@ package com.openbravo.pos.branches;
 
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.basic.BasicException;
-import com.openbravo.data.loader.DataRead;
-import com.openbravo.data.loader.PreparedSentence;
-import com.openbravo.data.loader.SerializerRead;
 import com.openbravo.data.loader.Session;
 import com.openbravo.pos.forms.BeanFactoryApp;
 import com.openbravo.pos.forms.BeanFactoryException;
@@ -38,15 +35,12 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     private JTabbedPane jTabbedPane1;
     private JPanel jPanelSearchBranch;
     private JPanel jPanelSales;
-    private JPanel jPanelProducts;
     private JPanel jPanelCashClosures;
     private JTextField jTextFieldBranchName;
     private JTable jTableBranches;
     private DefaultTableModel modelBranches;
     private JTable jTableSales;
     private DefaultTableModel modelSales;
-    private JTable jTableProducts;
-    private DefaultTableModel modelProducts;
     private JTable jTableCashClosures;
     private DefaultTableModel modelCashClosures;
 
@@ -79,7 +73,6 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     public void activate() throws BasicException {
         searchBranches(); // Load all branches initially
         loadSales();
-        loadProducts();
         loadCashClosures();
     }
 
@@ -91,7 +84,6 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     private void refreshAllData() throws BasicException {
         searchBranches(); // No lanza BasicException, solo maneja Exception
         loadSales(); // No lanza BasicException, solo maneja Exception
-        loadProducts();
         loadCashClosures();
     }
     
@@ -99,7 +91,6 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         jTabbedPane1 = new JTabbedPane();
         jPanelSearchBranch = new JPanel();
         jPanelSales = new JPanel();
-        jPanelProducts = new JPanel();
         jPanelCashClosures = new JPanel();
         jTextFieldBranchName = new JTextField(20);
         String[] branchColumns = {"ID", "Nombre", "Dirección"};
@@ -109,10 +100,6 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         String[] salesColumns = {"ID Venta", "Fecha", "Total", "Sucursal/Caja"};
         modelSales = new DefaultTableModel(salesColumns, 0);
         jTableSales = new JTable(modelSales);
-
-        String[] productColumns = {"ID Producto", "Nombre", "Precio", "Sucursal", "Stock"};
-        modelProducts = new DefaultTableModel(productColumns, 0);
-        jTableProducts = new JTable(modelProducts);
 
         String[] cashClosureColumns = {"ID Cierre", "Fecha Inicio", "Fecha Fin", "Efectivo", "Tarjeta", "Total", "Sucursal"};
         modelCashClosures = new DefaultTableModel(cashClosureColumns, 0);
@@ -166,11 +153,6 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         jPanelSales.setLayout(new BorderLayout());
         jPanelSales.add(new JScrollPane(jTableSales), BorderLayout.CENTER);
         jTabbedPane1.addTab("Ver Ventas", jPanelSales);
-
-        // Panel Ver Productos
-        jPanelProducts.setLayout(new BorderLayout());
-        jPanelProducts.add(new JScrollPane(jTableProducts), BorderLayout.CENTER);
-        jTabbedPane1.addTab("Ver Productos", jPanelProducts);
 
         // Panel Ver Cierres de Caja
         jPanelCashClosures.setLayout(new BorderLayout());
@@ -292,29 +274,6 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
             rows.sort(Comparator.comparing((Object[] r) -> (Timestamp) r[1], Comparator.nullsLast(Comparator.naturalOrder())).reversed());
             for (Object[] r : rows) modelSales.addRow(r);
         } catch (Exception ex) {
-            ex.printStackTrace();
-            // TODO: Handle exception gracefully
-        }
-    }
-
-    private void loadProducts() throws BasicException {
-        modelProducts.setRowCount(0); // Clear previous results
-
-        try {
-            String sql = "SELECT P.ID, P.NAME, P.PRICEBUY, L.NAME, S.UNITS FROM PRODUCTS P JOIN STOCKCURRENT S ON P.ID = S.PRODUCT JOIN LOCATIONS L ON S.LOCATION = L.ID ORDER BY P.NAME";
-            new PreparedSentence<Object, Object[]>(m_session, sql, null, new SerializerRead<Object[]>() {
-                @Override
-                public Object[] readValues(DataRead dr) throws BasicException {
-                    Object[] row = new Object[5];
-                    row[0] = dr.getString(1);
-                    row[1] = dr.getString(2);
-                    row[2] = dr.getDouble(3);
-                    row[3] = dr.getString(4);
-                    row[4] = dr.getDouble(5);
-                    return row;
-                }
-            }).list().forEach(row -> modelProducts.addRow((Object[]) row));
-        } catch (BasicException ex) {
             ex.printStackTrace();
             // TODO: Handle exception gracefully
         }
