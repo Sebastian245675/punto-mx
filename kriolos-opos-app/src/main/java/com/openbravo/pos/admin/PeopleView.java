@@ -329,14 +329,14 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         jLabel6.setPreferredSize(new java.awt.Dimension(110, 30));
 
         jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel4.setText(AppLocal.getIntString("label.peoplevisible")); // NOI18N
+        jLabel4.setText("Sucursal (Nombre)"); // etiqueta específica para nombre de sucursal
         jLabel4.setPreferredSize(new java.awt.Dimension(110, 30));
 
         name_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         name_sucursal.setPreferredSize(new java.awt.Dimension(0, 30));
 
         jLabel5.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jLabel5.setText(AppLocal.getIntString("label.peoplevisible")); // NOI18N
+        jLabel5.setText("Sucursal (Dirección)"); // etiqueta específica para dirección de sucursal
         jLabel5.setPreferredSize(new java.awt.Dimension(110, 30));
 
         direccion_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N

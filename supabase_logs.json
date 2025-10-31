@@ -614,4 +614,543 @@
   "response_code" : 201,
   "success" : true,
   "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:34 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 5,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:34 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:35 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:35 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:35 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:35 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:36 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:36 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:36 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:36 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:16:37 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:41 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 5,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:41 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:41 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:41 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:42 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:42 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:42 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:42 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:43 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:43 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:26:43 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:43 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 5,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:43 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:43 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:43 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:44 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:44 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:44 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:44 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:45 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:45 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:31:45 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:52 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 5,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:53 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:53 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:53 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:53 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"23502\",\"details\":\"Failing row contains (5e497f97-08ec-4220-b62e-b70647a7145e, 15b61355-4516-4be0-b4ca-0782cfdbc35c, 2025-10-31 16:14:32.822+00, , null, 869.57, null, 2025-10-31 11:32:53.518449+00, receipts, [{\\\"precio\\\": 869.57, \\\"cantidad\\\": 1.0, \\\"subtotal\\\": 869.57, \\\"atribu...).\",\"hint\":null,\"message\":\"null value in column \\\"vendedornombre\\\" of relation \\\"ventas\\\" violates not-null constraint\"}"
+}, {
+  "timestamp" : "Fri Oct 31 11:32:54 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:54 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:54 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:54 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:54 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:32:55 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:14 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 5,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:15 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:15 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:15 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:15 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"23502\",\"details\":\"Failing row contains (5e497f97-08ec-4220-b62e-b70647a7145e, 15b61355-4516-4be0-b4ca-0782cfdbc35c, 2025-10-31 16:14:32.822+00, , null, 869.57, null, 2025-10-31 11:33:15.537036+00, receipts, [{\\\"precio\\\": 869.57, \\\"cantidad\\\": 1.0, \\\"subtotal\\\": 869.57, \\\"atribu...).\",\"hint\":null,\"message\":\"null value in column \\\"vendedornombre\\\" of relation \\\"ventas\\\" violates not-null constraint\"}"
+}, {
+  "timestamp" : "Fri Oct 31 11:33:15 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:16 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:16 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:16 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:16 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:33:17 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:11 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 5,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:12 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:12 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:12 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:12 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:12 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:13 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:13 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:13 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:13 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:34:13 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:14 GMT-05:00 2025",
+  "table" : "usuarios",
+  "records_sent" : 5,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:15 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:15 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:15 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:15 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:15 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:16 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:16 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:16 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:16 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Fri Oct 31 11:38:16 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
 } ]
