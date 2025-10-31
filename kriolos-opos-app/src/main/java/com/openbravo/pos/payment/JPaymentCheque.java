@@ -21,9 +21,12 @@ import com.openbravo.pos.forms.AppConfig;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.util.RoundUtils;
 import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
+import javax.swing.BorderFactory;
 
 /**
  *
@@ -46,6 +49,9 @@ public class JPaymentCheque extends javax.swing.JPanel implements JPaymentInterf
         
         m_jTendered.addPropertyChangeListener("Edition", new RecalculateState());
         m_jTendered.addEditorKeys(m_jKeys);
+        
+        // Sebastian - Ajustes simples de UI (misma metodología que Cash)
+        adjustUIComponents();
     }
     
     /**
@@ -106,6 +112,49 @@ public class JPaymentCheque extends javax.swing.JPanel implements JPaymentInterf
             printState();
         }
     }     
+
+    // Sebastian - Método para ajustar UI (misma metodología que Cash)
+    private void adjustUIComponents() {
+        // 1. Hacer el keypad súper pequeño: 20x20
+        if (m_jKeys != null) {
+            m_jKeys.setPreferredSize(new Dimension(20, 20));
+            m_jKeys.setMinimumSize(new Dimension(20, 20));
+            m_jKeys.setMaximumSize(new Dimension(20, 20));
+        }
+        
+        // 2. Mantener el campo de entrada en su tamaño original pero con fuente un poco más grande
+        if (m_jTendered != null) {
+            // Solo aumentar ligeramente la fuente
+            Font currentFont = m_jTendered.getFont();
+            m_jTendered.setFont(currentFont.deriveFont(currentFont.getSize() + 2f));
+        }
+        
+        // 3. Agrandar el campo de visualización proporcionalmente
+        if (m_jMoneyEuros != null) {
+            // Hacerlo más grande: 300x45
+            m_jMoneyEuros.setPreferredSize(new Dimension(300, 45));
+            m_jMoneyEuros.setMinimumSize(new Dimension(300, 45));
+            m_jMoneyEuros.setMaximumSize(new Dimension(300, 45));
+            Font currentFont = m_jMoneyEuros.getFont();
+            m_jMoneyEuros.setFont(currentFont.deriveFont(currentFont.getSize() + 4f));
+        }
+        
+        // 4. Ajustar el panel contenedor y reposicionar componentes
+        if (jPanel4 != null) {
+            // Hacer el panel más alto para acomodar el campo más grande
+            jPanel4.setPreferredSize(new Dimension(400, 60));
+            
+            // Reposicionar el campo "Given" para que se vea completo
+            if (m_jMoneyEuros != null) {
+                m_jMoneyEuros.setBounds(120, 4, 320, 45);
+            }
+            
+            // Reposicionar la etiqueta también
+            if (jLabel8 != null) { // "InputCash"
+                jLabel8.setBounds(10, 4, 100, 45);
+            }
+        }
+    }
     
     /** This method is called from within the constructor to
      * initialize the form.

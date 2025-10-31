@@ -20,8 +20,11 @@ import com.openbravo.pos.customers.CustomerInfoExt;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.util.RoundUtils;
 import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.Font;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
+import javax.swing.BorderFactory;
 
 /**
  *
@@ -46,6 +49,9 @@ public class JPaymentSlip extends javax.swing.JPanel implements JPaymentInterfac
         
         m_jTendered.addPropertyChangeListener("Edition", new RecalculateState());
         m_jTendered.addEditorKeys(m_jKeys);
+        
+        // Apply UI enhancements
+        adjustUIComponents();
                
     }
     
@@ -163,6 +169,29 @@ public class JPaymentSlip extends javax.swing.JPanel implements JPaymentInterfac
 
         add(jPanel4, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
+
+    private void adjustUIComponents() {
+        // Reduce keypad size to mini - 20x20 pixels
+        m_jKeys.setPreferredSize(new Dimension(20, 20));
+        m_jKeys.setBounds(10, 10, 20, 20);
+        
+        // Keep m_jTendered original size but increase font slightly for better visibility
+        Font currentFont = m_jTendered.getFont();
+        m_jTendered.setFont(new Font(currentFont.getName(), currentFont.getStyle(), currentFont.getSize() + 2));
+        
+        // Make m_jMoneyEuros much larger and more visible
+        m_jMoneyEuros.setPreferredSize(new Dimension(300, 45));
+        m_jMoneyEuros.setBounds(120, 4, 300, 45); // Keep same Y position but expand width and height
+        Font moneyFont = m_jMoneyEuros.getFont();
+        m_jMoneyEuros.setFont(new Font(moneyFont.getName(), Font.BOLD, moneyFont.getSize() + 4));
+        m_jMoneyEuros.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(java.awt.Color.DARK_GRAY, 2),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        
+        // Ensure keypad remains connected to m_jTendered
+        m_jTendered.addEditorKeys(m_jKeys);
+    }
     
     
     // Variables declaration - do not modify//GEN-BEGIN:variables
