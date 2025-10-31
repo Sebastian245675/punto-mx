@@ -195,12 +195,15 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
     @Override
     public Object createValue() throws BasicException {
         Object[] people = new Object[9];
-        people[0] = m_oId == null ? UUID.randomUUID().toString() : m_oId;
+        String cardText = m_jcard.getText();
+        boolean hasCard = cardText != null && cardText.length() > 0;
+        String computedId = hasCard ? cardText : (m_oId == null ? UUID.randomUUID().toString() : m_oId);
+        people[0] = computedId;
         people[1] = Formats.STRING.parseValue(m_jName.getText());
         people[2] = Formats.STRING.parseValue(m_sPassword);
         people[3] = m_RoleModel.getSelectedKey();
         people[4] = m_jVisible.isSelected();
-        people[5] = Formats.STRING.parseValue(m_jcard.getText());
+        people[5] = Formats.STRING.parseValue(cardText);
         people[6] = m_jImage.getImage();
         people[7] = Formats.STRING.parseValue(name_sucursal != null ? name_sucursal.getText() : null);
         people[8] = Formats.STRING.parseValue(direccion_sucursal != null ? direccion_sucursal.getText() : null);
@@ -328,15 +331,15 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         jLabel6.setText(AppLocal.getIntString("label.Password")); // NOI18N
         jLabel6.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel4.setText("Sucursal (Nombre)"); // etiqueta específica para nombre de sucursal
+        jLabel4.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        jLabel4.setText("Nombre Sucursal"); // NOI18N
         jLabel4.setPreferredSize(new java.awt.Dimension(110, 30));
 
         name_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         name_sucursal.setPreferredSize(new java.awt.Dimension(0, 30));
 
         jLabel5.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jLabel5.setText("Sucursal (Dirección)"); // etiqueta específica para dirección de sucursal
+        jLabel5.setText("Direccion Sucursal"); // NOI18N
         jLabel5.setPreferredSize(new java.awt.Dimension(110, 30));
 
         direccion_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N

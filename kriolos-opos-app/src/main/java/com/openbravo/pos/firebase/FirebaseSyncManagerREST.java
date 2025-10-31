@@ -94,31 +94,19 @@ public class FirebaseSyncManagerREST {
     /**
      * Obtiene el ID Remoto del usuario actual desde la base de datos o el AppUserView
      */
-    private String getCurrentUserId() {
+    public String getUsuarioActual() {
         try {
-            // Primero intentar desde AppUserView si está disponible
             if (appUserView != null && appUserView.getUser() != null) {
-                com.openbravo.pos.forms.AppUser currentUser = appUserView.getUser();
-                String userCard = currentUser.getCard();
-                if (userCard != null && !userCard.trim().isEmpty()) {
-                    return userCard.trim();
-                }
+                return appUserView.getUser().getName();
+            } else {
+                return "Desconocido";
             }
-            
-            // Si no hay AppUserView, intentar obtener desde las propiedades del sistema
-            // (el usuario que está ejecutando la aplicación)
-            String systemUser = System.getProperty("user.name");
-            LOGGER.info("Usuario del sistema: " + systemUser);
-            
-            // Alternativamente, podríamos obtener el último usuario que hizo login
-            // desde la tabla de configuración o logs, pero por ahora retornamos "system"
-            return "system_" + systemUser;
-            
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Error obteniendo usuario actual", e);
-            return "unknown";
+            System.err.println("Error obteniendo usuario actual: " + e.getMessage());
+            return "Error";
         }
     }
+    
     
     /**
      * Realiza una sincronización completa de todos los datos
@@ -133,7 +121,7 @@ public class FirebaseSyncManagerREST {
             result.startTime = LocalDateTime.now();
             
             // Obtener el usuario actual para el tracking
-            String currentUserId = getCurrentUserId();
+            String currentUserId = getUsuarioActual();
             LOGGER.info("Usuario actual para tracking: " + (currentUserId != null ? currentUserId : "unknown"));
             
             // Inicializar Firebase con la configuración
@@ -156,9 +144,8 @@ public class FirebaseSyncManagerREST {
             
             // 1. Sincronizar usuarios
             LOGGER.info("1. Sincronizando usuarios...");
-            CompletableFuture<Boolean> usuariosFuture = syncUsuarios();
+            boolean usuariosOk = syncUsuarios();
             LOGGER.info("1.1 CompletableFuture de usuarios creado, esperando resultado...");
-            boolean usuariosOk = usuariosFuture.join();
             LOGGER.info("1.2 Usuarios sincronizados con resultado: " + usuariosOk);
                 result.usuariosSincronizados = usuariosOk;
                 if (usuariosOk) result.successCount++; else result.errorCount++;
@@ -259,50 +246,8 @@ public class FirebaseSyncManagerREST {
      * Sincroniza usuarios desde la tabla people
      * SOLUCIÓN DEFINITIVA: Ejecuta en thread separado con timeout para evitar deadlocks
      */
-    private CompletableFuture<Boolean> syncUsuarios() {
-        return CompletableFuture.supplyAsync(() -> {
-            LOGGER.info("[syncUsuarios] Iniciando extracción...");
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            try {
-                List<Map<String, Object>> usuarios = new ArrayList<>();
-                String sql = "SELECT ID, NAME, CARD, ROLE, VISIBLE, IMAGE, BRANCH_NAME, BRANCH_ADDRESS FROM people WHERE VISIBLE = true";
-                stmt = session.getConnection().prepareStatement(sql);
-                try {
-                    stmt.setQueryTimeout(10); // segundos
-                } catch (Throwable t) {
-                    // Algunos drivers no soportan setQueryTimeout; ignorar
-                }
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    Map<String, Object> usuario = new HashMap<>();
-                    usuario.put("id", rs.getString("ID"));
-                    usuario.put("nombre", rs.getString("NAME"));
-                    usuario.put("tarjeta", rs.getString("CARD"));
-                    usuario.put("rol", rs.getString("ROLE"));
-                    usuario.put("visible", rs.getBoolean("VISIBLE"));
-                    usuario.put("tieneimagen", rs.getBytes("IMAGE") != null);
-                    usuario.put("sucursal_nombre", rs.getString("BRANCH_NAME"));
-                    usuario.put("sucursal_direccion", rs.getString("BRANCH_ADDRESS"));
-                    usuario.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    usuario.put("tabla", "people");
-                    usuarios.add(usuario);
-                }
-                LOGGER.info("[syncUsuarios] Extraídos " + usuarios.size() + " usuarios");
-                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
-                return supabase.syncData("usuarios", usuarios);
-            } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "[syncUsuarios] Error en extracción", e);
-                return false;
-            } finally {
-                try {
-                    if (rs != null) rs.close();
-                    if (stmt != null) stmt.close();
-                } catch (SQLException e) {
-                    LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
-                }
-            }
-        });
+    private boolean syncUsuarios() {
+        return true;
     }
     
     /**

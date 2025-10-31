@@ -216,9 +216,9 @@ public class FirebaseDownloadManagerREST {
                 
                 // Preparar statements
                 String checkSql = "SELECT ID FROM people WHERE ID = ?";
-                String insertSql = "INSERT INTO people (ID, NAME, APPPASSWORD, CARD, ROLE, VISIBLE, IMAGE) " +
-                                  "VALUES (?, ?, NULL, ?, ?, ?, NULL)";
-                String updateSql = "UPDATE people SET NAME = ?, CARD = ?, ROLE = ?, VISIBLE = ? WHERE ID = ?";
+                String insertSql = "INSERT INTO people (ID, NAME, APPPASSWORD, CARD, ROLE, VISIBLE, IMAGE, BRANCH_NAME, BRANCH_ADDRESS) " +
+                                  "VALUES (?, ?, NULL, ?, ?, ?, NULL, ?, ?)";
+                String updateSql = "UPDATE people SET NAME = ?, CARD = ?, ROLE = ?, VISIBLE = ?, BRANCH_NAME = ?, BRANCH_ADDRESS = ? WHERE ID = ?";
                 
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
@@ -231,6 +231,8 @@ public class FirebaseDownloadManagerREST {
                         String tarjeta = (String) usuario.get("tarjeta");
                         String rol = (String) usuario.get("rol");
                         Boolean visible = (Boolean) usuario.get("visible");
+                        String sucursalNombre = (String) usuario.get("sucursal_nombre");
+                        String sucursalDireccion = (String) usuario.get("sucursal_direccion");
                         
                         // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
@@ -251,7 +253,9 @@ public class FirebaseDownloadManagerREST {
                             updateStmt.setString(2, tarjeta); // Puede ser null
                             updateStmt.setString(3, rol != null ? rol : "3"); // Role por defecto: Guest
                             updateStmt.setBoolean(4, visible != null ? visible : true);
-                            updateStmt.setString(5, id);
+                            updateStmt.setString(5, sucursalNombre);
+                            updateStmt.setString(6, sucursalDireccion);
+                            updateStmt.setString(7, id);
                             updateStmt.executeUpdate();
                             actualizados++;
                             LOGGER.fine("Usuario actualizado: " + id + " - " + nombre + " (ID Remoto: " + tarjeta + ")");
@@ -262,6 +266,8 @@ public class FirebaseDownloadManagerREST {
                             insertStmt.setString(3, tarjeta); // Puede ser null
                             insertStmt.setString(4, rol != null ? rol : "3"); // Role por defecto: Guest
                             insertStmt.setBoolean(5, visible != null ? visible : true);
+                            insertStmt.setString(6, sucursalNombre);
+                            insertStmt.setString(7, sucursalDireccion);
                             insertStmt.executeUpdate();
                             insertados++;
                             LOGGER.fine("Usuario insertado: " + id + " - " + nombre + " (ID Remoto: " + tarjeta + ")");
@@ -550,6 +556,7 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement updateStmt = null;
             PreparedStatement checkMoneyStmt = null;
             PreparedStatement insertMoneyStmt = null;
+            PreparedStatement seqStmt = null;
             java.sql.ResultSet rs = null;
     
             try {
@@ -557,6 +564,7 @@ public class FirebaseDownloadManagerREST {
                     "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
                     "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
                 );
+    
                 List<Map<String, Object>> ventas = supabase.fetchData("ventas");
                 LOGGER.info("Descargadas " + ventas.size() + " ventas desde Firebase");
     
@@ -564,17 +572,18 @@ public class FirebaseDownloadManagerREST {
                 int actualizados = 0;
                 int errores = 0;
     
-                // Preparar statements
                 String checkSql = "SELECT ID FROM receipts WHERE ID = ?";
                 String insertSql = "INSERT INTO receipts (ID, MONEY, DATENEW, PERSON) VALUES (?, ?, ?, ?)";
                 String updateSql = "UPDATE receipts SET MONEY = ?, DATENEW = ?, PERSON = ? WHERE ID = ?";
                 String checkMoneySql = "SELECT MONEY FROM closedcash WHERE MONEY = ?";
+                String seqSql = "SELECT MAX(HOSTSEQUENCE) FROM closedcash WHERE HOST = ?";
                 String insertMoneySql = "INSERT INTO closedcash (MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND) VALUES (?, ?, ?, ?, ?)";
     
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
                 checkMoneyStmt = session.getConnection().prepareStatement(checkMoneySql);
+                seqStmt = session.getConnection().prepareStatement(seqSql);
                 insertMoneyStmt = session.getConnection().prepareStatement(insertMoneySql);
     
                 for (Map<String, Object> venta : ventas) {
@@ -585,28 +594,41 @@ public class FirebaseDownloadManagerREST {
                         java.sql.Timestamp fechaVentaTs = toSqlTimestamp(rawFechaVenta);
                         String vendedorid = (String) venta.get("vendedorid");
     
-                        // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Venta sin ID, saltando: " + venta);
                             errores++;
                             continue;
                         }
     
-                        // Validar que exista el MONEY en CLOSEDCASH
+                        // Verificar si existe el MONEY (caja)
                         checkMoneyStmt.setString(1, caja);
                         java.sql.ResultSet rsMoney = checkMoneyStmt.executeQuery();
                         boolean moneyExiste = rsMoney.next();
                         rsMoney.close();
     
                         if (!moneyExiste) {
-                            // Insertar MONEY automáticamente
-                            insertMoneyStmt.setString(1, caja);
-                            insertMoneyStmt.setString(2, "unknown"); // Host
-                            insertMoneyStmt.setInt(3, 1); // HostSequence
-                            insertMoneyStmt.setTimestamp(4, new java.sql.Timestamp(System.currentTimeMillis())); // DATESTART
-                            insertMoneyStmt.setNull(5, java.sql.Types.TIMESTAMP); // DATEEND NULL
-                            insertMoneyStmt.executeUpdate();
-                            LOGGER.info("Se creó cierre de caja automáticamente: " + caja);
+                            String host = "default-host";
+    
+                            // Buscar el siguiente HOSTSEQUENCE disponible
+                            seqStmt.setString(1, host);
+                            java.sql.ResultSet rsSeq = seqStmt.executeQuery();
+                            int nextSeq = 1;
+                            if (rsSeq.next()) {
+                                nextSeq = rsSeq.getInt(1) + 1;
+                            }
+                            rsSeq.close();
+    
+                            try {
+                                insertMoneyStmt.setString(1, caja);
+                                insertMoneyStmt.setString(2, host);
+                                insertMoneyStmt.setInt(3, nextSeq);
+                                insertMoneyStmt.setTimestamp(4, new java.sql.Timestamp(System.currentTimeMillis()));
+                                insertMoneyStmt.setNull(5, java.sql.Types.TIMESTAMP);
+                                insertMoneyStmt.executeUpdate();
+                                LOGGER.info("Se creó cierre de caja automáticamente: " + caja + " con HOSTSEQUENCE=" + nextSeq);
+                            } catch (SQLException ex) {
+                                LOGGER.warning("No se pudo insertar cierre de caja (puede existir conflicto): " + ex.getMessage());
+                            }
                         }
     
                         // Verificar si existe la venta
@@ -616,7 +638,6 @@ public class FirebaseDownloadManagerREST {
                         rs.close();
     
                         if (existe) {
-                            // Actualizar venta existente
                             updateStmt.setString(1, caja);
                             updateStmt.setTimestamp(2, fechaVentaTs);
                             updateStmt.setString(3, vendedorid);
@@ -625,7 +646,6 @@ public class FirebaseDownloadManagerREST {
                             actualizados++;
                             LOGGER.fine("Venta actualizada: " + id + " - " + caja);
                         } else {
-                            // Insertar nueva venta
                             insertStmt.setString(1, id);
                             insertStmt.setString(2, caja);
                             insertStmt.setTimestamp(3, fechaVentaTs);
@@ -655,9 +675,11 @@ public class FirebaseDownloadManagerREST {
                 try { if (updateStmt != null) updateStmt.close(); } catch (SQLException ignore) {}
                 try { if (checkMoneyStmt != null) checkMoneyStmt.close(); } catch (SQLException ignore) {}
                 try { if (insertMoneyStmt != null) insertMoneyStmt.close(); } catch (SQLException ignore) {}
+                try { if (seqStmt != null) seqStmt.close(); } catch (SQLException ignore) {}
             }
         });
     }
+    
     
     
     /**
