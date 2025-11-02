@@ -96,4 +96,39 @@
   "response_code" : 500,
   "success" : false,
   "error" : "cqoayydnqyqmhzanfsij.supabase.co"
+}, {
+  "timestamp" : "Sat Nov 01 21:23:39 COT 2025",
+  "table" : "usuarios",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "Connect timed out"
+}, {
+  "timestamp" : "Sat Nov 01 21:23:44 COT 2025",
+  "table" : "clientes",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "Connect timed out"
+}, {
+  "timestamp" : "Sat Nov 01 21:23:49 COT 2025",
+  "table" : "categorias",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "Connect timed out"
+}, {
+  "timestamp" : "Sat Nov 01 21:23:54 COT 2025",
+  "table" : "productos",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "Connect timed out"
+}, {
+  "timestamp" : "Sat Nov 01 21:23:59 COT 2025",
+  "table" : "ventas",
+  "records_sent" : 0,
+  "response_code" : 500,
+  "success" : false,
+  "error" : "Connect timed out"
 } ]
