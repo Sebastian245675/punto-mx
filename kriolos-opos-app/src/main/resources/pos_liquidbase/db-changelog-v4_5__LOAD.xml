@@ -799,5 +799,21 @@
             <column name="id" valueNumeric="1"/>
         </insert>
     </changeSet>
+
+    <!-- Añadir columnas de sucursal a la tabla people -->
+    <changeSet author="farid" id="people-branch-columns-2025-10-30">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <and>
+                    <columnExists tableName="people" columnName="BRANCH_NAME"/>
+                    <columnExists tableName="people" columnName="BRANCH_ADDRESS"/>
+                </and>
+            </not>
+        </preConditions>
+        <addColumn tableName="people">
+            <column name="BRANCH_NAME" type="VARCHAR(255)"/>
+            <column name="BRANCH_ADDRESS" type="VARCHAR(500)"/>
+        </addColumn>
+    </changeSet>
     
 </databaseChangeLog>

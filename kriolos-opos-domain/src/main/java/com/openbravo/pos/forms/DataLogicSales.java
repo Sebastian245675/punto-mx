@@ -1672,6 +1672,13 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 //Ticket Properties
                 byte[] properties = null;
                 try {
+                    // Agregar hostname a los atributos para logging/sync sin romper FKs
+                    try {
+                        String _hn = java.net.InetAddress.getLocalHost().getHostName();
+                        if (ticket.getProperties() != null) {
+                            ticket.getProperties().setProperty("hostname", _hn);
+                        }
+                    } catch (Exception ignore) {}
                     ByteArrayOutputStream o = new ByteArrayOutputStream();
                     ticket.getProperties().storeToXML(o, AppLocal.APP_NAME, "UTF-8");
                     properties = o.toByteArray();
@@ -1683,12 +1690,41 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 SerializerWrite<Object[]> sw = new SerializerWriteBasicExt(
                         new Datas[]{Datas.STRING, Datas.STRING, Datas.TIMESTAMP, Datas.BYTES, Datas.STRING},
                         new int[]{0, 1, 2, 3, 4});
+                // Determinar nombre de equipo (caja) y datos del vendedor
+                String nombreEquipo;
+                try {
+                    nombreEquipo = java.net.InetAddress.getLocalHost().getHostName();
+                } catch (Exception ex) {
+                    nombreEquipo = ticket.getActiveCash(); // fallback al comportamiento previo
+                }
+
+                // Obtener CARD y NAME del usuario actual
+                String currentUserId = ticket.getUser() != null ? ticket.getUser().getId() : null;
+                String currentUserCard = null;
+                String currentUserName = ticket.getUser() != null ? ticket.getUser().getName() : null;
+                try {
+                    Object[] personRow = (Object[]) new PreparedSentence<String, Object[]>(s,
+                            "SELECT CARD, NAME FROM people WHERE ID = ?",
+                            SerializerWriteString.INSTANCE,
+                            new SerializerReadBasic(new Datas[]{Datas.STRING, Datas.STRING}))
+                            .find(currentUserId);
+                    if (personRow != null) {
+                        currentUserCard = (String) personRow[0];
+                        if (currentUserName == null) currentUserName = (String) personRow[1];
+                    }
+                } catch (Exception ignore) {
+                    // si falla, mantenemos null y usamos fallback abajo
+                }
+
+                // PERSON (receipts) ahora es el CARD del usuario actual; si no disponible, usar id previo
+                String receiptsPerson = currentUserCard != null ? currentUserCard : ticket.getProperty("person");
+
                 Object[] params = new Object[]{
                     ticket.getId(),
-                    ticket.getActiveCash(),
+                    ticket.getActiveCash(), // mantener FK a CLOSEDCASH.MONEY
                     ticket.getDate(),
                     properties,
-                    ticket.getProperty("person")};
+                    receiptsPerson};
 
                 //Receipt Prepared
                 new PreparedSentence(s,
@@ -1704,7 +1740,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     ticket.getId(),
                     ticket.getTicketType(),
                     ticket.getTicketId(),
-                    ticket.getUser().getId(),
+                    ticket.getUser().getId(), // mantener PERSON en tickets como ID para no romper joins existentes
                     ticket.getCustomerId(),
                     ticket.getTicketStatus()
                 };

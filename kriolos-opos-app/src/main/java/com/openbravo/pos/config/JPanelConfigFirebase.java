@@ -48,6 +48,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     private boolean userIdValidated = false;
     private String validatedUserId = null;
     
+    private com.openbravo.pos.forms.AppView m_App;
+
     /** Creates new form JPanelConfigFirebase */
     public JPanelConfigFirebase() {
         initComponents();
@@ -95,6 +97,11 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         
         // Deshabilitar los botones de subida/descarga hasta que se valide el ID
         updateButtonsState();
+    }
+
+    public JPanelConfigFirebase(com.openbravo.pos.forms.AppView app) {
+        this();
+        this.m_App = app;
     }
     
     /**
@@ -399,50 +406,42 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         jLabelUserStatus.setText("⏳ Verificando...");
         jLabelUserStatus.setForeground(java.awt.Color.BLUE);
         
-        // Crear configuración temporal
-        AppConfig tempConfig = new AppConfig(null);
-        tempConfig.setProperty("firebase.projectid", jtxtProjectId.getText().trim());
-        tempConfig.setProperty("firebase.apikey", jtxtApiKey.getText().trim());
-        tempConfig.setProperty("firebase.authdomain", jtxtAuthDomain.getText().trim());
-        tempConfig.setProperty("firebase.storagebucket", jtxtStorageBucket.getText().trim());
-        tempConfig.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText().trim());
-        tempConfig.setProperty("firebase.appid", jtxtAppId.getText().trim());
-        
-        // Ejecutar validación en background
+        // Ejecutar validación en background consultando Supabase (validación por CARD)
         SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
             private String userName = null;
             
             @Override
             protected Boolean doInBackground() throws Exception {
                 try {
-                    com.openbravo.pos.firebase.FirebaseServiceREST service = 
-                        com.openbravo.pos.firebase.FirebaseServiceREST.getInstance();
-                    
-                    // Inicializar el servicio
-                    if (!service.initialize(tempConfig)) {
-                        return false;
-                    }
-                    
-                    // Validar que el usuario existe en Firebase (colección roles)
-                    java.util.List<java.util.Map<String, Object>> roles = 
-                        service.downloadRoles().get();
-                    
-                    for (java.util.Map<String, Object> role : roles) {
-                        // Obtener el campo "usuario" que puede ser número o string
-                        Object usuarioObj = role.get("usuario");
-                        String usuarioStr = usuarioObj != null ? usuarioObj.toString() : "";
-                        
-                        // Comparar con el ID ingresado
-                        if (userId.equals(usuarioStr)) {
-                            userName = (String) role.get("nombre");
-                            return true;
+                    com.openbravo.pos.supabase.SupabaseServiceREST supabase =
+                        new com.openbravo.pos.supabase.SupabaseServiceREST(
+                            "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                            "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+                        );
+                    java.util.List<java.util.Map<String, Object>> usuarios = supabase.fetchData("usuarios");
+                    String currentUserName = null;
+                    try {
+                        if (m_App != null && m_App.getAppUserView() != null && m_App.getAppUserView().getUser() != null) {
+                            currentUserName = m_App.getAppUserView().getUser().getName();
+                        }
+                    } catch (Throwable ignore) {}
+                    for (java.util.Map<String, Object> u : usuarios) {
+                        Object card = u.get("tarjeta");
+                        if (card == null) card = u.get("card");
+                        if (card != null && userId.equals(card.toString())) {
+                            Object nombre = u.get("nombre");
+                            if (nombre == null) nombre = u.get("name");
+                            userName = nombre != null ? nombre.toString() : null;
+                            // Requiere match adicional con el usuario logueado (si disponible)
+                            if (currentUserName == null || (userName != null && userName.equalsIgnoreCase(currentUserName))) {
+                                return true;
+                            }
                         }
                     }
-                    
                     return false;
-                } catch (Exception e) {
+                } catch (Exception ex) {
                     java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
-                        .log(java.util.logging.Level.SEVERE, "Error al validar usuario", e);
+                        .log(java.util.logging.Level.SEVERE, "Error validando CARD contra Supabase", ex);
                     return false;
                 }
             }
@@ -456,23 +455,23 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 try {
                     boolean exists = get();
                     if (exists) {
-                        jLabelUserStatus.setText("✓ Usuario válido: " + (userName != null ? userName : userId));
+                        jLabelUserStatus.setText("✓ CARD válido (Supabase): " + (userName != null ? userName : userId));
                         jLabelUserStatus.setForeground(new java.awt.Color(0, 150, 0));
                         
                         // Marcar como validado y guardar el ID
                         userIdValidated = true;
-                        validatedUserId = userId;
+                        validatedUserId = userId; // Usamos el CARD como código habilitante
                         
                         // Habilitar los botones de subida/descarga
                         updateButtonsState();
                         
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "Usuario validado correctamente: " + (userName != null ? userName : userId) + "\n" +
-                            "Ahora puede subir y traer datos desde Firebase.",
+                            "CARD validado en Supabase: " + (userName != null ? userName : userId) + "\n" +
+                            "Ahora puede subir datos a Supabase.",
                             "Validación Exitosa", 
                             JOptionPane.INFORMATION_MESSAGE);
                     } else {
-                        jLabelUserStatus.setText("✗ Usuario no encontrado en la colección roles");
+                        jLabelUserStatus.setText("✗ CARD no encontrado en Supabase");
                         jLabelUserStatus.setForeground(java.awt.Color.RED);
                         
                         // Marcar como no validado
@@ -481,9 +480,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                         updateButtonsState();
                         
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "El ID de usuario '" + userId + "' no existe en la colección roles de Firebase.\n" +
-                            "Por favor verifique el ID o cree el rol en Firebase primero.",
-                            "Usuario No Encontrado", 
+                            "El CARD ingresado no existe en la tabla people o está inactivo.",
+                            "CARD No Válido", 
                             JOptionPane.WARNING_MESSAGE);
                     }
                 } catch (Exception e) {

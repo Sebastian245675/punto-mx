@@ -212,38 +212,40 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             m_jCount.setText(m_PaymentsToClose.printPayments());
             m_jCash.setText(m_PaymentsToClose.printPaymentsTotal());
             
-            // Obtener el monto inicial de la caja abierta
+            // Obtener el monto inicial de la caja abierta basado en HOSTSEQUENCE
             try {
-                String sequenceToFind = m_PaymentsToClose.printSequence();
-                if (sequenceToFind != null && !sequenceToFind.trim().isEmpty()) {
-                    s = m_App.getSession();
-                    con = s.getConnection();
-                    
-                    SQL = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE HOST = ? AND MONEY = ? ORDER BY DATEEND DESC LIMIT 1";
-                    
-                    // Para HSQLDB cambiar LIMIT por TOP
-                    String sdbmanager = m_dlSystem.getDBVersion();
-                    if ("HSQL Database Engine".equals(sdbmanager)) {
-                        SQL = "SELECT TOP 1 INITIAL_AMOUNT FROM CLOSEDCASH WHERE HOST = ? AND MONEY = ? ORDER BY DATEEND DESC";
-                    }
-                    
-                    java.sql.PreparedStatement pstmt = con.prepareStatement(SQL);
-                    pstmt.setString(1, m_App.getProperties().getHost());
-                    pstmt.setString(2, sequenceToFind);
-                    
-                    ResultSet rsInitial = pstmt.executeQuery();
-                    if (rsInitial.next()) {
-                        double initialAmount = rsInitial.getDouble("INITIAL_AMOUNT");
+                int hostSequence = m_PaymentsToClose.getSequence(); // Obtener HOSTSEQUENCE
+                String host = m_App.getProperties().getHost();
+                
+                s = m_App.getSession();
+                con = s.getConnection();
+                
+                SQL = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE HOST = ? AND HOSTSEQUENCE = ? ORDER BY DATEEND DESC LIMIT 1";
+                
+                // Para HSQLDB cambiar LIMIT por TOP
+                String sdbmanager = m_dlSystem.getDBVersion();
+                if ("HSQL Database Engine".equals(sdbmanager)) {
+                    SQL = "SELECT TOP 1 INITIAL_AMOUNT FROM CLOSEDCASH WHERE HOST = ? AND HOSTSEQUENCE = ? ORDER BY DATEEND DESC";
+                }
+                
+                java.sql.PreparedStatement pstmt = con.prepareStatement(SQL);
+                pstmt.setString(1, host);
+                pstmt.setInt(2, hostSequence);
+                
+                ResultSet rsInitial = pstmt.executeQuery();
+                if (rsInitial.next()) {
+                    double initialAmount = rsInitial.getDouble("INITIAL_AMOUNT");
+                    if (!rsInitial.wasNull()) {
                         m_jInitialAmount.setText(Formats.CURRENCY.formatValue(initialAmount));
                     } else {
                         m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
                     }
-                    
-                    rsInitial.close();
-                    pstmt.close();
                 } else {
                     m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
                 }
+                
+                rsInitial.close();
+                pstmt.close();
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Error obteniendo monto inicial: " + e.getMessage(), e);
                 m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
@@ -501,13 +503,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         jLabel3.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         jLabel3.setText(AppLocal.getIntString("label.EndDate")); // NOI18N
         jLabel3.setPreferredSize(new java.awt.Dimension(125, 30));
-        jPanel1.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 10, 150, -1));
+        jPanel1.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 50, 150, -1));
 
         m_jMaxDate.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jMaxDate.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jMaxDate.setEnabled(false);
         m_jMaxDate.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(m_jMaxDate, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 10, -1, -1));
+        jPanel1.add(m_jMaxDate, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 50, -1, -1));
 
         jLabel5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel5.setText(AppLocal.getIntString("label.sales")); // NOI18N
@@ -518,41 +520,41 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         m_jCash.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jCash.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jCash.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(m_jCash, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 260, -1, -1));
+        jPanel1.add(m_jCash, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 320, -1, -1));
 
         jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel4.setText(AppLocal.getIntString("label.cash")); // NOI18N
         jLabel4.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 260, -1, -1));
+        jPanel1.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 320, -1, -1));
 
         m_jInitialAmount.setEditable(false);
         m_jInitialAmount.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jInitialAmount.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jInitialAmount.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(m_jInitialAmount, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 230, -1, -1));
+        jPanel1.add(m_jInitialAmount, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 290, -1, -1));
 
-        jLabelInitialAmount.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelInitialAmount.setFont(new java.awt.Font("Arial", Font.BOLD, 14)); // NOI18N
         jLabelInitialAmount.setText("💰 Fondo Inicial"); // NOI18N
         jLabelInitialAmount.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(jLabelInitialAmount, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 230, -1, -1));
+        jPanel1.add(jLabelInitialAmount, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 290, -1, -1));
 
         m_jCount.setEditable(false);
         m_jCount.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jCount.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jCount.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(m_jCount, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 50, -1, -1));
+        jPanel1.add(m_jCount, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 10, -1, -1));
 
         m_jLinesRemoved.setEditable(false);
         m_jLinesRemoved.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jLinesRemoved.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jLinesRemoved.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(m_jLinesRemoved, new org.netbeans.lib.awtextra.AbsoluteConstraints(513, 360, -1, -1));
+        jPanel1.add(m_jLinesRemoved, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 360, -1, -1));
 
         jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel1.setText(AppLocal.getIntString("label.Tickets")); // NOI18N
         jLabel1.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 50, -1, -1));
-        jPanel1.add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(353, 347, 312, 10));
+        jPanel1.add(jLabel1, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 10, -1, -1));
+        jPanel1.add(jSeparator1, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 350, 315, 10));
 
         m_jScrollTableTicket.setBorder(null);
         m_jScrollTableTicket.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
@@ -576,35 +578,36 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
         jPanel1.add(m_jScrollTableTicket, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 95, -1, -1));
 
+        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
+        
         jLabel9.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel9.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
         jLabel9.setText(bundle.getString("label.linevoids")); // NOI18N
         jLabel9.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(353, 359, -1, -1));
+        jPanel1.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 360, -1, -1));
 
         m_jNoCashSales.setEditable(false);
         m_jNoCashSales.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jNoCashSales.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jNoCashSales.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(m_jNoCashSales, new org.netbeans.lib.awtextra.AbsoluteConstraints(513, 402, -1, -1));
+        jPanel1.add(m_jNoCashSales, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 400, -1, -1));
 
         jLabel8.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel8.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         jLabel8.setText(bundle.getString("label.nocashsales")); // NOI18N
         jLabel8.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(353, 401, -1, -1));
+        jPanel1.add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 400, -1, -1));
 
         m_jSalesTotal.setEditable(false);
-        m_jSalesTotal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jSalesTotal.setFont(new java.awt.Font("Arial", Font.BOLD, 14)); // NOI18N
         m_jSalesTotal.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
         m_jSalesTotal.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(m_jSalesTotal, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 220, -1, -1));
+        jPanel1.add(m_jSalesTotal, new org.netbeans.lib.awtextra.AbsoluteConstraints(510, 250, -1, -1));
 
-        jLabel7.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabel7.setFont(new java.awt.Font("Arial", Font.BOLD, 14)); // NOI18N
         jLabel7.setText(AppLocal.getIntString("label.total")); // NOI18N
         jLabel7.setPreferredSize(new java.awt.Dimension(150, 30));
-        jPanel1.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 220, -1, -1));
+        jPanel1.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(350, 250, -1, -1));
 
         jLabel12.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel12.setText(AppLocal.getIntString("label.taxes")); // NOI18N

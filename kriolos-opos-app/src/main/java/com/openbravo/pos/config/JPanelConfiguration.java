@@ -53,8 +53,53 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
      * @param oApp
      */
     public JPanelConfiguration(AppView oApp) {
-        this(oApp.getProperties());
+        initComponents();
+        config = new AppConfig(oApp.getProperties().getConfigFile());
+
+        m_panelconfig = new ArrayList<>();
+
+        PanelConfig panel;
+
+        panel = new JPanelConfigDatabase();
+        m_panelconfig.add(panel);
+        jPanelDatabase.add(panel.getConfigComponent());
+
+        // Sebastian - Agregar panel de configuración Firebase (pasando AppView)
+        panel = new JPanelConfigFirebase(oApp);
+        m_panelconfig.add(panel);
+        jPanelFirebase.add(panel.getConfigComponent());
+
+        panel = new JPanelConfigGeneral();
+        m_panelconfig.add(panel);
+        jPanelGeneral.add(panel.getConfigComponent());
+
+        panel = new JPanelConfigLocale();
+        m_panelconfig.add(panel);
+        jPanelLocale.add(panel.getConfigComponent());
+
+        panel = new JPanelConfigPayment();
+        m_panelconfig.add(panel);
+        jPanelPayment.add(panel.getConfigComponent());
+
+        panel = new JPanelConfigPeripheral();
+        m_panelconfig.add(panel);
+        jPanelPeripheral.add(panel.getConfigComponent());
+
+        panel = new JPanelConfigSystem();
+        m_panelconfig.add(panel);
+        jPanelSystem.add(panel.getConfigComponent());
+
+        panel = new JPanelTicketSetup();
+        m_panelconfig.add(panel);
+        jPanelTicketSetup.add(panel.getConfigComponent());
+
+        panel = new JPanelConfigCompany();
+        m_panelconfig.add(panel);
+        jPanelCompany.add(panel.getConfigComponent());
+
         jbtnExit.setVisible(false);
+
+        loadProperties();
     }
 
     /**

@@ -239,4 +239,71 @@ public class SupabaseServiceREST {
 
         return resultList;
     }
+
+    /**
+     * Llama a una función RPC en Supabase
+     * @param functionName Nombre de la función RPC
+     * @param params Parámetros para la función (Map o null si no hay parámetros)
+     * @return true si la llamada fue exitosa, false en caso contrario
+     */
+    public boolean callRPC(String functionName, Map<String, Object> params) {
+        HttpURLConnection conn = null;
+        try {
+            URL url = new URL(baseUrl + "/rpc/" + functionName);
+            conn = (HttpURLConnection) url.openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("apikey", apiKey);
+            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setConnectTimeout(CONNECT_TIMEOUT_MS);
+            conn.setReadTimeout(READ_TIMEOUT_MS);
+            conn.setDoOutput(true);
+            conn.setDoInput(true);
+
+            // Si hay parámetros, enviarlos como JSON
+            if (params != null && !params.isEmpty()) {
+                String json = mapper.writeValueAsString(params);
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write(json.getBytes());
+                    os.flush();
+                }
+            } else {
+                // Enviar objeto vacío si no hay parámetros
+                try (OutputStream os = conn.getOutputStream()) {
+                    os.write("{}".getBytes());
+                    os.flush();
+                }
+            }
+
+            int responseCode = conn.getResponseCode();
+            boolean success = responseCode >= 200 && responseCode < 300;
+
+            // Leer respuesta
+            InputStream stream = success ? conn.getInputStream() : conn.getErrorStream();
+            if (stream != null) {
+                try (BufferedReader reader = new BufferedReader(new InputStreamReader(stream))) {
+                    StringBuilder sb = new StringBuilder();
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        sb.append(line);
+                    }
+                    if (success) {
+                        LOGGER.info("callRPC(" + functionName + ") ejecutada exitosamente. Respuesta: " + sb.toString());
+                    } else {
+                        LOGGER.severe("Error al llamar función RPC (" + functionName + "): " + sb.toString());
+                    }
+                }
+            }
+
+            return success;
+
+        } catch (Exception e) {
+            LOGGER.severe("Error al llamar función RPC (" + functionName + "): " + e.getMessage());
+            return false;
+        } finally {
+            if (conn != null) {
+                conn.disconnect();
+            }
+        }
+    }
 }

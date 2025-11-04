@@ -5,9 +5,6 @@ package com.openbravo.pos.branches;
 
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.basic.BasicException;
-import com.openbravo.data.loader.DataRead;
-import com.openbravo.data.loader.PreparedSentence;
-import com.openbravo.data.loader.SerializerRead;
 import com.openbravo.data.loader.Session;
 import com.openbravo.pos.forms.BeanFactoryApp;
 import com.openbravo.pos.forms.BeanFactoryException;
@@ -23,6 +20,13 @@ import javax.swing.JTable;
 import javax.swing.table.DefaultTableModel;
 import com.openbravo.pos.forms.JPanelView;
 import javax.swing.JComponent;
+import com.openbravo.pos.supabase.SupabaseServiceREST;
+import java.util.List;
+import java.util.Map;
+import java.time.Instant;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Comparator;
 
 public class JPanelBranchesManagement extends JPanel implements JPanelView, BeanFactoryApp {
 
@@ -31,15 +35,12 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     private JTabbedPane jTabbedPane1;
     private JPanel jPanelSearchBranch;
     private JPanel jPanelSales;
-    private JPanel jPanelProducts;
     private JPanel jPanelCashClosures;
-    private JTextField jTextFieldBranchId;
+    private JTextField jTextFieldBranchName;
     private JTable jTableBranches;
     private DefaultTableModel modelBranches;
     private JTable jTableSales;
     private DefaultTableModel modelSales;
-    private JTable jTableProducts;
-    private DefaultTableModel modelProducts;
     private JTable jTableCashClosures;
     private DefaultTableModel modelCashClosures;
 
@@ -70,9 +71,25 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
 
     @Override
     public void activate() throws BasicException {
+        // Llamar a la función RPC de Supabase para actualizar totales de cierre
+        try {
+            SupabaseServiceREST supabase = new SupabaseServiceREST(
+                "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+            );
+            boolean success = supabase.callRPC("onactualizardinero_tarjeta_cierres", null);
+            if (success) {
+                System.out.println("Función actualizar_totales_cierre ejecutada exitosamente");
+            } else {
+                System.err.println("Error al ejecutar actualizar_totales_cierre");
+            }
+        } catch (Exception e) {
+            System.err.println("Error al llamar actualizar_totales_cierre: " + e.getMessage());
+            e.printStackTrace();
+        }
+        
         searchBranches(); // Load all branches initially
         loadSales();
-        loadProducts();
         loadCashClosures();
     }
 
@@ -80,42 +97,68 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     public boolean deactivate() {
         return true;
     }
+
+    private void refreshAllData() throws BasicException {
+        searchBranches(); // No lanza BasicException, solo maneja Exception
+        loadSales(); // No lanza BasicException, solo maneja Exception
+        loadCashClosures();
+    }
     
     private void initComponents() {
         jTabbedPane1 = new JTabbedPane();
         jPanelSearchBranch = new JPanel();
         jPanelSales = new JPanel();
-        jPanelProducts = new JPanel();
         jPanelCashClosures = new JPanel();
-        jTextFieldBranchId = new JTextField(20);
+        jTextFieldBranchName = new JTextField(20);
         String[] branchColumns = {"ID", "Nombre", "Dirección"};
         modelBranches = new DefaultTableModel(branchColumns, 0);
         jTableBranches = new JTable(modelBranches);
 
-        String[] salesColumns = {"ID Venta", "Fecha", "Total", "Sucursal"};
+        String[] salesColumns = {"ID Venta", "Fecha", "Total", "Sucursal/Caja"};
         modelSales = new DefaultTableModel(salesColumns, 0);
         jTableSales = new JTable(modelSales);
 
-        String[] productColumns = {"ID Producto", "Nombre", "Precio", "Sucursal", "Stock"};
-        modelProducts = new DefaultTableModel(productColumns, 0);
-        jTableProducts = new JTable(modelProducts);
-
-        String[] cashClosureColumns = {"ID Cierre", "Fecha Inicio", "Fecha Fin", "Efectivo", "Tarjeta", "Total", "Sucursal"};
+        String[] cashClosureColumns = {"ID Cierre", "Fecha Inicio", "Fecha Fin", "Monto Inicial", "Efectivo", "Tarjeta", "Total", "Sucursal"};
         modelCashClosures = new DefaultTableModel(cashClosureColumns, 0);
         jTableCashClosures = new JTable(modelCashClosures);
 
         setLayout(new BorderLayout());
 
+        // Panel superior con título y botón actualizar
+        JPanel headerPanel = new JPanel(new BorderLayout());
+        JLabel titleLabel = new JLabel("");
+        titleLabel.setFont(titleLabel.getFont().deriveFont(java.awt.Font.BOLD, 16f));
+        headerPanel.add(titleLabel, BorderLayout.WEST);
+        
+        JButton refreshButton = new JButton("Actualizar información");
+        refreshButton.addActionListener(e -> {
+            try {
+                refreshAllData();
+            } catch (BasicException ex) {
+                ex.printStackTrace();
+                // TODO: Show error message to user
+            }
+        });
+        headerPanel.add(refreshButton, BorderLayout.WEST);
+        add(headerPanel, BorderLayout.NORTH);
+
         // Panel Buscar Sucursal
         JPanel searchPanel = new JPanel(new FlowLayout());
-        searchPanel.add(new JLabel("Buscar por ID de Sucursal:"));
-        searchPanel.add(jTextFieldBranchId);
+        searchPanel.add(new JLabel("Buscar por Nombre de Sucursal:"));
+        searchPanel.add(jTextFieldBranchName);
         
         JButton searchButton = new JButton("Buscar");
         searchButton.addActionListener(e -> {
             searchBranches();
         });
         searchPanel.add(searchButton);
+
+        JButton showAllButton = new JButton("Mostrar todo");
+        showAllButton.addActionListener(e -> {
+            jTextFieldBranchName.setText("");
+            searchBranches();
+        });
+        searchPanel.add(showAllButton);
 
         jPanelSearchBranch.setLayout(new BorderLayout());
         jPanelSearchBranch.add(searchPanel, BorderLayout.NORTH);
@@ -128,11 +171,6 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         jPanelSales.add(new JScrollPane(jTableSales), BorderLayout.CENTER);
         jTabbedPane1.addTab("Ver Ventas", jPanelSales);
 
-        // Panel Ver Productos
-        jPanelProducts.setLayout(new BorderLayout());
-        jPanelProducts.add(new JScrollPane(jTableProducts), BorderLayout.CENTER);
-        jTabbedPane1.addTab("Ver Productos", jPanelProducts);
-
         // Panel Ver Cierres de Caja
         jPanelCashClosures.setLayout(new BorderLayout());
         jPanelCashClosures.add(new JScrollPane(jTableCashClosures), BorderLayout.CENTER);
@@ -142,39 +180,31 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     }
 
     private void searchBranches() {
-        String branchId = jTextFieldBranchId.getText().trim();
+        String branchName = jTextFieldBranchName.getText().trim().toLowerCase();
         modelBranches.setRowCount(0); // Clear previous results
 
         try {
-            String sql = "SELECT ID, NAME, ADDRESS FROM LOCATIONS ";
-            if (!branchId.isEmpty()) {
-                sql += "WHERE ID = ?";
-                for (Object obj : new PreparedSentence<String, Object[]>(m_session, sql, com.openbravo.data.loader.SerializerWriteString.INSTANCE, new SerializerRead<Object[]>() {
-                    @Override
-                    public Object[] readValues(DataRead dr) throws BasicException {
-                        Object[] row = new Object[3];
-                        row[0] = dr.getString(1);
-                        row[1] = dr.getString(2);
-                        row[2] = dr.getString(3);
-                        return row;
-                    }
-                }).list(branchId)) {
-                    modelBranches.addRow((Object[]) obj);
-                }
-            } else {
-                new PreparedSentence<Object, Object[]>(m_session, sql, null, new SerializerRead<Object[]>() {
-                    @Override
-                    public Object[] readValues(DataRead dr) throws BasicException {
-                        Object[] row = new Object[3];
-                        row[0] = dr.getString(1);
-                        row[1] = dr.getString(2);
-                        row[2] = dr.getString(3);
-                        return row;
-                    }
-                }).list().forEach(row -> modelBranches.addRow((Object[]) row));
+            SupabaseServiceREST supabase = new SupabaseServiceREST(
+                "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+            );
+            List<Map<String, Object>> usuarios = supabase.fetchData("usuarios");
+            for (Map<String, Object> u : usuarios) {
+                Object sid = u.get("sucursal_id");
+                Object sname = u.get("sucursal_nombre");
+                Object saddr = u.get("sucursal_direccion");
+                if (sid == null || sname == null || saddr == null) continue; // solo completos
+                String idStr = String.valueOf(sid);
+                String nameStr = String.valueOf(sname);
+                if (!branchName.isEmpty() && !nameStr.toLowerCase().contains(branchName)) continue;
+                modelBranches.addRow(new Object[]{
+                    idStr,
+                    nameStr,
+                    String.valueOf(saddr)
+                });
             }
 
-        } catch (BasicException ex) {
+        } catch (Exception ex) {
             ex.printStackTrace();
             // TODO: Handle exception gracefully, perhaps show an error message to the user
         }
@@ -184,42 +214,83 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         modelSales.setRowCount(0); // Clear previous results
 
         try {
-            String sql = "SELECT S.ID, S.DATE, S.TOTAL, L.NAME FROM SALES S JOIN LOCATIONS L ON S.LOCATION = L.ID ORDER BY S.DATE DESC";
-            new PreparedSentence<Object, Object[]>(m_session, sql, null, new SerializerRead<Object[]>() {
-                @Override
-                public Object[] readValues(DataRead dr) throws BasicException {
-                    Object[] row = new Object[4];
-                    row[0] = dr.getString(1);
-                    row[1] = dr.getTimestamp(2);
-                    row[2] = dr.getDouble(3);
-                    row[3] = dr.getString(4);
-                    return row;
-                }
-            }).list().forEach(row -> modelSales.addRow((Object[]) row));
-        } catch (BasicException ex) {
-            ex.printStackTrace();
-            // TODO: Handle exception gracefully
-        }
-    }
+            SupabaseServiceREST supabase = new SupabaseServiceREST(
+                "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+            );
 
-    private void loadProducts() throws BasicException {
-        modelProducts.setRowCount(0); // Clear previous results
+            // Mapear cierres.dineroid -> cierres.host para mostrar nombre de equipo
+            java.util.Map<String, String> dineroidToHost = new java.util.HashMap<>();
+            for (Map<String, Object> cierre : supabase.fetchData("cierres")) {
+                Object dineroid = cierre.get("dineroid");
+                Object host = cierre.get("host");
+                if (dineroid != null && host != null) dineroidToHost.put(dineroid.toString(), host.toString());
+            }
 
-        try {
-            String sql = "SELECT P.ID, P.NAME, P.PRICEBUY, L.NAME, S.UNITS FROM PRODUCTS P JOIN STOCKCURRENT S ON P.ID = S.PRODUCT JOIN LOCATIONS L ON S.LOCATION = L.ID ORDER BY P.NAME";
-            new PreparedSentence<Object, Object[]>(m_session, sql, null, new SerializerRead<Object[]>() {
-                @Override
-                public Object[] readValues(DataRead dr) throws BasicException {
-                    Object[] row = new Object[5];
-                    row[0] = dr.getString(1);
-                    row[1] = dr.getString(2);
-                    row[2] = dr.getDouble(3);
-                    row[3] = dr.getString(4);
-                    row[4] = dr.getDouble(5);
-                    return row;
+            // Mapear usuarios.id -> usuarios.sucursal_nombre (fuente de verdad para sucursal)
+            java.util.Map<String, String> userIdToSucursal = new java.util.HashMap<>();
+            for (Map<String, Object> usuario : supabase.fetchData("usuarios")) {
+                Object userId = usuario.get("id");
+                Object sucursalNombre = usuario.get("sucursal_nombre");
+                if (userId != null && sucursalNombre != null) {
+                    userIdToSucursal.put(userId.toString().trim(), sucursalNombre.toString());
                 }
-            }).list().forEach(row -> modelProducts.addRow((Object[]) row));
-        } catch (BasicException ex) {
+            }
+
+            List<Map<String, Object>> ventas = supabase.fetchData("ventas");
+            List<Object[]> rows = new ArrayList<>();
+            for (Map<String, Object> venta : ventas) {
+                Object id = venta.get("id");
+                Object fechaIso = venta.get("fechaventa");
+                Object totalVal = venta.get("total");
+                Object cajaVal = venta.get("caja");
+                Object vendedorId = venta.get("vendedorid");
+
+                Timestamp fechaTs = null;
+                if (fechaIso instanceof String) {
+                    try {
+                        fechaTs = Timestamp.from(Instant.parse((String) fechaIso));
+                    } catch (Exception ignore) {
+                        fechaTs = null;
+                    }
+                }
+
+                Double total = null;
+                if (totalVal instanceof Number) {
+                    total = ((Number) totalVal).doubleValue();
+                } else if (totalVal instanceof String) {
+                    try { total = Double.valueOf((String) totalVal); } catch (Exception ignore) { total = null; }
+                }
+
+                String caja = cajaVal != null ? String.valueOf(cajaVal) : null;
+                String host = null;
+                // Obtener host del cierre si existe coincidencia
+                if (caja != null && dineroidToHost.containsKey(caja)) {
+                    host = dineroidToHost.get(caja);
+                }
+                
+                // Obtener sucursal del vendedor usando usuarios.id
+                String sucursal = null;
+                if (vendedorId != null) {
+                    String uid = vendedorId.toString().trim();
+                    sucursal = userIdToSucursal.get(uid);
+                }
+                
+                // Formatear como "sucursal - host" o solo host si no hay sucursal
+                if (sucursal != null && host != null) {
+                    caja = sucursal + " - " + host;
+                } else if (host != null) {
+                    caja = host;
+                } else if (sucursal != null) {
+                    caja = sucursal;
+                }
+                // Si no hay ni sucursal ni host, caja queda con el valor original
+
+                rows.add(new Object[] { id, fechaTs, total, caja });
+            }
+            rows.sort(Comparator.comparing((Object[] r) -> (Timestamp) r[1], Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+            for (Object[] r : rows) modelSales.addRow(r);
+        } catch (Exception ex) {
             ex.printStackTrace();
             // TODO: Handle exception gracefully
         }
@@ -229,22 +300,149 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         modelCashClosures.setRowCount(0); // Clear previous results
 
         try {
-            String sql = "SELECT C.ID, C.DATESTART, C.DATEEND, C.MONCASH, C.MONCASHIN, C.TOTAL, L.NAME FROM CLOSEDCASH C JOIN LOCATIONS L ON C.HOST = L.ID ORDER BY C.DATEEND DESC";
-            new PreparedSentence<Object, Object[]>(m_session, sql, null, new SerializerRead<Object[]>() {
-                @Override
-                public Object[] readValues(DataRead dr) throws BasicException {
-                    Object[] row = new Object[7];
-                    row[0] = dr.getString(1);
-                    row[1] = dr.getTimestamp(2);
-                    row[2] = dr.getTimestamp(3);
-                    row[3] = dr.getDouble(4);
-                    row[4] = dr.getDouble(5);
-                    row[5] = dr.getDouble(6);
-                    row[6] = dr.getString(7);
-                    return row;
+            SupabaseServiceREST supabase = new SupabaseServiceREST(
+                "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+            );
+
+            // Mapear usuarios.id -> usuarios.sucursal_nombre
+            java.util.Map<String, String> userIdToSucursal = new java.util.HashMap<>();
+            for (Map<String, Object> usuario : supabase.fetchData("usuarios")) {
+                Object userId = usuario.get("id");
+                Object sucursalNombre = usuario.get("sucursal_nombre");
+                if (userId != null && sucursalNombre != null) {
+                    userIdToSucursal.put(userId.toString().trim(), sucursalNombre.toString());
                 }
-            }).list().forEach(row -> modelCashClosures.addRow((Object[]) row));
-        } catch (BasicException ex) {
+            }
+
+            // Mapear ventas.caja -> ventas.vendedorid (tomar el primero encontrado por cada caja)
+            java.util.Map<String, String> cajaToVendedorId = new java.util.HashMap<>();
+            for (Map<String, Object> venta : supabase.fetchData("ventas")) {
+                Object caja = venta.get("caja");
+                Object vendedorId = venta.get("vendedorid");
+                if (caja != null && vendedorId != null && !cajaToVendedorId.containsKey(caja.toString())) {
+                    cajaToVendedorId.put(caja.toString().trim(), vendedorId.toString().trim());
+                }
+            }
+
+            // Obtener todos los cierres
+            List<Map<String, Object>> cierres = supabase.fetchData("cierres");
+            List<Object[]> rows = new ArrayList<>();
+            
+            for (Map<String, Object> cierre : cierres) {
+                Object id = cierre.get("id");
+                Object fechaInicio = cierre.get("fechainicio");
+                Object fechaFin = cierre.get("fechafin");
+                Object efectivoVal = cierre.get("cierre_efectivo");
+                Object tarjetaVal = cierre.get("cierre_card");
+                Object initialAmountVal = cierre.get("initial_amount");
+                Object dineroid = cierre.get("dineroid");
+
+                // Parsear fechas desde timestamp en milisegundos
+                Timestamp fechaInicioTs = null;
+                Timestamp fechaFinTs = null;
+                
+                // Procesar fecha inicio (milisegundos -> Timestamp)
+                if (fechaInicio != null) {
+                    try {
+                        long millis;
+                        if (fechaInicio instanceof Number) {
+                            millis = ((Number) fechaInicio).longValue();
+                        } else if (fechaInicio instanceof String) {
+                            millis = Long.parseLong((String) fechaInicio);
+                        } else {
+                            millis = 0;
+                        }
+                        if (millis > 0) {
+                            fechaInicioTs = new Timestamp(millis);
+                        }
+                    } catch (Exception ignore) {}
+                }
+                
+                // Procesar fecha fin (milisegundos -> Timestamp) - REQUERIDA
+                if (fechaFin != null) {
+                    try {
+                        long millis;
+                        if (fechaFin instanceof Number) {
+                            millis = ((Number) fechaFin).longValue();
+                        } else if (fechaFin instanceof String) {
+                            millis = Long.parseLong((String) fechaFin);
+                        } else {
+                            millis = 0;
+                        }
+                        if (millis > 0) {
+                            fechaFinTs = new Timestamp(millis);
+                        }
+                    } catch (Exception ignore) {}
+                }
+                
+                // Solo mostrar filas que tengan fechafin
+                if (fechaFinTs == null) {
+                    continue; // Saltar esta fila si no tiene fecha fin
+                }
+
+                // Parsear monto inicial
+                Double montoInicial = null;
+                if (initialAmountVal instanceof Number) {
+                    montoInicial = ((Number) initialAmountVal).doubleValue();
+                } else if (initialAmountVal instanceof String) {
+                    try { montoInicial = Double.valueOf((String) initialAmountVal); } catch (Exception ignore) {}
+                }
+
+                // Parsear efectivo y tarjeta
+                Double efectivo = null;
+                if (efectivoVal instanceof Number) {
+                    efectivo = ((Number) efectivoVal).doubleValue();
+                } else if (efectivoVal instanceof String) {
+                    try { efectivo = Double.valueOf((String) efectivoVal); } catch (Exception ignore) {}
+                }
+
+                Double tarjeta = null;
+                if (tarjetaVal instanceof Number) {
+                    tarjeta = ((Number) tarjetaVal).doubleValue();
+                } else if (tarjetaVal instanceof String) {
+                    try { tarjeta = Double.valueOf((String) tarjetaVal); } catch (Exception ignore) {}
+                }
+
+                // Calcular total
+                Double total = null;
+                if (efectivo != null && tarjeta != null && montoInicial != null) {
+                    total = efectivo + tarjeta + montoInicial;
+                } else if (efectivo != null) {
+                    total = efectivo;
+                } else if (tarjeta != null) {
+                    total = tarjeta;
+                }
+
+                // Obtener sucursal: cierres.dineroid -> ventas.caja -> ventas.vendedorid -> usuarios.id -> usuarios.sucursal_nombre
+                String sucursal = null;
+                if (dineroid != null) {
+                    String cajaStr = dineroid.toString().trim();
+                    String vendedorId = cajaToVendedorId.get(cajaStr);
+                    if (vendedorId != null) {
+                        sucursal = userIdToSucursal.get(vendedorId);
+                    }
+                }
+
+                rows.add(new Object[]{
+                    id,
+                    fechaInicioTs,
+                    fechaFinTs,
+                    montoInicial,
+                    efectivo,
+                    tarjeta,
+                    total,
+                    sucursal != null ? sucursal : ""
+                });
+            }
+
+            // Ordenar por fecha fin descendente
+            rows.sort(Comparator.comparing((Object[] r) -> (Timestamp) r[2], Comparator.nullsLast(Comparator.naturalOrder())).reversed());
+            
+            for (Object[] r : rows) {
+                modelCashClosures.addRow(r);
+            }
+        } catch (Exception ex) {
             ex.printStackTrace();
             // TODO: Handle exception gracefully
         }

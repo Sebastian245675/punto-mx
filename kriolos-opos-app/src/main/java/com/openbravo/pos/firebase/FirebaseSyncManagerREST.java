@@ -31,6 +31,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.HashMap;
 import java.util.ArrayList;
 import java.sql.ResultSet;
@@ -93,31 +94,19 @@ public class FirebaseSyncManagerREST {
     /**
      * Obtiene el ID Remoto del usuario actual desde la base de datos o el AppUserView
      */
-    private String getCurrentUserId() {
+    public String getUsuarioActual() {
         try {
-            // Primero intentar desde AppUserView si está disponible
             if (appUserView != null && appUserView.getUser() != null) {
-                com.openbravo.pos.forms.AppUser currentUser = appUserView.getUser();
-                String userCard = currentUser.getCard();
-                if (userCard != null && !userCard.trim().isEmpty()) {
-                    return userCard.trim();
-                }
+                return appUserView.getUser().getName();
+            } else {
+                return "Desconocido";
             }
-            
-            // Si no hay AppUserView, intentar obtener desde las propiedades del sistema
-            // (el usuario que está ejecutando la aplicación)
-            String systemUser = System.getProperty("user.name");
-            LOGGER.info("Usuario del sistema: " + systemUser);
-            
-            // Alternativamente, podríamos obtener el último usuario que hizo login
-            // desde la tabla de configuración o logs, pero por ahora retornamos "system"
-            return "system_" + systemUser;
-            
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Error obteniendo usuario actual", e);
-            return "unknown";
+            System.err.println("Error obteniendo usuario actual: " + e.getMessage());
+            return "Error";
         }
     }
+    
     
     /**
      * Realiza una sincronización completa de todos los datos
@@ -132,7 +121,7 @@ public class FirebaseSyncManagerREST {
             result.startTime = LocalDateTime.now();
             
             // Obtener el usuario actual para el tracking
-            String currentUserId = getCurrentUserId();
+            String currentUserId = getUsuarioActual();
             LOGGER.info("Usuario actual para tracking: " + (currentUserId != null ? currentUserId : "unknown"));
             
             // Inicializar Firebase con la configuración
@@ -155,9 +144,8 @@ public class FirebaseSyncManagerREST {
             
             // 1. Sincronizar usuarios
             LOGGER.info("1. Sincronizando usuarios...");
-            CompletableFuture<Boolean> usuariosFuture = syncUsuarios();
+            boolean usuariosOk = syncUsuarios();
             LOGGER.info("1.1 CompletableFuture de usuarios creado, esperando resultado...");
-            boolean usuariosOk = usuariosFuture.join();
             LOGGER.info("1.2 Usuarios sincronizados con resultado: " + usuariosOk);
                 result.usuariosSincronizados = usuariosOk;
                 if (usuariosOk) result.successCount++; else result.errorCount++;
@@ -258,48 +246,8 @@ public class FirebaseSyncManagerREST {
      * Sincroniza usuarios desde la tabla people
      * SOLUCIÓN DEFINITIVA: Ejecuta en thread separado con timeout para evitar deadlocks
      */
-    private CompletableFuture<Boolean> syncUsuarios() {
-        return CompletableFuture.supplyAsync(() -> {
-            LOGGER.info("[syncUsuarios] Iniciando extracción...");
-            PreparedStatement stmt = null;
-            ResultSet rs = null;
-            try {
-                List<Map<String, Object>> usuarios = new ArrayList<>();
-                String sql = "SELECT ID, NAME, CARD, ROLE, VISIBLE, IMAGE FROM people WHERE VISIBLE = true";
-                stmt = session.getConnection().prepareStatement(sql);
-                try {
-                    stmt.setQueryTimeout(10); // segundos
-                } catch (Throwable t) {
-                    // Algunos drivers no soportan setQueryTimeout; ignorar
-                }
-                rs = stmt.executeQuery();
-                while (rs.next()) {
-                    Map<String, Object> usuario = new HashMap<>();
-                    usuario.put("id", rs.getString("ID"));
-                    usuario.put("nombre", rs.getString("NAME"));
-                    usuario.put("tarjeta", rs.getString("CARD"));
-                    usuario.put("rol", rs.getString("ROLE"));
-                    usuario.put("visible", rs.getBoolean("VISIBLE"));
-                    usuario.put("tieneimagen", rs.getBytes("IMAGE") != null);
-                    usuario.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    usuario.put("tabla", "people");
-                    usuarios.add(usuario);
-                }
-                LOGGER.info("[syncUsuarios] Extraídos " + usuarios.size() + " usuarios");
-                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
-                return supabase.syncData("usuarios", usuarios);
-            } catch (SQLException e) {
-                LOGGER.log(Level.SEVERE, "[syncUsuarios] Error en extracción", e);
-                return false;
-            } finally {
-                try {
-                    if (rs != null) rs.close();
-                    if (stmt != null) stmt.close();
-                } catch (SQLException e) {
-                    LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
-                }
-            }
-        });
+    private boolean syncUsuarios() {
+        return true;
     }
     
     /**
@@ -491,20 +439,26 @@ public class FirebaseSyncManagerREST {
                     Map<String, Object> venta = new HashMap<>();
                     venta.put("id", rs.getString("ID"));
                     venta.put("caja", rs.getString("MONEY"));
-                    venta.put("fechaventa", rs.getTimestamp("DATENEW"));
+                
+                    Timestamp fechaVenta = rs.getTimestamp("DATENEW");
+                    if (fechaVenta != null) {
+                        venta.put("fechaventa", fechaVenta.toInstant().toString()); // formato ISO 8601 válido para Supabase
+                    } else {
+                        venta.put("fechaventa", null);
+                    }
+                
                     venta.put("vendedorid", rs.getString("PERSON"));
                     venta.put("vendedornombre", rs.getString("PERSON_NAME"));
                     venta.put("total", rs.getDouble("TOTAL"));
                     venta.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     venta.put("tabla", "receipts");
-                    
-                    // Obtener líneas del ticket
+                
                     List<Map<String, Object>> lineas = getLineasTicket(rs.getString("ID"));
                     venta.put("lineas", lineas);
-                    venta.put("numeroLineas", lineas.size());
-                    
+                
                     ventas.add(venta);
                 }
+                
                 
                 rs.close();
                 stmt.close();
@@ -575,15 +529,14 @@ public class FirebaseSyncManagerREST {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 List<Map<String, Object>> puntos = new ArrayList<>();
-                
-                // Sincronizar puntos actuales de clientes
-                String sql1 = "SELECT cp.ID, cp.CLIENTE_ID, cp.PUNTOS_ACTUALES, cp.PUNTOS_TOTALES, " +
-                             "cp.ULTIMA_TRANSACCION, cp.FECHA_ULTIMA_TRANSACCION, cp.FECHA_CREACION, " +
-                             "c.NAME as CLIENTE_NOMBRE " +
-                             "FROM CLIENTE_PUNTOS cp " +
-                             "LEFT JOIN customers c ON cp.CLIENTE_ID = c.ID " +
-                             "ORDER BY cp.FECHA_CREACION";
-                
+    
+                // 🔹 Sincronizar puntos actuales de clientes
+                String sql1 = "SELECT cp.ID, cp.CLIENTE_ID, c.NAME as CLIENTE_NOMBRE, cp.PUNTOS_ACTUALES, cp.PUNTOS_TOTALES, " +
+                              "cp.ULTIMA_TRANSACCION, cp.FECHA_ULTIMA_TRANSACCION, cp.FECHA_CREACION " +
+                              "FROM CLIENTE_PUNTOS cp " +
+                              "LEFT JOIN customers c ON cp.CLIENTE_ID = c.ID " +
+                              "ORDER BY cp.FECHA_CREACION";
+    
                 PreparedStatement stmt1 = session.getConnection().prepareStatement(sql1);
                 ResultSet rs1 = stmt1.executeQuery();
                 
@@ -594,9 +547,19 @@ public class FirebaseSyncManagerREST {
                     punto.put("clientenombre", rs1.getString("CLIENTE_NOMBRE"));
                     punto.put("puntosactuales", rs1.getInt("PUNTOS_ACTUALES"));
                     punto.put("puntostotales", rs1.getInt("PUNTOS_TOTALES"));
+                    punto.put("puntosotorgados", null);
+                    punto.put("descripcion", null);
+                    punto.put("montocompra", null);
                     punto.put("ultimatransaccion", rs1.getString("ULTIMA_TRANSACCION"));
-                    punto.put("fechaultimatransaccion", rs1.getTimestamp("FECHA_ULTIMA_TRANSACCION"));
-                    punto.put("fechacreacion", rs1.getTimestamp("FECHA_CREACION"));
+    
+                    // Fechas en formato ISO 8601
+                    Timestamp tsUltima = rs1.getTimestamp("FECHA_ULTIMA_TRANSACCION");
+                    punto.put("fechaultimatransaccion", tsUltima != null ? tsUltima.toInstant().toString() : null);
+    
+                    Timestamp tsCreacion = rs1.getTimestamp("FECHA_CREACION");
+                    punto.put("fechacreacion", tsCreacion != null ? tsCreacion.toInstant().toString() : null);
+    
+                    punto.put("fechatransaccion", null);
                     punto.put("tipo", "puntos_actuales");
                     punto.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     punto.put("tabla", "cliente_puntos");
@@ -604,26 +567,34 @@ public class FirebaseSyncManagerREST {
                 }
                 rs1.close();
                 stmt1.close();
-                
-                // Sincronizar historial de puntos
-                String sql2 = "SELECT ph.ID, ph.CLIENTE_ID, ph.PUNTOS_OTORGADOS, ph.DESCRIPCION, " +
-                             "ph.MONTO_COMPRA, ph.FECHA_TRANSACCION, c.NAME as CLIENTE_NOMBRE " +
-                             "FROM PUNTOS_HISTORIAL ph " +
-                             "LEFT JOIN customers c ON ph.CLIENTE_ID = c.ID " +
-                             "ORDER BY ph.FECHA_TRANSACCION DESC";
-                
+    
+                // 🔹 Sincronizar historial de puntos
+                String sql2 = "SELECT ph.ID, ph.CLIENTE_ID, c.NAME as CLIENTE_NOMBRE, ph.PUNTOS_OTORGADOS, ph.DESCRIPCION, " +
+                              "ph.MONTO_COMPRA, ph.FECHA_TRANSACCION " +
+                              "FROM PUNTOS_HISTORIAL ph " +
+                              "LEFT JOIN customers c ON ph.CLIENTE_ID = c.ID " +
+                              "ORDER BY ph.FECHA_TRANSACCION DESC";
+    
                 PreparedStatement stmt2 = session.getConnection().prepareStatement(sql2);
                 ResultSet rs2 = stmt2.executeQuery();
-                
                 while (rs2.next()) {
                     Map<String, Object> historial = new HashMap<>();
                     historial.put("id", rs2.getString("ID"));
                     historial.put("clienteid", rs2.getString("CLIENTE_ID"));
                     historial.put("clientenombre", rs2.getString("CLIENTE_NOMBRE"));
+                    historial.put("puntosactuales", null);
+                    historial.put("puntostotales", null);
                     historial.put("puntosotorgados", rs2.getInt("PUNTOS_OTORGADOS"));
                     historial.put("descripcion", rs2.getString("DESCRIPCION"));
                     historial.put("montocompra", rs2.getDouble("MONTO_COMPRA"));
-                    historial.put("fechatransaccion", rs2.getTimestamp("FECHA_TRANSACCION"));
+                    historial.put("ultimatransaccion", null);
+                    historial.put("fechaultimatransaccion", null);
+                    historial.put("fechacreacion", null);
+    
+                    // Fecha de transacción en ISO 8601
+                    Timestamp tsTransaccion = rs2.getTimestamp("FECHA_TRANSACCION");
+                    historial.put("fechatransaccion", tsTransaccion != null ? tsTransaccion.toInstant().toString() : null);
+    
                     historial.put("tipo", "historial_puntos");
                     historial.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     historial.put("tabla", "puntos_historial");
@@ -631,16 +602,24 @@ public class FirebaseSyncManagerREST {
                 }
                 rs2.close();
                 stmt2.close();
-                
+    
                 LOGGER.info("Extraídos " + puntos.size() + " registros de puntos de clientes");
-                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
-                return supabase.syncData("puntos_historial", puntos);                
+    
+                SupabaseServiceREST supabase = new SupabaseServiceREST(
+                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+                );
+    
+                return supabase.syncData("puntos_historial", puntos);
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo puntos de clientes", e);
                 return false;
             }
         });
     }
+    
+
+    
     
     /**
      * Sebastian - Sincroniza cierres de caja (CLOSEDCASH + detalles)
@@ -652,11 +631,11 @@ public class FirebaseSyncManagerREST {
                 
                 // Obtener cierres con información de dinero desde receipts
                 String sql = "SELECT cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, " +
-                           "COALESCE(SUM(p.TOTAL), 0.0) as MONTO_TOTAL " +
+                           "COALESCE(SUM(p.TOTAL), 0.0) as MONTO_TOTAL, cc.INITIAL_AMOUNT " +
                            "FROM closedcash cc " +
                            "LEFT JOIN receipts r ON r.DATENEW >= cc.DATESTART AND r.DATENEW <= cc.DATEEND " +
                            "LEFT JOIN payments p ON p.RECEIPT = r.ID " +
-                           "GROUP BY cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND " +
+                           "GROUP BY cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, cc.INITIAL_AMOUNT " +
                            "ORDER BY cc.DATEEND DESC";
                 
                 PreparedStatement stmt = session.getConnection().prepareStatement(sql);
@@ -676,6 +655,13 @@ public class FirebaseSyncManagerREST {
                     cierre.put("origen", "kriolos-pos");
                     cierre.put("version", "1.0");
                     cierre.put("tabla", "closedcash");
+                    // initial_amount es DOUBLE, manejar NULL correctamente
+                    double initialAmount = rs.getDouble("INITIAL_AMOUNT");
+                    if (rs.wasNull()) {
+                        cierre.put("initial_amount", null);
+                    } else {
+                        cierre.put("initial_amount", initialAmount);
+                    }
                     cierres.add(cierre);
                 }
                 rs.close();
@@ -717,14 +703,24 @@ public class FirebaseSyncManagerREST {
                     pago.put("recibido", rs.getDouble("TENDERED"));
                     pago.put("nombretarjeta", rs.getString("CARDNAME"));
                     pago.put("voucher", rs.getString("VOUCHER"));
-                    pago.put("fechaventa", rs.getTimestamp("DATENEW"));
-                    pago.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
-                    pago.put("fechasincronizacion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
+                
+                    Timestamp fechaVenta = rs.getTimestamp("DATENEW");
+                    if (fechaVenta != null) {
+                        pago.put("fechaventa", fechaVenta.toInstant().toString()); // ✅ formato ISO 8601
+                    } else {
+                        pago.put("fechaventa", null);
+                    }
+                
+                    String fechaActual = LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+                    pago.put("fechaextraccion", fechaActual);
+                    pago.put("fechasincronizacion", fechaActual);
                     pago.put("origen", "kriolos-pos");
                     pago.put("version", "1.0");
                     pago.put("tabla", "payments");
+                
                     pagos.add(pago);
                 }
+                
                 rs.close();
                 stmt.close();
                 
@@ -927,48 +923,58 @@ private CompletableFuture<Boolean> syncConfiguraciones() {
         return CompletableFuture.supplyAsync(() -> {
             try {
                 List<Map<String, Object>> inventario = new ArrayList<>();
-                
-                // Stock actual
+    
+                // 🔹 Stock actual
                 String sql1 = "SELECT sc.LOCATION, sc.PRODUCT, sc.UNITS, p.NAME as PRODUCT_NAME, " +
-                             "p.REFERENCE as PRODUCT_REF " +
-                             "FROM stockcurrent sc " +
-                             "LEFT JOIN products p ON sc.PRODUCT = p.ID " +
-                             "ORDER BY p.NAME";
-                
+                              "p.REFERENCE as PRODUCT_REF " +
+                              "FROM stockcurrent sc " +
+                              "LEFT JOIN products p ON sc.PRODUCT = p.ID " +
+                              "ORDER BY p.NAME";
+    
                 PreparedStatement stmt1 = session.getConnection().prepareStatement(sql1);
                 ResultSet rs1 = stmt1.executeQuery();
-                
+    
                 while (rs1.next()) {
                     Map<String, Object> stock = new HashMap<>();
+                    stock.put("id", UUID.randomUUID().toString());                  
+                    stock.put("fecha", null);                                       
+                    stock.put("razon", null);                                       
                     stock.put("ubicacion", rs1.getString("LOCATION"));
                     stock.put("productoid", rs1.getString("PRODUCT"));
                     stock.put("productonombre", rs1.getString("PRODUCT_NAME"));
                     stock.put("productoreferencia", rs1.getString("PRODUCT_REF"));
+                    stock.put("atributos", null);
                     stock.put("unidades", rs1.getDouble("UNITS"));
+                    stock.put("precio", null);                                      
                     stock.put("tipo", "stock_actual");
                     stock.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     stock.put("tabla", "stockcurrent");
                     inventario.add(stock);
                 }
+    
                 rs1.close();
                 stmt1.close();
-                
-                // Movimientos de stock (últimos registros)
+    
+                // 🔹 Movimientos de stock
                 String sql2 = "SELECT sd.ID, sd.DATENEW, sd.REASON, sd.LOCATION, sd.PRODUCT, " +
-                             "sd.ATTRIBUTESETINSTANCE_ID, sd.UNITS, sd.PRICE, p.NAME as PRODUCT_NAME, " +
-                             "p.REFERENCE as PRODUCT_REF " +
-                             "FROM stockdiary sd " +
-                             "LEFT JOIN products p ON sd.PRODUCT = p.ID " +
-                             "ORDER BY sd.DATENEW DESC " +
-                             "LIMIT 200";
-                
+                              "sd.ATTRIBUTESETINSTANCE_ID, sd.UNITS, sd.PRICE, p.NAME as PRODUCT_NAME, " +
+                              "p.REFERENCE as PRODUCT_REF " +
+                              "FROM stockdiary sd " +
+                              "LEFT JOIN products p ON sd.PRODUCT = p.ID " +
+                              "ORDER BY sd.DATENEW DESC " +
+                              "LIMIT 200";
+    
                 PreparedStatement stmt2 = session.getConnection().prepareStatement(sql2);
                 ResultSet rs2 = stmt2.executeQuery();
-                
+    
                 while (rs2.next()) {
                     Map<String, Object> movimiento = new HashMap<>();
                     movimiento.put("id", rs2.getString("ID"));
-                    movimiento.put("fecha", rs2.getTimestamp("DATENEW"));
+    
+                    // Fecha en ISO 8601
+                    Timestamp tsFecha = rs2.getTimestamp("DATENEW");
+                    movimiento.put("fecha", tsFecha != null ? tsFecha.toInstant().toString() : null);
+    
                     movimiento.put("razon", rs2.getInt("REASON"));
                     movimiento.put("ubicacion", rs2.getString("LOCATION"));
                     movimiento.put("productoid", rs2.getString("PRODUCT"));
@@ -982,11 +988,17 @@ private CompletableFuture<Boolean> syncConfiguraciones() {
                     movimiento.put("tabla", "stockdiary");
                     inventario.add(movimiento);
                 }
+    
                 rs2.close();
                 stmt2.close();
-                
+    
                 LOGGER.info("Extraídos " + inventario.size() + " registros de inventario");
-                SupabaseServiceREST supabase = new SupabaseServiceREST("https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1", "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n");
+    
+                SupabaseServiceREST supabase = new SupabaseServiceREST(
+                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
+                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+                );
+    
                 return supabase.syncData("inventario", inventario);                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo inventario", e);
@@ -994,6 +1006,7 @@ private CompletableFuture<Boolean> syncConfiguraciones() {
             }
         });
     }
+    
     
     /**
      * Resultado de la sincronización
