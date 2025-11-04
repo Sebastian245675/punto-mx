@@ -23,6 +23,8 @@ import com.openbravo.pos.util.RoundUtils;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import java.io.File;
@@ -50,6 +52,39 @@ public class JPaymentCheque extends javax.swing.JPanel implements JPaymentInterf
         m_jTendered.addPropertyChangeListener("Edition", new RecalculateState());
         m_jTendered.addEditorKeys(m_jKeys);
         
+        // Sebastian - Agregar listener para teclas de borrado (DEL, Backspace)
+        m_jTendered.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                
+                if (keyCode == KeyEvent.VK_BACK_SPACE || keyCode == KeyEvent.VK_DELETE) {
+                    Double currentValue = m_jTendered.getValue();
+                    
+                    if (currentValue != null && currentValue > 0) {
+                        String valueStr = String.valueOf(currentValue);
+                        valueStr = valueStr.replace(".", "");
+                        
+                        if (valueStr.length() > 1) {
+                            valueStr = valueStr.substring(0, valueStr.length() - 1);
+                            
+                            try {
+                                double newValue = Double.parseDouble(valueStr) / 100.0;
+                                m_jTendered.setDoubleValue(newValue);
+                            } catch (NumberFormatException ex) {
+                                m_jTendered.reset();
+                            }
+                        } else {
+                            m_jTendered.reset();
+                        }
+                        
+                        printState();
+                        e.consume();
+                    }
+                }
+            }
+        });
+        
         // Sebastian - Ajustes simples de UI (misma metodología que Cash)
         adjustUIComponents();
     }
@@ -66,6 +101,9 @@ public class JPaymentCheque extends javax.swing.JPanel implements JPaymentInterf
         m_dTotal = dTotal;
         m_jTendered.reset();
         m_jTendered.activate();
+        
+        // Sebastian - Asegurar que el campo tenga el foco para recibir eventos de teclado
+        m_jTendered.requestFocusInWindow();
         
         printState();
         
@@ -122,37 +160,47 @@ public class JPaymentCheque extends javax.swing.JPanel implements JPaymentInterf
             m_jKeys.setMaximumSize(new Dimension(20, 20));
         }
         
-        // 2. Mantener el campo de entrada en su tamaño original pero con fuente un poco más grande
+        // 2. Hacer el input crítico m_jTendered INVISIBLE pero funcional
         if (m_jTendered != null) {
-            // Solo aumentar ligeramente la fuente
-            Font currentFont = m_jTendered.getFont();
-            m_jTendered.setFont(currentFont.deriveFont(currentFont.getSize() + 2f));
+            m_jTendered.setVisible(false);
+            m_jTendered.setPreferredSize(new Dimension(1, 1));
+            m_jTendered.setMinimumSize(new Dimension(1, 1));
+            m_jTendered.setMaximumSize(new Dimension(1, 1));
+            m_jTendered.setFocusable(true);
+            m_jTendered.requestFocusInWindow();
         }
         
-        // 3. Agrandar el campo de visualización proporcionalmente
+        // Ocultar el panel que contiene m_jTendered
+        if (jPanel3 != null) {
+            jPanel3.setVisible(false);
+            jPanel3.setPreferredSize(new Dimension(0, 0));
+        }
+        
+        // 3. Hacer m_jMoneyEuros más grande y visible
         if (m_jMoneyEuros != null) {
-            // Hacerlo más grande: 300x45
-            m_jMoneyEuros.setPreferredSize(new Dimension(300, 45));
-            m_jMoneyEuros.setMinimumSize(new Dimension(300, 45));
-            m_jMoneyEuros.setMaximumSize(new Dimension(300, 45));
+            m_jMoneyEuros.setPreferredSize(new Dimension(400, 60));
+            m_jMoneyEuros.setMinimumSize(new Dimension(400, 60));
+            m_jMoneyEuros.setMaximumSize(new Dimension(400, 60));
+            
             Font currentFont = m_jMoneyEuros.getFont();
-            m_jMoneyEuros.setFont(currentFont.deriveFont(currentFont.getSize() + 4f));
+            m_jMoneyEuros.setFont(new Font(currentFont.getName(), Font.BOLD, 28));
+            
+            m_jMoneyEuros.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new java.awt.Color(34, 197, 94), 3),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+            ));
+            
+            m_jMoneyEuros.setBounds(120, 10, 400, 60);
         }
         
-        // 4. Ajustar el panel contenedor y reposicionar componentes
+        // Ajustar etiqueta
+        if (jLabel8 != null) {
+            jLabel8.setBounds(10, 10, 100, 60);
+        }
+        
+        // Ajustar panel contenedor
         if (jPanel4 != null) {
-            // Hacer el panel más alto para acomodar el campo más grande
-            jPanel4.setPreferredSize(new Dimension(400, 60));
-            
-            // Reposicionar el campo "Given" para que se vea completo
-            if (m_jMoneyEuros != null) {
-                m_jMoneyEuros.setBounds(120, 4, 320, 45);
-            }
-            
-            // Reposicionar la etiqueta también
-            if (jLabel8 != null) { // "InputCash"
-                jLabel8.setBounds(10, 4, 100, 45);
-            }
+            jPanel4.setPreferredSize(new Dimension(550, 80));
         }
     }
     

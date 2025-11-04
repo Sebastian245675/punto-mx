@@ -22,6 +22,8 @@ import com.openbravo.pos.util.RoundUtils;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
 import java.beans.PropertyChangeEvent;
 import java.beans.PropertyChangeListener;
 import javax.swing.BorderFactory;
@@ -46,6 +48,39 @@ public class JPaymentBank extends javax.swing.JPanel implements JPaymentInterfac
         m_jTendered.addPropertyChangeListener("Edition", new RecalculateState());
         m_jTendered.addEditorKeys(m_jKeys);
         
+        // Sebastian - Agregar listener para teclas de borrado (DEL, Backspace)
+        m_jTendered.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                
+                if (keyCode == KeyEvent.VK_BACK_SPACE || keyCode == KeyEvent.VK_DELETE) {
+                    Double currentValue = m_jTendered.getValue();
+                    
+                    if (currentValue != null && currentValue > 0) {
+                        String valueStr = String.valueOf(currentValue);
+                        valueStr = valueStr.replace(".", "");
+                        
+                        if (valueStr.length() > 1) {
+                            valueStr = valueStr.substring(0, valueStr.length() - 1);
+                            
+                            try {
+                                double newValue = Double.parseDouble(valueStr) / 100.0;
+                                m_jTendered.setDoubleValue(newValue);
+                            } catch (NumberFormatException ex) {
+                                m_jTendered.reset();
+                            }
+                        } else {
+                            m_jTendered.reset();
+                        }
+                        
+                        printState();
+                        e.consume();
+                    }
+                }
+            }
+        });
+        
         // Apply UI enhancements
         adjustUIComponents();
     }
@@ -56,6 +91,9 @@ public class JPaymentBank extends javax.swing.JPanel implements JPaymentInterfac
         m_dTotal = dTotal;
         m_jTendered.reset();
         m_jTendered.activate();
+        
+        // Sebastian - Asegurar que el campo tenga el foco para recibir eventos de teclado
+        m_jTendered.requestFocusInWindow();
         
         printState();
         
@@ -153,26 +191,55 @@ public class JPaymentBank extends javax.swing.JPanel implements JPaymentInterfac
     }// </editor-fold>//GEN-END:initComponents
 
     private void adjustUIComponents() {
-        // Reduce keypad size to mini - 20x20 pixels
-        m_jKeys.setPreferredSize(new Dimension(20, 20));
-        m_jKeys.setBounds(10, 10, 20, 20);
+        // 1. Hacer el keypad súper pequeño: 20x20
+        if (m_jKeys != null) {
+            m_jKeys.setPreferredSize(new Dimension(20, 20));
+            m_jKeys.setMinimumSize(new Dimension(20, 20));
+            m_jKeys.setMaximumSize(new Dimension(20, 20));
+        }
         
-        // Keep m_jTendered original size but increase font slightly for better visibility
-        Font currentFont = m_jTendered.getFont();
-        m_jTendered.setFont(new Font(currentFont.getName(), currentFont.getStyle(), currentFont.getSize() + 2));
+        // 2. Hacer el input crítico m_jTendered INVISIBLE pero funcional
+        if (m_jTendered != null) {
+            m_jTendered.setVisible(false);
+            m_jTendered.setPreferredSize(new Dimension(1, 1));
+            m_jTendered.setMinimumSize(new Dimension(1, 1));
+            m_jTendered.setMaximumSize(new Dimension(1, 1));
+            m_jTendered.setFocusable(true);
+            m_jTendered.requestFocusInWindow();
+        }
         
-        // Make m_jMoneyEuros much larger and more visible
-        m_jMoneyEuros.setPreferredSize(new Dimension(300, 45));
-        m_jMoneyEuros.setBounds(120, 4, 300, 45); // Keep same Y position but expand width and height
-        Font moneyFont = m_jMoneyEuros.getFont();
-        m_jMoneyEuros.setFont(new Font(moneyFont.getName(), Font.BOLD, moneyFont.getSize() + 4));
-        m_jMoneyEuros.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(java.awt.Color.DARK_GRAY, 2),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
+        // Ocultar el panel que contiene m_jTendered
+        if (jPanel3 != null) {
+            jPanel3.setVisible(false);
+            jPanel3.setPreferredSize(new Dimension(0, 0));
+        }
         
-        // Ensure keypad remains connected to m_jTendered
-        m_jTendered.addEditorKeys(m_jKeys);
+        // 3. Hacer m_jMoneyEuros más grande y visible
+        if (m_jMoneyEuros != null) {
+            m_jMoneyEuros.setPreferredSize(new Dimension(400, 60));
+            m_jMoneyEuros.setMinimumSize(new Dimension(400, 60));
+            m_jMoneyEuros.setMaximumSize(new Dimension(400, 60));
+            
+            Font currentFont = m_jMoneyEuros.getFont();
+            m_jMoneyEuros.setFont(new Font(currentFont.getName(), Font.BOLD, 28));
+            
+            m_jMoneyEuros.setBorder(BorderFactory.createCompoundBorder(
+                BorderFactory.createLineBorder(new java.awt.Color(34, 197, 94), 3),
+                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+            ));
+            
+            m_jMoneyEuros.setBounds(120, 10, 400, 60);
+        }
+        
+        // Ajustar etiqueta
+        if (jLabel8 != null) {
+            jLabel8.setBounds(10, 10, 100, 60);
+        }
+        
+        // Ajustar panel contenedor
+        if (jPanel4 != null) {
+            jPanel4.setPreferredSize(new Dimension(550, 80));
+        }
     }
     
     
