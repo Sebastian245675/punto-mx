@@ -1,0 +1,3991 @@
+[ {
+  "timestamp" : "Wed Nov 05 15:59:42 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 15:59:42 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 15:59:43 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 15:59:43 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 15:59:43 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 15:59:43 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 15:59:44 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 15:59:44 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 15:59:44 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:46 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:47 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:47 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:47 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 11,
+  "response_code" : 409,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:48 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 5,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:48 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:48 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:48 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:48 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:04:49 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 5,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:06 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:06 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:06 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:07 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 12,
+  "response_code" : 409,
+  "success" : false,
+  "error" : "{\"code\":\"23505\",\"details\":\"Key (id)=(f1b45570-bc9a-41a8-8426-eea68ebed988) already exists.\",\"hint\":null,\"message\":\"duplicate key value violates unique constraint \\\"ventas_pkey\\\"\"}"
+}, {
+  "timestamp" : "Wed Nov 05 16:09:07 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 6,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:07 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:08 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:08 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:08 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:08 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:49 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:49 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:49 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:50 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 12,
+  "response_code" : 409,
+  "success" : false,
+  "error" : "{\"code\":\"23505\",\"details\":\"Key (id)=(f1b45570-bc9a-41a8-8426-eea68ebed988) already exists.\",\"hint\":null,\"message\":\"duplicate key value violates unique constraint \\\"ventas_pkey\\\"\"}"
+}, {
+  "timestamp" : "Wed Nov 05 16:09:50 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 6,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:50 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:50 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 4,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:51 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:51 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:09:51 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:22 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:22 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:23 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:23 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 13,
+  "response_code" : 409,
+  "success" : false,
+  "error" : "{\"code\":\"23505\",\"details\":\"Key (id)=(f1b45570-bc9a-41a8-8426-eea68ebed988) already exists.\",\"hint\":null,\"message\":\"duplicate key value violates unique constraint \\\"ventas_pkey\\\"\"}"
+}, {
+  "timestamp" : "Wed Nov 05 16:15:23 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:24 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:24 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 5,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:24 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:24 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:15:24 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 9,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:23 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:23 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:24 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:24 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 14,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'ticketid' column of 'ventas' in the schema cache\"}"
+}, {
+  "timestamp" : "Wed Nov 05 16:26:24 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 8,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:24 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:25 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 6,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:25 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:25 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:26:25 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 12,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:47 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:48 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:48 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:48 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 14,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST204\",\"details\":null,\"hint\":null,\"message\":\"Could not find the 'ticketid' column of 'ventas' in the schema cache\"}"
+}, {
+  "timestamp" : "Wed Nov 05 16:27:48 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 8,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:49 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:49 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 6,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:49 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:49 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:27:50 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 12,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:10 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:10 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:11 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:11 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 19,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:11 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 9,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:12 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 10,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:12 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 7,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:12 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:12 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:35:12 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 13,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:34 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:34 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:34 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:35 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 23,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:35 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 10,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:36 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 12,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:36 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 8,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:36 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:36 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 16:44:36 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 14,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:56 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:56 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:57 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:57 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 23,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:57 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 10,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:58 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 12,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:58 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 8,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:58 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:58 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:02:58 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 14,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:22 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:22 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:22 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:23 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 23,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:23 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 10,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:23 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 12,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:23 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 8,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:24 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:24 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:03:24 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 14,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:13 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:14 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:14 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:15 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 17:20:15 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 32,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:15 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 11,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:16 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 12,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:16 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 9,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:16 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:17 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:20:17 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 15,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:10 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:11 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:11 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:11 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 17:22:12 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 32,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:12 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 11,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:12 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 13,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:12 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 9,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:13 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:13 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:22:13 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 15,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:16 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:16 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:16 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:17 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 17:29:17 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 18,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:17 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 12,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:17 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 14,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:18 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 10,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:18 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:18 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 17:29:19 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 16,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:29 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:29 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:29 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:29 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:30 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:30 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:30 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:30 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:18:30 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:39 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:40 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:40 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:40 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 18:19:41 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:41 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:41 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:41 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:41 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:42 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:19:42 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:12 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:12 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:13 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:13 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 18:20:14 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:14 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:14 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:14 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:14 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:15 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:20:15 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:15 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:15 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:16 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:16 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 18:29:16 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:16 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:17 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:17 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:17 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:17 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:17 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:25 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:26 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:26 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:27 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:27 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:27 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:27 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:27 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:48 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:48 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:48 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:49 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:49 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:49 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:49 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:29:49 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:30:50 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:30:50 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:30:51 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:30:51 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:30:51 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:30:51 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:30:52 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:30:52 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:13 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:13 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:14 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:14 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 18:35:14 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:15 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:15 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:15 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:15 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:15 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:16 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:26 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:26 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:26 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:27 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:27 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:27 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:27 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:27 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:40 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:41 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:41 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:41 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:41 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:41 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:42 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:35:42 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:36:18 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:36:18 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:36:18 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:36:18 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:36:18 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:36:19 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:36:19 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:36:19 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:06 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:06 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:07 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:07 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 18:45:07 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:08 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:08 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:08 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:08 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:08 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 18:45:09 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:31 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:31 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:31 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:32 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 19:07:32 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:32 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:33 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:33 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:33 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:33 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:07:33 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:54 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:55 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:55 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:56 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 19:14:56 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:56 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:57 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:57 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:57 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:14:57 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:19:59 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:19:59 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:20:00 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:20:00 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 19:20:00 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:20:01 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:20:01 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:20:01 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:20:01 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:20:01 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:20 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:20 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:21 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:21 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 19:27:21 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:22 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:22 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:22 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 0,
+  "response_code" : 204,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:22 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:22 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:27:23 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:10 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:10 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:10 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:11 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 19:46:11 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:11 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:12 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:12 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:12 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:46:13 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:21 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:21 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:22 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:22 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 19:52:22 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:22 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:23 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:23 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:23 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 19:52:23 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:10 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:10 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:10 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:11 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:01:11 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:11 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:12 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:12 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:12 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:12 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:13 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:23 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:23 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:23 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:24 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:01:24 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:24 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:24 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:25 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:25 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:01:25 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:12 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:12 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:13 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:13 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:03:13 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:14 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:14 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:14 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:14 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:15 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:15 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:22 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:22 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:23 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:23 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:03:23 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:23 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:24 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:24 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:24 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:03:25 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:29 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:30 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:30 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:30 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:04:30 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:31 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:31 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:31 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:31 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:32 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:32 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:35 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:35 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:35 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:36 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:04:36 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:36 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:36 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:37 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:37 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:04:37 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:38 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:38 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:38 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:39 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:06:39 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:39 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:39 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:40 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:40 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:40 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:40 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 5,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:43 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:44 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:44 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:44 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:06:44 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:45 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:45 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:45 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:45 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:06:46 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 5,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:33 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:33 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:34 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:34 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:08:34 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:35 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:35 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 13,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:35 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:35 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:35 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:36 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 6,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:40 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:40 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:40 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:41 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:08:41 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:41 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:41 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 13,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:42 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:42 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:42 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:42 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 6,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:46 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:46 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:47 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:47 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:08:47 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:48 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:48 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 13,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:48 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:48 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:48 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:49 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 6,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:52 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:52 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:52 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:53 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:08:53 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:53 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:53 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 13,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:53 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:54 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:54 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:08:54 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 6,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:48 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:49 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:49 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:49 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:21:50 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:50 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:50 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:50 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:51 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:51 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:51 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:55 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:56 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:56 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:56 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:21:57 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:57 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:57 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:57 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:58 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:21:58 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:14 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:15 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:15 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:15 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:25:16 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:16 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:16 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:16 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:17 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:17 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:17 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:21 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:21 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:21 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:21 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:25:22 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:22 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:22 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:22 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:23 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:25:23 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:32:58 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:32:58 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:32:59 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:32:59 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:33:00 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:00 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:00 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:00 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:01 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:01 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:01 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:05 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:06 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:06 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:06 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:33:06 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:07 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:07 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:07 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:07 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:33:07 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 3,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:35 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:35 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:35 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:36 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:36:36 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:36 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:36 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:36 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:37 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:37 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:37 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:44 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:45 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:45 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:45 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:36:45 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:45 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:46 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:46 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:46 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:36:46 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:11 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:11 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:12 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:12 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:49:12 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:12 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:13 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:13 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:13 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:14 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:14 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:17 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:17 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:18 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:18 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 20:49:18 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:19 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 2,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:19 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:19 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:19 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 20:49:19 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 2,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:45 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:45 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:46 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:46 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 21:18:46 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:47 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:47 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:47 GMT-05:00 2025",
+  "table" : "formas_de_pago",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:47 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:47 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:48 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:54 GMT-05:00 2025",
+  "table" : "clientes",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:55 GMT-05:00 2025",
+  "table" : "categorias",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:55 GMT-05:00 2025",
+  "table" : "productos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:55 GMT-05:00 2025",
+  "table" : "ventas?select=fechaventa,vendedorid,total",
+  "records_sent" : 0,
+  "response_code" : 400,
+  "success" : false,
+  "error" : "{\"code\":\"PGRST100\",\"details\":\"unexpected '?' expecting letter, digit, \\\"-\\\", \\\"->>\\\", \\\"->\\\", \\\"::\\\", \\\".\\\", \\\")\\\", \\\",\\\" or end of input\",\"hint\":null,\"message\":\"\\\"failed to parse select parameter (fechaventa,vendedorid,total?select=*)\\\" (line 1, column 28)\"}"
+}, {
+  "timestamp" : "Wed Nov 05 21:18:56 GMT-05:00 2025",
+  "table" : "ventas",
+  "records_sent" : 1,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:56 GMT-05:00 2025",
+  "table" : "puntos_historial",
+  "records_sent" : 4,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:56 GMT-05:00 2025",
+  "table" : "cierres",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:56 GMT-05:00 2025",
+  "table" : "impuestos",
+  "records_sent" : 3,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:56 GMT-05:00 2025",
+  "table" : "config",
+  "records_sent" : 1,
+  "response_code" : 200,
+  "success" : true,
+  "error" : ""
+}, {
+  "timestamp" : "Wed Nov 05 21:18:57 GMT-05:00 2025",
+  "table" : "inventario",
+  "records_sent" : 4,
+  "response_code" : 201,
+  "success" : true,
+  "error" : ""
+} ]

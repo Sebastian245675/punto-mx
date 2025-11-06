@@ -34,6 +34,7 @@ import javax.swing.JCheckBox;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
+import javax.swing.JProgressBar;
 import javax.swing.JScrollPane;
 import java.util.HashMap;
 import java.util.Map;
@@ -47,6 +48,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     private final DirtyManager dirty = new DirtyManager();
     private boolean userIdValidated = false;
     private String validatedUserId = null;
+    private String hayCajasAbiertasDetalle = null;
     
     private com.openbravo.pos.forms.AppView m_App;
 
@@ -54,30 +56,34 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     public JPanelConfigFirebase() {
         initComponents();
         
-        // Establecer valores por defecto para el proyecto demos-d2610
-        jtxtProjectId.setText("demos-d2610");
-        jtxtApiKey.setText("AIzaSyBhZsfrKRqHZbfJj8cBc2S8lHzfCf4XQWU");
-        jtxtAuthDomain.setText("demos-d2610.firebaseapp.com");
-        jtxtStorageBucket.setText("demos-d2610.firebasestorage.app");
-        jtxtMessagingSenderId.setText("123456789012");
-        jtxtAppId.setText("1:123456789012:web:abcdef1234567890123456");
+        // Ocultar campos de configuración de Firebase - solo mostrar ID Usuario
+        jtxtProjectId.setVisible(false);
+        jtxtApiKey.setVisible(false);
+        jtxtAuthDomain.setVisible(false);
+        jtxtStorageBucket.setVisible(false);
+        jtxtMessagingSenderId.setVisible(false);
+        jtxtAppId.setVisible(false);
+        jLabel2.setVisible(false);
+        jLabel3.setVisible(false);
+        jLabel4.setVisible(false);
+        jLabel5.setVisible(false);
+        jLabel6.setVisible(false);
+        jLabel7.setVisible(false);
+        jLabel8.setVisible(false);
+        jchkFirebaseEnabled.setVisible(false);
+        jLabel9.setVisible(false);
+        jchkSyncCustomers.setVisible(false);
+        jchkSyncProducts.setVisible(false);
+        jchkSyncSales.setVisible(false);
+        
+        // Configuración por defecto - Supabase siempre habilitado
         jchkFirebaseEnabled.setSelected(true);
         jchkSyncCustomers.setSelected(true);
         jchkSyncProducts.setSelected(true);
         jchkSyncSales.setSelected(true);
         
-        // Agregar listeners para detectar cambios
-        jtxtProjectId.getDocument().addDocumentListener(dirty);
-        jtxtApiKey.getDocument().addDocumentListener(dirty);
-        jtxtAuthDomain.getDocument().addDocumentListener(dirty);
-        jtxtStorageBucket.getDocument().addDocumentListener(dirty);
-        jtxtMessagingSenderId.getDocument().addDocumentListener(dirty);
-        jtxtAppId.getDocument().addDocumentListener(dirty);
+        // Solo escuchar cambios en el ID Usuario
         jtxtUserId.getDocument().addDocumentListener(dirty);
-        jchkFirebaseEnabled.addActionListener(dirty);
-        jchkSyncCustomers.addActionListener(dirty);
-        jchkSyncProducts.addActionListener(dirty);
-        jchkSyncSales.addActionListener(dirty);
         
         // Listener para invalidar la validación cuando cambie el ID de usuario
         jtxtUserId.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
@@ -157,7 +163,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
 
         jLabel1.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        jLabel1.setText("Configuración Firebase");
+        jLabel1.setText("Configuración Supabase");
 
         jLabel2.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jLabel2.setText("Project ID:");
@@ -197,7 +203,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
 
         jButtonValidateUser.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
         jButtonValidateUser.setText("Validar");
-        jButtonValidateUser.setToolTipText("Validar que el número de usuario existe en la colección roles de Firebase");
+        jButtonValidateUser.setToolTipText("Validar que el número de usuario existe en la tabla usuarios de Supabase");
         jButtonValidateUser.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonValidateUserActionPerformed(evt);
@@ -256,7 +262,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         jButtonViewUsers.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jButtonViewUsers.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/user.png"))); // NOI18N
         jButtonViewUsers.setText("Ver Usuarios");
-        jButtonViewUsers.setToolTipText("Ver todos los usuarios de la colección roles en Firebase");
+        jButtonViewUsers.setToolTipText("Ver todos los usuarios de la tabla usuarios en Supabase");
         jButtonViewUsers.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonViewUsersActionPerformed(evt);
@@ -264,7 +270,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         });
 
         jLabel10.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
-        jLabel10.setText("<html>Configure aquí los parámetros de Firebase para sincronizar datos con la nube.<br/>Obtenga la configuración desde la consola de Firebase de su proyecto.</html>");
+        jLabel10.setText("<html>Supabase está conectado automáticamente. Solo ingrese su ID Usuario para habilitar la sincronización de datos.</html>");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -391,15 +397,6 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             return;
         }
         
-        // Validar que la configuración de Firebase esté completa
-        if (jtxtProjectId.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                "Por favor complete la configuración de Firebase antes de validar el usuario.",
-                "Error de Configuración", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
         // Deshabilitar el botón durante la validación
         jButtonValidateUser.setEnabled(false);
         jButtonValidateUser.setText("Validando...");
@@ -413,32 +410,28 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             @Override
             protected Boolean doInBackground() throws Exception {
                 try {
-                    com.openbravo.pos.supabase.SupabaseServiceREST supabase =
-                        new com.openbravo.pos.supabase.SupabaseServiceREST(
-                            "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                            "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                        );
+                    // Usar SupabaseServiceManager con conexión interna
+                    com.openbravo.pos.supabase.SupabaseServiceManager manager = 
+                        com.openbravo.pos.supabase.SupabaseServiceManager.getInstance();
+                    AppConfig tempConfig = new AppConfig(null);
+                    tempConfig.load();
+                    manager.initialize(tempConfig);
+                    com.openbravo.pos.supabase.SupabaseServiceREST supabase = manager.getService();
                     java.util.List<java.util.Map<String, Object>> usuarios = supabase.fetchData("usuarios");
-                    String currentUserName = null;
-                    try {
-                        if (m_App != null && m_App.getAppUserView() != null && m_App.getAppUserView().getUser() != null) {
-                            currentUserName = m_App.getAppUserView().getUser().getName();
-                        }
-                    } catch (Throwable ignore) {}
+                    
+                    // Buscar el card en la lista de usuarios - solo verificar que exista
                     for (java.util.Map<String, Object> u : usuarios) {
                         Object card = u.get("tarjeta");
                         if (card == null) card = u.get("card");
                         if (card != null && userId.equals(card.toString())) {
+                            // Si encontramos el card, obtener el nombre y retornar true
                             Object nombre = u.get("nombre");
                             if (nombre == null) nombre = u.get("name");
                             userName = nombre != null ? nombre.toString() : null;
-                            // Requiere match adicional con el usuario logueado (si disponible)
-                            if (currentUserName == null || (userName != null && userName.equalsIgnoreCase(currentUserName))) {
-                                return true;
-                            }
+                            return true; // Card existe, validación exitosa
                         }
                     }
-                    return false;
+                    return false; // Card no encontrado
                 } catch (Exception ex) {
                     java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
                         .log(java.util.logging.Level.SEVERE, "Error validando CARD contra Supabase", ex);
@@ -461,6 +454,20 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                         // Marcar como validado y guardar el ID
                         userIdValidated = true;
                         validatedUserId = userId; // Usamos el CARD como código habilitante
+                        
+                        // Guardar automáticamente en la configuración para que esté disponible al subir ventas
+                        try {
+                            com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
+                            config.load();
+                            config.setProperty("supabase.userid", userId);
+                            config.setProperty("firebase.userid", userId); // Compatibilidad
+                            config.save();
+                            java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
+                                .info("Card validado guardado automáticamente en configuración: " + userId);
+                        } catch (Exception e) {
+                            java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
+                                .log(java.util.logging.Level.WARNING, "Error guardando card validado en configuración", e);
+                        }
                         
                         // Habilitar los botones de subida/descarga
                         updateButtonsState();
@@ -515,46 +522,30 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             jButtonUpload.setToolTipText("Debe validar el ID de usuario antes de subir datos");
             jButtonDownload.setToolTipText("Debe validar el ID de usuario antes de traer datos");
         } else {
-            jButtonUpload.setToolTipText("Subir datos a Firebase con identificador: " + validatedUserId);
-            jButtonDownload.setToolTipText("Traer datos desde Firebase con identificador: " + validatedUserId);
+            jButtonUpload.setToolTipText("Subir datos a Supabase con identificador: " + validatedUserId);
+            jButtonDownload.setToolTipText("Traer datos desde Supabase con identificador: " + validatedUserId);
         }
     }
 
     private void jButtonViewUsersActionPerformed(java.awt.event.ActionEvent evt) {
-        // Validar que la configuración de Firebase esté completa
-        if (jtxtProjectId.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                "Por favor complete la configuración de Firebase antes de ver usuarios.",
-                "Error de Configuración", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
-        
         // Deshabilitar el botón durante la carga
         jButtonViewUsers.setEnabled(false);
         jButtonViewUsers.setText("Cargando...");
         
-        // Crear configuración temporal
-        AppConfig tempConfig = new AppConfig(null);
-        tempConfig.setProperty("firebase.projectid", jtxtProjectId.getText().trim());
-        tempConfig.setProperty("firebase.apikey", jtxtApiKey.getText().trim());
-        tempConfig.setProperty("firebase.authdomain", jtxtAuthDomain.getText().trim());
-        tempConfig.setProperty("firebase.storagebucket", jtxtStorageBucket.getText().trim());
-        tempConfig.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText().trim());
-        tempConfig.setProperty("firebase.appid", jtxtAppId.getText().trim());
-        
-        // Descargar roles en background
+        // Descargar usuarios desde Supabase en background
         SwingWorker<java.util.List<java.util.Map<String, Object>>, Void> worker = new SwingWorker<java.util.List<java.util.Map<String, Object>>, Void>() {
             @Override
             protected java.util.List<java.util.Map<String, Object>> doInBackground() throws Exception {
-                com.openbravo.pos.firebase.FirebaseServiceREST service = 
-                    com.openbravo.pos.firebase.FirebaseServiceREST.getInstance();
+                // Usar SupabaseServiceManager con conexión interna
+                com.openbravo.pos.supabase.SupabaseServiceManager manager = 
+                    com.openbravo.pos.supabase.SupabaseServiceManager.getInstance();
+                AppConfig tempConfig = new AppConfig(null);
+                tempConfig.load();
+                manager.initialize(tempConfig);
+                com.openbravo.pos.supabase.SupabaseServiceREST supabase = manager.getService();
                 
-                if (!service.initialize(tempConfig)) {
-                    throw new Exception("No se pudo inicializar el servicio Firebase");
-                }
-                
-                return service.downloadRoles().get();
+                // Obtener usuarios desde Supabase
+                return supabase.fetchData("usuarios");
             }
             
             @Override
@@ -595,24 +586,9 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     }
 
     private void jButtonTestActionPerformed(java.awt.event.ActionEvent evt) {                                            
-        // Guardar temporalmente la configuración para la prueba
+        // Usar configuración temporal para la prueba
         AppConfig tempConfig = new AppConfig(null);
-        tempConfig.setProperty("firebase.projectid", jtxtProjectId.getText().trim());
-        tempConfig.setProperty("firebase.apikey", jtxtApiKey.getText().trim());
-        tempConfig.setProperty("firebase.authdomain", jtxtAuthDomain.getText().trim());
-        tempConfig.setProperty("firebase.storagebucket", jtxtStorageBucket.getText().trim());
-        tempConfig.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText().trim());
-        tempConfig.setProperty("firebase.appid", jtxtAppId.getText().trim());
-        tempConfig.setProperty("firebase.enabled", String.valueOf(jchkFirebaseEnabled.isSelected()));
-        
-        // Validar que los campos obligatorios estén llenos
-        if (jtxtProjectId.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(this, 
-                "Por favor ingrese el Project ID de Firebase.",
-                "Error de Configuración", 
-                JOptionPane.ERROR_MESSAGE);
-            return;
-        }
+        tempConfig.load();
         
         // Deshabilitar el botón durante la prueba
         jButtonTest.setEnabled(false);
@@ -623,16 +599,19 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             @Override
             protected Boolean doInBackground() throws Exception {
                 try {
-                    com.openbravo.pos.firebase.FirebaseServiceREST service = 
-                        com.openbravo.pos.firebase.FirebaseServiceREST.getInstance();
+                    // Usar SupabaseServiceManager con conexión interna
+                    com.openbravo.pos.supabase.SupabaseServiceManager manager = 
+                        com.openbravo.pos.supabase.SupabaseServiceManager.getInstance();
                     
                     // Inicializar el servicio con la configuración temporal
-                    if (!service.initialize(tempConfig)) {
+                    if (!manager.initialize(tempConfig)) {
                         return false;
                     }
                     
-                    // Probar conexión
-                    return service.testConnection().get();
+                    // Probar conexión intentando obtener datos
+                    com.openbravo.pos.supabase.SupabaseServiceREST supabase = manager.getService();
+                    java.util.List<java.util.Map<String, Object>> test = supabase.fetchData("usuarios");
+                    return test != null; // Si puede obtener datos, la conexión funciona
                 } catch (Exception e) {
                     return false;
                 }
@@ -649,15 +628,14 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     if (success) {
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
                             "¡Conexión exitosa!\n" +
-                            "La configuración de Firebase es correcta.",
-                            "Prueba de Conexión Firebase", 
+                            "Supabase está conectado correctamente.",
+                            "Prueba de Conexión Supabase", 
                             JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
                             "Error de conexión.\n" +
-                            "Verifique la configuración y la conexión a internet.\n" +
-                            "Asegúrese de que el Project ID sea correcto.",
-                            "Prueba de Conexión Firebase", 
+                            "Verifique su conexión a internet e intente nuevamente.",
+                            "Prueba de Conexión Supabase", 
                             JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
@@ -671,6 +649,186 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         
         worker.execute();
     }                                           
+    
+    /**
+     * Verifica cuántas ventas hay disponibles para subir (ventas de cajas cerradas)
+     * @return número de ventas disponibles para subir
+     */
+    private int verificarVentasDisponibles() {
+        try {
+            // Obtener la configuración de la base de datos
+            com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
+            config.load();
+            
+            // Crear una sesión de base de datos
+            com.openbravo.data.loader.Session session = null;
+            try {
+                session = com.openbravo.pos.forms.AppViewConnection.createSession(null, config);
+            } catch (Exception e) {
+                System.err.println("Error creando sesión de BD para verificar ventas: " + e.getMessage());
+                return 0;
+            }
+            
+            if (session == null) {
+                return 0;
+            }
+            
+            java.sql.PreparedStatement stmt = null;
+            java.sql.ResultSet rs = null;
+            try {
+                // Contar ventas de cajas cerradas (solo estas se pueden subir)
+                String sql = "SELECT COUNT(*) FROM receipts r " +
+                           "INNER JOIN closedcash cc ON r.MONEY = cc.MONEY " +
+                           "WHERE cc.DATEEND IS NOT NULL";
+                
+                stmt = session.getConnection().prepareStatement(sql);
+                rs = stmt.executeQuery();
+                
+                if (rs.next()) {
+                    int count = rs.getInt(1);
+                    return count;
+                }
+                
+                return 0;
+            } catch (Exception e) {
+                System.err.println("Error verificando ventas disponibles: " + e.getMessage());
+                return 0;
+            } finally {
+                if (rs != null) { try { rs.close(); } catch (Exception e) {} }
+                if (stmt != null) { try { stmt.close(); } catch (Exception e) {} }
+                if (session != null) { try { session.close(); } catch (Exception e) {} }
+            }
+        } catch (Exception e) {
+            System.err.println("Error en verificarVentasDisponibles: " + e.getMessage());
+            return 0;
+        }
+    }
+    
+    /**
+     * Verifica si hay cajas abiertas (DATEEND IS NULL) en la base de datos
+     * @return true si hay cajas abiertas, false en caso contrario
+     */
+    private boolean hayCajasAbiertas() {
+        try {
+            // Obtener la configuración de la base de datos
+            com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
+            config.load();
+            
+            // Crear una sesión de base de datos
+            com.openbravo.data.loader.Session session = null;
+            try {
+                session = com.openbravo.pos.forms.AppViewConnection.createSession(null, config);
+            } catch (Exception e) {
+                System.err.println("Error creando sesión de BD para verificar cajas: " + e.getMessage());
+                // Si no se puede crear la sesión, asumimos que no hay cajas abiertas para permitir la subida
+                return false;
+            }
+            
+            if (session == null) {
+                return false;
+            }
+            
+            java.sql.PreparedStatement stmt = null;
+            java.sql.ResultSet rs = null;
+            try {
+                // Asegurar que obtenemos datos frescos (sin caché)
+                java.sql.Connection conn = session.getConnection();
+                
+                // Forzar actualización de datos (si la BD lo soporta)
+                try {
+                    // Pequeña pausa para asegurar que los cambios se hayan guardado
+                    Thread.sleep(100);
+                } catch (InterruptedException ie) {
+                    Thread.currentThread().interrupt();
+                }
+                
+                // Consultar detalles de cajas abiertas y sus ventas para depuración
+                String debugSql = "SELECT cc.MONEY, cc.DATEEND, COUNT(r.ID) as ventas_count " +
+                                "FROM closedcash cc " +
+                                "LEFT JOIN receipts r ON r.MONEY = cc.MONEY " +
+                                "WHERE cc.DATEEND IS NULL " +
+                                "GROUP BY cc.MONEY, cc.DATEEND";
+                
+                java.sql.PreparedStatement debugStmt = conn.prepareStatement(debugSql);
+                java.sql.ResultSet debugRs = debugStmt.executeQuery();
+                
+                int totalVentasEnCajasAbiertas = 0;
+                java.util.List<String> cajasInfo = new java.util.ArrayList<>();
+                
+                while (debugRs.next()) {
+                    String moneyId = debugRs.getString("MONEY");
+                    java.sql.Timestamp dateEnd = debugRs.getTimestamp("DATEEND");
+                    int ventasCount = debugRs.getInt("ventas_count");
+                    
+                    if (ventasCount > 0) {
+                        totalVentasEnCajasAbiertas += ventasCount;
+                        cajasInfo.add("Caja: " + moneyId + " - Ventas: " + ventasCount);
+                    }
+                }
+                debugRs.close();
+                debugStmt.close();
+                
+                System.out.println("=== DEPURACIÓN: Verificación de cajas ===");
+                System.out.println("Total de ventas en cajas abiertas: " + totalVentasEnCajasAbiertas);
+                
+                // Guardar detalles para mostrar en el mensaje
+                String detalles = "";
+                if (!cajasInfo.isEmpty()) {
+                    System.out.println("Cajas abiertas con ventas:");
+                    detalles = String.join("\n", cajasInfo);
+                    for (String info : cajasInfo) {
+                        System.out.println("  - " + info);
+                    }
+                } else {
+                    System.out.println("No hay cajas abiertas con ventas");
+                }
+                
+                // Guardar detalle de forma thread-safe usando publish
+                if (totalVentasEnCajasAbiertas > 0 && !detalles.isEmpty()) {
+                    // Guardar en variable de instancia para acceso desde otro hilo
+                    synchronized (JPanelConfigFirebase.this) {
+                        hayCajasAbiertasDetalle = detalles;
+                    }
+                }
+                
+                return totalVentasEnCajasAbiertas > 0;
+                
+            } catch (Exception e) {
+                System.err.println("Error verificando cajas abiertas: " + e.getMessage());
+                e.printStackTrace();
+                // En caso de error, permitimos la subida para no bloquear al usuario
+                return false;
+            } finally {
+                // Cerrar recursos en orden inverso
+                if (rs != null) {
+                    try {
+                        rs.close();
+                    } catch (Exception e) {
+                        // Ignorar errores al cerrar
+                    }
+                }
+                if (stmt != null) {
+                    try {
+                        stmt.close();
+                    } catch (Exception e) {
+                        // Ignorar errores al cerrar
+                    }
+                }
+                if (session != null) {
+                    try {
+                        session.close();
+                    } catch (Exception e) {
+                        // Ignorar errores al cerrar
+                    }
+                }
+            }
+        } catch (Exception e) {
+            System.err.println("Error general verificando cajas abiertas: " + e.getMessage());
+            e.printStackTrace();
+            // En caso de error, permitimos la subida para no bloquear al usuario
+            return false;
+        }
+    }
 
     private void jButtonUploadActionPerformed(java.awt.event.ActionEvent evt) {                                              
         // Verificar que el ID esté validado
@@ -683,20 +841,89 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             return;
         }
         
-        // Verificar que Firebase esté habilitado
-        if (!jchkFirebaseEnabled.isSelected()) {
-            JOptionPane.showMessageDialog(this, 
-                "Debe habilitar Firebase antes de subir datos.",
-                "Firebase no habilitado", 
-                JOptionPane.WARNING_MESSAGE);
+        // Limpiar detalle anterior
+        hayCajasAbiertasDetalle = null;
+        
+        // Verificar si hay cajas abiertas antes de permitir la subida (en background para no bloquear UI)
+        SwingWorker<Boolean, String> checkWorker = new SwingWorker<Boolean, String>() {
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                // Limpiar detalle antes de verificar
+                synchronized (JPanelConfigFirebase.this) {
+                    hayCajasAbiertasDetalle = null;
+                }
+                
+                boolean resultado = hayCajasAbiertas();
+                
+                return resultado;
+            }
+            
+            @Override
+            protected void done() {
+                try {
+                    boolean hayCajasAbiertas = get();
+                    if (hayCajasAbiertas) {
+                        String mensaje = "No se puede subir datos porque hay ventas en cajas abiertas.\n\n";
+                        
+                        // Agregar información de depuración si está disponible
+                        if (hayCajasAbiertasDetalle != null && !hayCajasAbiertasDetalle.isEmpty()) {
+                            mensaje += "Detalles:\n" + hayCajasAbiertasDetalle + "\n\n";
+                        }
+                        
+                        mensaje += "Por favor, cierre la caja actual (que tiene ventas) antes de subir datos.\n" +
+                                  "Las ventas de cajas abiertas no se subirán hasta que se cierre la caja.\n\n" +
+                                  "NOTA: Si acaba de cerrar la caja, espere unos segundos y vuelva a intentar.\n" +
+                                  "Revise la consola para ver los detalles de depuración.";
+                        
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                            mensaje,
+                            "Caja con Ventas Abierta", 
+                            JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    // Limpiar detalle si no hay cajas abiertas
+                    hayCajasAbiertasDetalle = null;
+                    
+                    // Continuar con la confirmación si no hay cajas abiertas
+                    continuarConSubida();
+                } catch (Exception e) {
+                    System.err.println("Error verificando cajas abiertas: " + e.getMessage());
+                    e.printStackTrace();
+                    // En caso de error, permitir la subida
+                    continuarConSubida();
+                }
+            }
+        };
+        
+        checkWorker.execute();
+    }
+    
+    /**
+     * Continúa con el proceso de subida después de verificar que no hay cajas abiertas
+     */
+    private void continuarConSubida() {
+        // Supabase siempre está habilitado - no necesitamos verificar
+        
+        // Verificar primero si hay ventas disponibles para subir
+        int ventasDisponibles = verificarVentasDisponibles();
+        
+        if (ventasDisponibles == 0) {
+            JOptionPane.showMessageDialog(this,
+                "No hay ventas nuevas para subir.\n\n" +
+                "Todas las ventas de cajas cerradas ya han sido subidas a Supabase.\n" +
+                "Para subir nuevas ventas, primero debe cerrar la caja actual.",
+                "Sin Ventas para Subir",
+                JOptionPane.INFORMATION_MESSAGE);
             return;
         }
         
         // Confirmar la operación
         int choice = JOptionPane.showConfirmDialog(this,
-            "¿Está seguro de que desea subir todos los datos a Firebase?\n" +
+            "¿Está seguro de que desea subir todos los datos a Supabase?\n" +
             "Esta operación puede tomar varios minutos dependiendo de la cantidad de datos.\n\n" +
-            "Se agregará el identificador '" + validatedUserId + "' a cada documento.",
+            "Ventas disponibles para subir: " + ventasDisponibles + "\n" +
+            "Se utilizará el identificador '" + validatedUserId + "' para la sincronización.",
             "Confirmar Subida de Datos",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE);
@@ -705,13 +932,35 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             return;
         }
         
-        // Guardar la configuración actual antes de subir
-        // No necesitamos guardar aquí, la configuración ya está cargada
+        // Crear diálogo de progreso
+        JDialog progressDialog = new JDialog((java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this), "Subiendo Datos", true);
+        progressDialog.setSize(400, 150);
+        progressDialog.setLocationRelativeTo(this);
+        progressDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        
+        JPanel progressPanel = new JPanel(new BorderLayout(10, 10));
+        progressPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        JLabel statusLabel = new JLabel("Iniciando subida de datos...");
+        statusLabel.setFont(new Font("Arial", Font.PLAIN, 12));
+        progressPanel.add(statusLabel, BorderLayout.NORTH);
+        
+        JProgressBar progressBar = new JProgressBar();
+        progressBar.setIndeterminate(true);
+        progressBar.setStringPainted(false);
+        progressPanel.add(progressBar, BorderLayout.CENTER);
+        
+        progressDialog.add(progressPanel);
         
         // Ejecutar la subida en background
         SwingWorker<Boolean, String> uploadWorker = new SwingWorker<Boolean, String>() {
             @Override
             protected Boolean doInBackground() throws Exception {
+                // Mostrar diálogo de progreso
+                SwingUtilities.invokeLater(() -> {
+                    progressDialog.setVisible(true);
+                });
+                
                 // Deshabilitar el botón durante la subida
                 SwingUtilities.invokeLater(() -> {
                     jButtonUpload.setEnabled(false);
@@ -719,6 +968,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 });
                 
                 try {
+                    publish("Conectando a la base de datos...");
                     // Obtener la configuración de la base de datos desde el archivo de configuración
                     com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
                     config.load();
@@ -728,56 +978,108 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     try {
                         session = com.openbravo.pos.forms.AppViewConnection.createSession(null, config);
                     } catch (Exception e) {
-                        System.err.println("Error creando sesión de BD: " + e.getMessage());
+                        publish("ERROR: No se pudo conectar a la base de datos: " + e.getMessage());
                         return false;
                     }
                     
                     if (session == null) {
-                        System.err.println("No se pudo crear la sesión de base de datos");
+                        publish("ERROR: No se pudo crear la sesión de base de datos");
                         return false;
                     }
+                    
+                    publish("Iniciando sincronización con Supabase...");
                     
                     // Crear una instancia del sync manager con la sesión obtenida
                     com.openbravo.pos.firebase.FirebaseSyncManagerREST syncManager = 
                         new com.openbravo.pos.firebase.FirebaseSyncManagerREST(session);
                     
+                    publish("Sincronizando datos... (esto puede tomar varios minutos)");
+                    
                     // Ejecutar la sincronización completa
                     var syncFuture = syncManager.performFullSync();
-                    var result = syncFuture.get(5, java.util.concurrent.TimeUnit.MINUTES); // Timeout de 5 minutos
+                    var result = syncFuture.get(10, java.util.concurrent.TimeUnit.MINUTES); // Timeout de 10 minutos
+                    
+                    if (result.success) {
+                        publish("¡Sincronización completada exitosamente!");
+                    } else {
+                        publish("Sincronización completada con errores. Revise los logs.");
+                    }
+                    
                     return result.success;
                     
+                } catch (java.util.concurrent.TimeoutException e) {
+                    publish("ERROR: La sincronización tardó demasiado tiempo (>10 minutos)");
+                    return false;
                 } catch (Exception e) {
-                    System.err.println("Error durante la subida: " + e.getMessage());
-                    e.printStackTrace();
+                    publish("ERROR: " + e.getMessage());
                     return false;
                 }
             }
             
             @Override
+            protected void process(java.util.List<String> chunks) {
+                if (!chunks.isEmpty()) {
+                    String lastMessage = chunks.get(chunks.size() - 1);
+                    statusLabel.setText(lastMessage);
+                }
+            }
+            
+            @Override
             protected void done() {
+                // Cerrar diálogo de progreso
+                SwingUtilities.invokeLater(() -> {
+                    progressDialog.dispose();
+                });
+                
                 // Rehabilitar el botón
                 jButtonUpload.setEnabled(true);
                 jButtonUpload.setText("Subir Datos");
                 
                 try {
                     boolean success = get();
+                    
+                    // Verificar si hay ventas después de la subida
+                    final int ventasRestantes = JPanelConfigFirebase.this.verificarVentasDisponibles();
+                    
                     if (success) {
+                        String mensaje = "¡Datos subidos exitosamente!\n\n" +
+                            "Todos los datos se han sincronizado con Supabase.\n" +
+                            "Los datos están disponibles en la nube.";
+                        
+                        if (ventasRestantes == 0) {
+                            mensaje += "\n\n✓ Todas las ventas disponibles han sido subidas.\n" +
+                                      "No hay más ventas para subir en este momento.";
+                        } else {
+                            mensaje += "\n\n⚠ Aún hay " + ventasRestantes + " venta(s) disponible(s) para subir.\n" +
+                                      "Esto puede deberse a que:\n" +
+                                      "- Se crearon nuevas ventas durante la subida\n" +
+                                      "- Algunas ventas no se pudieron subir (revise los logs)";
+                        }
+                        
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "¡Datos subidos exitosamente!\n" +
-                            "Todos los datos se han sincronizado con Firebase.",
+                            mensaje,
                             "Subida Completada", 
-                            JOptionPane.INFORMATION_MESSAGE);
+                            ventasRestantes == 0 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
                     } else {
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "Error durante la subida.\n" +
+                            "Error durante la subida de datos.\n\n" +
                             "Algunos datos pueden no haberse sincronizado correctamente.\n" +
-                            "Revise los logs para más detalles.",
+                            "Revise los logs para más detalles.\n\n" +
+                            (ventasRestantes > 0 ? 
+                                "Ventas restantes: " + ventasRestantes : 
+                                "No hay más ventas disponibles para subir."),
                             "Error en la Subida", 
                             JOptionPane.ERROR_MESSAGE);
                     }
+                } catch (java.util.concurrent.ExecutionException e) {
+                    String errorDetail = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
+                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
+                        "Error durante la subida:\n\n" + errorDetail + "\n\nRevise los logs para más información.",
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error inesperado durante la subida:\n" + e.getMessage(),
+                        "Error inesperado durante la subida:\n\n" + e.getMessage() + "\n\nRevise los logs para más información.",
                         "Error", 
                         JOptionPane.ERROR_MESSAGE);
                 }
@@ -794,11 +1096,11 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     }                                               
     
     /**
-     * Crea el diálogo de selección de datos para descargar desde Firebase
+     * Crea el diálogo de selección de datos para descargar desde Supabase
      */
     private JDialog createDownloadDialog() {
         JDialog dialog = new JDialog();
-        dialog.setTitle("Traer Datos desde Firebase");
+        dialog.setTitle("Traer Datos desde Supabase");
         dialog.setSize(400, 500);
         dialog.setLocationRelativeTo(this);
         dialog.setModal(true);
@@ -933,21 +1235,20 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     // Implementar la descarga real usando FirebaseDownloadManagerREST
                     try {
                         AppConfig tempConfig = new AppConfig(null);
-                        tempConfig.setProperty("firebase.projectid", jtxtProjectId.getText().trim());
-                        tempConfig.setProperty("firebase.apikey", jtxtApiKey.getText().trim());
-                        tempConfig.setProperty("firebase.authdomain", jtxtAuthDomain.getText().trim());
-                        tempConfig.setProperty("firebase.storagebucket", jtxtStorageBucket.getText().trim());
-                        tempConfig.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText().trim());
-                        tempConfig.setProperty("firebase.appid", jtxtAppId.getText().trim());
+                        tempConfig.load();
                         
-                        // TODO: Obtener la sesión de base de datos actual
-                        // Por ahora usar null, luego implementar correctamente
-                        com.openbravo.data.loader.Session session = null; // Necesitamos obtener esto
+                        // Obtener la sesión de base de datos
+                        com.openbravo.data.loader.Session session = null;
+                        try {
+                            session = com.openbravo.pos.forms.AppViewConnection.createSession(null, tempConfig);
+                        } catch (Exception e) {
+                            System.err.println("Error creando sesión de BD: " + e.getMessage());
+                            return false;
+                        }
                         
                         if (session == null) {
-                            // Simular descarga exitosa por ahora
-                            Thread.sleep(3000);
-                            return true;
+                            System.err.println("No se pudo crear la sesión de base de datos");
+                            return false;
                         }
                         
                         com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloadManager = 
@@ -1057,17 +1358,13 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
 
     @Override
     public void saveProperties(AppConfig config) {
-        // Guardar configuración de Firebase
-        config.setProperty("firebase.projectid", jtxtProjectId.getText());
-        config.setProperty("firebase.apikey", jtxtApiKey.getText());
-        config.setProperty("firebase.authdomain", jtxtAuthDomain.getText());
-        config.setProperty("firebase.storagebucket", jtxtStorageBucket.getText());
-        config.setProperty("firebase.messagingsenderid", jtxtMessagingSenderId.getText());
-        config.setProperty("firebase.appid", jtxtAppId.getText());
-        // Nota: El usuario_id ahora se toma del campo "ID Remoto" del usuario actual en Maintenance > Users
-        // config.setProperty("firebase.userid", jtxtUserId.getText().trim());
+        // Guardar solo el ID Usuario - Supabase está conectado automáticamente
+        config.setProperty("supabase.userid", jtxtUserId.getText().trim());
+        // También guardar en firebase.userid para compatibilidad
+        config.setProperty("firebase.userid", jtxtUserId.getText().trim());
         
-        config.setProperty("firebase.enabled", Boolean.toString(jchkFirebaseEnabled.isSelected()));
+        // Siempre habilitado - Supabase está conectado automáticamente
+        config.setProperty("firebase.enabled", "true");
         config.setProperty("firebase.sync.customers", Boolean.toString(jchkSyncCustomers.isSelected()));
         config.setProperty("firebase.sync.products", Boolean.toString(jchkSyncProducts.isSelected()));
         config.setProperty("firebase.sync.sales", Boolean.toString(jchkSyncSales.isSelected()));

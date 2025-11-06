@@ -21,6 +21,8 @@ import javax.swing.table.DefaultTableModel;
 import com.openbravo.pos.forms.JPanelView;
 import javax.swing.JComponent;
 import com.openbravo.pos.supabase.SupabaseServiceREST;
+import com.openbravo.pos.supabase.SupabaseServiceManager;
+import com.openbravo.pos.forms.AppConfig;
 import java.util.List;
 import java.util.Map;
 import java.time.Instant;
@@ -72,25 +74,35 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     @Override
     public void activate() throws BasicException {
         // Llamar a la función RPC de Supabase para actualizar totales de cierre
-        try {
-            SupabaseServiceREST supabase = new SupabaseServiceREST(
-                "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-            );
-            boolean success = supabase.callRPC("onactualizardinero_tarjeta_cierres", null);
-            if (success) {
-                System.out.println("Función actualizar_totales_cierre ejecutada exitosamente");
-            } else {
-                System.err.println("Error al ejecutar actualizar_totales_cierre");
-            }
-        } catch (Exception e) {
-            System.err.println("Error al llamar actualizar_totales_cierre: " + e.getMessage());
-            e.printStackTrace();
-        }
+        actualizarMontosCierres();
         
         searchBranches(); // Load all branches initially
         loadSales();
         loadCashClosures();
+    }
+    
+    /**
+     * Llama a la función RPC de Supabase para actualizar los montos de dinero y tarjeta en los cierres
+     */
+    private void actualizarMontosCierres() {
+        try {
+            // Usar SupabaseServiceManager para obtener el servicio
+            AppConfig config = new AppConfig(null);
+            config.load();
+            SupabaseServiceManager supabaseManager = SupabaseServiceManager.getInstance();
+            supabaseManager.initialize(config);
+            
+            SupabaseServiceREST supabase = supabaseManager.getService();
+            boolean success = supabase.callRPC("onactualizardinero_tarjeta_cierres", null);
+            if (success) {
+                System.out.println("Función onactualizardinero_tarjeta_cierres ejecutada exitosamente");
+            } else {
+                System.err.println("Error al ejecutar onactualizardinero_tarjeta_cierres");
+            }
+        } catch (Exception e) {
+            System.err.println("Error al llamar onactualizardinero_tarjeta_cierres: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -99,6 +111,8 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     }
 
     private void refreshAllData() throws BasicException {
+        // Actualizar montos antes de refrescar los datos
+        actualizarMontosCierres();
         searchBranches(); // No lanza BasicException, solo maneja Exception
         loadSales(); // No lanza BasicException, solo maneja Exception
         loadCashClosures();
@@ -114,11 +128,11 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         modelBranches = new DefaultTableModel(branchColumns, 0);
         jTableBranches = new JTable(modelBranches);
 
-        String[] salesColumns = {"ID Venta", "Fecha", "Total", "Sucursal/Caja"};
+        String[] salesColumns = {"ID Venta", "Fecha", "Total", "Sucursal/Caja", "Vendedor/Nombre"};
         modelSales = new DefaultTableModel(salesColumns, 0);
         jTableSales = new JTable(modelSales);
 
-        String[] cashClosureColumns = {"ID Cierre", "Fecha Inicio", "Fecha Fin", "Monto Inicial", "Efectivo", "Tarjeta", "Total", "Sucursal"};
+        String[] cashClosureColumns = {"Vendedor", "Fecha Inicio", "Fecha Fin", "Monto Inicial", "Efectivo", "Tarjeta", "Total", "Sucursal"};
         modelCashClosures = new DefaultTableModel(cashClosureColumns, 0);
         jTableCashClosures = new JTable(modelCashClosures);
 
@@ -175,6 +189,22 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         jPanelCashClosures.setLayout(new BorderLayout());
         jPanelCashClosures.add(new JScrollPane(jTableCashClosures), BorderLayout.CENTER);
         jTabbedPane1.addTab("Ver Cierres de Caja", jPanelCashClosures);
+
+        // Agregar listener para cuando se cambie a la pestaña "Ver Cierres de Caja"
+        jTabbedPane1.addChangeListener(e -> {
+            int selectedIndex = jTabbedPane1.getSelectedIndex();
+            String selectedTitle = jTabbedPane1.getTitleAt(selectedIndex);
+            if ("Ver Cierres de Caja".equals(selectedTitle)) {
+                // Actualizar montos cuando se cambia a esta pestaña
+                actualizarMontosCierres();
+                // Recargar los datos de cierres después de actualizar
+                try {
+                    loadCashClosures();
+                } catch (BasicException ex) {
+                    ex.printStackTrace();
+                }
+            }
+        });
 
         add(jTabbedPane1, BorderLayout.CENTER);
     }
@@ -245,6 +275,7 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                 Object totalVal = venta.get("total");
                 Object cajaVal = venta.get("caja");
                 Object vendedorId = venta.get("vendedorid");
+                Object vendedorNombre = venta.get("vendedornombre");
 
                 Timestamp fechaTs = null;
                 if (fechaIso instanceof String) {
@@ -286,7 +317,17 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                 }
                 // Si no hay ni sucursal ni host, caja queda con el valor original
 
-                rows.add(new Object[] { id, fechaTs, total, caja });
+                // Formatear vendedor/nombre: "vendedorid - vendedornombre"
+                String vendedorDisplay = "";
+                if (vendedorId != null && vendedorNombre != null) {
+                    vendedorDisplay = vendedorId.toString().trim() + " - " + vendedorNombre.toString();
+                } else if (vendedorId != null) {
+                    vendedorDisplay = vendedorId.toString().trim();
+                } else if (vendedorNombre != null) {
+                    vendedorDisplay = vendedorNombre.toString();
+                }
+
+                rows.add(new Object[] { id, fechaTs, total, caja, vendedorDisplay });
             }
             rows.sort(Comparator.comparing((Object[] r) -> (Timestamp) r[1], Comparator.nullsLast(Comparator.naturalOrder())).reversed());
             for (Object[] r : rows) modelSales.addRow(r);
@@ -307,11 +348,19 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
 
             // Mapear usuarios.id -> usuarios.sucursal_nombre
             java.util.Map<String, String> userIdToSucursal = new java.util.HashMap<>();
+            // Mapear usuarios.tarjeta (vendedorid) -> usuarios.nombre
+            java.util.Map<String, String> tarjetaToNombre = new java.util.HashMap<>();
             for (Map<String, Object> usuario : supabase.fetchData("usuarios")) {
                 Object userId = usuario.get("id");
                 Object sucursalNombre = usuario.get("sucursal_nombre");
                 if (userId != null && sucursalNombre != null) {
                     userIdToSucursal.put(userId.toString().trim(), sucursalNombre.toString());
+                }
+                // Mapear tarjeta (código de validación) -> nombre
+                Object tarjeta = usuario.get("tarjeta");
+                Object nombre = usuario.get("nombre");
+                if (tarjeta != null && nombre != null) {
+                    tarjetaToNombre.put(tarjeta.toString().trim(), nombre.toString());
                 }
             }
 
@@ -424,8 +473,22 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                     }
                 }
 
+                // Obtener nombre del vendedor: cierres.dineroid -> ventas.caja -> ventas.vendedorid -> usuarios.tarjeta -> usuarios.nombre
+                String nombreVendedor = "";
+                if (dineroid != null) {
+                    String cajaStr = dineroid.toString().trim();
+                    String vendedorId = cajaToVendedorId.get(cajaStr);
+                    if (vendedorId != null) {
+                        // vendedorId es el código de validación (tarjeta), buscar en el mapa tarjeta -> nombre
+                        nombreVendedor = tarjetaToNombre.get(vendedorId);
+                        if (nombreVendedor == null) {
+                            nombreVendedor = ""; // Si no se encuentra, dejar vacío
+                        }
+                    }
+                }
+
                 rows.add(new Object[]{
-                    id,
+                    nombreVendedor, // Reemplazar id por nombre del vendedor
                     fechaInicioTs,
                     fechaFinTs,
                     montoInicial,

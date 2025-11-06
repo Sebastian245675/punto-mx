@@ -22,9 +22,33 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
 
     private static final Logger LOGGER = Logger.getLogger(DataLogicAdmin.class.getName());
 
-    // 🔹 URL base de tu Supabase REST (tabla "usuarios")
-    private static final String SUPABASE_URL = "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1";
-    private static final String SUPABASE_API_KEY = "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n";
+    // 🔹 URL base de tu Supabase REST (tabla "usuarios") - Valores por defecto para compatibilidad
+    private static final String DEFAULT_SUPABASE_URL = "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1";
+    private static final String DEFAULT_SUPABASE_API_KEY = "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n";
+    
+    /**
+     * Obtiene el servicio Supabase usando el singleton o valores por defecto
+     */
+    private Object getSupabaseService() {
+        try {
+            // Intentar usar SupabaseServiceManager primero
+            Class<?> managerClass = Class.forName("com.openbravo.pos.supabase.SupabaseServiceManager");
+            Object manager = managerClass.getMethod("getInstance").invoke(null);
+            if (managerClass.getMethod("isInitialized").invoke(manager).equals(Boolean.TRUE)) {
+                return managerClass.getMethod("getService").invoke(manager);
+            }
+        } catch (Exception e) {
+            // Si falla, usar valores por defecto
+        }
+        
+        // Fallback: crear instancia directa con valores por defecto
+        try {
+            Class<?> cls = Class.forName("com.openbravo.pos.supabase.SupabaseServiceREST");
+            return cls.getConstructor(String.class, String.class).newInstance(DEFAULT_SUPABASE_URL, DEFAULT_SUPABASE_API_KEY);
+        } catch (Exception e) {
+            throw new RuntimeException("No se pudo crear SupabaseServiceREST: " + e.getMessage(), e);
+        }
+    }
 
     private Session s;
     private TableDefinition<PeopleInfo> m_tpeople;
@@ -62,12 +86,10 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
 
     // Descarga la tabla remota "usuarios" y la fusiona en la local "people"
     private void refreshLocalPeopleFromSupabase() throws BasicException {
-        String base = SUPABASE_URL.endsWith("/") ? SUPABASE_URL.substring(0, SUPABASE_URL.length() - 1) : SUPABASE_URL;
         List<Map<String, Object>> users;
         try {
-            Class<?> cls = Class.forName("com.openbravo.pos.supabase.SupabaseServiceREST");
-            Object svc = cls.getConstructor(String.class, String.class).newInstance(base, SUPABASE_API_KEY);
-            Object listObj = cls.getMethod("fetchData", String.class).invoke(svc, "usuarios");
+            Object svc = getSupabaseService();
+            Object listObj = svc.getClass().getMethod("fetchData", String.class).invoke(svc, "usuarios");
             users = (List<Map<String, Object>>) listObj; // raw cast is fine at runtime
         } catch (Exception e) {
             throw new BasicException("No se pudo invocar SupabaseServiceREST.fetchData: " + e.getMessage());
@@ -189,7 +211,26 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
     private boolean sendToSupabase(String method, String table, Map<String, Object> data, String id) {
         HttpURLConnection conn = null;
         try {
-            String base = SUPABASE_URL.endsWith("/") ? SUPABASE_URL : SUPABASE_URL + "/";
+            // Obtener URL y API Key del servicio Supabase
+            String baseUrl = DEFAULT_SUPABASE_URL;
+            String apiKey = DEFAULT_SUPABASE_API_KEY;
+            
+            try {
+                Class<?> managerClass = Class.forName("com.openbravo.pos.supabase.SupabaseServiceManager");
+                Object manager = managerClass.getMethod("getInstance").invoke(null);
+                if (managerClass.getMethod("isInitialized").invoke(manager).equals(Boolean.TRUE)) {
+                    baseUrl = (String) managerClass.getMethod("getBaseUrl").invoke(manager);
+                    // Obtener API key del servicio
+                    Object service = managerClass.getMethod("getService").invoke(manager);
+                    java.lang.reflect.Field field = service.getClass().getDeclaredField("apiKey");
+                    field.setAccessible(true);
+                    apiKey = (String) field.get(service);
+                }
+            } catch (Exception e) {
+                // Usar valores por defecto si falla
+            }
+            
+            String base = baseUrl.endsWith("/") ? baseUrl : baseUrl + "/";
             String targetUrl = base + table;
             if (method.equals("PATCH") || method.equals("DELETE")) {
                 targetUrl += "?id=eq." + id;
@@ -204,8 +245,8 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
                 conn.setRequestProperty("X-HTTP-Method-Override", "PATCH");
             }
             conn.setRequestMethod(actualMethod);
-            conn.setRequestProperty("apikey", SUPABASE_API_KEY);
-            conn.setRequestProperty("Authorization", "Bearer " + SUPABASE_API_KEY);
+            conn.setRequestProperty("apikey", apiKey);
+            conn.setRequestProperty("Authorization", "Bearer " + apiKey);
             conn.setRequestProperty("Content-Type", "application/json");
             conn.setRequestProperty("Prefer", "return=minimal");
             boolean willSendBody = data != null && !data.isEmpty();
