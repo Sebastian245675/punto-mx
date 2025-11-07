@@ -179,16 +179,19 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         jPanelSearchBranch.add(new JScrollPane(jTableBranches), BorderLayout.CENTER);
 
         jTabbedPane1.addTab("Buscar Sucursal", jPanelSearchBranch);
+        jTabbedPane1.setToolTipTextAt(0, "Buscar y visualizar información de las sucursales");
 
         // Panel Ver Ventas
         jPanelSales.setLayout(new BorderLayout());
         jPanelSales.add(new JScrollPane(jTableSales), BorderLayout.CENTER);
         jTabbedPane1.addTab("Ver Ventas", jPanelSales);
+        jTabbedPane1.setToolTipTextAt(1, "Consultar todas las ventas registradas por sucursal");
 
         // Panel Ver Cierres de Caja
         jPanelCashClosures.setLayout(new BorderLayout());
         jPanelCashClosures.add(new JScrollPane(jTableCashClosures), BorderLayout.CENTER);
         jTabbedPane1.addTab("Ver Cierres de Caja", jPanelCashClosures);
+        jTabbedPane1.setToolTipTextAt(2, "Revisar los cierres de caja de todas las sucursales");
 
         // Agregar listener para cuando se cambie a la pestaña "Ver Cierres de Caja"
         jTabbedPane1.addChangeListener(e -> {

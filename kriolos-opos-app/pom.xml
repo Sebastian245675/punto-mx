@@ -375,6 +375,11 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
                 <configuration>
                     <mainClass>com.openbravo.pos.forms.StartPOS</mainClass>
                     <excludeDevtools>false</excludeDevtools>
+                    <!-- Argumentos JVM para compatibilidad con SwingX y Java modular -->
+                    <jvmArguments>
+                        --add-exports java.desktop/sun.swing=ALL-UNNAMED
+                        --add-opens java.desktop/sun.swing=ALL-UNNAMED
+                    </jvmArguments>
                 </configuration>
                 <executions>
                     <execution>
