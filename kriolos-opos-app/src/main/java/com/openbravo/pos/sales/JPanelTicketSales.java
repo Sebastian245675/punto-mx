@@ -77,6 +77,10 @@ public class JPanelTicketSales extends JPanelTicket {
         super.activate();
         reLoadCatalog();
         LOGGER.log(System.Logger.Level.DEBUG,"JPanelTicketSales activate");
+        
+        // Establecer foco automáticamente en el campo de búsqueda de productos
+        setSearchFieldFocus();
+        LOGGER.log(System.Logger.Level.DEBUG, "Foco automático establecido en campo de búsqueda");
     }
 
     public void reLoadCatalog() {

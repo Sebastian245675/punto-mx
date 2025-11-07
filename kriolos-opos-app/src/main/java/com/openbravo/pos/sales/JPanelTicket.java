@@ -571,6 +571,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
 
         refreshTicket();
+        
+        // Establecer foco automáticamente en el campo de búsqueda después de cambiar de ticket
+        setSearchFieldFocus();
     }
 
     /**
@@ -1834,10 +1837,24 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
     }
 
+    /**
+     * Método para establecer el foco en el campo de búsqueda de productos
+     */
+    protected void setSearchFieldFocus() {
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            if (m_jKeyFactory != null) {
+                m_jKeyFactory.requestFocusInWindow();
+            }
+        });
+    }
+    
     private void createNewTicket() {
         //Create New Ticket
         TicketInfo ticket = new TicketInfo();
         setActiveTicket(ticket, null);
+        
+        // Establecer foco en el campo de búsqueda después de crear nuevo ticket
+        setSearchFieldFocus();
     }
 
     private boolean closeTicket(TicketInfo ticket, String ticketext) {
@@ -4173,6 +4190,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             
             // Establecer el nuevo ticket como activo
             setActiveTicket(nuevoTicket, null);
+            
+            // Establecer foco en el campo de búsqueda después de crear nueva venta
+            setSearchFieldFocus();
             
             // Sebastian - Sin mensaje para mayor velocidad
             
