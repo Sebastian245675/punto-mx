@@ -113,6 +113,62 @@ public class JRootApp extends JPanel implements AppView {
             throw new BasicException("Fail on verify ActiveCash");
         }
         
+        // Limpiar tabla usuarios al arrancar (excepto admin, empl y manager)
+        try {
+            LOGGER.log(Level.INFO, "🗑️ Limpiando tabla usuarios (people), excepto admin, empl y manager...");
+            java.sql.Connection conn = session.getConnection();
+            boolean autoCommitOriginal = conn.getAutoCommit();
+            
+            try {
+                // Asegurar que autocommit esté activo o hacer commit manual
+                conn.setAutoCommit(false);
+                
+                // Eliminar todos excepto admin, empl y manager
+                java.sql.PreparedStatement stmt = conn.prepareStatement(
+                    "DELETE FROM people WHERE NAME NOT IN ('admin', 'empl', 'manager')"
+                );
+                int deletedRows = stmt.executeUpdate();
+                stmt.close();
+                
+                // Hacer commit explícito
+                conn.commit();
+                
+                LOGGER.log(Level.INFO, "✅ Tabla usuarios (people) limpiada exitosamente. Registros eliminados: " + deletedRows);
+                
+                // Verificar que realmente se eliminaron y mostrar los usuarios restantes
+                java.sql.PreparedStatement checkStmt = conn.prepareStatement(
+                    "SELECT COUNT(*) as total FROM people"
+                );
+                java.sql.ResultSet rs = checkStmt.executeQuery();
+                if (rs.next()) {
+                    int remainingRows = rs.getInt(1);
+                    LOGGER.log(Level.INFO, "🔍 Verificación: Registros restantes en people: " + remainingRows);
+                }
+                rs.close();
+                checkStmt.close();
+                
+                // Mostrar qué usuarios quedaron
+                java.sql.PreparedStatement listStmt = conn.prepareStatement(
+                    "SELECT NAME FROM people ORDER BY NAME"
+                );
+                java.sql.ResultSet listRs = listStmt.executeQuery();
+                StringBuilder userList = new StringBuilder("👥 Usuarios restantes: ");
+                while (listRs.next()) {
+                    userList.append(listRs.getString("NAME")).append(", ");
+                }
+                LOGGER.log(Level.INFO, userList.toString());
+                listRs.close();
+                listStmt.close();
+                
+            } finally {
+                // Restaurar autocommit original
+                conn.setAutoCommit(autoCommitOriginal);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "❌ ERROR al limpiar tabla usuarios: " + e.getMessage(), e);
+            e.printStackTrace();
+        }
+        
         // Inicializar Supabase automáticamente con credenciales internas
         try {
             com.openbravo.pos.forms.AppConfig dlConfig = new com.openbravo.pos.forms.AppConfig(null);
@@ -122,6 +178,7 @@ public class JRootApp extends JPanel implements AppView {
             com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
                 new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
             java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
+            // NO sincronizar usuarios al inicio para mantenerlos limpios
             selections.put("clientes", true);
             selections.put("categorias", true);
             selections.put("productos", true);
@@ -129,7 +186,6 @@ public class JRootApp extends JPanel implements AppView {
             selections.put("formas_de_pago", true);
             selections.put("impuestos", true);
             selections.put("config", true);
-            selections.put("inventario", true);
             selections.put("ticketlines", true);
             downloader.performSelectedDownload(selections).join();
             LOGGER.info("Supabase sincronización completada exitosamente");
@@ -496,6 +552,7 @@ public class JRootApp extends JPanel implements AppView {
                         com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
                             new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
                         java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
+                        // NO sincronizar usuarios - mantenerlos limpios
                         selections.put("usuarios", true);
                         selections.put("clientes", true);
                         selections.put("categorias", true);
@@ -504,7 +561,6 @@ public class JRootApp extends JPanel implements AppView {
                         selections.put("formas_de_pago", true);
                         selections.put("impuestos", true);
                         selections.put("config", true);
-                        selections.put("inventario", true);
                         selections.put("ticketlines", true);
                         downloader.performSelectedDownload(selections).join();
                         LOGGER.info("Supabase sincronización completada exitosamente después del login");
