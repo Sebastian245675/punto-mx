@@ -410,6 +410,157 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         }        
     }
     
+    /**
+     * Valida el dinero físico en caja antes de cerrar
+     * Calcula el dinero esperado (fondo inicial + efectivo recibido) y lo compara con el dinero físico ingresado
+     * @return true si el dinero es correcto o sobra, false si falta dinero
+     */
+    private boolean validarDineroFisicoEnCaja() {
+        try {
+            // Calcular el dinero esperado en caja
+            double fondoInicial = m_PaymentsToClose.getInitialAmount() != null ? m_PaymentsToClose.getInitialAmount() : 0.0;
+            double efectivoRecibido = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
+            double dineroEsperado = fondoInicial + efectivoRecibido;
+            
+            // Mostrar diálogo simple para ingresar dinero físico (sin mostrar detalles iniciales)
+            String inputDineroFisico = JOptionPane.showInputDialog(
+                this,
+                "Ingrese la cantidad de dinero físico que tiene en la caja:",
+                "Validar Dinero en Caja",
+                JOptionPane.QUESTION_MESSAGE
+            );
+            
+            // Si el usuario cancela, no cerrar la caja
+            if (inputDineroFisico == null || inputDineroFisico.trim().isEmpty()) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "El cierre de caja fue cancelado.\nDebe ingresar el dinero físico para continuar.",
+                    "Cierre Cancelado",
+                    JOptionPane.WARNING_MESSAGE
+                );
+                return false;
+            }
+            
+            // Validar que el input sea un número válido
+            double dineroFisico;
+            try {
+                // Eliminar espacios y reemplazar comas por puntos si es necesario
+                String inputLimpio = inputDineroFisico.trim().replace(",", ".");
+                dineroFisico = Double.parseDouble(inputLimpio);
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(
+                    this,
+                    "❌ Error: Debe ingresar un número válido.\n\n" +
+                    "Ejemplo: 5000 o 5000.50",
+                    "Error de Validación",
+                    JOptionPane.ERROR_MESSAGE
+                );
+                return false;
+            }
+            
+            // Comparar dinero físico con dinero esperado
+            double diferencia = dineroFisico - dineroEsperado;
+            double tolerancia = 0.01; // Tolerancia de 1 centavo para errores de redondeo
+            
+            if (diferencia < -tolerancia) {
+                // Falta dinero - mostrar desglose completo
+                double dineroFaltante = Math.abs(diferencia);
+                JOptionPane.showMessageDialog(
+                    this,
+                    String.format(
+                        "NO ES POSIBLE CERRAR CAJA\n\n" +
+                        "Fondo Inicial: %s\n" +
+                        "Efectivo Recibido: %s\n" +
+                        "─────────────────────────\n" +
+                        "DEBE HABER EN CAJA: %s\n" +
+                        "TIENE EN CAJA: %s\n" +
+                        "─────────────────────────\n" +
+                        "FALTA EN CAJA: %s\n\n" +
+                        "Por favor, verifique el dinero físico en la caja.",
+                        Formats.CURRENCY.formatValue(fondoInicial),
+                        Formats.CURRENCY.formatValue(efectivoRecibido),
+                        Formats.CURRENCY.formatValue(dineroEsperado),
+                        Formats.CURRENCY.formatValue(dineroFisico),
+                        Formats.CURRENCY.formatValue(dineroFaltante)
+                    ),
+                    "Error: Falta Dinero",
+                    JOptionPane.ERROR_MESSAGE
+                );
+                LOGGER.warning(String.format(
+                    "Intento de cierre de caja fallido: Esperado=%.2f, Físico=%.2f, Falta=%.2f",
+                    dineroEsperado, dineroFisico, dineroFaltante
+                ));
+                return false;
+            } else if (diferencia > tolerancia) {
+                // Sobra dinero (se permite pero se informa) - mostrar desglose completo
+                double dineroSobrante = diferencia;
+                int respuesta = JOptionPane.showConfirmDialog(
+                    this,
+                    String.format(
+                        "ADVERTENCIA: SOBRA DINERO\n\n" +
+                        "Fondo Inicial: %s\n" +
+                        "Efectivo Recibido: %s\n" +
+                        "─────────────────────────\n" +
+                        "DEBE HABER EN CAJA: %s\n" +
+                        "TIENE EN CAJA: %s\n" +
+                        "─────────────────────────\n" +
+                        "SOBRA EN CAJA: %s\n\n" +
+                        "¿Desea continuar con el cierre de caja?",
+                        Formats.CURRENCY.formatValue(fondoInicial),
+                        Formats.CURRENCY.formatValue(efectivoRecibido),
+                        Formats.CURRENCY.formatValue(dineroEsperado),
+                        Formats.CURRENCY.formatValue(dineroFisico),
+                        Formats.CURRENCY.formatValue(dineroSobrante)
+                    ),
+                    "Advertencia: Sobra Dinero",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
+                );
+                
+                if (respuesta != JOptionPane.YES_OPTION) {
+                    return false;
+                }
+                
+                LOGGER.info(String.format(
+                    "Cierre de caja con dinero sobrante: Esperado=%.2f, Físico=%.2f, Sobra=%.2f",
+                    dineroEsperado, dineroFisico, dineroSobrante
+                ));
+            } else {
+                // Dinero correcto (dentro de la tolerancia) - mensaje simple
+                JOptionPane.showMessageDialog(
+                    this,
+                    "✅ Dinero en caja correcto.\n\nProcediendo con el cierre de caja...",
+                    "Validación Exitosa",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+                LOGGER.info(String.format(
+                    "Validación de dinero exitosa: Esperado=%.2f, Físico=%.2f",
+                    dineroEsperado, dineroFisico
+                ));
+            }
+            
+            return true;
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error validando dinero físico en caja", e);
+            JOptionPane.showMessageDialog(
+                this,
+                "Error al validar el dinero en caja: " + e.getMessage() + "\n\n¿Desea continuar con el cierre de todos modos?",
+                "Error de Validación",
+                JOptionPane.ERROR_MESSAGE
+            );
+            // En caso de error, permitir continuar después de confirmar
+            int respuesta = JOptionPane.showConfirmDialog(
+                this,
+                "Hubo un error al validar el dinero. ¿Desea continuar con el cierre de caja?",
+                "Continuar con Cierre",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+            );
+            return respuesta == JOptionPane.YES_OPTION;
+        }
+    }
+    
     private void printPayments(String report) {
         
         String sresource = m_dlSystem.getResourceAsXML(report);
@@ -745,6 +896,12 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
         
         if (res == JOptionPane.YES_OPTION) {
+            
+            // Validación de dinero físico en caja
+            if (!validarDineroFisicoEnCaja()) {
+                // Si la validación falla, no continuar con el cierre
+                return;
+            }
 
             String scriptId = "cash.close";
             try {

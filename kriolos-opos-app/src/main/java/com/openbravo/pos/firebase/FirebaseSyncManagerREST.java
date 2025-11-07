@@ -888,33 +888,73 @@ public class FirebaseSyncManagerREST {
     
     /**
      * Sebastian - Sincroniza cierres de caja (CLOSEDCASH + detalles)
+     * Genera IDs únicos agregando sufijos si ya existe un ID con la misma secuencia
      */
     private CompletableFuture<Boolean> syncCierresCaja() {
         return CompletableFuture.supplyAsync(() -> {
             try {
+                SupabaseServiceREST supabase = supabaseManager.getService();
+                
+                // PASO 1: Consultar todos los IDs existentes en Supabase para evitar duplicados
+                Set<String> idsExistentes = new HashSet<>();
+                try {
+                    List<Map<String, Object>> cierresExistentes = supabase.fetchData("cierres?select=id");
+                    for (Map<String, Object> cierreExistente : cierresExistentes) {
+                        Object idObj = cierreExistente.get("id");
+                        if (idObj != null) {
+                            idsExistentes.add(idObj.toString());
+                        }
+                    }
+                    LOGGER.info("Encontrados " + idsExistentes.size() + " IDs de cierres existentes en Supabase");
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error consultando cierres existentes en Supabase, se intentará generar IDs únicos: " + e.getMessage());
+                }
+                
                 List<Map<String, Object>> cierres = new ArrayList<>();
                 
-                // Obtener SOLO cierres cerrados (con DATEEND) con información de dinero desde receipts
+                // PASO 2: Obtener SOLO cierres cerrados (con DATEEND) con información de dinero desde receipts
                 // NO incluir cajas activas (DATEEND IS NULL)
+                // IMPORTANTE: Usar r.MONEY = cc.MONEY para calcular montos correctamente
+                // Ordenar por MONTO_TOTAL DESC y luego por DATESTART ASC
+                // Esto asegura que si hay múltiples cierres con la misma secuencia, 
+                // el que tiene más dinero (más importante) obtenga el sufijo _1
                 String sql = "SELECT cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, " +
                            "COALESCE(SUM(p.TOTAL), 0.0) as MONTO_TOTAL, cc.INITIAL_AMOUNT " +
                            "FROM closedcash cc " +
-                           "LEFT JOIN receipts r ON r.DATENEW >= cc.DATESTART AND r.DATENEW <= cc.DATEEND " +
+                           "LEFT JOIN receipts r ON r.MONEY = cc.MONEY " +
                            "LEFT JOIN payments p ON p.RECEIPT = r.ID " +
                            "WHERE cc.DATEEND IS NOT NULL " +
                            "GROUP BY cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, cc.INITIAL_AMOUNT " +
-                           "ORDER BY cc.DATEEND DESC";
+                           "ORDER BY MONTO_TOTAL DESC, cc.DATESTART ASC";
                 
                 PreparedStatement stmt = session.getConnection().prepareStatement(sql);
                 ResultSet rs = stmt.executeQuery();
                 
                 while (rs.next()) {
                     Map<String, Object> cierre = new HashMap<>();
-                    cierre.put("id", rs.getString("HOST") + "_" + rs.getInt("HOSTSEQUENCE"));
-                    cierre.put("dineroid", rs.getString("MONEY")); // ID de referencia al dinero
-                    cierre.put("dineromonto", rs.getDouble("MONTO_TOTAL")); // Monto calculado del período
-                    cierre.put("host", rs.getString("HOST"));
-                    cierre.put("secuencia", rs.getInt("HOSTSEQUENCE"));
+                    
+                    // PASO 3: Generar ID base (HOST + "_" + HOSTSEQUENCE)
+                    String host = rs.getString("HOST");
+                    int hostSequence = rs.getInt("HOSTSEQUENCE");
+                    String dineroId = rs.getString("MONEY");
+                    double montoTotal = rs.getDouble("MONTO_TOTAL");
+                    String idBase = host + "_" + hostSequence;
+                    
+                    // PASO 4: Generar ID único agregando sufijo si ya existe
+                    String idUnico = generarIdUnico(idBase, idsExistentes);
+                    
+                    // Log detallado para debugging
+                    LOGGER.info(String.format("Procesando cierre: MONEY=%s, ID base=%s, ID único=%s, Monto=%.2f, Host=%s, Secuencia=%d", 
+                        dineroId, idBase, idUnico, montoTotal, host, hostSequence));
+                    
+                    // Agregar el ID generado al set para evitar duplicados en el mismo batch
+                    idsExistentes.add(idUnico);
+                    
+                    cierre.put("id", idUnico);
+                    cierre.put("dineroid", dineroId); // ID de referencia al dinero
+                    cierre.put("dineromonto", montoTotal); // Monto calculado del período
+                    cierre.put("host", host);
+                    cierre.put("secuencia", hostSequence);
                     cierre.put("fechainicio", rs.getTimestamp("DATESTART"));
                     cierre.put("fechafin", rs.getTimestamp("DATEEND"));
                     cierre.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
@@ -929,6 +969,12 @@ public class FirebaseSyncManagerREST {
                     } else {
                         cierre.put("initial_amount", initialAmount);
                     }
+                    
+                    // Log si se agregó sufijo
+                    if (!idUnico.equals(idBase)) {
+                        LOGGER.info("ID duplicado detectado: " + idBase + " -> ID único generado: " + idUnico);
+                    }
+                    
                     cierres.add(cierre);
                 }
                 rs.close();
@@ -950,7 +996,6 @@ public class FirebaseSyncManagerREST {
                     }
                 }
                 
-                SupabaseServiceREST supabase = supabaseManager.getService();
                 boolean resultado = supabase.syncData("cierres", cierres);
                 
                 // Si la subida fue exitosa, eliminar los cierres de la BD local
@@ -970,6 +1015,35 @@ public class FirebaseSyncManagerREST {
                 return false;
             }
         });
+    }
+    
+    /**
+     * Genera un ID único para un cierre de caja agregando sufijos si el ID base ya existe
+     * 
+     * @param idBase ID base en formato "HOST_SECUENCIA" (ej: "DESKTOP-P0S4BBC_2")
+     * @param idsExistentes Set con todos los IDs que ya existen en Supabase
+     * @return ID único que no existe en idsExistentes
+     * 
+     * Ejemplos:
+     * - Si "DESKTOP-P0S4BBC_2" no existe -> retorna "DESKTOP-P0S4BBC_2"
+     * - Si "DESKTOP-P0S4BBC_2" existe -> retorna "DESKTOP-P0S4BBC_2_1"
+     * - Si "DESKTOP-P0S4BBC_2_1" también existe -> retorna "DESKTOP-P0S4BBC_2_2"
+     */
+    private String generarIdUnico(String idBase, Set<String> idsExistentes) {
+        // Si el ID base no existe, usarlo directamente
+        if (!idsExistentes.contains(idBase)) {
+            return idBase;
+        }
+        
+        // Si existe, agregar sufijo _1, _2, _3, etc. hasta encontrar uno disponible
+        int sufijo = 1;
+        String idCandidato;
+        do {
+            idCandidato = idBase + "_" + sufijo;
+            sufijo++;
+        } while (idsExistentes.contains(idCandidato));
+        
+        return idCandidato;
     }
     
     /**

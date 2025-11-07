@@ -1174,4 +1174,29 @@ public class PaymentsModel {
     public String printCashTotalWithInitial() {
         return Formats.CURRENCY.formatValue(getCashTotalWithInitial());
     }
+    
+    /**
+     * Obtiene solo el total de efectivo recibido (sin incluir el fondo inicial)
+     * @return el total de efectivo recibido en las ventas
+     */
+    public Double getCashTotal() {
+        Double cashTotal = 0.0;
+        
+        // Buscar pagos en efectivo
+        for (PaymentsLine payment : m_lpayments) {
+            if ("cash".equals(payment.getType())) {
+                cashTotal += payment.getValue();
+            }
+        }
+        
+        return cashTotal;
+    }
+    
+    /**
+     * Formatea el total de efectivo recibido para mostrar
+     * @return el total de efectivo recibido formateado como String
+     */
+    public String printCashTotal() {
+        return Formats.CURRENCY.formatValue(getCashTotal());
+    }
 }

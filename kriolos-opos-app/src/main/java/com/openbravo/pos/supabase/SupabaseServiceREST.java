@@ -343,13 +343,19 @@ public class SupabaseServiceREST {
     }
     /**
  * Obtiene todos los registros de una tabla en Supabase.
+ * @param table Nombre de la tabla, puede incluir parámetros de consulta (ej: "cierres?select=id")
  */
     public List<Map<String, Object>> fetchData(String table) {
         List<Map<String, Object>> resultList = new ArrayList<>();
         HttpURLConnection conn = null;
 
         try {
-            URL url = new URL(baseUrl + "/" + table + "?select=*");
+            // Si la tabla ya incluye parámetros de consulta (?), no agregar más
+            String urlStr = baseUrl + "/" + table;
+            if (!table.contains("?")) {
+                urlStr += "?select=*";
+            }
+            URL url = new URL(urlStr);
             conn = (HttpURLConnection) url.openConnection();
             conn.setRequestMethod("GET");
             conn.setRequestProperty("apikey", apiKey);
