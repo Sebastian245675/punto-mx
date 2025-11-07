@@ -375,6 +375,25 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         AppLocal.getIntString("message.closecashok"), 
                         AppLocal.getIntString("message.title"), 
                         JOptionPane.INFORMATION_MESSAGE);
+                
+                // Navegar automáticamente a la vista de configuración de Supabase para subir datos
+                try {
+                    // Obtener AppUserView desde JRootApp para poder usar showTask
+                    if (m_App instanceof com.openbravo.pos.forms.JRootApp) {
+                        com.openbravo.pos.forms.JRootApp rootApp = (com.openbravo.pos.forms.JRootApp) m_App;
+                        com.openbravo.pos.forms.AppUserView appUserView = rootApp.getAppUserView();
+                        if (appUserView != null) {
+                            appUserView.showTask("com.openbravo.pos.config.JPanelConfiguration");
+                            LOGGER.info("Navegando a configuración de Supabase después de cerrar caja");
+                        } else {
+                            LOGGER.warning("No se pudo obtener AppUserView para navegar a configuración");
+                        }
+                    } else {
+                        LOGGER.warning("m_App no es instancia de JRootApp");
+                    }
+                } catch (Exception ex) {
+                    LOGGER.log(Level.WARNING, "No se pudo navegar a configuración de Supabase", ex);
+                }
             } catch (BasicException e) {
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
                         AppLocal.getIntString("message.cannotclosecash"), e);

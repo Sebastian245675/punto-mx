@@ -16,6 +16,7 @@
 
 package com.openbravo.pos.firebase;
 import com.openbravo.pos.supabase.SupabaseServiceREST;
+import com.openbravo.pos.supabase.SupabaseServiceManager;
 import com.openbravo.data.loader.Session;
 import com.openbravo.pos.forms.AppConfig;
 import java.util.logging.Level;
@@ -35,7 +36,7 @@ import java.sql.Timestamp;
 import java.math.BigDecimal;
 
 /**
- * Gestor de descarga de datos desde Firebase hacia la base de datos local
+ * Gestor de descarga de datos desde Supabase hacia la base de datos local
  * @author Sebastian
  */
 public class FirebaseDownloadManagerREST {
@@ -43,15 +44,15 @@ public class FirebaseDownloadManagerREST {
     private static final Logger LOGGER = Logger.getLogger(FirebaseDownloadManagerREST.class.getName());
     
     private final Session session;
-    private final FirebaseServiceREST firebaseService;
+    private final SupabaseServiceManager supabaseManager;
     
     public FirebaseDownloadManagerREST(Session session, AppConfig config) {
         this.session = session;
-        this.firebaseService = FirebaseServiceREST.getInstance();
+        this.supabaseManager = SupabaseServiceManager.getInstance();
         
-        // Inicializar el servicio Firebase
-        if (!firebaseService.initialize(config)) {
-            throw new IllegalStateException("No se pudo inicializar Firebase Service");
+        // Inicializar el servicio Supabase
+        if (!supabaseManager.initialize(config)) {
+            throw new IllegalStateException("No se pudo inicializar Supabase Service");
         }
     }
 
@@ -202,13 +203,10 @@ public class FirebaseDownloadManagerREST {
             java.sql.ResultSet rs = null;
             
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 
                 List<Map<String, Object>> usuarios = supabase.fetchData("usuarios");
-                LOGGER.info("Descargados " + usuarios.size() + " usuarios desde Firebase");
+                LOGGER.info("Descargados " + usuarios.size() + " usuarios desde Supabase");
                 
                 int insertados = 0;
                 int actualizados = 0;
@@ -310,12 +308,9 @@ public class FirebaseDownloadManagerREST {
             java.sql.ResultSet rs = null;
     
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> clientes = supabase.fetchData("clientes");
-                LOGGER.info("Descargados " + clientes.size() + " clientes desde Firebase");
+                LOGGER.info("Descargados " + clientes.size() + " clientes desde Supabase");
     
                 int insertados = 0;
                 int actualizados = 0;
@@ -463,12 +458,9 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement updateStmt = null;
             java.sql.ResultSet rs = null;
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> categorias = supabase.fetchData("categorias");
-                LOGGER.info("Descargadas " + categorias.size() + " categorías desde Firebase");
+                LOGGER.info("Descargadas " + categorias.size() + " categorías desde Supabase");
                 
                 int insertados = 0;
                 int actualizados = 0;
@@ -560,10 +552,7 @@ public class FirebaseDownloadManagerREST {
             java.sql.ResultSet rs = null;
     
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
     
                 List<Map<String, Object>> ventas = supabase.fetchData("ventas");
                 LOGGER.info("Descargadas " + ventas.size() + " ventas desde Firebase");
@@ -692,12 +681,9 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement updateStmt = null;
             java.sql.ResultSet rs = null;
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> productos = supabase.fetchData("productos");
-                LOGGER.info("Descargados " + productos.size() + " productos desde Firebase");
+                LOGGER.info("Descargados " + productos.size() + " productos desde Supabase");
                 
                 int insertados = 0;
                 int actualizados = 0;
@@ -819,12 +805,9 @@ public class FirebaseDownloadManagerREST {
         return CompletableFuture.supplyAsync(() -> {
             try {
 
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> puntos = supabase.fetchData("puntos_historial");
-                LOGGER.info("Descargados " + puntos.size() + " registros de puntos de clientes desde Firebase");
+                LOGGER.info("Descargados " + puntos.size() + " registros de puntos de clientes desde Supabase");
                 
                 
                 return true;
@@ -842,12 +825,9 @@ public class FirebaseDownloadManagerREST {
     private CompletableFuture<Boolean> downloadCierresCaja() {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> cierres = supabase.fetchData("cierres");
-                LOGGER.info("Descargados " + cierres.size() + " cierres de caja desde Firebase");
+                LOGGER.info("Descargados " + cierres.size() + " cierres de caja desde Supabase");
                 
 
                 return true;
@@ -869,10 +849,7 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement updateStmt = null;
             java.sql.ResultSet rs = null;
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> formas = supabase.fetchData("formas_de_pago");
                 LOGGER.info("Descargados " + formas.size() + " formas de pago desde supabase");
                 
@@ -963,12 +940,9 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement updateStmt = null;
             java.sql.ResultSet rs = null;
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> impuestos = supabase.fetchData("impuestos");
-                LOGGER.info("Descargados " + impuestos.size() + " impuestos desde Firebase");
+                LOGGER.info("Descargados " + impuestos.size() + " impuestos desde Supabase");
                 
                 int insertados = 0;
                 int actualizados = 0;
@@ -1056,10 +1030,7 @@ public class FirebaseDownloadManagerREST {
             java.sql.ResultSet rs = null;
             try {
 
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> configuraciones = supabase.fetchData("config");
                 LOGGER.info("Descargadas " + configuraciones.size() + " configuraciones desde Firebase");
                 
@@ -1150,10 +1121,7 @@ public class FirebaseDownloadManagerREST {
             ResultSet rs = null;
     
             try {
-                SupabaseServiceREST supabase = new SupabaseServiceREST(
-                    "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
-                );
+                SupabaseServiceREST supabase = supabaseManager.getService();
     
                 List<Map<String, Object>> inventario = supabase.fetchData("inventario");
                 LOGGER.info("Descargado inventario con " + inventario.size() + " registros desde Supabase");

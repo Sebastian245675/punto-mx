@@ -17,11 +17,7 @@
 package com.openbravo.pos.firebase;
 
 import com.openbravo.basic.BasicException;
-import com.openbravo.data.loader.DataRead;
-import com.openbravo.data.loader.Datas;
-import com.openbravo.data.loader.PreparedSentence;
-import com.openbravo.data.loader.SerializerWrite;
-import com.openbravo.data.loader.SerializerWriteString;
+
 import com.openbravo.data.loader.Session;
 import com.openbravo.pos.customers.CustomerInfo;
 import com.openbravo.pos.customers.DataLogicCustomers;

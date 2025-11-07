@@ -112,24 +112,88 @@ public class JRootApp extends JPanel implements AppView {
             LOGGER.log(Level.WARNING, "Fail on verify ActiveCash");
             throw new BasicException("Fail on verify ActiveCash");
         }
-        com.openbravo.pos.forms.AppConfig dlConfig = new com.openbravo.pos.forms.AppConfig(null);
-        dlConfig.load();
-        com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
-            new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
-        java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
-        selections.put("cierres", true);
-        selections.put("usuarios", true);
-        selections.put("clientes", true);
-        selections.put("categorias", true);
-        selections.put("productos", true);
-        selections.put("ventas", true);
-        selections.put("puntos_historial", true);
-        selections.put("formas_de_pago", true);
-        selections.put("impuestos", true);
-        selections.put("config", true);
-        selections.put("inventario", true);
-        selections.put("ticketlines", true);
-        downloader.performSelectedDownload(selections).join();
+        
+        // Limpiar tabla usuarios al arrancar (excepto admin, empl y manager)
+        try {
+            LOGGER.log(Level.INFO, "🗑️ Limpiando tabla usuarios (people), excepto admin, empl y manager...");
+            java.sql.Connection conn = session.getConnection();
+            boolean autoCommitOriginal = conn.getAutoCommit();
+            
+            try {
+                // Asegurar que autocommit esté activo o hacer commit manual
+                conn.setAutoCommit(false);
+                
+                // Eliminar todos excepto admin, empl y manager
+                java.sql.PreparedStatement stmt = conn.prepareStatement(
+                    "DELETE FROM people WHERE NAME NOT IN ('admin', 'empl', 'manager')"
+                );
+                int deletedRows = stmt.executeUpdate();
+                stmt.close();
+                
+                // Hacer commit explícito
+                conn.commit();
+                
+                LOGGER.log(Level.INFO, "✅ Tabla usuarios (people) limpiada exitosamente. Registros eliminados: " + deletedRows);
+                
+                // Verificar que realmente se eliminaron y mostrar los usuarios restantes
+                java.sql.PreparedStatement checkStmt = conn.prepareStatement(
+                    "SELECT COUNT(*) as total FROM people"
+                );
+                java.sql.ResultSet rs = checkStmt.executeQuery();
+                if (rs.next()) {
+                    int remainingRows = rs.getInt(1);
+                    LOGGER.log(Level.INFO, "🔍 Verificación: Registros restantes en people: " + remainingRows);
+                }
+                rs.close();
+                checkStmt.close();
+                
+                // Mostrar qué usuarios quedaron
+                java.sql.PreparedStatement listStmt = conn.prepareStatement(
+                    "SELECT NAME FROM people ORDER BY NAME"
+                );
+                java.sql.ResultSet listRs = listStmt.executeQuery();
+                StringBuilder userList = new StringBuilder("👥 Usuarios restantes: ");
+                while (listRs.next()) {
+                    userList.append(listRs.getString("NAME")).append(", ");
+                }
+                LOGGER.log(Level.INFO, userList.toString());
+                listRs.close();
+                listStmt.close();
+                
+            } finally {
+                // Restaurar autocommit original
+                conn.setAutoCommit(autoCommitOriginal);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "❌ ERROR al limpiar tabla usuarios: " + e.getMessage(), e);
+            e.printStackTrace();
+        }
+        
+        // Inicializar Supabase automáticamente con credenciales internas
+        try {
+            com.openbravo.pos.forms.AppConfig dlConfig = new com.openbravo.pos.forms.AppConfig(null);
+            dlConfig.load();
+            
+            // Supabase siempre está conectado con credenciales internas
+            com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
+                new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
+            java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
+            // NO sincronizar usuarios al inicio para mantenerlos limpios
+            selections.put("clientes", true);
+            selections.put("categorias", true);
+            selections.put("productos", true);
+            selections.put("puntos_historial", true);
+            selections.put("formas_de_pago", true);
+            selections.put("impuestos", true);
+            selections.put("config", true);
+            selections.put("ticketlines", true);
+            downloader.performSelectedDownload(selections).join();
+            LOGGER.info("Supabase sincronización completada exitosamente");
+        } catch (IllegalStateException e) {
+            LOGGER.log(Level.WARNING, "Error al inicializar Supabase. Continuando sin sincronización inicial: " + e.getMessage());
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al inicializar Supabase. Continuando sin sincronización inicial: " + e.getMessage(), e);
+        }
 
         setInventoryLocation();
 
@@ -460,8 +524,8 @@ public class JRootApp extends JPanel implements AppView {
     }
     
     /**
-     * Inicializa el Firebase Sync Manager y ejecuta la sincronización automática
-     * si hay conexión a internet y Firebase está configurado.
+     * Inicializa el Supabase Sync Manager y ejecuta la sincronización automática
+     * si hay conexión a internet y Supabase está configurado.
      */
     private void initializeFirebaseSync() {
         try {
@@ -469,40 +533,46 @@ public class JRootApp extends JPanel implements AppView {
                 // Crear el FirebaseSyncManagerREST con la sesión actual y el AppUserView
                 firebaseSyncManager = new FirebaseSyncManagerREST(session, m_principalapp);
                 
-                // Inicializar Firebase con el usuario actual
-                com.openbravo.pos.firebase.FirebaseServiceREST firebaseService = 
-                    com.openbravo.pos.firebase.FirebaseServiceREST.getInstance();
-                firebaseService.initialize(appFileProperties, m_principalapp);
+                // Inicializar Supabase con el usuario actual - siempre conectado con credenciales internas
+                com.openbravo.pos.supabase.SupabaseServiceManager supabaseManager = 
+                    com.openbravo.pos.supabase.SupabaseServiceManager.getInstance();
+                if (!supabaseManager.initialize(appFileProperties, m_principalapp)) {
+                    LOGGER.warning("No se pudo inicializar Supabase Service. Omitiendo sincronización.");
+                    return;
+                }
                 
                 // Ejecutar sincronización completa en segundo plano
                 CompletableFuture.runAsync(() -> {
                     try {
-                        LOGGER.info("supabase sync iniciado automáticamente después del login");
+                        LOGGER.info("Supabase sync iniciado automáticamente después del login");
                         com.openbravo.pos.forms.AppConfig dlConfig = new com.openbravo.pos.forms.AppConfig(null);
                         dlConfig.load();
+                        
+                        // Supabase siempre está conectado con credenciales internas
                         com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
                             new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
                         java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
-                        selections.put("cierres", true);
+                        // NO sincronizar usuarios - mantenerlos limpios
                         selections.put("usuarios", true);
                         selections.put("clientes", true);
                         selections.put("categorias", true);
                         selections.put("productos", true);
-                        selections.put("ventas", true);
                         selections.put("puntos_historial", true);
                         selections.put("formas_de_pago", true);
                         selections.put("impuestos", true);
                         selections.put("config", true);
-                        selections.put("inventario", true);
                         selections.put("ticketlines", true);
                         downloader.performSelectedDownload(selections).join();
+                        LOGGER.info("Supabase sincronización completada exitosamente después del login");
+                    } catch (IllegalStateException e) {
+                        LOGGER.log(Level.WARNING, "Error al inicializar Supabase. Omitiendo sincronización: " + e.getMessage());
                     } catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "Error al ejecutar sincronización completa con supabase: " + e.getMessage(), e);
+                        LOGGER.log(Level.WARNING, "Error al ejecutar sincronización completa con Supabase: " + e.getMessage(), e);
                     }
                 });
             }
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Error al inicializar Firebase Sync Manager: " + e.getMessage(), e);
+            LOGGER.log(Level.WARNING, "Error al inicializar Supabase Sync Manager: " + e.getMessage(), e);
         }
     }
     
