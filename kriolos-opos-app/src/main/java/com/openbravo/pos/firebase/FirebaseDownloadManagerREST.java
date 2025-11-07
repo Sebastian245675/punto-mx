@@ -1143,6 +1143,7 @@ public class FirebaseDownloadManagerREST {
      */
     private CompletableFuture<Boolean> downloadInventario() {
         return CompletableFuture.supplyAsync(() -> {
+            PreparedStatement checkProductStmt = null;
             PreparedStatement checkStmt = null;
             PreparedStatement insertStmt = null;
             PreparedStatement updateStmt = null;
@@ -1162,13 +1163,14 @@ public class FirebaseDownloadManagerREST {
                 int errores = 0;
     
                 // ✅ Compatible con HSQLDB
+                String checkProductSql = "SELECT ID FROM products WHERE ID = ?";
                 String checkSql = """
                     SELECT * FROM stockcurrent 
                     WHERE LOCATION = ? 
                     AND PRODUCT = ? 
                     AND ((ATTRIBUTESETINSTANCE_ID IS NULL AND ? IS NULL) OR ATTRIBUTESETINSTANCE_ID = ?)
                     """;
-    
+
                 String insertSql = "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, ?, ?)";
                 String updateSql = """
                     UPDATE stockcurrent 
@@ -1177,30 +1179,41 @@ public class FirebaseDownloadManagerREST {
                     AND PRODUCT = ? 
                     AND ((ATTRIBUTESETINSTANCE_ID IS NULL AND ? IS NULL) OR ATTRIBUTESETINSTANCE_ID = ?)
                     """;
-    
+
+                checkProductStmt = session.getConnection().prepareStatement(checkProductSql);
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
-                updateStmt = session.getConnection().prepareStatement(updateSql);
-    
-                for (Map<String, Object> movimiento : inventario) {
+                updateStmt = session.getConnection().prepareStatement(updateSql);                for (Map<String, Object> movimiento : inventario) {
                     try {
                         String location = (String) movimiento.get("ubicacion");
                         String product = (String) movimiento.get("productoid");
                         String attributeSetInstanceId = (String) movimiento.get("atributos");
                         Double units = (Double) movimiento.get("unidades");
-    
+
                         if (location == null || product == null || units == null) {
                             LOGGER.warning("Movimiento de inventario incompleto, saltando: " + movimiento);
                             errores++;
                             continue;
                         }
-    
-                        // 🔍 Verificar existencia
+
+                        // 🔍 VERIFICAR QUE EL PRODUCTO EXISTE EN LA TABLA PRODUCTS
+                        checkProductStmt.setString(1, product);
+                        ResultSet productRs = checkProductStmt.executeQuery();
+                        boolean productoExiste = productRs.next();
+                        productRs.close();
+
+                        if (!productoExiste) {
+                            LOGGER.warning("⚠️ Producto no encontrado en BD local: " + product + " (" + movimiento.get("productonombre") + "). Inventario saltado.");
+                            errores++;
+                            continue;
+                        }
+
+                        // 🔍 Verificar existencia del registro de inventario
                         checkStmt.setString(1, location);
                         checkStmt.setString(2, product);
                         checkStmt.setString(3, attributeSetInstanceId);
                         checkStmt.setString(4, attributeSetInstanceId);
-    
+
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
@@ -1236,13 +1249,14 @@ public class FirebaseDownloadManagerREST {
     
                 LOGGER.info("Inventario sincronizado: " + insertados + " insertados, " + actualizados + " actualizados, " + errores + " errores.");
                 return errores == 0;
-    
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando inventario", e);
                 return false;
             } finally {
                 try {
                     if (rs != null) rs.close();
+                    if (checkProductStmt != null) checkProductStmt.close();
                     if (checkStmt != null) checkStmt.close();
                     if (insertStmt != null) insertStmt.close();
                     if (updateStmt != null) updateStmt.close();

@@ -57,8 +57,26 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_appuser = appuser;
 
         m_dlSystem = (DataLogicSystem) m_appview.getBean("com.openbravo.pos.forms.DataLogicSystem");
+        
+        // IMPORTANTE: Inicializar roles predeterminados ANTES de cargar permisos del usuario
+        try {
+            System.out.println("=== INICIALIZANDO ROLES AL INICIO DE LA APP ===");
+            com.openbravo.pos.admin.DataLogicAdmin dlAdmin = 
+                (com.openbravo.pos.admin.DataLogicAdmin) m_appview.getBean("com.openbravo.pos.admin.DataLogicAdmin");
+            com.openbravo.pos.admin.DefaultRolesInitializer.initializeDefaultRoles(dlAdmin.getSession());
+            System.out.println("=== ROLES INICIALIZADOS CORRECTAMENTE ===");
+        } catch (Exception ex) {
+            System.err.println("ERROR al inicializar roles: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+        
         AppUserPermissionsLoader aupLoader = new AppUserPermissionsLoader(m_dlSystem);
-        Set<String> userPermissions = aupLoader.getPermissionsForRole(m_appuser.getRole());
+        
+        // Convertir ID de rol a nombre de rol para compatibilidad
+        String roleName = mapRoleIdToName(m_appuser.getRole());
+        System.out.println("Usuario: " + m_appuser.getName() + " | Rol ID: " + m_appuser.getRole() + " | Rol Nombre: " + roleName);
+        
+        Set<String> userPermissions = aupLoader.getPermissionsForRole(roleName);
         m_appuser.fillPermissions(userPermissions);
 
         initComponents();
@@ -345,6 +363,31 @@ private void colapseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN
 
 }//GEN-LAST:event_colapseButtonActionPerformed
 
+    /**
+     * Convierte el ID del rol (0, 1, 2, 3...) al nombre del rol (ADMIN, MANAGER, Employee)
+     * para compatibilidad con el sistema de permisos
+     */
+    private String mapRoleIdToName(String roleId) {
+        if (roleId == null || roleId.trim().isEmpty()) {
+            return "Employee"; // Por defecto
+        }
+        
+        switch (roleId.trim()) {
+            case "0":
+                return "ADMIN";
+            case "1":
+                return "MANAGER";
+            case "2":
+            case "3":
+                return "Employee";
+            default:
+                // Si ya es un nombre de rol, devolverlo tal cual
+                if (roleId.equalsIgnoreCase("ADMIN") || roleId.equalsIgnoreCase("MANAGER") || roleId.equalsIgnoreCase("Employee")) {
+                    return roleId.substring(0, 1).toUpperCase() + roleId.substring(1).toLowerCase();
+                }
+                return roleId; // Rol personalizado
+        }
+    }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton colapseButton;

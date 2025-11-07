@@ -161,20 +161,25 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
     }
 
     /**
-     *
+     * Find role permissions by role name
      * @param sRole
      * @return
      */
     public final String findRolePermissions(String sRole) {
 
         final SentenceFind m_rolepermissions = new PreparedSentence(this.session,
-                "SELECT PERMISSIONS FROM roles WHERE ID = ?",
+                "SELECT permissions FROM roles WHERE name = ?",
                 SerializerWriteString.INSTANCE,
                 SerializerReadBytes.INSTANCE);
 
         String content = new String();
         try {
-            content = Formats.BYTEA.formatValue((byte[])m_rolepermissions.find(sRole));
+            byte[] permissionsBytes = (byte[])m_rolepermissions.find(sRole);
+            if (permissionsBytes != null) {
+                content = Formats.BYTEA.formatValue(permissionsBytes);
+            } else {
+                System.err.println("No se encontraron permisos para el rol: " + sRole);
+            }
         } catch (BasicException e) {
             LOGGER.log(Level.SEVERE, "Exception on format permissions for role: " + sRole, e);
         }

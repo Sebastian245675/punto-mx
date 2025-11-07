@@ -149,6 +149,10 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
     public final TableDefinition<RoleInfo> getTableRoles() {
         return m_troles;
     }
+    
+    public final Session getSession() {
+        return s;
+    }
 
     // --------------------------------------------------------------------
     // 🔹 CRUD directo en Supabase
@@ -253,23 +257,46 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
             public int exec() throws BasicException { return exec(null); }
             public int exec(Object params) throws BasicException {
                 Object[] v = (Object[]) params;
-                Map<String, Object> data = new LinkedHashMap<>();
-                // Mapear desde la fila local "people" a la API "usuarios"
-                // Usar la tarjeta como ID si viene informada
-                Object cardValForId = v[5];
-                String idFromCard = cardValForId == null ? String.valueOf(v[0]) : String.valueOf(cardValForId);
-                data.put("id", idFromCard);
-                data.put("nombre", v[1]); // NAME
-                data.put("tarjeta", v[5]); // CARD
-                data.put("rol", v[3]); // ROLE
-                data.put("visible", v[4]); // VISIBLE
-                data.put("tieneimagen", v[6] != null); // IMAGE -> boolean
-                data.put("fechaextraccion", new Date()); // timestamp actual
-                data.put("tabla", "people");
-                data.put("sucursal_nombre", v[7]); // BRANCH_NAME
-                data.put("sucursal_direccion", v[8]); // BRANCH_ADDRESS
-                sendToSupabase("POST", "usuarios", data, null);
-                return 1;
+                
+                // PRIMERO: Guardar en la base de datos local
+                SentenceExec localInsert = new PreparedSentence(s,
+                    "INSERT INTO people (ID, NAME, APPPASSWORD, ROLE, VISIBLE, CARD, IMAGE, BRANCH_NAME, BRANCH_ADDRESS) VALUES (?,?,?,?,?,?,?,?,?)",
+                    new SerializerWriteBasic(new Datas[]{
+                        Datas.STRING, // ID
+                        Datas.STRING, // NAME
+                        Datas.STRING, // APPPASSWORD
+                        Datas.STRING, // ROLE
+                        Datas.BOOLEAN,// VISIBLE
+                        Datas.STRING, // CARD
+                        Datas.IMAGE,  // IMAGE
+                        Datas.STRING, // BRANCH_NAME
+                        Datas.STRING  // BRANCH_ADDRESS
+                    }));
+                
+                int result = localInsert.exec(params);
+                
+                // SEGUNDO: Sincronizar con Supabase (en segundo plano, no fallar si hay error)
+                try {
+                    Map<String, Object> data = new LinkedHashMap<>();
+                    Object cardValForId = v[5];
+                    String idFromCard = cardValForId == null ? String.valueOf(v[0]) : String.valueOf(cardValForId);
+                    data.put("id", idFromCard);
+                    data.put("nombre", v[1]); // NAME
+                    data.put("tarjeta", v[5]); // CARD
+                    data.put("rol", v[3]); // ROLE
+                    data.put("visible", v[4]); // VISIBLE
+                    data.put("tieneimagen", v[6] != null); // IMAGE -> boolean
+                    data.put("fechaextraccion", new Date()); // timestamp actual
+                    data.put("tabla", "people");
+                    data.put("sucursal_nombre", v[7]); // BRANCH_NAME
+                    data.put("sucursal_direccion", v[8]); // BRANCH_ADDRESS
+                    sendToSupabase("POST", "usuarios", data, null);
+                } catch (Exception ex) {
+                    System.err.println("Error al sincronizar con Supabase (INSERT people): " + ex.getMessage());
+                    // No fallar la operación local
+                }
+                
+                return result;
             }
         };
     }
@@ -279,22 +306,46 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
             public int exec() throws BasicException { return exec(null); }
             public int exec(Object params) throws BasicException {
                 Object[] v = (Object[]) params;
-                Map<String, Object> data = new LinkedHashMap<>();
-                data.put("nombre", v[1]); // NAME
-                data.put("tarjeta", v[5]); // CARD
-                data.put("rol", v[3]); // ROLE
-                data.put("visible", v[4]); // VISIBLE
-                data.put("tieneimagen", v[6] != null); // IMAGE -> boolean
-                data.put("fechaextraccion", new Date()); // actualizar extracción
-                data.put("tabla", "people");
-                data.put("sucursal_nombre", v[7]);
-                data.put("sucursal_direccion", v[8]);
-                // Permitir cambiar el ID si cambia la tarjeta
-                String idOld = String.valueOf(v[0]);
-                String idNew = v[5] != null ? String.valueOf(v[5]) : idOld;
-                data.put("id", idNew);
-                sendToSupabase("PATCH", "usuarios", data, idOld);
-                return 1;
+                
+                // PRIMERO: Actualizar en la base de datos local
+                SentenceExec localUpdate = new PreparedSentence(s,
+                    "UPDATE people SET NAME=?, APPPASSWORD=?, ROLE=?, VISIBLE=?, CARD=?, IMAGE=?, BRANCH_NAME=?, BRANCH_ADDRESS=? WHERE ID=?",
+                    new SerializerWriteBasic(new Datas[]{
+                        Datas.STRING, // NAME
+                        Datas.STRING, // APPPASSWORD
+                        Datas.STRING, // ROLE
+                        Datas.BOOLEAN,// VISIBLE
+                        Datas.STRING, // CARD
+                        Datas.IMAGE,  // IMAGE
+                        Datas.STRING, // BRANCH_NAME
+                        Datas.STRING, // BRANCH_ADDRESS
+                        Datas.STRING  // ID (WHERE)
+                    }));
+                
+                int result = localUpdate.exec(params);
+                
+                // SEGUNDO: Sincronizar con Supabase (en segundo plano, no fallar si hay error)
+                try {
+                    Map<String, Object> data = new LinkedHashMap<>();
+                    data.put("nombre", v[1]); // NAME
+                    data.put("tarjeta", v[5]); // CARD
+                    data.put("rol", v[3]); // ROLE
+                    data.put("visible", v[4]); // VISIBLE
+                    data.put("tieneimagen", v[6] != null); // IMAGE -> boolean
+                    data.put("fechaextraccion", new Date()); // actualizar extracción
+                    data.put("tabla", "people");
+                    data.put("sucursal_nombre", v[7]);
+                    data.put("sucursal_direccion", v[8]);
+                    String idOld = String.valueOf(v[0]);
+                    String idNew = v[5] != null ? String.valueOf(v[5]) : idOld;
+                    data.put("id", idNew);
+                    sendToSupabase("PATCH", "usuarios", data, idOld);
+                } catch (Exception ex) {
+                    System.err.println("Error al sincronizar con Supabase (UPDATE people): " + ex.getMessage());
+                    // No fallar la operación local
+                }
+                
+                return result;
             }
         };
     }
@@ -305,8 +356,23 @@ public class DataLogicAdmin extends BeanFactoryDataSingle {
             public int exec(Object params) throws BasicException {
                 Object[] v = (Object[]) params;
                 String id = String.valueOf(v[0]);
-                sendToSupabase("DELETE", "usuarios", null, id);
-                return 1;
+                
+                // PRIMERO: Eliminar de la base de datos local
+                SentenceExec localDelete = new PreparedSentence(s,
+                    "DELETE FROM people WHERE ID=?",
+                    new SerializerWriteBasic(new Datas[]{Datas.STRING}));
+                
+                int result = localDelete.exec(params);
+                
+                // SEGUNDO: Sincronizar con Supabase (en segundo plano, no fallar si hay error)
+                try {
+                    sendToSupabase("DELETE", "usuarios", null, id);
+                } catch (Exception ex) {
+                    System.err.println("Error al sincronizar con Supabase (DELETE people): " + ex.getMessage());
+                    // No fallar la operación local
+                }
+                
+                return result;
             }
         };
     }
