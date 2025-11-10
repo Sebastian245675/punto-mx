@@ -46,6 +46,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
     private CloseEventListener closeEventListener = null;
 
     private AppConfig config;
+    private AppView m_App; // Sebastian - Guardar AppView para verificar rol de usuario
 
     /**
      * Creates new form JPanelConfiguration
@@ -54,6 +55,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
      */
     public JPanelConfiguration(AppView oApp) {
         initComponents();
+        m_App = oApp; // Sebastian - Guardar AppView
         config = new AppConfig(oApp.getProperties().getConfigFile());
 
         m_panelconfig = new ArrayList<>();
@@ -98,6 +100,40 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         jPanelCompany.add(panel.getConfigComponent());
 
         jbtnExit.setVisible(false);
+
+        // Sebastian - Si el usuario es empleado (rol 3), remover todas las pestañas excepto Firebase
+        if (oApp != null && oApp.getAppUserView() != null && oApp.getAppUserView().getUser() != null) {
+            String userRole = oApp.getAppUserView().getUser().getRole();
+            if ("3".equals(userRole)) {
+                // Remover todas las pestañas excepto Firebase
+                // Buscar el índice de Firebase y remover las demás en orden inverso
+                int firebaseIndex = -1;
+                for (int i = 0; i < jTabbedPane1.getTabCount(); i++) {
+                    String tabTitle = jTabbedPane1.getTitleAt(i);
+                    if ("Firebase".equals(tabTitle)) {
+                        firebaseIndex = i;
+                        break;
+                    }
+                }
+                
+                // Remover pestañas en orden inverso para evitar problemas con índices
+                if (firebaseIndex >= 0) {
+                    // Remover desde el final hacia el principio, evitando Firebase
+                    for (int i = jTabbedPane1.getTabCount() - 1; i >= 0; i--) {
+                        if (i != firebaseIndex) {
+                            jTabbedPane1.removeTabAt(i);
+                        }
+                    }
+                    // Seleccionar automáticamente Firebase (ahora será índice 0)
+                    jTabbedPane1.setSelectedIndex(0);
+                }
+                
+                // Ocultar botones de guardar y restaurar (solo para empleados)
+                // Los empleados solo pueden subir datos, no modificar configuración
+                jbtnSave.setVisible(false);
+                jbtnRestore.setVisible(false);
+            }
+        }
 
         loadProperties();
     }

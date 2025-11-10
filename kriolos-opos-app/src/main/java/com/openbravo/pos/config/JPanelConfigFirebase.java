@@ -29,6 +29,7 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JProgressBar;
+import java.io.File;
 
 /**
  * Panel de configuración para Firebase - Almacenamiento en la nube
@@ -153,7 +154,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
 
         jLabel1.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
-        jLabel1.setText("Configuración Supabase");
+        jLabel1.setText("Configuración");
 
         jLabel2.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jLabel2.setText("Project ID:");
@@ -193,7 +194,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
 
         jButtonValidateUser.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
         jButtonValidateUser.setText("Validar");
-        jButtonValidateUser.setToolTipText("Validar que el número de usuario existe en la tabla usuarios de Supabase");
+        jButtonValidateUser.setToolTipText("Validar que el código de usuario existe en el sistema");
         jButtonValidateUser.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 jButtonValidateUserActionPerformed(evt);
@@ -240,7 +241,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         });
 
         jLabel10.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
-        jLabel10.setText("<html>Supabase está conectado automáticamente. Solo ingrese su ID Usuario para habilitar la sincronización de datos.</html>");
+        jLabel10.setText("<html>El sistema está conectado automáticamente. Solo ingrese su código de usuario para habilitar la sincronización de datos.</html>");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
@@ -393,8 +394,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                             if (nombre == null) nombre = u.get("name");
                             userName = nombre != null ? nombre.toString() : null;
                             return true; // Card existe, validación exitosa
+                            }
                         }
-                    }
                     return false; // Card no encontrado
                 } catch (Exception ex) {
                     java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
@@ -412,37 +413,26 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 try {
                     boolean exists = get();
                     if (exists) {
-                        jLabelUserStatus.setText("✓ CARD válido (Supabase): " + (userName != null ? userName : userId));
+                        jLabelUserStatus.setText("✓ Código validado correctamente");
                         jLabelUserStatus.setForeground(new java.awt.Color(0, 150, 0));
                         
-                        // Marcar como validado y guardar el ID
+                        // Marcar como validado
                         userIdValidated = true;
                         validatedUserId = userId; // Usamos el CARD como código habilitante
                         
-                        // Guardar automáticamente en la configuración para que esté disponible al subir ventas
-                        try {
-                            com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
-                            config.load();
-                            config.setProperty("supabase.userid", userId);
-                            config.setProperty("firebase.userid", userId); // Compatibilidad
-                            config.save();
-                            java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
-                                .info("Card validado guardado automáticamente en configuración: " + userId);
-                        } catch (Exception e) {
-                            java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
-                                .log(java.util.logging.Level.WARNING, "Error guardando card validado en configuración", e);
-                        }
+                        // NO guardar en configuración - el código debe validarse cada vez
+                        // Esto asegura que cada sesión requiera validación manual
                         
                         // Habilitar los botones de subida/descarga
                         updateButtonsState();
                         
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "CARD validado en Supabase: " + (userName != null ? userName : userId) + "\n" +
-                            "Ahora puede subir datos a Supabase.",
+                            "Usuario validado correctamente.\n\n" +
+                            "Ahora puede subir datos.",
                             "Validación Exitosa", 
                             JOptionPane.INFORMATION_MESSAGE);
                     } else {
-                        jLabelUserStatus.setText("✗ CARD no encontrado en Supabase");
+                        jLabelUserStatus.setText("✗ Código no encontrado");
                         jLabelUserStatus.setForeground(java.awt.Color.RED);
                         
                         // Marcar como no validado
@@ -451,8 +441,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                         updateButtonsState();
                         
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "El CARD ingresado no existe en la tabla people o está inactivo.",
-                            "CARD No Válido", 
+                            "El código ingresado no es válido o no está activo.",
+                            "Código No Válido", 
                             JOptionPane.WARNING_MESSAGE);
                     }
                 } catch (Exception e) {
@@ -465,7 +455,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     updateButtonsState();
                     
                     JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error al validar el usuario:\n" + e.getMessage(),
+                        "Error al validar el usuario.\n\nPor favor, verifique su conexión e intente nuevamente.",
                         "Error", 
                         JOptionPane.ERROR_MESSAGE);
                 }
@@ -531,19 +521,19 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     if (success) {
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
                             "¡Conexión exitosa!\n" +
-                            "Supabase está conectado correctamente.",
-                            "Prueba de Conexión Supabase", 
+                            "El sistema está conectado correctamente.",
+                            "Prueba de Conexión", 
                             JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
                             "Error de conexión.\n" +
                             "Verifique su conexión a internet e intente nuevamente.",
-                            "Prueba de Conexión Supabase", 
+                            "Error de Conexión", 
                             JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error inesperado durante la prueba de conexión:\n" + e.getMessage(),
+                        "Error inesperado durante la prueba de conexión.\n\nPor favor, intente nuevamente.",
                         "Error", 
                         JOptionPane.ERROR_MESSAGE);
                 }
@@ -552,7 +542,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         
         worker.execute();
     }                                           
-    
+
     /**
      * Verifica cuántas ventas hay disponibles para subir (ventas de cajas cerradas)
      * @return número de ventas disponibles para subir
@@ -614,23 +604,23 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     private boolean hayCajasAbiertas() {
         try {
             // Obtener la configuración de la base de datos
-            com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
-            config.load();
-            
+                    com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
+                    config.load();
+                    
             // Crear una sesión de base de datos
-            com.openbravo.data.loader.Session session = null;
-            try {
-                session = com.openbravo.pos.forms.AppViewConnection.createSession(null, config);
-            } catch (Exception e) {
+                    com.openbravo.data.loader.Session session = null;
+                    try {
+                        session = com.openbravo.pos.forms.AppViewConnection.createSession(null, config);
+                    } catch (Exception e) {
                 System.err.println("Error creando sesión de BD para verificar cajas: " + e.getMessage());
                 // Si no se puede crear la sesión, asumimos que no hay cajas abiertas para permitir la subida
-                return false;
-            }
-            
-            if (session == null) {
-                return false;
-            }
-            
+                        return false;
+                    }
+                    
+                    if (session == null) {
+                        return false;
+                    }
+                    
             java.sql.PreparedStatement stmt = null;
             java.sql.ResultSet rs = null;
             try {
@@ -695,12 +685,12 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 }
                 
                 return totalVentasEnCajasAbiertas > 0;
-                
-            } catch (Exception e) {
+                    
+                } catch (Exception e) {
                 System.err.println("Error verificando cajas abiertas: " + e.getMessage());
-                e.printStackTrace();
+                    e.printStackTrace();
                 // En caso de error, permitimos la subida para no bloquear al usuario
-                return false;
+                    return false;
             } finally {
                 // Cerrar recursos en orden inverso
                 if (rs != null) {
@@ -720,7 +710,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 if (session != null) {
                     try {
                         session.close();
-                    } catch (Exception e) {
+                } catch (Exception e) {
                         // Ignorar errores al cerrar
                     }
                 }
@@ -737,9 +727,9 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         // Verificar que el ID esté validado
         if (!userIdValidated || validatedUserId == null) {
             JOptionPane.showMessageDialog(this, 
-                "Debe validar el ID de usuario antes de subir datos.\n" +
-                "Ingrese un ID y haga clic en 'Validar'.",
-                "ID No Validado", 
+                "Debe validar el código de usuario antes de subir datos.\n" +
+                "Ingrese un código y haga clic en 'Validar'.",
+                "Código No Validado", 
                 JOptionPane.WARNING_MESSAGE);
             return;
         }
@@ -766,17 +756,10 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 try {
                     boolean hayCajasAbiertas = get();
                     if (hayCajasAbiertas) {
-                        String mensaje = "No se puede subir datos porque hay ventas en cajas abiertas.\n\n";
-                        
-                        // Agregar información de depuración si está disponible
-                        if (hayCajasAbiertasDetalle != null && !hayCajasAbiertasDetalle.isEmpty()) {
-                            mensaje += "Detalles:\n" + hayCajasAbiertasDetalle + "\n\n";
-                        }
-                        
-                        mensaje += "Por favor, cierre la caja actual (que tiene ventas) antes de subir datos.\n" +
-                                  "Las ventas de cajas abiertas no se subirán hasta que se cierre la caja.\n\n" +
-                                  "NOTA: Si acaba de cerrar la caja, espere unos segundos y vuelva a intentar.\n" +
-                                  "Revise la consola para ver los detalles de depuración.";
+                        String mensaje = "No se puede subir datos porque hay ventas en cajas abiertas.\n\n" +
+                                        "Por favor, cierre la caja actual antes de subir datos.\n" +
+                                        "Las ventas de cajas abiertas no se subirán hasta que se cierre la caja.\n\n" +
+                                        "NOTA: Si acaba de cerrar la caja, espere unos segundos y vuelva a intentar.";
                         
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
                             mensaje,
@@ -814,19 +797,18 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         if (ventasDisponibles == 0) {
             JOptionPane.showMessageDialog(this,
                 "No hay ventas nuevas para subir.\n\n" +
-                "Todas las ventas de cajas cerradas ya han sido subidas a Supabase.\n" +
+                "Todas las ventas disponibles ya han sido sincronizadas.\n" +
                 "Para subir nuevas ventas, primero debe cerrar la caja actual.",
                 "Sin Ventas para Subir",
                 JOptionPane.INFORMATION_MESSAGE);
-            return;
-        }
-        
+                return;
+            }
+            
         // Confirmar la operación
         int choice = JOptionPane.showConfirmDialog(this,
-            "¿Está seguro de que desea subir todos los datos a Supabase?\n" +
+            "¿Está seguro de que desea subir los datos?\n" +
             "Esta operación puede tomar varios minutos dependiendo de la cantidad de datos.\n\n" +
-            "Ventas disponibles para subir: " + ventasDisponibles + "\n" +
-            "Se utilizará el identificador '" + validatedUserId + "' para la sincronización.",
+            "Ventas disponibles para subir: " + ventasDisponibles,
             "Confirmar Subida de Datos",
             JOptionPane.YES_NO_OPTION,
             JOptionPane.QUESTION_MESSAGE);
@@ -860,7 +842,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             @Override
             protected Boolean doInBackground() throws Exception {
                 // Mostrar diálogo de progreso
-                SwingUtilities.invokeLater(() -> {
+                    SwingUtilities.invokeLater(() -> {
                     progressDialog.setVisible(true);
                 });
                 
@@ -871,7 +853,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 });
                 
                 try {
-                    publish("Conectando a la base de datos...");
+                    publish("Preparando sincronización...");
                     // Obtener la configuración de la base de datos desde el archivo de configuración
                     com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
                     config.load();
@@ -881,41 +863,65 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     try {
                         session = com.openbravo.pos.forms.AppViewConnection.createSession(null, config);
                     } catch (Exception e) {
-                        publish("ERROR: No se pudo conectar a la base de datos: " + e.getMessage());
+                        publish("Error: No se pudo conectar al sistema");
+                        return false;
+                    }
+                        
+                        if (session == null) {
+                        publish("Error: No se pudo inicializar el sistema");
                         return false;
                     }
                     
-                    if (session == null) {
-                        publish("ERROR: No se pudo crear la sesión de base de datos");
+                    publish("Iniciando sincronización...");
+                    
+                    // Verificar que el código de usuario esté validado
+                    if (!userIdValidated || validatedUserId == null || validatedUserId.trim().isEmpty()) {
+                        publish("Error: Debe validar el código de usuario antes de subir datos");
                         return false;
                     }
-                    
-                    publish("Iniciando sincronización con Supabase...");
                     
                     // Crear una instancia del sync manager con la sesión obtenida
                     com.openbravo.pos.firebase.FirebaseSyncManagerREST syncManager = 
                         new com.openbravo.pos.firebase.FirebaseSyncManagerREST(session);
                     
+                    // Establecer el código validado en el sync manager
+                    syncManager.setValidatedUserId(validatedUserId);
+                    
                     publish("Sincronizando datos... (esto puede tomar varios minutos)");
                     
-                    // Ejecutar la sincronización completa
-                    var syncFuture = syncManager.performFullSync();
+                    // Ejecutar la sincronización completa pasando el código validado
+                    var syncFuture = syncManager.performFullSync(validatedUserId);
                     var result = syncFuture.get(10, java.util.concurrent.TimeUnit.MINUTES); // Timeout de 10 minutos
                     
-                    if (result.success) {
+                    // Determinar si la sincronización fue exitosa
+                    // Considerar éxito si las operaciones críticas (ventas, cierres, pagos) fueron exitosas
+                    boolean exitoReal = result.success;
+                    
+                    if (exitoReal) {
                         publish("¡Sincronización completada exitosamente!");
                     } else {
-                        publish("Sincronización completada con errores. Revise los logs.");
+                        // Verificar si al menos las operaciones críticas fueron exitosas
+                        boolean operacionesCriticasOk = result.ventasSincronizadas && 
+                                                       result.cierresSincronizados && 
+                                                       result.pagosSincronizados;
+                        
+                        if (operacionesCriticasOk) {
+                            publish("Sincronización completada. Operaciones principales exitosas.");
+                            // Considerar éxito si las operaciones críticas están OK
+                            return true;
+                        } else {
+                            publish("Error: La sincronización no se completó correctamente.");
+                        }
                     }
                     
-                    return result.success;
-                    
+                    return exitoReal;
+                        
                 } catch (java.util.concurrent.TimeoutException e) {
-                    publish("ERROR: La sincronización tardó demasiado tiempo (>10 minutos)");
+                    publish("Error: La operación tardó demasiado tiempo. Intente nuevamente.");
                     return false;
-                } catch (Exception e) {
-                    publish("ERROR: " + e.getMessage());
-                    return false;
+                    } catch (Exception e) {
+                    publish("Error durante la sincronización. Intente nuevamente.");
+                        return false;
                 }
             }
             
@@ -946,8 +952,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     
                     if (success) {
                         String mensaje = "¡Datos subidos exitosamente!\n\n" +
-                            "Todos los datos se han sincronizado con Supabase.\n" +
-                            "Los datos están disponibles en la nube.";
+                            "Los datos se sincronizaron correctamente.";
                         
                         if (ventasRestantes == 0) {
                             mensaje += "\n\n✓ Todas las ventas disponibles han sido subidas.\n" +
@@ -956,7 +961,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                             mensaje += "\n\n⚠ Aún hay " + ventasRestantes + " venta(s) disponible(s) para subir.\n" +
                                       "Esto puede deberse a que:\n" +
                                       "- Se crearon nuevas ventas durante la subida\n" +
-                                      "- Algunas ventas no se pudieron subir (revise los logs)";
+                                      "- Hay ventas en cajas que aún no han sido cerradas";
                         }
                         
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
@@ -966,8 +971,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     } else {
                         JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
                             "Error durante la subida de datos.\n\n" +
-                            "Algunos datos pueden no haberse sincronizado correctamente.\n" +
-                            "Revise los logs para más detalles.\n\n" +
+                            "La sincronización no se completó correctamente.\n" +
+                            "Por favor, intente nuevamente.\n\n" +
                             (ventasRestantes > 0 ? 
                                 "Ventas restantes: " + ventasRestantes : 
                                 "No hay más ventas disponibles para subir."),
@@ -975,14 +980,13 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                             JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (java.util.concurrent.ExecutionException e) {
-                    String errorDetail = e.getCause() != null ? e.getCause().getMessage() : e.getMessage();
                     JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error durante la subida:\n\n" + errorDetail + "\n\nRevise los logs para más información.",
+                        "Error durante la subida de datos.\n\nPor favor, verifique su conexión e intente nuevamente.",
                         "Error", 
                         JOptionPane.ERROR_MESSAGE);
                 } catch (Exception e) {
                     JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error inesperado durante la subida:\n\n" + e.getMessage() + "\n\nRevise los logs para más información.",
+                        "Error inesperado durante la subida.\n\nPor favor, intente nuevamente.",
                         "Error", 
                         JOptionPane.ERROR_MESSAGE);
                 }
@@ -1023,11 +1027,15 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         String appId = config.getProperty("firebase.appid");
         jtxtAppId.setText(appId != null ? appId : "");
         
-        String userId = config.getProperty("firebase.userid");
-        jtxtUserId.setText(userId != null ? userId : "");
+        // NO cargar el ID de usuario desde configuración - siempre empezar vacío
+        // El usuario debe ingresar el código cada vez
+        jtxtUserId.setText("");
         
         // Limpiar el estado de validación
-        jLabelUserStatus.setText(" ");
+        userIdValidated = false;
+        validatedUserId = null;
+        jLabelUserStatus.setText("⚠️ Ingrese y valide el código de usuario para habilitar la subida de datos");
+        jLabelUserStatus.setForeground(java.awt.Color.ORANGE);
         
         String enabled = config.getProperty("firebase.enabled");
         jchkFirebaseEnabled.setSelected("true".equals(enabled));
@@ -1046,10 +1054,8 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
 
     @Override
     public void saveProperties(AppConfig config) {
-        // Guardar solo el ID Usuario - Supabase está conectado automáticamente
-        config.setProperty("supabase.userid", jtxtUserId.getText().trim());
-        // También guardar en firebase.userid para compatibilidad
-        config.setProperty("firebase.userid", jtxtUserId.getText().trim());
+        // NO guardar el ID Usuario en configuración - debe ingresarse cada vez
+        // Esto asegura que cada sesión requiera validación manual
         
         // Siempre habilitado - Supabase está conectado automáticamente
         config.setProperty("firebase.enabled", "true");

@@ -62,6 +62,9 @@ public class FirebaseSyncManagerREST {
     
     private final com.openbravo.pos.forms.AppUserView appUserView;
     
+    // Código de usuario validado (no persistente, solo para la sesión actual)
+    private String validatedUserId = null;
+    
     /**
      * Constructor compatible con código existente (sin AppUserView)
      */
@@ -113,7 +116,30 @@ public class FirebaseSyncManagerREST {
     
     
     /**
+     * Establece el código de usuario validado para usar durante la sincronización
+     * @param userId El código de usuario validado (no persistente, solo para esta sesión)
+     */
+    public void setValidatedUserId(String userId) {
+        this.validatedUserId = userId;
+        LOGGER.info("Código de usuario validado establecido: " + (userId != null ? userId : "null"));
+    }
+    
+    /**
      * Realiza una sincronización completa de todos los datos
+     * IMPORTANTE: Este método se ejecuta en el thread del caller para evitar
+     * problemas de concurrencia con la conexión de base de datos
+     * @param validatedUserId El código de usuario validado (opcional, si no se proporciona se intentará leer de configuración como fallback)
+     */
+    public CompletableFuture<SyncResult> performFullSync(String validatedUserId) {
+        // Establecer el código validado si se proporciona
+        if (validatedUserId != null && !validatedUserId.trim().isEmpty()) {
+            this.validatedUserId = validatedUserId.trim();
+        }
+        return performFullSync();
+    }
+    
+    /**
+     * Realiza una sincronización completa de todos los datos (sobrecarga sin parámetros para compatibilidad)
      * IMPORTANTE: Este método se ejecuta en el thread del caller para evitar
      * problemas de concurrencia con la conexión de base de datos
      */
@@ -174,11 +200,13 @@ public class FirebaseSyncManagerREST {
                 result.ventasSincronizadas = ventasOk;
                 if (ventasOk) result.successCount++; else result.errorCount++;
                 
-                // 6. Sebastian - Sincronizar puntos de clientes
+                // 6. Sebastian - Sincronizar puntos de clientes (OPCIONAL - no crítico)
                 LOGGER.info("6. Sincronizando puntos de clientes...");
                 boolean puntosOk = syncPuntosClientes().join();
                 result.puntosSincronizados = puntosOk;
-                if (puntosOk) result.successCount++; else result.errorCount++;
+                // Los puntos son opcionales, no afectan el resultado general
+                if (puntosOk) result.successCount++;
+                // NO incrementar errorCount para puntos - es una funcionalidad opcional
                 
                 // 7. Sebastian - Sincronizar cierres de caja
                 LOGGER.info("7. Sincronizando cierres de caja...");
@@ -211,7 +239,22 @@ public class FirebaseSyncManagerREST {
                 if (inventarioOk) result.successCount++; else result.errorCount++;
                 
             result.endTime = LocalDateTime.now();
-            result.success = result.errorCount == 0;
+            
+            // Considerar la sincronización exitosa si las operaciones críticas fueron exitosas
+            // Operaciones críticas: ventas, cierres, pagos
+            // Operaciones no críticas (opcionales): puntos, configuraciones
+            boolean operacionesCriticasOk = ventasOk && cierresOk && pagosOk;
+            
+            // La sincronización es exitosa si:
+            // 1. Todas las operaciones críticas fueron exitosas, O
+            // 2. No hubo errores críticos (errorCount == 0)
+            result.success = operacionesCriticasOk || (result.errorCount == 0);
+            
+            // Si hay errores pero las operaciones críticas están OK, considerar éxito parcial
+            if (!result.success && operacionesCriticasOk && result.errorCount > 0) {
+                LOGGER.warning("Sincronización completada con errores en operaciones no críticas. Operaciones críticas: OK");
+                result.success = true; // Considerar éxito si las críticas están OK
+            }
             
             String mensaje = String.format(
                 "=== SINCRONIZACIÓN COMPLETA COMPLETADA ===\n" +
@@ -419,16 +462,21 @@ public class FirebaseSyncManagerREST {
     private CompletableFuture<Boolean> syncVentas() {
         return CompletableFuture.supplyAsync(() -> {
             try {
-                // Obtener el card validado desde la configuración
-                com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
-                config.load();
-                String cardValidado = config.getProperty("supabase.userid");
+                // Obtener el card validado: primero del campo validatedUserId, luego de configuración como fallback
+                String cardValidado = this.validatedUserId;
+                
                 if (cardValidado == null || cardValidado.trim().isEmpty()) {
-                    cardValidado = config.getProperty("firebase.userid"); // Fallback para compatibilidad
+                    // Fallback: intentar leer de configuración (para compatibilidad con código antiguo)
+                    com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
+                    config.load();
+                    cardValidado = config.getProperty("supabase.userid");
+                    if (cardValidado == null || cardValidado.trim().isEmpty()) {
+                        cardValidado = config.getProperty("firebase.userid"); // Fallback para compatibilidad
+                    }
                 }
                 
                 if (cardValidado == null || cardValidado.trim().isEmpty()) {
-                    LOGGER.severe("No se encontró card validado en la configuración. No se pueden subir ventas.");
+                    LOGGER.severe("No se encontró card validado. Debe validar el código de usuario en la configuración de Firebase antes de subir ventas.");
                     return false;
                 }
                 
@@ -670,72 +718,174 @@ public class FirebaseSyncManagerREST {
     
     /**
      * Elimina ventas de la BD local después de subirlas exitosamente a Supabase
+     * IMPORTANTE: NO elimina payments aquí - se eliminarán en syncFormasPago()
+     * Si hay payments asociados, NO eliminará los receipts (para evitar error de FK)
+     * @param receiptIds Lista de IDs de receipts (que es lo que se pasa desde syncVentas)
      */
-    private void eliminarVentasLocales(List<String> ticketIds) throws SQLException {
-        if (ticketIds.isEmpty()) {
+    private void eliminarVentasLocales(List<String> receiptIds) throws SQLException {
+        if (receiptIds.isEmpty()) {
             return;
         }
         
-        // Eliminar en orden: primero las dependencias, luego el receipt
-        // IMPORTANTE: NO eliminar payments aquí, se eliminarán después de subirlos a Supabase
-        String deleteTaxLines = "DELETE FROM taxlines WHERE RECEIPT = ?";
-        String deleteTicketLines = "DELETE FROM ticketlines WHERE TICKET = ?";
-        String deleteTickets = "DELETE FROM tickets WHERE ID = ?";
-        String deleteReceipts = "DELETE FROM receipts WHERE ID = ?";
-        
-        PreparedStatement stmtTax = session.getConnection().prepareStatement(deleteTaxLines);
-        PreparedStatement stmtTL = session.getConnection().prepareStatement(deleteTicketLines);
-        PreparedStatement stmtT = session.getConnection().prepareStatement(deleteTickets);
-        PreparedStatement stmtR = session.getConnection().prepareStatement(deleteReceipts);
+        // Filtrar receipts que NO tengan payments asociados (para evitar error de FK)
+        // Los receipts con payments se eliminarán después de que syncFormasPago() elimine los payments
+        List<String> receiptIdsSinPayments = new ArrayList<>();
+        String checkPayments = "SELECT COUNT(*) FROM payments WHERE RECEIPT = ?";
+        PreparedStatement checkStmt = session.getConnection().prepareStatement(checkPayments);
         
         try {
-            for (String ticketId : ticketIds) {
-                // Eliminar taxlines
-                stmtTax.setString(1, ticketId);
+            for (String receiptId : receiptIds) {
+                checkStmt.setString(1, receiptId);
+                ResultSet rs = checkStmt.executeQuery();
+                if (rs.next() && rs.getInt(1) == 0) {
+                    // No hay payments, podemos eliminar este receipt
+                    receiptIdsSinPayments.add(receiptId);
+                } else {
+                    // Hay payments, NO eliminar este receipt todavía
+                    LOGGER.info("Receipt " + receiptId + " tiene payments asociados, se eliminará después de subir los pagos");
+                }
+                rs.close();
+            }
+        } finally {
+            checkStmt.close();
+        }
+        
+        if (receiptIdsSinPayments.isEmpty()) {
+            LOGGER.info("Todos los receipts tienen payments asociados. Se eliminarán después de subir los pagos.");
+            return;
+        }
+        
+        // Eliminar solo los receipts que NO tienen payments asociados
+        // 1. Eliminar taxlines
+        String deleteTaxLines = "DELETE FROM taxlines WHERE RECEIPT = ?";
+        PreparedStatement stmtTax = session.getConnection().prepareStatement(deleteTaxLines);
+        
+        try {
+            for (String receiptId : receiptIdsSinPayments) {
+                stmtTax.setString(1, receiptId);
                 stmtTax.executeUpdate();
-                
-                // NO eliminar payments aquí - se eliminarán después de subirlos a Supabase
-                
-                // Eliminar ticketlines
-                stmtTL.setString(1, ticketId);
-                stmtTL.executeUpdate();
-                
-                // Eliminar tickets
-                stmtT.setString(1, ticketId);
-                stmtT.executeUpdate();
-                
-                // Eliminar receipts
-                stmtR.setString(1, ticketId);
-                stmtR.executeUpdate();
             }
         } finally {
             stmtTax.close();
+        }
+        
+        // 2. Eliminar ticketlines (usando el receiptId como TICKET, que es común en Openbravo POS)
+        String deleteTicketLines = "DELETE FROM ticketlines WHERE TICKET = ?";
+        PreparedStatement stmtTL = session.getConnection().prepareStatement(deleteTicketLines);
+        
+        try {
+            for (String receiptId : receiptIdsSinPayments) {
+                stmtTL.setString(1, receiptId);
+                stmtTL.executeUpdate();
+            }
+        } finally {
             stmtTL.close();
+        }
+        
+        // 3. Eliminar tickets (usando el receiptId como ID del ticket)
+        String deleteTickets = "DELETE FROM tickets WHERE ID = ?";
+        PreparedStatement stmtT = session.getConnection().prepareStatement(deleteTickets);
+        
+        try {
+            for (String receiptId : receiptIdsSinPayments) {
+                stmtT.setString(1, receiptId);
+                stmtT.executeUpdate();
+            }
+        } finally {
             stmtT.close();
+        }
+        
+        // 4. Finalmente, eliminar receipts (solo los que NO tienen payments)
+        String deleteReceipts = "DELETE FROM receipts WHERE ID = ?";
+        PreparedStatement stmtR = session.getConnection().prepareStatement(deleteReceipts);
+        
+        try {
+            for (String receiptId : receiptIdsSinPayments) {
+                stmtR.setString(1, receiptId);
+                stmtR.executeUpdate();
+            }
+            LOGGER.info("Receipts eliminados (sin payments): " + receiptIdsSinPayments.size() + " de " + receiptIds.size());
+        } finally {
             stmtR.close();
         }
     }
     
     /**
      * Elimina pagos de la BD local después de subirlos exitosamente a Supabase
+     * IMPORTANTE: También elimina las ventas (receipts) asociadas después de eliminar los payments
+     * @param receiptIds Lista de IDs de receipts cuyos payments se van a eliminar
      */
     private void eliminarPagosLocales(List<String> receiptIds) throws SQLException {
         if (receiptIds.isEmpty()) {
             return;
         }
         
-        // Eliminar pagos asociados a estos receipts
+        // 1. Eliminar pagos asociados a estos receipts
         String deletePayments = "DELETE FROM payments WHERE RECEIPT = ?";
-        PreparedStatement stmt = session.getConnection().prepareStatement(deletePayments);
+        PreparedStatement stmtPayments = session.getConnection().prepareStatement(deletePayments);
         
         try {
             for (String receiptId : receiptIds) {
-                stmt.setString(1, receiptId);
-                stmt.executeUpdate();
+                stmtPayments.setString(1, receiptId);
+                stmtPayments.executeUpdate();
             }
-            LOGGER.info("Eliminados " + receiptIds.size() + " grupos de pagos de la BD local");
+            LOGGER.info("Payments eliminados para " + receiptIds.size() + " receipts");
         } finally {
-            stmt.close();
+            stmtPayments.close();
+        }
+        
+        // 2. Ahora que los payments están eliminados, podemos eliminar las ventas (receipts) asociadas
+        // Eliminar taxlines
+        String deleteTaxLines = "DELETE FROM taxlines WHERE RECEIPT = ?";
+        PreparedStatement stmtTax = session.getConnection().prepareStatement(deleteTaxLines);
+        
+        try {
+            for (String receiptId : receiptIds) {
+                stmtTax.setString(1, receiptId);
+                stmtTax.executeUpdate();
+            }
+        } finally {
+            stmtTax.close();
+        }
+        
+        // Eliminar ticketlines
+        String deleteTicketLines = "DELETE FROM ticketlines WHERE TICKET = ?";
+        PreparedStatement stmtTL = session.getConnection().prepareStatement(deleteTicketLines);
+        
+        try {
+            for (String receiptId : receiptIds) {
+                stmtTL.setString(1, receiptId);
+                stmtTL.executeUpdate();
+            }
+        } finally {
+            stmtTL.close();
+        }
+        
+        // Eliminar tickets
+        String deleteTickets = "DELETE FROM tickets WHERE ID = ?";
+        PreparedStatement stmtT = session.getConnection().prepareStatement(deleteTickets);
+        
+        try {
+            for (String receiptId : receiptIds) {
+                stmtT.setString(1, receiptId);
+                stmtT.executeUpdate();
+            }
+        } finally {
+            stmtT.close();
+        }
+        
+        // Eliminar receipts (ahora que no hay payments)
+        String deleteReceipts = "DELETE FROM receipts WHERE ID = ?";
+        PreparedStatement stmtR = session.getConnection().prepareStatement(deleteReceipts);
+        
+        try {
+            for (String receiptId : receiptIds) {
+                stmtR.setString(1, receiptId);
+                stmtR.executeUpdate();
+            }
+            LOGGER.info("Receipts eliminados después de eliminar payments: " + receiptIds.size());
+        } finally {
+            stmtR.close();
         }
     }
     
@@ -918,17 +1068,53 @@ public class FirebaseSyncManagerREST {
                 // Ordenar por MONTO_TOTAL DESC y luego por DATESTART ASC
                 // Esto asegura que si hay múltiples cierres con la misma secuencia, 
                 // el que tiene más dinero (más importante) obtenga el sufijo _1
-                String sql = "SELECT cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, " +
-                           "COALESCE(SUM(p.TOTAL), 0.0) as MONTO_TOTAL, cc.INITIAL_AMOUNT " +
-                           "FROM closedcash cc " +
-                           "LEFT JOIN receipts r ON r.MONEY = cc.MONEY " +
-                           "LEFT JOIN payments p ON p.RECEIPT = r.ID " +
-                           "WHERE cc.DATEEND IS NOT NULL " +
-                           "GROUP BY cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, cc.INITIAL_AMOUNT " +
-                           "ORDER BY MONTO_TOTAL DESC, cc.DATESTART ASC";
+                // Intentar incluir faltante_cierre y sobrante_cierre si existen, sino usar valores por defecto
                 
-                PreparedStatement stmt = session.getConnection().prepareStatement(sql);
-                ResultSet rs = stmt.executeQuery();
+                PreparedStatement stmt = null;
+                ResultSet rs = null;
+                boolean columnasExisten = false;
+                
+                // Primero intentar verificar si las columnas existen
+                try {
+                    // Intentar una consulta simple para verificar si las columnas existen
+                    String testSql = "SELECT cc.faltante_cierre, cc.sobrante_cierre FROM closedcash cc WHERE 1=0";
+                    try (PreparedStatement testStmt = session.getConnection().prepareStatement(testSql)) {
+                        testStmt.executeQuery();
+                        columnasExisten = true;
+                        LOGGER.info("Columnas faltante_cierre y sobrante_cierre encontradas en la base de datos");
+                    }
+                } catch (SQLException e) {
+                    // Las columnas no existen, usar consulta sin ellas
+                    columnasExisten = false;
+                    LOGGER.warning("Columnas faltante_cierre y sobrante_cierre no existen en la base de datos. Se usarán valores por defecto (null).");
+                }
+                
+                // Construir SQL según si las columnas existen o no
+                String sql;
+                if (columnasExisten) {
+                    sql = "SELECT cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, " +
+                          "COALESCE(SUM(p.TOTAL), 0.0) as MONTO_TOTAL, cc.INITIAL_AMOUNT, " +
+                          "COALESCE(cc.faltante_cierre, 0.0) as FALTANTE_CIERRE, " +
+                          "COALESCE(cc.sobrante_cierre, 0.0) as SOBRANTE_CIERRE " +
+                          "FROM closedcash cc " +
+                          "LEFT JOIN receipts r ON r.MONEY = cc.MONEY " +
+                          "LEFT JOIN payments p ON p.RECEIPT = r.ID " +
+                          "WHERE cc.DATEEND IS NOT NULL " +
+                          "GROUP BY cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, cc.INITIAL_AMOUNT, cc.faltante_cierre, cc.sobrante_cierre " +
+                          "ORDER BY MONTO_TOTAL DESC, cc.DATESTART ASC";
+                } else {
+                    sql = "SELECT cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, " +
+                          "COALESCE(SUM(p.TOTAL), 0.0) as MONTO_TOTAL, cc.INITIAL_AMOUNT " +
+                          "FROM closedcash cc " +
+                          "LEFT JOIN receipts r ON r.MONEY = cc.MONEY " +
+                          "LEFT JOIN payments p ON p.RECEIPT = r.ID " +
+                          "WHERE cc.DATEEND IS NOT NULL " +
+                          "GROUP BY cc.MONEY, cc.HOST, cc.HOSTSEQUENCE, cc.DATESTART, cc.DATEEND, cc.INITIAL_AMOUNT " +
+                          "ORDER BY MONTO_TOTAL DESC, cc.DATESTART ASC";
+                }
+                
+                stmt = session.getConnection().prepareStatement(sql);
+                rs = stmt.executeQuery();
                 
                 while (rs.next()) {
                     Map<String, Object> cierre = new HashMap<>();
@@ -968,6 +1154,37 @@ public class FirebaseSyncManagerREST {
                         cierre.put("initial_amount", null);
                     } else {
                         cierre.put("initial_amount", initialAmount);
+                    }
+                    
+                    // Agregar faltante_cierre y sobrante_cierre solo si las columnas existen
+                    if (columnasExisten) {
+                        try {
+                            double faltanteCierre = rs.getDouble("FALTANTE_CIERRE");
+                            if (rs.wasNull() || faltanteCierre == 0.0) {
+                                cierre.put("faltante_cierre", null);
+                            } else {
+                                cierre.put("faltante_cierre", faltanteCierre);
+                            }
+                        } catch (SQLException e) {
+                            LOGGER.warning("Error leyendo faltante_cierre, usando null: " + e.getMessage());
+                            cierre.put("faltante_cierre", null);
+                        }
+                        
+                        try {
+                            double sobranteCierre = rs.getDouble("SOBRANTE_CIERRE");
+                            if (rs.wasNull() || sobranteCierre == 0.0) {
+                                cierre.put("sobrante_cierre", null);
+                            } else {
+                                cierre.put("sobrante_cierre", sobranteCierre);
+                            }
+                        } catch (SQLException e) {
+                            LOGGER.warning("Error leyendo sobrante_cierre, usando null: " + e.getMessage());
+                            cierre.put("sobrante_cierre", null);
+                        }
+                    } else {
+                        // Si las columnas no existen, establecer valores como null
+                        cierre.put("faltante_cierre", null);
+                        cierre.put("sobrante_cierre", null);
                     }
                     
                     // Log si se agregó sufijo

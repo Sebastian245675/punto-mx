@@ -48,7 +48,8 @@
     <class name="sales.PrintRemote"/>
 
 <!-- EPM -->
-    <class name="com.openbravo.pos.epm.JPanelEmployeePresence" />
+    <!-- Sebastian - Removido JPanelEmployeePresence para ocultar "Entrada/Salida" del menú Sistema para empleados -->
+    <!-- <class name="com.openbravo.pos.epm.JPanelEmployeePresence" /> -->
 
 <!-- Standard button scripts -->
     <class name="button.totaldiscount"/>
@@ -61,5 +62,16 @@
 
 <class name="Menu.ChangePassword"/>
 <class name="com.openbravo.pos.panels.JPanelPrinter"/>
+
+<!-- Sebastian - Permisos adicionales para empleados (rol 3) -->
+<!-- Cierre de Caja -->
+<class name="com.openbravo.pos.panels.JPanelCloseMoney"/>
+
+<!-- Administrar Sucursales -->
+<class name="com.openbravo.pos.branches.JPanelBranchesManagement"/>
+
+<!-- Configuración (necesario para acceder a Firebase, pero JPanelConfigFirebase solo muestra subida de datos) -->
+<class name="com.openbravo.pos.config.JPanelConfiguration"/>
+<class name="com.openbravo.pos.config.JPanelConfigFirebase"/>
 
 </permissions>

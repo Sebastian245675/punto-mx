@@ -76,7 +76,24 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private Connection con;  
     private Statement stmt;
     private Integer result;
-    private Integer dresult;    
+    private Integer dresult;
+    
+    // Clase para almacenar el resultado de la validación de dinero físico
+    private static class ValidacionDineroResult {
+        boolean valido;
+        double faltante;
+        double sobrante;
+        
+        ValidacionDineroResult(boolean valido, double faltante, double sobrante) {
+            this.valido = valido;
+            this.faltante = faltante;
+            this.sobrante = sobrante;
+        }
+    }
+    
+    // Variables para almacenar faltante y sobrante del cierre actual
+    private double faltanteCierre = 0.0;
+    private double sobranteCierre = 0.0;    
     private String SQL;
     private ResultSet rs;
     
@@ -159,6 +176,9 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     @Override
     public void activate() throws BasicException {
+        // Verificar y crear las columnas faltante_cierre y sobrante_cierre si no existen
+        verificarColumnasFaltanteSobrante();
+        
         loadData();
     }
 
@@ -415,7 +435,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Calcula el dinero esperado (fondo inicial + efectivo recibido) y lo compara con el dinero físico ingresado
      * @return true si el dinero es correcto o sobra, false si falta dinero
      */
-    private boolean validarDineroFisicoEnCaja() {
+    private ValidacionDineroResult validarDineroFisicoEnCaja() {
         try {
             // Calcular el dinero esperado en caja
             double fondoInicial = m_PaymentsToClose.getInitialAmount() != null ? m_PaymentsToClose.getInitialAmount() : 0.0;
@@ -438,7 +458,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     "Cierre Cancelado",
                     JOptionPane.WARNING_MESSAGE
                 );
-                return false;
+                return new ValidacionDineroResult(false, 0.0, 0.0);
             }
             
             // Validar que el input sea un número válido
@@ -455,20 +475,25 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     "Error de Validación",
                     JOptionPane.ERROR_MESSAGE
                 );
-                return false;
+                return new ValidacionDineroResult(false, 0.0, 0.0);
             }
             
             // Comparar dinero físico con dinero esperado
             double diferencia = dineroFisico - dineroEsperado;
             double tolerancia = 0.01; // Tolerancia de 1 centavo para errores de redondeo
             
+            // Inicializar faltante y sobrante
+            double faltante = 0.0;
+            double sobrante = 0.0;
+            String mensajeCierre = "";
+            
             if (diferencia < -tolerancia) {
-                // Falta dinero - mostrar desglose completo
-                double dineroFaltante = Math.abs(diferencia);
-                JOptionPane.showMessageDialog(
+                // Falta dinero - mostrar advertencia pero permitir continuar
+                faltante = Math.abs(diferencia);
+                int respuesta = JOptionPane.showConfirmDialog(
                     this,
                     String.format(
-                        "NO ES POSIBLE CERRAR CAJA\n\n" +
+                        "ADVERTENCIA: FALTA DINERO\n\n" +
                         "Fondo Inicial: %s\n" +
                         "Efectivo Recibido: %s\n" +
                         "─────────────────────────\n" +
@@ -476,24 +501,35 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         "TIENE EN CAJA: %s\n" +
                         "─────────────────────────\n" +
                         "FALTA EN CAJA: %s\n\n" +
-                        "Por favor, verifique el dinero físico en la caja.",
+                        "¿Desea continuar con el cierre de caja de todos modos?",
                         Formats.CURRENCY.formatValue(fondoInicial),
                         Formats.CURRENCY.formatValue(efectivoRecibido),
                         Formats.CURRENCY.formatValue(dineroEsperado),
                         Formats.CURRENCY.formatValue(dineroFisico),
-                        Formats.CURRENCY.formatValue(dineroFaltante)
+                        Formats.CURRENCY.formatValue(faltante)
                     ),
-                    "Error: Falta Dinero",
-                    JOptionPane.ERROR_MESSAGE
+                    "Advertencia: Falta Dinero",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.WARNING_MESSAGE
                 );
+                
+                if (respuesta != JOptionPane.YES_OPTION) {
+                    return new ValidacionDineroResult(false, faltante, 0.0);
+                }
+                
+                mensajeCierre = String.format(
+                    "Cierre de caja realizado.\n\n" +
+                    "Se detectó un faltante de: %s",
+                    Formats.CURRENCY.formatValue(faltante)
+                );
+                
                 LOGGER.warning(String.format(
-                    "Intento de cierre de caja fallido: Esperado=%.2f, Físico=%.2f, Falta=%.2f",
-                    dineroEsperado, dineroFisico, dineroFaltante
+                    "Cierre de caja con dinero faltante: Esperado=%.2f, Físico=%.2f, Falta=%.2f",
+                    dineroEsperado, dineroFisico, faltante
                 ));
-                return false;
             } else if (diferencia > tolerancia) {
                 // Sobra dinero (se permite pero se informa) - mostrar desglose completo
-                double dineroSobrante = diferencia;
+                sobrante = diferencia;
                 int respuesta = JOptionPane.showConfirmDialog(
                     this,
                     String.format(
@@ -510,7 +546,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         Formats.CURRENCY.formatValue(efectivoRecibido),
                         Formats.CURRENCY.formatValue(dineroEsperado),
                         Formats.CURRENCY.formatValue(dineroFisico),
-                        Formats.CURRENCY.formatValue(dineroSobrante)
+                        Formats.CURRENCY.formatValue(sobrante)
                     ),
                     "Advertencia: Sobra Dinero",
                     JOptionPane.YES_NO_OPTION,
@@ -518,34 +554,47 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 );
                 
                 if (respuesta != JOptionPane.YES_OPTION) {
-                    return false;
+                    return new ValidacionDineroResult(false, 0.0, sobrante);
                 }
+                
+                mensajeCierre = String.format(
+                    "Cierre de caja realizado.\n\n" +
+                    "Se detectó un sobrante de: %s",
+                    Formats.CURRENCY.formatValue(sobrante)
+                );
                 
                 LOGGER.info(String.format(
                     "Cierre de caja con dinero sobrante: Esperado=%.2f, Físico=%.2f, Sobra=%.2f",
-                    dineroEsperado, dineroFisico, dineroSobrante
+                    dineroEsperado, dineroFisico, sobrante
                 ));
             } else {
                 // Dinero correcto (dentro de la tolerancia) - mensaje simple
-                JOptionPane.showMessageDialog(
-                    this,
-                    "✅ Dinero en caja correcto.\n\nProcediendo con el cierre de caja...",
-                    "Validación Exitosa",
-                    JOptionPane.INFORMATION_MESSAGE
-                );
+                mensajeCierre = "Cierre de caja realizado correctamente.";
                 LOGGER.info(String.format(
                     "Validación de dinero exitosa: Esperado=%.2f, Físico=%.2f",
                     dineroEsperado, dineroFisico
                 ));
             }
             
-            return true;
+            // Guardar faltante y sobrante en variables de instancia
+            faltanteCierre = faltante;
+            sobranteCierre = sobrante;
+            
+            // Mostrar mensaje de cierre realizado
+            JOptionPane.showMessageDialog(
+                this,
+                mensajeCierre,
+                "Cierre de Caja",
+                JOptionPane.INFORMATION_MESSAGE
+            );
+            
+            return new ValidacionDineroResult(true, faltante, sobrante);
             
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error validando dinero físico en caja", e);
             JOptionPane.showMessageDialog(
                 this,
-                "Error al validar el dinero en caja: " + e.getMessage() + "\n\n¿Desea continuar con el cierre de todos modos?",
+                "Error al validar el dinero en caja.\n\n¿Desea continuar con el cierre de todos modos?",
                 "Error de Validación",
                 JOptionPane.ERROR_MESSAGE
             );
@@ -557,7 +606,53 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE
             );
-            return respuesta == JOptionPane.YES_OPTION;
+            if (respuesta == JOptionPane.YES_OPTION) {
+                faltanteCierre = 0.0;
+                sobranteCierre = 0.0;
+                return new ValidacionDineroResult(true, 0.0, 0.0);
+            } else {
+                return new ValidacionDineroResult(false, 0.0, 0.0);
+            }
+        }
+    }
+    
+    /**
+     * Verifica si las columnas faltante_cierre y sobrante_cierre existen en la tabla closedcash
+     * Si no existen, intenta crearlas automáticamente
+     * @return true si las columnas existen (o se crearon exitosamente), false si no existen y no se pudieron crear
+     */
+    private boolean verificarColumnasFaltanteSobrante() {
+        try {
+            // Intentar una consulta simple para verificar si las columnas existen
+            String testSql = "SELECT faltante_cierre, sobrante_cierre FROM closedcash WHERE 1=0";
+            try {
+                new StaticSentence(m_App.getSession(), testSql).exec();
+                // Si no hay error, las columnas existen
+                return true;
+            } catch (BasicException e) {
+                // Las columnas no existen, intentar crearlas
+                LOGGER.info("Columnas faltante_cierre y sobrante_cierre no existen, intentando crearlas...");
+                try {
+                    // Agregar columna faltante_cierre
+                    String alterSql1 = "ALTER TABLE closedcash ADD COLUMN faltante_cierre NUMERIC(10,2) DEFAULT 0.00";
+                    new StaticSentence(m_App.getSession(), alterSql1).exec();
+                    LOGGER.info("Columna faltante_cierre agregada exitosamente");
+                    
+                    // Agregar columna sobrante_cierre
+                    String alterSql2 = "ALTER TABLE closedcash ADD COLUMN sobrante_cierre NUMERIC(10,2) DEFAULT 0.00";
+                    new StaticSentence(m_App.getSession(), alterSql2).exec();
+                    LOGGER.info("Columna sobrante_cierre agregada exitosamente");
+                    
+                    return true;
+                } catch (BasicException alterEx) {
+                    // No se pudieron crear las columnas (puede ser que ya existan o haya un error de permisos)
+                    LOGGER.warning("No se pudieron crear las columnas faltante_cierre y sobrante_cierre: " + alterEx.getMessage());
+                    return false;
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.warning("Error verificando columnas faltante_cierre y sobrante_cierre: " + e.getMessage());
+            return false;
         }
     }
     
@@ -898,10 +993,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         if (res == JOptionPane.YES_OPTION) {
             
             // Validación de dinero físico en caja
-            if (!validarDineroFisicoEnCaja()) {
+            ValidacionDineroResult validacion = validarDineroFisicoEnCaja();
+            if (!validacion.valido) {
                 // Si la validación falla, no continuar con el cierre
                 return;
             }
+            
+            // Los valores de faltante y sobrante ya están guardados en faltanteCierre y sobranteCierre
 
             String scriptId = "cash.close";
             try {
@@ -920,18 +1018,56 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             try {
 
                 if (m_App.getActiveCashDateEnd() == null) {
-                    new StaticSentence(m_App.getSession()
-                        , "UPDATE closedcash SET DATEEND = ?, NOSALES = ? WHERE HOST = ? AND MONEY = ?"
-                        , new SerializerWriteBasic(new Datas[] {
-                            Datas.TIMESTAMP, 
-                            Datas.INT, 
-                            Datas.STRING, 
-                            Datas.STRING}))
-                    .exec(new Object[] {dNow, result, 
-                        m_App.getProperties().getHost(), 
-                        m_App.getActiveCashIndex()});
+                    // Verificar si las columnas faltante_cierre y sobrante_cierre existen
+                    boolean columnasExisten = verificarColumnasFaltanteSobrante();
+                    
+                    if (columnasExisten) {
+                        // Las columnas existen, usar UPDATE completo
+                        try {
+                            new StaticSentence(m_App.getSession()
+                                , "UPDATE closedcash SET DATEEND = ?, NOSALES = ?, faltante_cierre = ?, sobrante_cierre = ? WHERE HOST = ? AND MONEY = ?"
+                                , new SerializerWriteBasic(new Datas[] {
+                                    Datas.TIMESTAMP, 
+                                    Datas.INT,
+                                    Datas.DOUBLE,
+                                    Datas.DOUBLE,
+                                    Datas.STRING, 
+                                    Datas.STRING}))
+                            .exec(new Object[] {dNow, result, faltanteCierre, sobranteCierre,
+                                m_App.getProperties().getHost(), 
+                                m_App.getActiveCashIndex()});
+                            LOGGER.info(String.format("Cierre de caja guardado con faltante=%.2f, sobrante=%.2f", 
+                                faltanteCierre, sobranteCierre));
+                        } catch (BasicException e1) {
+                            // Si falla a pesar de verificar, usar fallback
+                            LOGGER.warning("Error al guardar faltante_cierre y sobrante_cierre, usando fallback: " + e1.getMessage());
+                            new StaticSentence(m_App.getSession()
+                                , "UPDATE closedcash SET DATEEND = ?, NOSALES = ? WHERE HOST = ? AND MONEY = ?"
+                                , new SerializerWriteBasic(new Datas[] {
+                                    Datas.TIMESTAMP, 
+                                    Datas.INT, 
+                                    Datas.STRING, 
+                                    Datas.STRING}))
+                            .exec(new Object[] {dNow, result, 
+                                m_App.getProperties().getHost(), 
+                                m_App.getActiveCashIndex()});
+                        }
+                    } else {
+                        // Las columnas no existen, usar UPDATE sin ellas
+                        new StaticSentence(m_App.getSession()
+                            , "UPDATE closedcash SET DATEEND = ?, NOSALES = ? WHERE HOST = ? AND MONEY = ?"
+                            , new SerializerWriteBasic(new Datas[] {
+                                Datas.TIMESTAMP, 
+                                Datas.INT, 
+                                Datas.STRING, 
+                                Datas.STRING}))
+                        .exec(new Object[] {dNow, result, 
+                            m_App.getProperties().getHost(), 
+                            m_App.getActiveCashIndex()});
+                        LOGGER.info("Cierre de caja guardado (columnas faltante_cierre y sobrante_cierre no disponibles)");
+                    }
                 }
-            } catch (Exception e) {
+            } catch (BasicException e) {
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
                         AppLocal.getIntString("message.cannotclosecash"), e);
                 msg.show(this);

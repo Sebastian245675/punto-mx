@@ -3,6 +3,8 @@ package com.openbravo.pos.supabase;
 import java.net.HttpURLConnection;
 import java.net.URL;
 import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.*;
 import java.util.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -21,13 +23,25 @@ public class SupabaseServiceREST {
     // Batch size to avoid oversized payloads
     private static final int BATCH_SIZE = 500;
 
-    // Ruta del archivo de logs
-    private static final String LOG_FILE_PATH = "supabase_logs.json";
+    // Ruta del archivo de logs (en el directorio home del usuario, como AppConfig)
+    private static String LOG_FILE_PATH = null;
 
     public SupabaseServiceREST(String baseUrl, String apiKey) {
         this.baseUrl = baseUrl;
         this.apiKey = apiKey;
+        initializeLogFilePath();
         createLogFileIfNotExists();
+    }
+    
+    /**
+     * Inicializa la ruta del archivo de logs en el directorio home del usuario
+     */
+    private static void initializeLogFilePath() {
+        if (LOG_FILE_PATH == null) {
+            String userHome = System.getProperty("user.home");
+            LOG_FILE_PATH = new File(userHome, "supabase_logs.json").getAbsolutePath();
+            Logger.getLogger(SupabaseServiceREST.class.getName()).info("Archivo de logs de Supabase: " + LOG_FILE_PATH);
+        }
     }
 
     /**
@@ -263,33 +277,54 @@ public class SupabaseServiceREST {
      * Crea el archivo de logs si no existe o está vacío
      */
     private void createLogFileIfNotExists() {
-        File file = new File(LOG_FILE_PATH);
         try {
+            File file = new File(LOG_FILE_PATH);
+            
+            // Crear el directorio padre si no existe
+            File parentDir = file.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
+                LOGGER.info("Directorio de logs creado: " + parentDir.getAbsolutePath());
+            }
+            
+            // Crear o inicializar el archivo si no existe o está vacío
             if (!file.exists() || file.length() == 0) {
-                // Crear o reescribir el archivo con un array JSON vacío
                 try (FileWriter fw = new FileWriter(file)) {
                     fw.write("[]"); // inicializa como lista JSON vacía
                     fw.flush();
                 }
                 LOGGER.info("Archivo de logs inicializado: " + LOG_FILE_PATH);
+            } else {
+                LOGGER.info("Archivo de logs ya existe: " + LOG_FILE_PATH + " (tamaño: " + file.length() + " bytes)");
             }
         } catch (IOException e) {
-            LOGGER.severe("No se pudo crear el archivo de logs: " + e.getMessage());
+            LOGGER.severe("No se pudo crear el archivo de logs en " + LOG_FILE_PATH + ": " + e.getMessage());
+            e.printStackTrace();
+        } catch (Exception e) {
+            LOGGER.severe("Error inesperado al inicializar archivo de logs: " + e.getMessage());
             e.printStackTrace();
         }
     }
 
     /**
      * Escribe un registro JSON con el resultado de cada sincronización
+     * IMPORTANTE: Este método es synchronized para evitar problemas de concurrencia
      */
     private synchronized void logSyncResult(String table, int recordsCount, int responseCode, boolean success, String error) {
+        // Asegurar que la ruta del log esté inicializada
+        if (LOG_FILE_PATH == null) {
+            initializeLogFilePath();
+        }
+        
+        File logFile = new File(LOG_FILE_PATH);
+        FileWriter fw = null;
+        
         try {
             List<ObjectNode> logs = new ArrayList<>();
 
             // Leer logs existentes
-            File logFile = new File(LOG_FILE_PATH);
             if (logFile.exists() && logFile.length() > 0) {
-                try (FileReader fr = new FileReader(LOG_FILE_PATH)) {
+                try (FileReader fr = new FileReader(logFile, java.nio.charset.StandardCharsets.UTF_8)) {
                     String content = "";
                     try (BufferedReader br = new BufferedReader(fr)) {
                         StringBuilder sb = new StringBuilder();
@@ -301,13 +336,21 @@ public class SupabaseServiceREST {
                     }
                     
                     if (!content.isEmpty() && !content.equals("[]") && content.startsWith("[")) {
-                        ObjectNode[] logArray = mapper.readValue(content, ObjectNode[].class);
-                        logs = new ArrayList<>(Arrays.asList(logArray));
+                        try {
+                            ObjectNode[] logArray = mapper.readValue(content, ObjectNode[].class);
+                            logs = new ArrayList<>(Arrays.asList(logArray));
+                            LOGGER.fine("Logs existentes cargados: " + logs.size() + " entradas");
+                        } catch (Exception parseEx) {
+                            LOGGER.warning("Error parseando logs existentes, iniciando lista vacía: " + parseEx.getMessage());
+                            logs = new ArrayList<>();
+                        }
                     }
                 } catch (Exception e) {
                     LOGGER.warning("Error leyendo logs existentes, iniciando lista vacía: " + e.getMessage());
                     logs = new ArrayList<>();
                 }
+            } else {
+                LOGGER.fine("Archivo de logs no existe o está vacío, iniciando lista vacía");
             }
 
             // Crear nuevo registro
@@ -321,24 +364,85 @@ public class SupabaseServiceREST {
 
             // Agregar nuevo log
             logs.add(logEntry);
+            LOGGER.info("Nuevo log agregado para tabla " + table + ": " + (success ? "éxito" : "error") + ", registros: " + recordsCount);
             
             // Limitar a los últimos 1000 logs para evitar que el archivo crezca demasiado
             if (logs.size() > 1000) {
                 logs = logs.subList(logs.size() - 1000, logs.size());
+                LOGGER.fine("Logs limitados a los últimos 1000 registros");
             }
 
-            // Escribir todos los logs
-            try (FileWriter fw = new FileWriter(LOG_FILE_PATH)) {
-                mapper.writerWithDefaultPrettyPrinter().writeValue(fw, logs);
-                LOGGER.fine("Log escrito en " + LOG_FILE_PATH + " para tabla " + table);
+            // Crear el directorio padre si no existe
+            File parentDir = logFile.getParentFile();
+            if (parentDir != null && !parentDir.exists()) {
+                parentDir.mkdirs();
+                LOGGER.info("Directorio de logs creado: " + parentDir.getAbsolutePath());
             }
 
-        } catch (IOException e) {
-            LOGGER.severe("Error al escribir en el archivo de logs: " + e.getMessage());
-            e.printStackTrace();
+            // Escribir todos los logs - usar FileWriter sin try-with-resources para evitar cierre prematuro
+            fw = new FileWriter(logFile, java.nio.charset.StandardCharsets.UTF_8);
+            mapper.writerWithDefaultPrettyPrinter().writeValue(fw, logs);
+            fw.flush();
+            fw.close();
+            fw = null; // Marcar como cerrado para evitar doble cierre
+            
+            LOGGER.info("Log escrito exitosamente en " + LOG_FILE_PATH + " para tabla " + table + " (total de logs: " + logs.size() + ")");
+
+        } catch (IOException writeEx) {
+            LOGGER.severe("Error al escribir en el archivo de logs " + LOG_FILE_PATH + ": " + writeEx.getMessage());
+            writeEx.printStackTrace();
+            
+            // Cerrar el FileWriter si está abierto
+            if (fw != null) {
+                try {
+                    fw.close();
+                } catch (Exception e) {
+                    // Ignorar errores al cerrar
+                }
+            }
+            
+            // Intentar escribir un log de error simple como fallback
+            try {
+                String errorLog = String.format("[%s] ERROR escribiendo log JSON: tabla=%s, error=%s\n", 
+                    new Date(), table, writeEx.getMessage());
+                Files.write(logFile.toPath(), errorLog.getBytes(java.nio.charset.StandardCharsets.UTF_8), 
+                    StandardOpenOption.CREATE, 
+                    StandardOpenOption.APPEND);
+            } catch (Exception fallbackEx) {
+                LOGGER.severe("Error crítico: no se pudo escribir ni siquiera el log de error: " + fallbackEx.getMessage());
+            }
         } catch (Exception e) {
-            LOGGER.severe("Error inesperado al escribir logs: " + e.getMessage());
+            LOGGER.severe("Error inesperado al escribir logs en " + LOG_FILE_PATH + ": " + e.getMessage());
             e.printStackTrace();
+            
+            // Cerrar el FileWriter si está abierto
+            if (fw != null) {
+                try {
+                    fw.close();
+                } catch (Exception closeEx) {
+                    // Ignorar errores al cerrar
+                }
+            }
+            
+            // Intentar escribir un log de error simple como fallback
+            try {
+                String errorLog = String.format("[%s] ERROR CRÍTICO escribiendo log: tabla=%s, error=%s\n", 
+                    new Date(), table, e.getMessage());
+                Files.write(logFile.toPath(), errorLog.getBytes(java.nio.charset.StandardCharsets.UTF_8), 
+                    StandardOpenOption.CREATE, 
+                    StandardOpenOption.APPEND);
+            } catch (Exception fallbackEx) {
+                LOGGER.severe("Error crítico: no se pudo escribir ni siquiera el log de error: " + fallbackEx.getMessage());
+            }
+        } finally {
+            // Asegurar que el FileWriter se cierre incluso si hay un error
+            if (fw != null) {
+                try {
+                    fw.close();
+                } catch (Exception e) {
+                    // Ignorar errores al cerrar
+                }
+            }
         }
     }
     /**

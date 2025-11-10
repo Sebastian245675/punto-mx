@@ -29,6 +29,9 @@ import java.time.Instant;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Comparator;
+import javax.swing.SwingWorker;
+import javax.swing.SwingUtilities;
+import javax.swing.JOptionPane;
 
 public class JPanelBranchesManagement extends JPanel implements JPanelView, BeanFactoryApp {
 
@@ -45,6 +48,14 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     private DefaultTableModel modelSales;
     private JTable jTableCashClosures;
     private DefaultTableModel modelCashClosures;
+    
+    // Campos para validación de administrador
+    private JTextField jTextFieldAdminCode;
+    private JButton jButtonValidateAdmin;
+    private JLabel jLabelAdminStatus;
+    private boolean adminValidated = false;
+    private String validatedAdminCode = null;
+    private JPanel jPanelValidation;
 
     public JPanelBranchesManagement() {
         initComponents();
@@ -73,18 +84,73 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
 
     @Override
     public void activate() throws BasicException {
-        // Llamar a la función RPC de Supabase para actualizar totales de cierre
-        actualizarMontosCierres();
+        // Limpiar estado de validación cada vez que se activa el panel
+        // NO cargar desde caché - siempre requerir validación manual
+        adminValidated = false;
+        validatedAdminCode = null;
         
-        searchBranches(); // Load all branches initially
-        loadSales();
-        loadCashClosures();
+        // Limpiar campo de código y estado del label
+        if (jTextFieldAdminCode != null) {
+            jTextFieldAdminCode.setText("");
+        }
+        if (jLabelAdminStatus != null) {
+            jLabelAdminStatus.setText("⚠️ Debe validar el código de administrador para ver esta sección");
+            jLabelAdminStatus.setForeground(java.awt.Color.ORANGE);
+        }
+        
+        // Limpiar todas las tablas
+        clearAllData();
+        
+        // NO cargar datos hasta que se valide el código manualmente
+    }
+    
+    /**
+     * Muestra mensaje indicando que se debe validar el código de administrador
+     */
+    private void showValidationMessage() {
+        SwingUtilities.invokeLater(() -> {
+            JOptionPane.showMessageDialog(
+                this,
+                "⚠️ ACCESO RESTRINGIDO\n\n" +
+                "Para acceder a 'Administrar Sucursales', debe validar primero\n" +
+                "el código de tarjeta de un administrador.\n\n" +
+                "Ingrese el código en el campo superior y haga clic en 'Validar Administrador'.",
+                "Validación Requerida",
+                JOptionPane.WARNING_MESSAGE
+            );
+        });
+    }
+    
+    /**
+     * Carga los datos solo si el administrador está validado
+     */
+    private void loadDataIfValidated() {
+        if (!adminValidated) {
+            return;
+        }
+        
+        try {
+            // Llamar a la función RPC de Supabase para actualizar totales de cierre
+            actualizarMontosCierres();
+            
+            searchBranches(); // Load all branches initially
+            loadSales();
+            loadCashClosures();
+        } catch (Exception e) {
+            System.err.println("Error cargando datos: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
     
     /**
      * Llama a la función RPC de Supabase para actualizar los montos de dinero y tarjeta en los cierres
      */
     private void actualizarMontosCierres() {
+        // Verificar validación antes de actualizar
+        if (!adminValidated) {
+            return;
+        }
+        
         try {
             // Usar SupabaseServiceManager para obtener el servicio
             AppConfig config = new AppConfig(null);
@@ -107,15 +173,223 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
 
     @Override
     public boolean deactivate() {
+        // Limpiar estado de validación al salir del panel
+        adminValidated = false;
+        validatedAdminCode = null;
+        
+        // Limpiar campo de código
+        if (jTextFieldAdminCode != null) {
+            jTextFieldAdminCode.setText("");
+        }
+        
+        // Limpiar todas las tablas
+        clearAllData();
+        
         return true;
     }
 
     private void refreshAllData() throws BasicException {
+        // Verificar validación antes de refrescar
+        if (!adminValidated) {
+            showValidationMessage();
+            return;
+        }
+        
         // Actualizar montos antes de refrescar los datos
         actualizarMontosCierres();
         searchBranches(); // No lanza BasicException, solo maneja Exception
         loadSales(); // No lanza BasicException, solo maneja Exception
         loadCashClosures();
+    }
+    
+    /**
+     * Valida el código de administrador contra Supabase
+     * Verifica que el código exista y pertenezca a un usuario con rol = 1
+     */
+    private void validateAdminCode(String adminCode, boolean silent) {
+        if (adminCode == null || adminCode.trim().isEmpty()) {
+            if (!silent && jLabelAdminStatus != null) {
+                jLabelAdminStatus.setText("⚠️ Ingrese un código de administrador");
+                jLabelAdminStatus.setForeground(java.awt.Color.ORANGE);
+            }
+            return;
+        }
+        
+        // Deshabilitar el botón durante la validación
+        if (!silent && jButtonValidateAdmin != null && jLabelAdminStatus != null) {
+            jButtonValidateAdmin.setEnabled(false);
+            jButtonValidateAdmin.setText("Validando...");
+            jLabelAdminStatus.setText("⏳ Verificando...");
+            jLabelAdminStatus.setForeground(java.awt.Color.BLUE);
+        }
+        
+        // Ejecutar validación en background
+        SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
+            private String userName = null;
+            private String userRole = null;
+            
+            @Override
+            protected Boolean doInBackground() throws Exception {
+                try {
+                    // Usar SupabaseServiceManager con conexión interna
+                    SupabaseServiceManager manager = SupabaseServiceManager.getInstance();
+                    AppConfig tempConfig = new AppConfig(null);
+                    tempConfig.load();
+                    manager.initialize(tempConfig);
+                    SupabaseServiceREST supabase = manager.getService();
+                    List<Map<String, Object>> usuarios = supabase.fetchData("usuarios");
+                    
+                    // Buscar el código (tarjeta) en la lista de usuarios
+                    for (Map<String, Object> u : usuarios) {
+                        Object card = u.get("tarjeta");
+                        if (card == null) card = u.get("card");
+                        if (card != null && adminCode.trim().equals(card.toString().trim())) {
+                            // Verificar que el usuario tenga rol = 1 (admin)
+                            Object rol = u.get("rol");
+                            if (rol != null) {
+                                String rolStr = rol.toString().trim();
+                                // rol = 1 son admins
+                                if ("1".equals(rolStr)) {
+                                    // Obtener nombre del usuario
+                                    Object nombre = u.get("nombre");
+                                    if (nombre == null) nombre = u.get("name");
+                                    userName = nombre != null ? nombre.toString() : null;
+                                    userRole = rolStr;
+                                    return true; // Código válido y es admin
+                                }
+                            }
+                            // Si llegamos aquí, el código existe pero no es admin
+                            userName = null;
+                            userRole = rol != null ? rol.toString() : null;
+                            return false; // Código existe pero no es admin
+                        }
+                    }
+                    return false; // Código no encontrado
+                } catch (Exception ex) {
+                    System.err.println("Error validando código de administrador: " + ex.getMessage());
+                    ex.printStackTrace();
+                    return false;
+                }
+            }
+            
+            @Override
+            protected void done() {
+                // Rehabilitar el botón (en hilo de UI)
+                if (!silent && jButtonValidateAdmin != null) {
+                    SwingUtilities.invokeLater(() -> {
+                        jButtonValidateAdmin.setEnabled(true);
+                        jButtonValidateAdmin.setText("Validar Administrador");
+                    });
+                }
+                
+                try {
+                    boolean isValidAdmin = get();
+                    if (isValidAdmin) {
+                        adminValidated = true;
+                        validatedAdminCode = adminCode.trim();
+                        
+                        // NO guardar en configuración - el código debe validarse cada vez
+                        // Esto asegura que cada sesión requiera validación manual
+                        
+                        // Actualizar label (tanto en modo silencioso como normal)
+                        SwingUtilities.invokeLater(() -> {
+                            if (jLabelAdminStatus != null) {
+                                jLabelAdminStatus.setText("✓ Administrador validado: " + (userName != null ? userName : adminCode));
+                                jLabelAdminStatus.setForeground(new java.awt.Color(0, 150, 0));
+                            }
+                            
+                            // Mostrar mensaje solo si no es modo silencioso
+                            if (!silent) {
+                                JOptionPane.showMessageDialog(
+                                    JPanelBranchesManagement.this,
+                                    "✅ Código de administrador validado correctamente.\n\n" +
+                                    "Administrador: " + (userName != null ? userName : adminCode) + "\n" +
+                                    "Ahora puede ver la información de sucursales.",
+                                    "Validación Exitosa",
+                                    JOptionPane.INFORMATION_MESSAGE
+                                );
+                            }
+                            
+                            // Cargar los datos ahora que está validado
+                            loadDataIfValidated();
+                        });
+                        
+                    } else {
+                        adminValidated = false;
+                        validatedAdminCode = null;
+                        
+                        if (!silent) {
+                            SwingUtilities.invokeLater(() -> {
+                                if (userRole != null && !"1".equals(userRole)) {
+                                    jLabelAdminStatus.setText("✗ El código no pertenece a un administrador");
+                                    JOptionPane.showMessageDialog(
+                                        JPanelBranchesManagement.this,
+                                        "❌ El código ingresado no pertenece a un administrador.\n\n" +
+                                        "Solo los usuarios con permisos de administrador pueden acceder a esta sección.",
+                                        "Código No Válido",
+                                        JOptionPane.WARNING_MESSAGE
+                                    );
+                                } else {
+                                    jLabelAdminStatus.setText("✗ Código no encontrado");
+                                    JOptionPane.showMessageDialog(
+                                        JPanelBranchesManagement.this,
+                                        "❌ El código ingresado no es válido.",
+                                        "Código No Válido",
+                                        JOptionPane.WARNING_MESSAGE
+                                    );
+                                }
+                                jLabelAdminStatus.setForeground(java.awt.Color.RED);
+                            });
+                        }
+                        
+                        // Limpiar datos si no está validado (en hilo de UI)
+                        SwingUtilities.invokeLater(() -> {
+                            clearAllData();
+                        });
+                    }
+                } catch (Exception e) {
+                    adminValidated = false;
+                    validatedAdminCode = null;
+                    
+                    if (!silent) {
+                        SwingUtilities.invokeLater(() -> {
+                            jLabelAdminStatus.setText("✗ Error al validar");
+                            jLabelAdminStatus.setForeground(java.awt.Color.RED);
+                            JOptionPane.showMessageDialog(
+                                JPanelBranchesManagement.this,
+                                "Error al validar el código de administrador.\n\nPor favor, verifique su conexión e intente nuevamente.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE
+                            );
+                        });
+                    }
+                    
+                    // Limpiar datos (en hilo de UI)
+                    SwingUtilities.invokeLater(() -> {
+                        clearAllData();
+                    });
+                }
+            }
+        };
+        
+        worker.execute();
+    }
+    
+    /**
+     * Limpia todos los datos de las tablas
+     */
+    private void clearAllData() {
+        modelBranches.setRowCount(0);
+        modelSales.setRowCount(0);
+        modelCashClosures.setRowCount(0);
+    }
+    
+    /**
+     * Maneja el evento de validación de administrador
+     */
+    private void jButtonValidateAdminActionPerformed(java.awt.event.ActionEvent evt) {
+        String adminCode = jTextFieldAdminCode.getText().trim();
+        validateAdminCode(adminCode, false);
     }
     
     private void initComponents() {
@@ -132,28 +406,60 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
         modelSales = new DefaultTableModel(salesColumns, 0);
         jTableSales = new JTable(modelSales);
 
-        String[] cashClosureColumns = {"Vendedor", "Fecha Inicio", "Fecha Fin", "Monto Inicial", "Efectivo", "Tarjeta", "Total", "Sucursal"};
+        String[] cashClosureColumns = {"Vendedor", "Fecha Inicio", "Fecha Fin", "Monto Inicial", "Efectivo", "Tarjeta", "Total", "Faltante", "Sobrante", "Sucursal"};
         modelCashClosures = new DefaultTableModel(cashClosureColumns, 0);
         jTableCashClosures = new JTable(modelCashClosures);
 
         setLayout(new BorderLayout());
 
-        // Panel superior con título y botón actualizar
+        // Panel superior con validación de administrador
         JPanel headerPanel = new JPanel(new BorderLayout());
-        JLabel titleLabel = new JLabel("");
-        titleLabel.setFont(titleLabel.getFont().deriveFont(java.awt.Font.BOLD, 16f));
-        headerPanel.add(titleLabel, BorderLayout.WEST);
         
+        // Panel de validación de administrador
+        jPanelValidation = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
+        jPanelValidation.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            javax.swing.BorderFactory.createEtchedBorder(),
+            "Validación de Administrador",
+            javax.swing.border.TitledBorder.LEFT,
+            javax.swing.border.TitledBorder.TOP,
+            new java.awt.Font("Arial", java.awt.Font.BOLD, 12)
+        ));
+        
+        jPanelValidation.add(new JLabel("Código de Administrador:"));
+        jTextFieldAdminCode = new JTextField(20);
+        jTextFieldAdminCode.setToolTipText("Ingrese el código de tarjeta de un administrador (rol = 1)");
+        jPanelValidation.add(jTextFieldAdminCode);
+        
+        jButtonValidateAdmin = new JButton("Validar Administrador");
+        jButtonValidateAdmin.addActionListener(this::jButtonValidateAdminActionPerformed);
+        jPanelValidation.add(jButtonValidateAdmin);
+        
+        jLabelAdminStatus = new JLabel("⚠️ Debe validar el código de administrador para ver esta sección");
+        jLabelAdminStatus.setForeground(java.awt.Color.ORANGE);
+        jLabelAdminStatus.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        jPanelValidation.add(jLabelAdminStatus);
+        
+        headerPanel.add(jPanelValidation, BorderLayout.NORTH);
+        
+        // Panel con botón de actualizar
+        JPanel refreshPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
         JButton refreshButton = new JButton("Actualizar información");
         refreshButton.addActionListener(e -> {
             try {
                 refreshAllData();
             } catch (BasicException ex) {
                 ex.printStackTrace();
-                // TODO: Show error message to user
+                JOptionPane.showMessageDialog(
+                    JPanelBranchesManagement.this,
+                    "Error al actualizar información: " + ex.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE
+                );
             }
         });
-        headerPanel.add(refreshButton, BorderLayout.WEST);
+        refreshPanel.add(refreshButton);
+        headerPanel.add(refreshPanel, BorderLayout.CENTER);
+        
         add(headerPanel, BorderLayout.NORTH);
 
         // Panel Buscar Sucursal
@@ -195,6 +501,12 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
 
         // Agregar listener para cuando se cambie a la pestaña "Ver Cierres de Caja"
         jTabbedPane1.addChangeListener(e -> {
+            // Verificar validación antes de cambiar de pestaña
+            if (!adminValidated) {
+                showValidationMessage();
+                return;
+            }
+            
             int selectedIndex = jTabbedPane1.getSelectedIndex();
             String selectedTitle = jTabbedPane1.getTitleAt(selectedIndex);
             if ("Ver Cierres de Caja".equals(selectedTitle)) {
@@ -213,6 +525,11 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     }
 
     private void searchBranches() {
+        // Verificar validación antes de buscar
+        if (!adminValidated) {
+            return;
+        }
+        
         String branchName = jTextFieldBranchName.getText().trim().toLowerCase();
         modelBranches.setRowCount(0); // Clear previous results
 
@@ -244,6 +561,12 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     }
 
     private void loadSales() throws BasicException {
+        // Verificar validación antes de cargar
+        if (!adminValidated) {
+            modelSales.setRowCount(0);
+            return;
+        }
+        
         modelSales.setRowCount(0); // Clear previous results
 
         try {
@@ -341,6 +664,12 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
     }
 
     private void loadCashClosures() throws BasicException {
+        // Verificar validación antes de cargar
+        if (!adminValidated) {
+            modelCashClosures.setRowCount(0);
+            return;
+        }
+        
         modelCashClosures.setRowCount(0); // Clear previous results
 
         try {
@@ -389,6 +718,8 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                 Object tarjetaVal = cierre.get("cierre_card");
                 Object initialAmountVal = cierre.get("initial_amount");
                 Object dineroid = cierre.get("dineroid");
+                Object faltanteCierreVal = cierre.get("faltante_cierre");
+                Object sobranteCierreVal = cierre.get("sobrante_cierre");
 
                 // Parsear fechas desde timestamp en milisegundos
                 Timestamp fechaInicioTs = null;
@@ -465,6 +796,29 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                 } else if (tarjeta != null) {
                     total = tarjeta;
                 }
+                
+                // Parsear faltante_cierre y sobrante_cierre
+                Double faltanteCierre = null;
+                if (faltanteCierreVal instanceof Number) {
+                    faltanteCierre = ((Number) faltanteCierreVal).doubleValue();
+                    if (faltanteCierre == 0.0) faltanteCierre = null; // Mostrar null si es 0
+                } else if (faltanteCierreVal instanceof String) {
+                    try {
+                        faltanteCierre = Double.valueOf((String) faltanteCierreVal);
+                        if (faltanteCierre == 0.0) faltanteCierre = null;
+                    } catch (Exception ignore) {}
+                }
+                
+                Double sobranteCierre = null;
+                if (sobranteCierreVal instanceof Number) {
+                    sobranteCierre = ((Number) sobranteCierreVal).doubleValue();
+                    if (sobranteCierre == 0.0) sobranteCierre = null; // Mostrar null si es 0
+                } else if (sobranteCierreVal instanceof String) {
+                    try {
+                        sobranteCierre = Double.valueOf((String) sobranteCierreVal);
+                        if (sobranteCierre == 0.0) sobranteCierre = null;
+                    } catch (Exception ignore) {}
+                }
 
                 // Obtener sucursal: cierres.dineroid -> ventas.caja -> ventas.vendedorid -> usuarios.id -> usuarios.sucursal_nombre
                 String sucursal = null;
@@ -498,6 +852,8 @@ public class JPanelBranchesManagement extends JPanel implements JPanelView, Bean
                     efectivo,
                     tarjeta,
                     total,
+                    faltanteCierre, // Faltante
+                    sobranteCierre, // Sobrante
                     sucursal != null ? sucursal : ""
                 });
             }

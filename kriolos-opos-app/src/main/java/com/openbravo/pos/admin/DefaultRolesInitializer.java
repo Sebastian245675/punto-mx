@@ -39,13 +39,14 @@ public class DefaultRolesInitializer {
     public static void initializeDefaultRoles(Session session) {
         try {
             // ADMIN - Acceso total (FIJO, NO EDITABLE)
-            initializeRole(session, "0", "ADMIN", getAdminPermissions());
+            // IMPORTANTE: rol = 1 son admins según la tabla usuarios
+            initializeRole(session, "1", "ADMIN", getAdminPermissions());
             
             // MANAGER - Acceso parcial (EDITABLE - solo se crea si no existe)
-            initializeRoleIfNotExists(session, "1", "MANAGER", getManagerPermissions());
+            initializeRoleIfNotExists(session, "2", "MANAGER", getManagerPermissions());
             
             // Employee - Acceso controlado (EDITABLE - solo se crea si no existe)
-            initializeRoleIfNotExists(session, "2", "Employee", getEmployeePermissions());
+            initializeRoleIfNotExists(session, "3", "Employee", getEmployeePermissions());
             
             System.out.println("Roles predeterminados inicializados correctamente");
             
@@ -59,41 +60,71 @@ public class DefaultRolesInitializer {
      * Inicializa un rol específico en la base de datos (siempre actualiza)
      */
     private static void initializeRole(Session session, String id, String name, Set<String> permissions) throws BasicException {
-        // Verificar si el rol ya existe
-        StaticSentence checkRole = new StaticSentence(session,
-            "SELECT id FROM roles WHERE name = ?",
+        // Primero buscar por ID (más confiable)
+        StaticSentence checkRoleById = new StaticSentence(session,
+            "SELECT id, name FROM roles WHERE id = ?",
             new SerializerWriteBasic(new Datas[]{Datas.STRING}),
-            new SerializerReadBasic(new Datas[]{Datas.STRING})
+            new SerializerReadBasic(new Datas[]{Datas.STRING, Datas.STRING})
         );
         
-        Object resultRow = checkRole.find(name);
-        Object existingId = null;
-        if (resultRow != null && resultRow instanceof Object[]) {
-            Object[] row = (Object[]) resultRow;
-            if (row.length > 0) {
-                existingId = row[0];
+        Object resultRowById = checkRoleById.find(id);
+        boolean roleExists = false;
+        String existingName = null;
+        
+        if (resultRowById != null && resultRowById instanceof Object[]) {
+            Object[] row = (Object[]) resultRowById;
+            if (row.length > 0 && row[0] != null) {
+                roleExists = true;
+                if (row.length > 1 && row[1] != null) {
+                    existingName = row[1].toString();
+                }
+            }
+        }
+        
+        // Si no existe por ID, buscar por nombre (para migración de bases de datos antiguas)
+        if (!roleExists) {
+            StaticSentence checkRoleByName = new StaticSentence(session,
+                "SELECT id, name FROM roles WHERE name = ?",
+                new SerializerWriteBasic(new Datas[]{Datas.STRING}),
+                new SerializerReadBasic(new Datas[]{Datas.STRING, Datas.STRING})
+            );
+            
+            Object resultRowByName = checkRoleByName.find(name);
+            if (resultRowByName != null && resultRowByName instanceof Object[]) {
+                Object[] row = (Object[]) resultRowByName;
+                if (row.length > 0 && row[0] != null) {
+                    roleExists = true;
+                    if (row.length > 1 && row[1] != null) {
+                        existingName = row[1].toString();
+                    }
+                }
             }
         }
         
         String permissionsXML = generatePermissionsXML(permissions);
         byte[] permissionsBytes = Formats.BYTEA.parseValue(permissionsXML);
         
-        if (existingId == null) {
+        if (!roleExists) {
             // Insertar nuevo rol
             StaticSentence insertRole = new StaticSentence(session,
                 "INSERT INTO roles (id, name, permissions) VALUES (?, ?, ?)",
                 new SerializerWriteBasic(new Datas[]{Datas.STRING, Datas.STRING, Datas.BYTES})
             );
             insertRole.exec(new Object[]{id, name, permissionsBytes});
-            System.out.println("Rol creado: " + name);
+            System.out.println("Rol creado: " + name + " (ID: " + id + ")");
         } else {
-            // Actualizar permisos del rol existente
+            // Actualizar permisos Y nombre del rol existente (para asegurar consistencia)
+            // Si el nombre es diferente, también lo actualizamos
             StaticSentence updateRole = new StaticSentence(session,
-                "UPDATE roles SET permissions = ? WHERE name = ?",
-                new SerializerWriteBasic(new Datas[]{Datas.BYTES, Datas.STRING})
+                "UPDATE roles SET permissions = ?, name = ? WHERE id = ?",
+                new SerializerWriteBasic(new Datas[]{Datas.BYTES, Datas.STRING, Datas.STRING})
             );
-            updateRole.exec(new Object[]{permissionsBytes, name});
-            System.out.println("Rol actualizado: " + name);
+            updateRole.exec(new Object[]{permissionsBytes, name, id});
+            if (existingName != null && !existingName.equals(name)) {
+                System.out.println("Rol actualizado: '" + existingName + "' -> '" + name + "' (ID: " + id + ")");
+            } else {
+                System.out.println("Rol actualizado: " + name + " (ID: " + id + ")");
+            }
         }
     }
     

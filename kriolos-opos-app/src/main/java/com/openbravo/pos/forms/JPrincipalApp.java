@@ -374,10 +374,10 @@ private void colapseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN
         
         switch (roleId.trim()) {
             case "0":
+            case "1":  // rol = 1 son admins según la tabla usuarios
                 return "ADMIN";
-            case "1":
-                return "MANAGER";
             case "2":
+                return "MANAGER";
             case "3":
                 return "Employee";
             default:

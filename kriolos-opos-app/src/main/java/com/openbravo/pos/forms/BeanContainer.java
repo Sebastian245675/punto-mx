@@ -75,9 +75,21 @@ public class BeanContainer {
                     if (BeanFactory.class.isAssignableFrom(bfclass)) {
                         bf = (BeanFactory) bfclass.getDeclaredConstructor().newInstance();
                     } else {
-                        Constructor constMyView = bfclass.getConstructor(new Class[]{AppView.class});
-                        Object bean = constMyView.newInstance(new Object[]{appView});
-                        bf = new BeanFactoryObj(bean);
+                        // Intentar primero con constructor que acepta AppView
+                        try {
+                            Constructor constMyView = bfclass.getConstructor(new Class[]{AppView.class});
+                            Object bean = constMyView.newInstance(new Object[]{appView});
+                            bf = new BeanFactoryObj(bean);
+                        } catch (NoSuchMethodException e) {
+                            // Si no tiene constructor con AppView, intentar sin parámetros
+                            // Esto es útil para clases que implementan BeanFactoryApp
+                            Object bean = bfclass.getDeclaredConstructor().newInstance();
+                            // Si el bean implementa BeanFactoryApp, llamar a init() antes de envolverlo
+                            if (bean instanceof BeanFactoryApp) {
+                                ((BeanFactoryApp) bean).init(appView);
+                            }
+                            bf = new BeanFactoryObj(bean);
+                        }
                     }
 
                 } catch (ClassNotFoundException | InstantiationException
