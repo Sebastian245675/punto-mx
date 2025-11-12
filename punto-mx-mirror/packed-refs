@@ -1,0 +1,16 @@
+# pack-refs with: peeled fully-peeled sorted 
+a7d2f1e8263269b55d2e39904df82823a8676329 refs/heads/AllowAndDeny
+d8dcf2ad881d4e96e6f2f8c5eb49d3b1272da2e0 refs/heads/InSpanishAll
+040c77310f306f12605cde9a519792881aaa686f refs/heads/StyleTest
+7fa818187f8e0d3ec2ad3a52ee811c7669a40d8e refs/heads/de-pruebas
+e5ca2db44b12da9c8ddd48125330fbd8eed27391 refs/heads/dev-daniel
+55740021c9a3280f3f8bb6e9c1f5f271d6e13aea refs/heads/main
+4e3604da790aeb7d0db4698eeda78cc88302e2f2 refs/heads/master
+414eb6e48801215613b322b9d4e0eb0e80c3eb84 refs/heads/solucion-definitiva-database
+1f7b95ba0eba0ce71f239262be27d3bf3eb01dea refs/heads/solucion-exe-definitiva
+7fa818187f8e0d3ec2ad3a52ee811c7669a40d8e refs/pull/1/head
+1f7b95ba0eba0ce71f239262be27d3bf3eb01dea refs/pull/2/head
+4e3604da790aeb7d0db4698eeda78cc88302e2f2 refs/pull/3/head
+040c77310f306f12605cde9a519792881aaa686f refs/pull/4/head
+d8dcf2ad881d4e96e6f2f8c5eb49d3b1272da2e0 refs/pull/5/head
+a7d2f1e8263269b55d2e39904df82823a8676329 refs/pull/6/head

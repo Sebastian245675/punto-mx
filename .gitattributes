@@ -1,0 +1,2 @@
+tmp_extracted_jar/kriolos-pos.zip filter=lfs diff=lfs merge=lfs -text
+tmp_extracted_jar/kriolos-pos.zip
