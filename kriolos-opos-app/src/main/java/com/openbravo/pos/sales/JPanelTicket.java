@@ -2603,7 +2603,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         jBtnCustomer.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jBtnCustomer.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer.png"))); // NOI18N
-        jBtnCustomer.setToolTipText(bundle.getString("tooltip.salescustomer")); // NOI18N
+        jBtnCustomer.setToolTipText(bundle.getString("tooltip.salescustomer") + " (F2)"); // NOI18N
         jBtnCustomer.setPreferredSize(new java.awt.Dimension(80, 45));
         jBtnCustomer.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -2979,7 +2979,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Botón Pagar (verde, destacado) - colocado antes del subtotal
         m_jPayNow = new javax.swing.JButton();
         m_jPayNow.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
-        m_jPayNow.setText(AppLocal.getIntString("button.pay")); // "Pagar" desde pos_messages.properties
+        m_jPayNow.setText("<html><center>" + AppLocal.getIntString("button.pay") + "<br><small>(F5)</small></center></html>"); // "Pagar (F5)"
         m_jPayNow.setFocusPainted(false);
         m_jPayNow.setPreferredSize(new java.awt.Dimension(140, 40));
         m_jPayNow.setBackground(new java.awt.Color(46, 139, 87)); // SeaGreen

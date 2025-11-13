@@ -29,6 +29,7 @@ import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import javax.swing.JOptionPane;
 import javax.swing.Icon;
 import javax.swing.JComponent;
 import javax.swing.JFrame;
@@ -792,6 +793,25 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
         if (returnPayment != null) {
             m_aPaymentInfo.add(returnPayment);
             printState();
+            
+            // Sebastian - Mostrar mensaje si el pago es parcial
+            double remaining = m_dTotal - m_aPaymentInfo.getTotal();
+            if (remaining > 0.01) { // Tolerancia para errores de redondeo
+                String message = String.format(
+                    "<html><div style='text-align: center; font-size: 14px;'>" +
+                    "<b>Pago Parcial Registrado</b><br><br>" +
+                    "Falta por pagar: <b style='color: #DC2626; font-size: 18px;'>%s</b>" +
+                    "</div></html>",
+                    Formats.CURRENCY.formatValue(remaining)
+                );
+                
+                JOptionPane.showMessageDialog(
+                    this,
+                    message,
+                    "Pago Parcial",
+                    JOptionPane.INFORMATION_MESSAGE
+                );
+            }
         }
 
     }//GEN-LAST:event_m_jButtonAddActionPerformed
@@ -827,8 +847,32 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
                 m_jButtonCancel.setEnabled(true);
                 if (returnPayment != null) {
                     m_aPaymentInfo.add(returnPayment);
-                    accepted = true;
-                    dispose();
+                    
+                    // Sebastian - Verificar si el pago está completo antes de cerrar
+                    double remaining = m_dTotal - m_aPaymentInfo.getTotal();
+                    if (remaining > 0.01) { // Pago incompleto
+                        String message = String.format(
+                            "<html><div style='text-align: center; font-size: 14px;'>" +
+                            "<b>⚠️ Pago Incompleto</b><br><br>" +
+                            "Aún falta por pagar: <b style='color: #DC2626; font-size: 18px;'>%s</b><br><br>" +
+                            "Por favor, agregue otro método de pago." +
+                            "</div></html>",
+                            Formats.CURRENCY.formatValue(remaining)
+                        );
+                        
+                        JOptionPane.showMessageDialog(
+                            JPaymentSelect.this,
+                            message,
+                            "Pago Incompleto",
+                            JOptionPane.WARNING_MESSAGE
+                        );
+                        
+                        printState(); // Actualizar la vista
+                    } else {
+                        // Pago completo o con sobrepago
+                        accepted = true;
+                        dispose();
+                    }
                 }
             }
         };
