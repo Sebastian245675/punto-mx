@@ -133,6 +133,9 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
         
         // Sebastian - Ajustes simples de UI
         adjustUIComponents();
+
+        // Agregar listener para teclas de flecha
+        addArrowKeyListener();
     }
 
     @Override
@@ -259,22 +262,22 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
             m_jKeys.setMaximumSize(new Dimension(20, 20));
         }
         
-        // 2. NUEVO: Hacer el input crítico m_jTendered INVISIBLE pero funcional
+        // 2. Hacer el input crítico m_jTendered visible pero muy pequeño para que reciba foco
         if (m_jTendered != null) {
-            m_jTendered.setVisible(false);
-            m_jTendered.setPreferredSize(new Dimension(1, 1));
-            m_jTendered.setMinimumSize(new Dimension(1, 1));
-            m_jTendered.setMaximumSize(new Dimension(1, 1));
-            
+            m_jTendered.setVisible(true);
+            m_jTendered.setPreferredSize(new Dimension(10, 10));
+            m_jTendered.setMinimumSize(new Dimension(10, 10));
+            m_jTendered.setMaximumSize(new Dimension(10, 10));
+
             // IMPORTANTE: Mantener el campo focusable para que pueda recibir eventos de teclado
             m_jTendered.setFocusable(true);
             m_jTendered.requestFocusInWindow(); // Solicitar el foco al iniciar
         }
-        
-        // Ocultar también el panel que contiene m_jTendered
+
+        // Mantener visible el panel que contiene m_jTendered para que reciba foco
         if (jPanel3 != null) {
-            jPanel3.setVisible(false);
-            jPanel3.setPreferredSize(new Dimension(0, 0));
+            jPanel3.setVisible(true);
+            jPanel3.setPreferredSize(new Dimension(10, 10));
         }
         
         // 3. Hacer que ambos campos de visualización sean más grandes
@@ -333,6 +336,46 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
             
             if (jLabel6 != null) { // "ChangeCash"
                 jLabel6.setBounds(10, 75, 100, 60);
+            }
+        }
+    }
+
+    private void addArrowKeyListener() {
+        if (m_jTendered == null) {
+            return;
+        }
+
+        KeyAdapter adapter = new KeyAdapter() {
+            @Override
+            public void keyReleased(KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                Double currentValue = m_jTendered.getValue();
+
+                if (keyCode == KeyEvent.VK_UP) {
+                    double newValue = (currentValue == null ? 0.0 : currentValue) + 1.0;
+                    m_jTendered.setDoubleValue(newValue);
+                    printState();
+                    e.consume();
+                } else if (keyCode == KeyEvent.VK_DOWN) {
+                    double newValue = (currentValue == null ? 0.0 : currentValue) - 1.0;
+                    if (newValue < 0.0) {
+                        newValue = 0.0;
+                    }
+                    m_jTendered.setDoubleValue(newValue);
+                    printState();
+                    e.consume();
+                }
+            }
+        };
+
+        m_jTendered.addKeyListener(adapter);
+
+        // Registrar también en componentes hijos
+        for (Component child : m_jTendered.getComponents()) {
+            try {
+                child.addKeyListener(adapter);
+            } catch (Exception ex) {
+                // Ignorar excepciones silenciosamente
             }
         }
     }

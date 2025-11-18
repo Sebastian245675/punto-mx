@@ -347,7 +347,33 @@ public class JGranelDialog extends JDialog {
         KeyListener keyListener = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                // Flechas arriba/abajo: incrementar/decrementar peso en 1.0 kg
+                // PRIMERO: procesar flechas ANTES de otros tipos de teclas
+                if ((e.getKeyCode() == KeyEvent.VK_UP || e.getKeyCode() == KeyEvent.VK_DOWN)) {
+                    if (e.getSource() == txtPeso && txtPeso.isEnabled() && modoPesoAPrecio) {
+                        try {
+                            double valorActual = Double.parseDouble(txtPeso.getText().replace(",", ".").trim());
+                            if (e.getKeyCode() == KeyEvent.VK_UP) {
+                                valorActual += 1.0;
+                            } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                                valorActual -= 1.0;
+                                if (valorActual < 0.0) valorActual = 0.0;
+                            }
+                            txtPeso.setText(String.format(java.util.Locale.US, "%.3f", valorActual));
+                            // Usar invokeLater para asegurar que calcularValores() se ejecute DESPUES de setText()
+                            SwingUtilities.invokeLater(() -> calcularValores());
+                            e.consume();
+                        } catch (NumberFormatException ex) {
+                            if (e.getKeyCode() == KeyEvent.VK_UP) {
+                                txtPeso.setText("1.000");
+                            } else if (e.getKeyCode() == KeyEvent.VK_DOWN) {
+                                txtPeso.setText("0.000");
+                            }
+                            SwingUtilities.invokeLater(() -> calcularValores());
+                            e.consume();
+                        }
+                    }
+                } else if (e.getKeyCode() == KeyEvent.VK_ENTER) {
                     aceptar();
                 } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
                     cancelar();
@@ -356,7 +382,7 @@ public class JGranelDialog extends JDialog {
                 }
             }
         };
-        
+
         txtPeso.addKeyListener(keyListener);
         txtPrecio.addKeyListener(keyListener);
         
