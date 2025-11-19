@@ -254,85 +254,85 @@ public class JProductLineEditTax extends javax.swing.JDialog {
         m_jButtonOK = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle(AppLocal.getIntString("label.editline")); // NOI18N
+        setTitle(AppLocal.getIntString("label.editline")); // NOI36N
 
         jPanel5.setLayout(new java.awt.BorderLayout());
 
         jPanel2.setPreferredSize(new java.awt.Dimension(400, 230));
 
-        jLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel1.setText(AppLocal.getIntString("label.price")); // NOI18N
+        jLabel1.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
+        jLabel1.setText(AppLocal.getIntString("label.price")); // NOI36N
         jLabel1.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        jLabel2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel2.setText(AppLocal.getIntString("label.units")); // NOI18N
+        jLabel2.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
+        jLabel2.setText(AppLocal.getIntString("label.units")); // NOI36N
         jLabel2.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        jLabel3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel3.setText(AppLocal.getIntString("label.pricetax")); // NOI18N
+        jLabel3.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
+        jLabel3.setText(AppLocal.getIntString("label.pricetax")); // NOI36N
         jLabel3.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel4.setText(AppLocal.getIntString("label.item")); // NOI18N
+        jLabel4.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
+        jLabel4.setText(AppLocal.getIntString("label.item")); // NOI36N
         jLabel4.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        m_jName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jName.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
         m_jName.setMinimumSize(new java.awt.Dimension(100, 30));
-        m_jName.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jName.setPreferredSize(new java.awt.Dimension(150, 40));
 
-        m_jUnits.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jUnits.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jUnits.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
+        m_jUnits.setPreferredSize(new java.awt.Dimension(150, 40));
 
-        m_jPrice.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jPrice.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jPrice.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
+        m_jPrice.setPreferredSize(new java.awt.Dimension(150, 40));
 
-        m_jPriceTax.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jPriceTax.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jPriceTax.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
+        m_jPriceTax.setPreferredSize(new java.awt.Dimension(150, 40));
 
         m_jTaxrateOld.setBackground(javax.swing.UIManager.getDefaults().getColor("TextField.disabledBackground"));
-        m_jTaxrateOld.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        m_jTaxrateOld.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
         m_jTaxrateOld.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         m_jTaxrateOld.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
         m_jTaxrateOld.setMaximumSize(new java.awt.Dimension(10, 30));
         m_jTaxrateOld.setMinimumSize(new java.awt.Dimension(10, 30));
         m_jTaxrateOld.setOpaque(true);
-        m_jTaxrateOld.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jTaxrateOld.setPreferredSize(new java.awt.Dimension(150, 40));
         m_jTaxrateOld.setRequestFocusEnabled(false);
 
-        jLabel5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel5.setText(AppLocal.getIntString("label.tax")); // NOI18N
+        jLabel5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI36N
+        jLabel5.setText(AppLocal.getIntString("label.tax")); // NOI36N
         jLabel5.setPreferredSize(new java.awt.Dimension(110, 30));
 
-        jLabel6.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel6.setText(AppLocal.getIntString("label.totalcash")); // NOI18N
+        jLabel6.setFont(new java.awt.Font("Arial", 0, 14)); // NOI36N
+        jLabel6.setText(AppLocal.getIntString("label.totalcash")); // NOI36N
         jLabel6.setPreferredSize(new java.awt.Dimension(110, 30));
 
         m_jTotal.setBackground(javax.swing.UIManager.getDefaults().getColor("TextField.disabledBackground"));
-        m_jTotal.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        m_jTotal.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
         m_jTotal.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         m_jTotal.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
         m_jTotal.setOpaque(true);
-        m_jTotal.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jTotal.setPreferredSize(new java.awt.Dimension(150, 40));
         m_jTotal.setRequestFocusEnabled(false);
 
-        jLabel7.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel7.setText(AppLocal.getIntString("label.subtotalcash")); // NOI18N
+        jLabel7.setFont(new java.awt.Font("Arial", 0, 14)); // NOI36N
+        jLabel7.setText(AppLocal.getIntString("label.subtotalcash")); // NOI36N
         jLabel7.setPreferredSize(new java.awt.Dimension(110, 30));
 
         m_jSubtotal.setBackground(javax.swing.UIManager.getDefaults().getColor("TextField.disabledBackground"));
-        m_jSubtotal.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        m_jSubtotal.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
         m_jSubtotal.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         m_jSubtotal.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
         m_jSubtotal.setMaximumSize(new java.awt.Dimension(10, 30));
         m_jSubtotal.setMinimumSize(new java.awt.Dimension(10, 30));
         m_jSubtotal.setOpaque(true);
-        m_jSubtotal.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jSubtotal.setPreferredSize(new java.awt.Dimension(150, 40));
         m_jSubtotal.setRequestFocusEnabled(false);
 
-        m_jBtnPriceUpdate.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jBtnPriceUpdate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/filesave.png"))); // NOI18N
-        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
-        m_jBtnPriceUpdate.setText(bundle.getString("button.priceupdate")); // NOI18N
+        m_jBtnPriceUpdate.setFont(new java.awt.Font("Arial", 0, 12)); // NOI36N
+        m_jBtnPriceUpdate.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/filesave.png"))); // NOI36N
+        java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI36N
+        m_jBtnPriceUpdate.setText(bundle.getString("button.priceupdate")); // NOI36N
         m_jBtnPriceUpdate.setFocusPainted(false);
         m_jBtnPriceUpdate.setFocusable(false);
         m_jBtnPriceUpdate.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -344,8 +344,8 @@ public class JProductLineEditTax extends javax.swing.JDialog {
             }
         });
 
-        m_jTaxrate.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        m_jTaxrate.setPreferredSize(new java.awt.Dimension(100, 30));
+        m_jTaxrate.setFont(new java.awt.Font("Arial", 0, 36)); // NOI36N
+        m_jTaxrate.setPreferredSize(new java.awt.Dimension(100, 40));
 
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
@@ -385,7 +385,7 @@ public class JProductLineEditTax extends javax.swing.JDialog {
                                         .addGroup(jPanel2Layout.createSequentialGroup()
                                             .addGap(116, 116, 116)
                                             .addComponent(m_jTaxrateOld, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                                .addGap(18, 18, 18)
+                                .addGap(36, 36, 36)
                                 .addComponent(m_jTaxrate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addGap(60, 60, 60))
@@ -452,9 +452,9 @@ public class JProductLineEditTax extends javax.swing.JDialog {
 
         jPanel1.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
 
-        m_jButtonCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI18N
-        m_jButtonCancel.setText(AppLocal.getIntString("button.cancel")); // NOI18N
+        m_jButtonCancel.setFont(new java.awt.Font("Arial", 0, 12)); // NOI36N
+        m_jButtonCancel.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/cancel.png"))); // NOI36N
+        m_jButtonCancel.setText(AppLocal.getIntString("button.cancel")); // NOI36N
         m_jButtonCancel.setFocusPainted(false);
         m_jButtonCancel.setFocusable(false);
         m_jButtonCancel.setMargin(new java.awt.Insets(8, 16, 8, 16));
@@ -467,9 +467,9 @@ public class JProductLineEditTax extends javax.swing.JDialog {
         });
         jPanel1.add(m_jButtonCancel);
 
-        m_jButtonOK.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        m_jButtonOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI18N
-        m_jButtonOK.setText(AppLocal.getIntString("button.OK")); // NOI18N
+        m_jButtonOK.setFont(new java.awt.Font("Arial", 0, 12)); // NOI36N
+        m_jButtonOK.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png"))); // NOI36N
+        m_jButtonOK.setText(AppLocal.getIntString("button.OK")); // NOI36N
         m_jButtonOK.setFocusPainted(false);
         m_jButtonOK.setFocusable(false);
         m_jButtonOK.setMargin(new java.awt.Insets(8, 16, 8, 16));
