@@ -28,11 +28,12 @@ public class JGranelDialog extends JDialog {
     
     private JTextField txtPeso;
     private JTextField txtPrecio;
-    private JLabel lblPrecioCalculado;
-    private JLabel lblPesoCalculado;
     private JButton btnAceptar;
     private JButton btnCancelar;
     private JToggleButton btnModoCalculo;
+    private JLabel lblPrecioCalculado;
+    private JLabel lblPesoCalculado;
+    private JLabel lblModoValor;
     
     private double precioUnitario; // Precio por kilo
     private double pesoFinal = 0.0;
@@ -54,194 +55,108 @@ public class JGranelDialog extends JDialog {
     
     private void initComponents() {
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
+        
+        // Set size to 70% of screen
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        int width = (int) (screenSize.width * 0.7);
+        int height = (int) (screenSize.height * 0.7);
+        setSize(width, height);
         setResizable(false);
-        
-        // Aplicar estilo moderno al diálogo
+
         getContentPane().setBackground(new Color(250, 250, 250));
-        
-        // Panel principal con diseño moderno
+
+        // --- Main Panel ---
         JPanel panelPrincipal = new JPanel(new BorderLayout(15, 15));
         panelPrincipal.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
         panelPrincipal.setBackground(new Color(250, 250, 250));
+
+        // --- Top Info Panel (Red and Blue boxes) ---
+        JPanel panelInfoSuperior = new JPanel(new GridLayout(1, 2, 15, 15));
+        panelInfoSuperior.setBackground(new Color(250, 250, 250));
+
+        JPanel panelPrecioUnitario = createInfoBox("Precio por Kilo", PRECIO_FORMAT.format(precioUnitario), new Color(211, 47, 47), Color.WHITE);
         
-        // Panel superior con información del producto - Estilo Material
-        JPanel panelInfo = new JPanel(new GridBagLayout());
-        GridBagConstraints gbc = new GridBagConstraints();
-        panelInfo.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
-            BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
-        panelInfo.setBackground(Color.WHITE);
+        // Manual creation of the "Mode" panel to get a reference to the value label
+        JPanel panelModo = new JPanel(new BorderLayout());
+        panelModo.setBackground(new Color(25, 118, 210)); // Blue
+        panelModo.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        gbc.gridx = 0; gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(5, 5, 5, 5);
-        JLabel lblTituloPrecio = new JLabel("Precio por Kilo:");
-        lblTituloPrecio.setFont(new Font("Arial", Font.BOLD, 14));
-        lblTituloPrecio.setForeground(new Color(66, 66, 66));
-        panelInfo.add(lblTituloPrecio, gbc);
+        JLabel lblModoTitle = new JLabel("Modo de Cálculo");
+        lblModoTitle.setFont(new Font("Arial", Font.BOLD, 18));
+        lblModoTitle.setForeground(Color.WHITE);
+        lblModoTitle.setHorizontalAlignment(SwingConstants.CENTER);
         
-        gbc.gridx = 1;
-        JLabel lblPrecioUnitario = new JLabel(PRECIO_FORMAT.format(precioUnitario));
-        lblPrecioUnitario.setFont(new Font("Arial", Font.BOLD, 16));
-        lblPrecioUnitario.setForeground(new Color(76, 175, 80)); // Material Green
-        panelInfo.add(lblPrecioUnitario, gbc);
+        lblModoValor = new JLabel("Peso → Precio");
+        lblModoValor.setFont(new Font("Arial", Font.BOLD, 48));
+        lblModoValor.setForeground(Color.WHITE);
+        lblModoValor.setHorizontalAlignment(SwingConstants.CENTER);
         
-        // Botón para cambiar modo de cálculo - Estilo moderno
-        gbc.gridx = 2;
-        gbc.insets = new Insets(5, 25, 5, 5);
-        btnModoCalculo = new JToggleButton("Calcular por $");
-        btnModoCalculo.setFont(new Font("Arial", Font.BOLD, 12));
-        btnModoCalculo.setFocusPainted(false);
-        btnModoCalculo.setBorderPainted(false);
-        btnModoCalculo.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        btnModoCalculo.setToolTipText("<html><center>Presiona F2 para cambiar modo:<br>• Peso → Precio<br>• Precio → Peso</center></html>");
-        panelInfo.add(btnModoCalculo, gbc);
-        
-        // Panel central con entrada de datos - Diseño moderno
+        panelModo.add(lblModoTitle, BorderLayout.NORTH);
+        panelModo.add(lblModoValor, BorderLayout.CENTER);
+
+        panelInfoSuperior.add(panelPrecioUnitario);
+        panelInfoSuperior.add(panelModo);
+
+        // --- Center Panel for Inputs and Calculated Values ---
+        JPanel panelCentral = new JPanel(new BorderLayout(10, 10));
+        panelCentral.setBackground(new Color(250, 250, 250));
+
+        // --- Input fields panel (Kilo y Precio) ---
         JPanel panelEntrada = new JPanel(new GridBagLayout());
-        panelEntrada.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
-                "Ingreso de Datos",
-                javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
-                javax.swing.border.TitledBorder.DEFAULT_POSITION,
-                new Font("Arial", Font.BOLD, 14),
-                new Color(66, 66, 66)
-            ),
-            BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
-        panelEntrada.setBackground(Color.WHITE);
+        panelEntrada.setBackground(new Color(250, 250, 250));
+        GridBagConstraints gbc = new GridBagConstraints();
         
-        gbc = new GridBagConstraints();
-        
-        // Campo de peso con estilo moderno
-        gbc.gridx = 0; gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(10, 10, 5, 10);
-        JLabel lblPeso = new JLabel("Peso (Kg):");
-        lblPeso.setFont(new Font("Arial", Font.BOLD, 13));
-        lblPeso.setForeground(new Color(66, 66, 66));
-        panelEntrada.add(lblPeso, gbc);
-        
+        txtPeso = new JTextField("1.000");
+        JPanel panelPeso = createInputPanel("Peso (Kg)", txtPeso);
+
+        txtPrecio = new JTextField("");
+        JPanel panelPrecio = createInputPanel("Precio ($)", txtPrecio);
+
+        gbc.fill = GridBagConstraints.BOTH;
+        gbc.weighty = 1.0;
+
+        // Peso Panel
+        gbc.gridx = 0;
+        gbc.weightx = 0.4; // 40%
+        panelEntrada.add(panelPeso, gbc);
+
+        // Spacer
         gbc.gridx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        txtPeso = new JTextField("1.000", 12);
-        txtPeso.setFont(new Font("Consolas", Font.BOLD, 18));
-        txtPeso.setHorizontalAlignment(JTextField.RIGHT);
-        txtPeso.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(224, 224, 224), 2),
-            BorderFactory.createEmptyBorder(10, 15, 10, 15)
-        ));
-        ((AbstractDocument) txtPeso.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
-        panelEntrada.add(txtPeso, gbc);
-        
+        gbc.weightx = 0.2; // 20%
+        JPanel spacer = new JPanel();
+        spacer.setOpaque(false);
+        panelEntrada.add(spacer, gbc);
+
+        // Precio Panel
         gbc.gridx = 2;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        JLabel lblUnidadPeso = new JLabel(" Kg");
-        lblUnidadPeso.setFont(new Font("Arial", Font.BOLD, 13));
-        lblUnidadPeso.setForeground(new Color(120, 120, 120));
-        panelEntrada.add(lblUnidadPeso, gbc);
-        
-        // Campo de precio con estilo moderno
-        gbc.gridx = 0; gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(5, 10, 10, 10);
-        JLabel lblPrecio = new JLabel("Precio ($):");
-        lblPrecio.setFont(new Font("Arial", Font.BOLD, 13));
-        lblPrecio.setForeground(new Color(66, 66, 66));
-        panelEntrada.add(lblPrecio, gbc);
-        
-        gbc.gridx = 1;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        txtPrecio = new JTextField("", 12);
-        txtPrecio.setFont(new Font("Consolas", Font.BOLD, 18));
-        txtPrecio.setHorizontalAlignment(JTextField.RIGHT);
-        txtPrecio.setEnabled(false);
-        txtPrecio.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(224, 224, 224), 2),
-            BorderFactory.createEmptyBorder(10, 15, 10, 15)
-        ));
-        ((AbstractDocument) txtPrecio.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
-        panelEntrada.add(txtPrecio, gbc);
-        
-        gbc.gridx = 2;
-        gbc.fill = GridBagConstraints.NONE;
-        gbc.weightx = 0.0;
-        JLabel lblUnidadPrecio = new JLabel(" $");
-        lblUnidadPrecio.setFont(new Font("Arial", Font.BOLD, 13));
-        lblUnidadPrecio.setForeground(new Color(120, 120, 120));
-        panelEntrada.add(lblUnidadPrecio, gbc);
-        
-        // Panel con resultados calculados - Estilo elegante
-        JPanel panelResultados = new JPanel(new GridBagLayout());
-        panelResultados.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(224, 224, 224), 1),
-                "Resultados",
-                javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
-                javax.swing.border.TitledBorder.DEFAULT_POSITION,
-                new Font("Arial", Font.BOLD, 14),
-                new Color(66, 66, 66)
-            ),
-            BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
-        panelResultados.setBackground(Color.WHITE);
-        
-        gbc = new GridBagConstraints();
-        
-        // Precio calculado con diseño moderno
-        gbc.gridx = 0; gbc.gridy = 0;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(5, 10, 5, 10);
-        JLabel lblTotalPagar = new JLabel("Total a Pagar:");
-        lblTotalPagar.setFont(new Font("Arial", Font.BOLD, 13));
-        lblTotalPagar.setForeground(new Color(66, 66, 66));
-        panelResultados.add(lblTotalPagar, gbc);
-        
-        gbc.gridx = 1;
-        gbc.anchor = GridBagConstraints.CENTER;
-        lblPrecioCalculado = new JLabel(PRECIO_FORMAT.format(precioUnitario));
-        lblPrecioCalculado.setFont(new Font("Arial", Font.BOLD, 20));
-        lblPrecioCalculado.setForeground(new Color(33, 150, 243)); // Material Blue
-        lblPrecioCalculado.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(33, 150, 243), 2),
-            BorderFactory.createEmptyBorder(12, 20, 12, 20)
-        ));
-        lblPrecioCalculado.setOpaque(true);
-        lblPrecioCalculado.setBackground(new Color(227, 242, 253)); // Azul claro
-        lblPrecioCalculado.setHorizontalAlignment(SwingConstants.CENTER);
-        panelResultados.add(lblPrecioCalculado, gbc);
-        
-        // Peso calculado con diseño moderno
-        gbc.gridx = 0; gbc.gridy = 1;
-        gbc.anchor = GridBagConstraints.WEST;
-        gbc.insets = new Insets(5, 10, 5, 10);
-        JLabel lblCantidad = new JLabel("Cantidad (Kg):");
-        lblCantidad.setFont(new Font("Arial", Font.BOLD, 13));
-        lblCantidad.setForeground(new Color(66, 66, 66));
-        panelResultados.add(lblCantidad, gbc);
-        
-        gbc.gridx = 1;
-        gbc.anchor = GridBagConstraints.CENTER;
-        lblPesoCalculado = new JLabel(PESO_FORMAT.format(1.0) + " Kg");
-        lblPesoCalculado.setFont(new Font("Arial", Font.BOLD, 20));
-        lblPesoCalculado.setForeground(new Color(255, 87, 34)); // Material Deep Orange
-        lblPesoCalculado.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(255, 87, 34), 2),
-            BorderFactory.createEmptyBorder(12, 20, 12, 20)
-        ));
-        lblPesoCalculado.setOpaque(true);
-        lblPesoCalculado.setBackground(new Color(255, 243, 224)); // Naranja claro
-        lblPesoCalculado.setHorizontalAlignment(SwingConstants.CENTER);
-        panelResultados.add(lblPesoCalculado, gbc);
-        
-        // Panel de botones con estilo moderno
+        gbc.weightx = 0.4; // 40%
+        panelEntrada.add(panelPrecio, gbc);
+
+        // --- Calculated info boxes panel (now semi-static) ---
+        JPanel panelCalculadoInferior = new JPanel(new GridLayout(1, 2, 15, 0));
+        panelCalculadoInferior.setBackground(new Color(250, 250, 250));
+        panelCalculadoInferior.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
+
+        lblPesoCalculado = new JLabel("0.000 Kg", SwingConstants.CENTER);
+        styleInfoLabel(lblPesoCalculado);
+        panelCalculadoInferior.add(lblPesoCalculado);
+
+        lblPrecioCalculado = new JLabel(PRECIO_FORMAT.format(0.0), SwingConstants.CENTER);
+        styleInfoLabel(lblPrecioCalculado);
+        panelCalculadoInferior.add(lblPrecioCalculado);
+
+        panelCentral.add(panelEntrada, BorderLayout.CENTER);
+        panelCentral.add(panelCalculadoInferior, BorderLayout.SOUTH);
+
+        // --- Bottom Button Panel --- 
         JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 10));
         panelBotones.setBackground(new Color(250, 250, 250));
+        
+        btnModoCalculo = new JToggleButton("Modo (F2)");
+        btnModoCalculo.setFont(new Font("Arial", Font.BOLD, 18));
+        btnModoCalculo.setFocusPainted(false);
+        btnModoCalculo.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnModoCalculo.setToolTipText("<html><center>Presiona F2 para cambiar modo:<br>• Peso &rarr; Precio<br>• Precio &rarr; Peso</center></html>");
         
         btnCancelar = new JButton("Cancelar");
         btnCancelar.setPreferredSize(new Dimension(120, 40));
@@ -249,7 +164,7 @@ public class JGranelDialog extends JDialog {
         btnCancelar.setFocusPainted(false);
         btnCancelar.setBorderPainted(false);
         btnCancelar.setBackground(new Color(244, 67, 54)); // Material Red
-        btnCancelar.setForeground(Color.WHITE);
+        btnCancelar.setForeground(Color.WHITE); 
         btnCancelar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
         btnAceptar = new JButton("Aceptar");
@@ -257,34 +172,79 @@ public class JGranelDialog extends JDialog {
         btnAceptar.setFont(new Font("Arial", Font.BOLD, 13));
         btnAceptar.setFocusPainted(false);
         btnAceptar.setBorderPainted(false);
-        btnAceptar.setBackground(new Color(76, 175, 80)); // Material Green
+        btnAceptar.setBackground(new Color(76, 175, 80)); // Material Green 
         btnAceptar.setForeground(Color.WHITE);
         btnAceptar.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
+        panelBotones.add(btnModoCalculo);
         panelBotones.add(btnCancelar);
         panelBotones.add(btnAceptar);
-        
-        // Ensamblar paneles
-        JPanel panelCentral = new JPanel(new GridLayout(2, 1, 0, 15));
-        panelCentral.setBackground(new Color(250, 250, 250));
-        panelCentral.add(panelEntrada);
-        panelCentral.add(panelResultados);
-        
-        panelPrincipal.add(panelInfo, BorderLayout.NORTH);
+
+        // --- Assemble everything ---
+        panelPrincipal.add(panelInfoSuperior, BorderLayout.NORTH);
         panelPrincipal.add(panelCentral, BorderLayout.CENTER);
         panelPrincipal.add(panelBotones, BorderLayout.SOUTH);
-        
+
         setContentPane(panelPrincipal);
-        pack();
         
-        // Configurar modo inicial
         configurarModo();
-        
-        // Calcular valores iniciales
         calcularValores();
-        
-        // Aplicar efectos hover a los botones
         aplicarEfectosHover();
+    }
+    
+    private JPanel createInputPanel(String title, JTextField textField) {
+        JPanel panel = new JPanel(new BorderLayout(0, 5));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200)),
+            BorderFactory.createEmptyBorder(5, 5, 5, 5))
+        );
+
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 24)); // Even larger font for input titles
+        lblTitle.setForeground(new Color(66, 66, 66));
+        lblTitle.setBorder(BorderFactory.createEmptyBorder(5, 10, 0, 10));
+        panel.add(lblTitle, BorderLayout.NORTH);
+
+        textField.setFont(new Font("Consolas", Font.BOLD, 72)); // Keep 72, already very large
+        textField.setHorizontalAlignment(JTextField.CENTER); 
+        textField.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        ((AbstractDocument) textField.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
+        panel.add(textField, BorderLayout.CENTER);
+
+        return panel;
+    }
+
+    private void styleInfoLabel(JLabel label) {
+        label.setFont(new Font("Arial", Font.BOLD, 60)); // Significantly larger for calculated values
+        label.setOpaque(true);
+        label.setBackground(new Color(238, 238, 238));
+        label.setForeground(new Color(66, 66, 66));
+        label.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(224, 224, 224)),
+            BorderFactory.createEmptyBorder(15, 10, 15, 10))
+        );
+    }
+
+    private JPanel createInfoBox(String title, String value, Color bgColor, Color fgColor) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(bgColor);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        JLabel lblTitle = new JLabel(title);
+        lblTitle.setFont(new Font("Arial", Font.BOLD, 20));
+        lblTitle.setForeground(fgColor);
+        lblTitle.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        JLabel lblValue = new JLabel(value);
+        lblValue.setFont(new Font("Arial", Font.BOLD, 48));
+        lblValue.setForeground(fgColor);
+        lblValue.setHorizontalAlignment(SwingConstants.CENTER);
+        
+        panel.add(lblTitle, BorderLayout.NORTH);
+        panel.add(lblValue, BorderLayout.CENTER);
+        
+        return panel;
     }
     
     private void setupEvents() {
@@ -413,7 +373,7 @@ public class JGranelDialog extends JDialog {
         
         if (modoPesoAPrecio) {
             // Modo: Peso → Precio
-            btnModoCalculo.setText("Calcular por $");
+            lblModoValor.setText("Peso → Precio");
             btnModoCalculo.setSelected(false);
             btnModoCalculo.setBackground(colorInactivo);
             btnModoCalculo.setForeground(Color.WHITE);
@@ -423,16 +383,10 @@ public class JGranelDialog extends JDialog {
             txtPeso.setBackground(Color.WHITE);
             txtPrecio.setBackground(new Color(245, 245, 245));
             
-            // Borde activo para peso
-            txtPeso.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(63, 81, 181), 2),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)
-            ));
-            
             setTitle("🏷️ Peso → Precio - Producto Granel");
         } else {
             // Modo: Precio → Peso
-            btnModoCalculo.setText("Calcular por Kg");
+            lblModoValor.setText("Precio → Peso");
             btnModoCalculo.setSelected(true);
             btnModoCalculo.setBackground(colorActivo);
             btnModoCalculo.setForeground(Color.WHITE);
@@ -442,14 +396,9 @@ public class JGranelDialog extends JDialog {
             txtPeso.setBackground(new Color(245, 245, 245));
             txtPrecio.setBackground(Color.WHITE);
             
-            // Borde activo para precio
-            txtPrecio.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new Color(63, 81, 181), 2),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)
-            ));
-            
             setTitle("💰 Precio → Peso - Producto Granel");
         }
+        establecerFocoInicial();
     }
     
     /**
@@ -492,6 +441,8 @@ public class JGranelDialog extends JDialog {
             public void mouseEntered(MouseEvent e) {
                 if (!btnModoCalculo.isSelected()) {
                     btnModoCalculo.setBackground(new Color(189, 189, 189));
+                } else {
+                    btnModoCalculo.setBackground(btnModoCalculo.getBackground().brighter());
                 }
             }
             
@@ -509,53 +460,33 @@ public class JGranelDialog extends JDialog {
      * Aplica efectos de focus modernos a los campos de texto
      */
     private void aplicarEfectosFocusModernos() {
-        // Efecto focus para campo peso
-        txtPeso.addFocusListener(new FocusAdapter() {
+        FocusAdapter focusAdapter = new FocusAdapter() {
             @Override
             public void focusGained(FocusEvent e) {
-                if (txtPeso.isEnabled()) {
-                    txtPeso.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(33, 150, 243), 3),
-                        BorderFactory.createEmptyBorder(9, 15, 9, 15)
-                    ));
-                    txtPeso.selectAll();
+                JTextField source = (JTextField) e.getSource();
+                if (source.isEnabled()) {
+                    JPanel parent = (JPanel) source.getParent();
+                    parent.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createLineBorder(new Color(33, 150, 243), 2),
+                        BorderFactory.createEmptyBorder(4, 4, 4, 4))
+                    );
+                    source.selectAll();
                 }
             }
             
             @Override
             public void focusLost(FocusEvent e) {
-                if (txtPeso.isEnabled()) {
-                    txtPeso.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(224, 224, 224), 2),
-                        BorderFactory.createEmptyBorder(10, 15, 10, 15)
-                    ));
-                }
+                JTextField source = (JTextField) e.getSource();
+                JPanel parent = (JPanel) source.getParent();
+                parent.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                    BorderFactory.createEmptyBorder(5, 5, 5, 5))
+                );
             }
-        });
+        };
         
-        // Efecto focus para campo precio
-        txtPrecio.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                if (txtPrecio.isEnabled()) {
-                    txtPrecio.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(33, 150, 243), 3),
-                        BorderFactory.createEmptyBorder(9, 15, 9, 15)
-                    ));
-                    txtPrecio.selectAll();
-                }
-            }
-            
-            @Override
-            public void focusLost(FocusEvent e) {
-                if (txtPrecio.isEnabled()) {
-                    txtPrecio.setBorder(BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(224, 224, 224), 2),
-                        BorderFactory.createEmptyBorder(10, 15, 10, 15)
-                    ));
-                }
-            }
-        });
+        txtPeso.addFocusListener(focusAdapter);
+        txtPrecio.addFocusListener(focusAdapter);
     }
     
     private void establecerFocoInicial() {
@@ -571,9 +502,7 @@ public class JGranelDialog extends JDialog {
             if (modoPesoAPrecio) {
                 // Calcular precio basado en peso
                 String textoPeso = txtPeso.getText().trim();
-                if (textoPeso.isEmpty()) {
-                    lblPrecioCalculado.setText(PRECIO_FORMAT.format(0.0));
-                    lblPesoCalculado.setText(PESO_FORMAT.format(0.0) + " Kg");
+                if (textoPeso.isEmpty() || textoPeso.equals(".")) {
                     btnAceptar.setEnabled(false);
                     return;
                 }
@@ -581,39 +510,29 @@ public class JGranelDialog extends JDialog {
                 double peso = Double.parseDouble(textoPeso);
                 double precioTotal = peso * precioUnitario;
                 
-                lblPrecioCalculado.setText(PRECIO_FORMAT.format(precioTotal));
-                lblPesoCalculado.setText(PESO_FORMAT.format(peso) + " Kg");
-                
                 // Actualizar campo precio (solo visual, deshabilitado)
-                txtPrecio.setText(String.format("%.2f", precioTotal));
+                txtPrecio.setText(String.format(java.util.Locale.US, "%.2f", precioTotal));
                 
                 btnAceptar.setEnabled(peso > 0);
                 
             } else {
                 // Calcular peso basado en precio
                 String textoPrecio = txtPrecio.getText().trim();
-                if (textoPrecio.isEmpty()) {
-                    lblPrecioCalculado.setText(PRECIO_FORMAT.format(0.0));
-                    lblPesoCalculado.setText(PESO_FORMAT.format(0.0) + " Kg");
+                if (textoPrecio.isEmpty() || textoPrecio.equals(".")) {
                     btnAceptar.setEnabled(false);
                     return;
                 }
                 
                 double precioDisponible = Double.parseDouble(textoPrecio);
-                double pesoCalculado = precioDisponible / precioUnitario;
-                
-                lblPrecioCalculado.setText(PRECIO_FORMAT.format(precioDisponible));
-                lblPesoCalculado.setText(PESO_FORMAT.format(pesoCalculado) + " Kg");
+                double pesoCalculado = (precioUnitario > 0) ? (precioDisponible / precioUnitario) : 0.0;
                 
                 // Actualizar campo peso (solo visual, deshabilitado)
-                txtPeso.setText(PESO_FORMAT.format(pesoCalculado));
+                txtPeso.setText(String.format(java.util.Locale.US, "%.3f", pesoCalculado));
                 
                 btnAceptar.setEnabled(precioDisponible > 0);
             }
             
         } catch (NumberFormatException ex) {
-            lblPrecioCalculado.setText(PRECIO_FORMAT.format(0.0));
-            lblPesoCalculado.setText(PESO_FORMAT.format(0.0) + " Kg");
             btnAceptar.setEnabled(false);
         }
     }
