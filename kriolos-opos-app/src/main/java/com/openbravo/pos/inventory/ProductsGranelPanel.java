@@ -131,6 +131,7 @@ public class ProductsGranelPanel extends JPanelTable2 {
             // Mostrar el modal con un precio de ejemplo
             Double peso = JGranelDialog.mostrarDialogo(
                 SwingUtilities.getWindowAncestor(this),
+                "Producto de Prueba", // Nombre del producto
                 25.50 // Precio por kilo de ejemplo
             );
             

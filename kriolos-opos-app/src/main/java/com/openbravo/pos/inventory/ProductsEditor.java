@@ -16,7 +16,14 @@
 package com.openbravo.pos.inventory;
 
 import com.openbravo.basic.BasicException;
+import com.openbravo.beans.DateUtils;
 import com.openbravo.data.gui.ComboBoxValModel;
+import com.openbravo.data.loader.Datas;
+import com.openbravo.data.loader.PreparedSentence;
+import com.openbravo.data.loader.SerializerWriteBasicExt;
+import com.openbravo.data.loader.SerializerReadString;
+import com.openbravo.data.loader.SerializerReadDouble;
+import com.openbravo.data.loader.SentenceExec;
 import com.openbravo.data.loader.SentenceList;
 import com.openbravo.data.loader.SentenceFind;
 import com.openbravo.data.user.DirtyManager;
@@ -28,6 +35,7 @@ import com.openbravo.pos.forms.DataLogicSales;
 import com.openbravo.pos.sales.TaxesLogic;
 import com.openbravo.pos.suppliers.DataLogicSuppliers;
 import com.openbravo.pos.suppliers.JDialogNewSupplier;
+import com.openbravo.data.gui.MessageInf;
 import java.awt.Component;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -131,6 +139,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_dlSystem = (DataLogicSystem) app.getBean("com.openbravo.pos.forms.DataLogicSystem");
         m_dlSuppliers = (DataLogicSuppliers) app.getBean("com.openbravo.pos.suppliers.DataLogicSuppliers");
 
+        m_Dirty = dirty;
+        
         initComponents();
 
         loadimage = dlSales.getProductImage(); // JG 3 feb 16 speedup
@@ -255,6 +265,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
      */
     @Override
     public void refresh() {
+        // Guardar valores de stock después de guardar el producto
+        try {
+            if (productId != null && appView != null) {
+                saveStockValues();
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al guardar valores de stock en refresh", e);
+        }
     }
 
     /**
@@ -299,6 +317,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jStockUnits.setVisible(false);
         m_jdate.setText(null);
         m_jAccumulatesPoints.setSelected(false);
+        m_jStockCurrent.setText("0");
+        m_jStockMinimum.setText("0");
+        m_jStockCurrent.setText("0");
+        m_jStockMinimum.setText("0");
 
 // Tab Image
         m_jImage.setImage(null);
@@ -341,7 +363,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jVprice.setEnabled(false);
         m_jstockcost.setEnabled(false);
         m_jstockvolume.setEnabled(false);
-        jTableProductStock.setEnabled(false);
+        m_jStockCurrent.setEnabled(false);
+        m_jStockMinimum.setEnabled(false);
         m_jdate.setEnabled(false);
 
 // Tab Image
@@ -437,7 +460,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jVprice.setEnabled(true);
         m_jstockcost.setEnabled(true);
         m_jstockvolume.setEnabled(true);
-        jTableProductStock.setEnabled(false);
+        m_jStockCurrent.setEnabled(true);
+        m_jStockMinimum.setEnabled(true);
         m_jdate.setEnabled(true);
 
 // Tab Image        
@@ -471,12 +495,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         myprod[2] = m_jCode.getText();
         myprod[3] = m_jCodetype.getSelectedItem();
         myprod[4] = m_jName.getText();
-        myprod[5] = Formats.CURRENCY.parseValue(m_jPriceBuy.getText());
+        myprod[5] = readCurrency(m_jPriceBuy.getText());
         myprod[6] = pricesell;
         myprod[7] = m_CategoryModel.getSelectedKey();
         myprod[8] = taxcatmodel.getSelectedKey();
         myprod[9] = attmodel.getSelectedKey();
-        myprod[10] = Formats.CURRENCY.parseValue(m_jstockcost.getText());
+        myprod[10] = readCurrency(m_jstockcost.getText());
         myprod[11] = Formats.DOUBLE.parseValue(m_jstockvolume.getText());
         myprod[12] = m_jImage.getImage();
         myprod[13] = m_jComment.isSelected();
@@ -550,8 +574,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jstockvolume.setEnabled(true);
         m_jdate.setEnabled(true);
         m_jAccumulatesPoints.setEnabled(true);
-        jTableProductStock.setVisible(false);
-        jTableProductStock.setEnabled(true);
+        m_jStockCurrent.setEnabled(true);
+        m_jStockMinimum.setEnabled(true);
+        // Cargar valores de stock si estamos en la pestaña Stock
+        if (jTabbedPane1.getSelectedIndex() == 1) {
+            showStockTableAutomatically();
+        }
 
 // Tab Image        
         m_jImage.setEnabled(true);
@@ -563,7 +591,6 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         setButtonHTML();
 
         resetTranxTable();
-        jTableProductStock.repaint();
 
 // Tab Properties
         txtAttributes.setEnabled(true);
@@ -620,6 +647,9 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             m_jAccumulatesPoints.setSelected(true);
             System.out.println("DEBUG setValues: Campo ACCUMULATES_POINTS no encontrado, usando default TRUE (array length: " + myprod.length + ")");
         }
+        
+        // Cargar valores de stock
+        showStockTableAutomatically();
     }
 
     /**
@@ -664,8 +694,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jVprice.setEnabled(false);
         m_jstockcost.setEnabled(false);
         m_jstockvolume.setEnabled(false);
-        jTableProductStock.setModel(new StockTableModel(new ArrayList<>()));
-        jTableProductStock.setEnabled(false);
+        m_jStockCurrent.setText("0");
+        m_jStockMinimum.setText("0");
+        m_jStockCurrent.setEnabled(false);
+        m_jStockMinimum.setEnabled(false);
         m_jdate.setEnabled(false);
         m_jAccumulatesPoints.setEnabled(false);
 
@@ -686,16 +718,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     }
 
     public void resetTranxTable() {
-
-        /*
-        jTableProductStock.getColumnModel().getColumn(0).setPreferredWidth(100);
-        jTableProductStock.getColumnModel().getColumn(1).setPreferredWidth(50);
-        jTableProductStock.getColumnModel().getColumn(2).setPreferredWidth(50);
-        jTableProductStock.getColumnModel().getColumn(3).setPreferredWidth(50);
-        */
-
-        jTableProductStock.repaint();
-
+        // Método vacío - la tabla de stock fue reemplazada por campos simples
     }
 
     /**
@@ -734,18 +757,49 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             LOGGER.log(Level.SEVERE, "ProductStock for PID: " + pId, ex);
         }
 
+        // Filtrar solo los del producto actual
+        List<ProductStock> filteredList = new ArrayList<>();
         for (ProductStock productStock : productStockList) {
             String productId = productStock.getProductId();
-            //remove 
-            if (!productId.equals(pId)) {
-                productStockList.remove(productStock);
+            if (productId.equals(pId)) {
+                filteredList.add(productStock);
+            }
+        }
+        
+        // Si no hay stock en ninguna ubicación, crear una entrada para la ubicación principal
+        if (filteredList.isEmpty() && appView != null) {
+            try {
+                String inventoryLocation = appView.getInventoryLocation();
+                if (inventoryLocation != null) {
+                    // Obtener el nombre de la ubicación
+                    List<LocationInfo> locations = dlSales.getLocationsList().list();
+                    String locationName = "General";
+                    for (LocationInfo loc : locations) {
+                        if (loc.getID().equals(inventoryLocation)) {
+                            locationName = loc.getName();
+                            break;
+                        }
+                    }
+                    
+                    // Crear un ProductStock con cantidad 0 para la ubicación principal
+                    ProductStock defaultStock = new ProductStock(
+                        pId,
+                        locationName,
+                        0.0,  // Cantidad inicial 0
+                        0.0,  // Mínimo
+                        0.0,  // Máximo
+                        0.0,  // Precio compra
+                        0.0,  // Precio venta
+                        new Date()  // Fecha memo
+                    );
+                    filteredList.add(defaultStock);
+                }
+            } catch (BasicException ex) {
+                LOGGER.log(Level.WARNING, "Error al obtener ubicación de inventario", ex);
             }
         }
 
-        repaint();
-        refresh();
-
-        return productStockList;
+        return filteredList;
     }
 
     public AppView getAppView() {
@@ -765,9 +819,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         List<ProductStock> stockList;
         String[] columnNames = {loc, qty, min, max};
+        private String currentProductId; // Guardar el ID del producto actual
 
         public StockTableModel(List<ProductStock> list) {
             stockList = list;
+            // Guardar el ID del producto si hay elementos
+            if (list != null && !list.isEmpty()) {
+                currentProductId = list.get(0).getProductId();
+            }
         }
 
         @Override
@@ -801,8 +860,290 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         }
 
         @Override
+        public void setValueAt(Object value, int row, int column) {
+            ProductStock productStock = stockList.get(row);
+            Double newValue;
+            
+            try {
+                // Convertir el valor a Double
+                if (value instanceof Double) {
+                    newValue = (Double) value;
+                } else if (value instanceof String) {
+                    newValue = Double.parseDouble(((String) value).trim());
+                } else {
+                    newValue = Double.parseDouble(value.toString());
+                }
+                
+                // Manejar null como 0
+                if (newValue == null) {
+                    newValue = 0.0;
+                }
+                
+                if (column == 1) {
+                    // Columna de cantidad (Current)
+                    Double originalQuantity = productStock.getUnits();
+                    if (originalQuantity == null) {
+                        originalQuantity = 0.0;
+                    }
+                    
+                    // Solo actualizar si hay cambio
+                    if (!originalQuantity.equals(newValue)) {
+                        double quantityDifference = newValue - originalQuantity;
+                        
+                        if (Math.abs(quantityDifference) > 0.0001 || originalQuantity == 0.0) {
+                            // Actualizar el modelo
+                            productStock.setUnits(newValue);
+                            fireTableCellUpdated(row, column);
+                            
+                            // Actualizar en la base de datos
+                            updateStockInDatabase(
+                                productStock.getProductId(),
+                                productStock.getLocation(),
+                                originalQuantity,
+                                newValue,
+                                quantityDifference
+                            );
+                        }
+                    }
+                } else if (column == 2) {
+                    // Columna de mínimo (Minimum)
+                    Double originalMinimum = productStock.getMinimum();
+                    if (originalMinimum == null) {
+                        originalMinimum = 0.0;
+                    }
+                    
+                    // Solo actualizar si hay cambio
+                    if (!originalMinimum.equals(newValue)) {
+                        // Actualizar el modelo
+                        productStock.setMinimum(newValue);
+                        fireTableCellUpdated(row, column);
+                        
+                        // Actualizar en la base de datos
+                        ProductsEditor.this.updateStockLevelInDatabase(
+                            productStock.getProductId(),
+                            productStock.getLocation(),
+                            newValue,
+                            productStock.getMaximum()
+                        );
+                    }
+                } else if (column == 3) {
+                    // Columna de máximo (Maximum)
+                    Double originalMaximum = productStock.getMaximum();
+                    if (originalMaximum == null) {
+                        originalMaximum = 0.0;
+                    }
+                    
+                    // Solo actualizar si hay cambio
+                    if (!originalMaximum.equals(newValue)) {
+                        // Actualizar el modelo
+                        productStock.setMaximum(newValue);
+                        fireTableCellUpdated(row, column);
+                        
+                        // Actualizar en la base de datos
+                        ProductsEditor.this.updateStockLevelInDatabase(
+                            productStock.getProductId(),
+                            productStock.getLocation(),
+                            productStock.getMinimum(),
+                            newValue
+                        );
+                    }
+                }
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(ProductsEditor.this,
+                    AppLocal.getIntString("message.invalidnumber"),
+                    AppLocal.getIntString("message.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (BasicException e) {
+                LOGGER.log(Level.SEVERE, "Error al guardar datos de stock", e);
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    AppLocal.getIntString("message.cannotsaveinventorydata") + ": " + e.getMessage(), e);
+                msg.show(ProductsEditor.this);
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error inesperado al guardar datos de stock", e);
+                JOptionPane.showMessageDialog(ProductsEditor.this,
+                    "Error al guardar: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            // Las columnas de cantidad (1), mínimo (2) y máximo (3) son editables
+            return column == 1 || column == 2 || column == 3;
+        }
+        
+        @Override
+        public Class<?> getColumnClass(int column) {
+            if (column == 1 || column == 2 || column == 3) {
+                return Double.class;
+            }
+            return String.class;
+        }
+
+        @Override
         public String getColumnName(int col) {
             return columnNames[col];
+        }
+    }
+    
+    /**
+     * Actualiza el stock en la base de datos cuando se edita directamente en la tabla
+     */
+    private void updateStockInDatabase(String productId, String locationName, Double originalQuantity, 
+                                       Double newQuantity, double quantityDifference) throws BasicException {
+        
+        // Obtener el ID de la ubicación desde el nombre
+        String locationId = null;
+        try {
+            List<LocationInfo> locations = dlSales.getLocationsList().list();
+            for (LocationInfo loc : locations) {
+                if (loc.getName().equals(locationName)) {
+                    locationId = loc.getID();
+                    break;
+                }
+            }
+            
+            // Si no se encuentra, usar la ubicación de inventario principal
+            if (locationId == null) {
+                locationId = appView.getInventoryLocation();
+            }
+        } catch (BasicException ex) {
+            locationId = appView.getInventoryLocation();
+        }
+        
+        // Primero asegurar que existe la entrada en stockcurrent con el valor correcto
+        try {
+            PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+            
+            int rowsAffected = updateStmt.exec(new Object[]{newQuantity, locationId, productId});
+            
+            // Si no se actualizó ninguna fila, crear la entrada
+            if (rowsAffected == 0) {
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                    "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                insertStmt.exec(new Object[]{locationId, productId, newQuantity});
+            }
+        } catch (BasicException e) {
+            // Si falla, intentar insertar
+            try {
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                    "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                insertStmt.exec(new Object[]{locationId, productId, newQuantity});
+            } catch (BasicException ex2) {
+                // Si ya existe, actualizar de nuevo
+                PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                    "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+                updateStmt.exec(new Object[]{newQuantity, locationId, productId});
+            }
+        }
+        
+        // Obtener usuario y fecha
+        String userName = appView.getAppUserView().getUser().getName();
+        Date currentDate = DateUtils.getTodayMinutes();
+        
+        // Determinar el motivo del movimiento
+        Object reasonKey = quantityDifference > 0 
+            ? MovementReason.IN_MOVEMENT.getKey() 
+            : MovementReason.OUT_MOVEMENT.getKey();
+        
+        // Registrar el movimiento en stockdiary directamente (sin modificar stockcurrent)
+        // Ya actualizamos stockcurrent arriba, solo necesitamos registrar el movimiento
+        PreparedSentence stockDiaryInsert = new PreparedSentence(dlSales.getSession(),
+            "INSERT INTO stockdiary (ID, DATENEW, REASON, LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS, PRICE, AppUser, SUPPLIER, SUPPLIERDOC) " +
+            "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+            new SerializerWriteBasicExt(new Datas[]{
+                Datas.STRING, Datas.TIMESTAMP, Datas.INT, Datas.STRING, Datas.STRING, 
+                Datas.STRING, Datas.DOUBLE, Datas.DOUBLE, Datas.STRING, Datas.STRING, Datas.STRING
+            }, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+        
+        stockDiaryInsert.exec(new Object[]{
+            UUID.randomUUID().toString(),
+            currentDate,
+            reasonKey,
+            locationId,
+            productId,
+            null, // ATTRIBUTESETINSTANCE_ID
+            quantityDifference, // UNITS (diferencia)
+            0.0, // PRICE
+            userName, // AppUser
+            null, // SUPPLIER
+            null  // SUPPLIERDOC
+        });
+    }
+    
+    /**
+     * Actualiza los valores de mínimo y máximo en stocklevel
+     */
+    private void updateStockLevelInDatabase(String productId, String locationName, Double minimum, Double maximum) throws BasicException {
+        // Obtener el ID de la ubicación desde el nombre
+        String locationId = null;
+        try {
+            List<LocationInfo> locations = dlSales.getLocationsList().list();
+            for (LocationInfo loc : locations) {
+                if (loc.getName().equals(locationName)) {
+                    locationId = loc.getID();
+                    break;
+                }
+            }
+            
+            // Si no se encuentra, usar la ubicación de inventario principal
+            if (locationId == null) {
+                locationId = appView.getInventoryLocation();
+            }
+        } catch (BasicException ex) {
+            locationId = appView.getInventoryLocation();
+        }
+        
+        // Manejar null como 0
+        if (minimum == null) {
+            minimum = 0.0;
+        }
+        if (maximum == null) {
+            maximum = 0.0;
+        }
+        
+        // Verificar si existe una entrada en stocklevel
+        try {
+            SentenceFind checkStmt = new PreparedSentence(dlSales.getSession(),
+                "SELECT ID FROM stocklevel WHERE LOCATION = ? AND PRODUCT = ?",
+                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING}, new int[]{0, 1}),
+                SerializerReadString.INSTANCE);
+            
+            String existingId = (String) checkStmt.find(new Object[]{locationId, productId});
+            
+            if (existingId != null) {
+                // UPDATE
+                PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                    "UPDATE stocklevel SET STOCKSECURITY = ?, STOCKMAXIMUM = ? WHERE LOCATION = ? AND PRODUCT = ?",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2, 3}));
+                updateStmt.exec(new Object[]{minimum, maximum, locationId, productId});
+            } else {
+                // INSERT
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                    "INSERT INTO stocklevel (ID, LOCATION, PRODUCT, STOCKSECURITY, STOCKMAXIMUM) VALUES (?, ?, ?, ?, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE}, new int[]{0, 1, 2, 3, 4}));
+                insertStmt.exec(new Object[]{UUID.randomUUID().toString(), locationId, productId, minimum, maximum});
+            }
+        } catch (BasicException e) {
+            // Si falla el check, intentar insertar directamente
+            try {
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                    "INSERT INTO stocklevel (ID, LOCATION, PRODUCT, STOCKSECURITY, STOCKMAXIMUM) VALUES (?, ?, ?, ?, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE}, new int[]{0, 1, 2, 3, 4}));
+                insertStmt.exec(new Object[]{UUID.randomUUID().toString(), locationId, productId, minimum, maximum});
+            } catch (BasicException ex2) {
+                // Si ya existe, actualizar
+                PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                    "UPDATE stocklevel SET STOCKSECURITY = ?, STOCKMAXIMUM = ? WHERE LOCATION = ? AND PRODUCT = ?",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2, 3}));
+                updateStmt.exec(new Object[]{minimum, maximum, locationId, productId});
+            }
         }
     }
 
@@ -914,7 +1255,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
             Double dPriceSell = pricesell;
 
-            if (dPriceSell == null) {
+            if (dPriceSell == null || taxeslogic == null) {
                 m_jPriceSellTax.setText(null);
             } else {
                 double dTaxRate = taxeslogic.getTaxRate((TaxCategoryInfo) taxcatmodel.getSelectedItem());
@@ -1108,10 +1449,64 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     }
 
     private static Double readCurrency(String sValue) {
-        try {
-            return Formats.CURRENCY.parseValue(sValue);
-        } catch (BasicException e) {
+        if (sValue == null || sValue.trim().isEmpty()) {
             return null;
+        }
+        
+        // Limpiar el valor: remover símbolos de moneda y espacios
+        String cleanValue = sValue.trim()
+            .replace("$", "")
+            .replace("€", "")
+            .replace("£", "")
+            .replace("¥", "")
+            .replace("MX", "")
+            .replace("MXN", "")
+            .replaceAll("\\s+", "");
+        
+        // Si el valor es un número simple (solo dígitos y un punto o coma), parsearlo directamente
+        // Esto evita problemas con formatos de moneda que usan punto como separador de miles
+        if (cleanValue.matches("^[0-9]+([.,][0-9]+)?$")) {
+            try {
+                // Reemplazar coma por punto para parseo estándar
+                String normalizedValue = cleanValue.replace(",", ".");
+                return Double.parseDouble(normalizedValue);
+            } catch (NumberFormatException e) {
+                // Si falla, continuar con el método normal
+            }
+        }
+        
+        try {
+            // Intentar parsear con el formato de moneda
+            Double result = Formats.CURRENCY.parseValue(sValue);
+            // Verificar si el resultado parece incorrecto (muy grande)
+            // Si el valor original era simple como "30.00" y el resultado es > 1000, probablemente está mal
+            if (cleanValue.matches("^[0-9]+([.,][0-9]+)?$") && result != null && result > 1000) {
+                // Reintentar como número simple
+                String normalizedValue = cleanValue.replace(",", ".");
+                return Double.parseDouble(normalizedValue);
+            }
+            return result;
+        } catch (BasicException e) {
+            try {
+                // Si falla, intentar parsear como número simple
+                // Manejar tanto punto como coma como separador decimal
+                String normalizedValue = cleanValue.replace(",", ".");
+                // Remover separadores de miles (puntos que no sean el último punto decimal)
+                if (normalizedValue.contains(".")) {
+                    int lastDotIndex = normalizedValue.lastIndexOf(".");
+                    String beforeDot = normalizedValue.substring(0, lastDotIndex).replace(".", "");
+                    String afterDot = normalizedValue.substring(lastDotIndex + 1);
+                    normalizedValue = beforeDot + "." + afterDot;
+                }
+                return Double.parseDouble(normalizedValue);
+            } catch (NumberFormatException ex) {
+                // Si todo falla, intentar con el formato de número
+                try {
+                    return Formats.DOUBLE.parseValue(cleanValue);
+                } catch (BasicException ex2) {
+                    return null;
+                }
+            }
         }
     }
 
@@ -1120,6 +1515,157 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             return Formats.PERCENT.parseValue(sValue);
         } catch (BasicException e) {
             return null;
+        }
+    }
+    
+    /**
+     * Guarda los valores de stock (cantidad actual y mínimo) en la base de datos
+     */
+    public void saveStockValues() throws BasicException {
+        if (productId == null || appView == null) {
+            return;
+        }
+        
+        // Obtener valores de los campos
+        Double currentStock = null;
+        Double minimumStock = null;
+        
+        try {
+            if (m_jStockCurrent != null && m_jStockCurrent.getText() != null && !m_jStockCurrent.getText().trim().isEmpty()) {
+                currentStock = Formats.DOUBLE.parseValue(m_jStockCurrent.getText());
+            }
+            if (m_jStockMinimum != null && m_jStockMinimum.getText() != null && !m_jStockMinimum.getText().trim().isEmpty()) {
+                minimumStock = Formats.DOUBLE.parseValue(m_jStockMinimum.getText());
+            }
+        } catch (BasicException e) {
+            LOGGER.log(Level.WARNING, "Error al parsear valores de stock", e);
+        }
+        
+        if (currentStock == null) {
+            currentStock = 0.0;
+        }
+        if (minimumStock == null) {
+            minimumStock = 0.0;
+        }
+        
+        // Obtener la ubicación de inventario principal
+        String locationId = appView.getInventoryLocation();
+        if (locationId == null) {
+            LOGGER.log(Level.WARNING, "No se pudo obtener la ubicación de inventario");
+            return;
+        }
+        
+        // Obtener el stock anterior para calcular la diferencia
+        Double oldStock = 0.0;
+        try {
+            PreparedSentence getOldStock = new PreparedSentence(dlSales.getSession(),
+                "SELECT UNITS FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING}, new int[]{0, 1}),
+                SerializerReadDouble.INSTANCE);
+            Double result = (Double) getOldStock.find(new Object[]{locationId, productId});
+            if (result != null) {
+                oldStock = result;
+            }
+        } catch (BasicException e) {
+            // Si no existe, oldStock queda en 0.0
+        }
+        
+        // Actualizar o insertar en stockcurrent
+        try {
+            PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+            
+            int rowsAffected = updateStmt.exec(new Object[]{currentStock, locationId, productId});
+            
+            if (rowsAffected == 0) {
+                // Insertar si no existe
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                    "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                insertStmt.exec(new Object[]{locationId, productId, currentStock});
+            }
+        } catch (BasicException e) {
+            // Si falla, intentar insertar
+            try {
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                    "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                insertStmt.exec(new Object[]{locationId, productId, currentStock});
+            } catch (BasicException ex2) {
+                // Si ya existe, actualizar de nuevo
+                PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                    "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+                updateStmt.exec(new Object[]{currentStock, locationId, productId});
+            }
+        }
+        
+        // Actualizar o insertar en stocklevel (mínimo)
+        try {
+            SentenceFind checkStmt = new PreparedSentence(dlSales.getSession(),
+                "SELECT ID FROM stocklevel WHERE LOCATION = ? AND PRODUCT = ?",
+                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING}, new int[]{0, 1}),
+                SerializerReadString.INSTANCE);
+            
+            String existingId = (String) checkStmt.find(new Object[]{locationId, productId});
+            
+            if (existingId != null) {
+                // UPDATE
+                PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                    "UPDATE stocklevel SET STOCKSECURITY = ? WHERE LOCATION = ? AND PRODUCT = ?",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+                updateStmt.exec(new Object[]{minimumStock, locationId, productId});
+            } else {
+                // INSERT
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                    "INSERT INTO stocklevel (ID, LOCATION, PRODUCT, STOCKSECURITY, STOCKMAXIMUM) VALUES (?, ?, ?, ?, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE}, new int[]{0, 1, 2, 3, 4}));
+                insertStmt.exec(new Object[]{UUID.randomUUID().toString(), locationId, productId, minimumStock, 0.0});
+            }
+        } catch (BasicException e) {
+            // Si falla, intentar insertar directamente
+            try {
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                    "INSERT INTO stocklevel (ID, LOCATION, PRODUCT, STOCKSECURITY, STOCKMAXIMUM) VALUES (?, ?, ?, ?, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE}, new int[]{0, 1, 2, 3, 4}));
+                insertStmt.exec(new Object[]{UUID.randomUUID().toString(), locationId, productId, minimumStock, 0.0});
+            } catch (BasicException ex2) {
+                // Si ya existe, actualizar
+                PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                    "UPDATE stocklevel SET STOCKSECURITY = ? WHERE LOCATION = ? AND PRODUCT = ?",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+                updateStmt.exec(new Object[]{minimumStock, locationId, productId});
+            }
+        }
+        
+        // Registrar el movimiento en stockdiary si hay diferencia
+        double quantityDifference = currentStock - oldStock;
+        if (Math.abs(quantityDifference) > 0.0001) {
+            String userName = appView.getAppUserView().getUser().getName();
+            Date currentDate = DateUtils.getTodayMinutes();
+            
+            Object reasonKey = quantityDifference > 0 
+                ? MovementReason.IN_MOVEMENT.getKey() 
+                : MovementReason.OUT_MOVEMENT.getKey();
+            
+            PreparedSentence stockDiaryInsert = new PreparedSentence(dlSales.getSession(),
+                "INSERT INTO stockdiary (ID, DATENEW, REASON, LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS, PRICE, AppUser, SUPPLIER, SUPPLIERDOC) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.TIMESTAMP, Datas.INT, Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE, Datas.STRING, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+            
+            stockDiaryInsert.exec(new Object[]{
+                UUID.randomUUID().toString(),
+                currentDate,
+                reasonKey,
+                locationId,
+                productId,
+                null, // ATTRIBUTESETINSTANCE_ID
+                quantityDifference, // UNITS (diferencia)
+                0.0, // PRICE
+                userName, // AppUser
+                null, // SUPPLIER
+                null  // SUPPLIERDOC
+            });
         }
     }
 
@@ -1190,8 +1736,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         webLabel1 = new javax.swing.JLabel();
         m_jPrintTo = new javax.swing.JComboBox();
         jBtnShowTrans = new javax.swing.JButton();
-        jScrollPane2 = new javax.swing.JScrollPane();
-        jTableProductStock = new javax.swing.JTable();
+        jLabelStockCurrent = new javax.swing.JLabel();
+        m_jStockCurrent = new javax.swing.JTextField();
+        jLabelStockMinimum = new javax.swing.JLabel();
+        m_jStockMinimum = new javax.swing.JTextField();
         m_jPrintKB = new javax.swing.JCheckBox();
         m_jSendStatus = new javax.swing.JCheckBox();
         m_jAccumulatesPoints = new javax.swing.JCheckBox();
@@ -1229,7 +1777,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         jTabbedPane1.setToolTipText("");
         jTabbedPane1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jTabbedPane1.setPreferredSize(new java.awt.Dimension(680, 420));
+        jTabbedPane1.setPreferredSize(new java.awt.Dimension(1200, 700));
 
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
         jPanel1.setToolTipText(bundle.getString("tooltip.product.general.tab")); // NOI18N
@@ -1334,51 +1882,43 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel1Layout.createSequentialGroup()
+            .addGroup(jPanel1Layout.createSequentialGroup()
                 .addContainerGap()
-                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(m_jTitle, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createSequentialGroup()
+                    .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addComponent(jLabel13, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel2, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 167, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(jLabel13, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(jLabel17, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(jLabelAccumPoints, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                         .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, 222, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(m_jAtt, javax.swing.GroupLayout.PREFERRED_SIZE, 222, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jVerpatrib, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(m_jName, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 444, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel1Layout.createSequentialGroup()
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                                .addComponent(m_jRef, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE))
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                    .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 167, Short.MAX_VALUE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED))
+                                .addComponent(m_jCode, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jCodetype, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE))
+                            .addComponent(m_jName, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                            .addComponent(m_jCategory, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addComponent(jLabel17, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addGap(6, 6, 6))
+                                .addComponent(m_jAtt, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jVerpatrib, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(0, 0, Short.MAX_VALUE))
                             .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addComponent(jLabelAccumPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)))
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addComponent(m_jSupplier, javax.swing.GroupLayout.PREFERRED_SIZE, 228, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jBtnSupplier))
-                            .addComponent(m_jAccumulatesPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(jPanel1Layout.createSequentialGroup()
-                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(m_jRef, javax.swing.GroupLayout.PREFERRED_SIZE, 248, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(m_jCode, javax.swing.GroupLayout.PREFERRED_SIZE, 249, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addGap(12, 12, 12)
-                                .addComponent(m_jCodetype, javax.swing.GroupLayout.PREFERRED_SIZE, 126, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(0, 0, Short.MAX_VALUE)))
-                .addGap(56, 56, 56))
+                                .addComponent(m_jSupplier, javax.swing.GroupLayout.PREFERRED_SIZE, 200, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(jBtnSupplier)
+                                .addGap(0, 0, Short.MAX_VALUE))
+                            .addComponent(m_jAccumulatesPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap())
         );
         jPanel1Layout.setVerticalGroup(
             jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1387,19 +1927,19 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(m_jRef, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(11, 11, 11)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(m_jCode, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(m_jCodetype, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabel13, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -1414,9 +1954,9 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabelAccumPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(m_jAccumulatesPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(10, 10, 10)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(m_jTitle, javax.swing.GroupLayout.PREFERRED_SIZE, 37, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         jTabbedPane1.addTab(AppLocal.getIntString("label.prodgeneral"), jPanel1); // NOI18N
@@ -1558,7 +2098,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 .addContainerGap(176, Short.MAX_VALUE))
         );
 
-        jTabbedPane1.addTab(AppLocal.getIntString("label.price"), pricePanel); // NOI18N
+        // Eliminada la pestaña de Precio - los campos se movieron a Stock
+        // jTabbedPane1.addTab(AppLocal.getIntString("label.price"), pricePanel); // NOI18N
 
         jPanel2.setToolTipText(bundle.getString("tooltip.product.stock.tab")); // NOI18N
         jPanel2.setPreferredSize(new java.awt.Dimension(0, 0));
@@ -1654,11 +2195,6 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jCheckWarrantyReceipt.setText(bundle.getString("label.productreceipt")); // NOI18N
         m_jCheckWarrantyReceipt.setPreferredSize(new java.awt.Dimension(30, 30));
 
-        jLabel23.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jLabel23.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        jLabel23.setText(bundle.getString("label.prodminmax")); // NOI18N
-        jLabel23.setVerticalAlignment(javax.swing.SwingConstants.TOP);
-        jLabel23.setPreferredSize(new java.awt.Dimension(531, 20));
 
         webLabel1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         webLabel1.setText(bundle.getString("label.printto")); // NOI18N
@@ -1669,36 +2205,24 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jPrintTo.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "0", "1", "2", "3", "4", "5", "6" }));
         m_jPrintTo.setPreferredSize(new java.awt.Dimension(50, 30));
 
-        jBtnShowTrans.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jBtnShowTrans.setText(bundle.getString("button.ProductStock")); // NOI18N
-        jBtnShowTrans.setToolTipText("");
-        jBtnShowTrans.setPreferredSize(new java.awt.Dimension(140, 25));
-        jBtnShowTrans.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jBtnShowTransActionPerformed(evt);
-            }
-        });
 
-        jScrollPane2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelStockCurrent.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelStockCurrent.setText("Cantidad Actual:"); // NOI18N
+        jLabelStockCurrent.setPreferredSize(new java.awt.Dimension(150, 30));
 
-        jTableProductStock.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jTableProductStock.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null},
-                {null, null, null, null}
-            },
-            new String [] {
-                "Location", "Current", "Minimum", "Maximum"
-            }
-        ));
-        jTableProductStock.setRowHeight(25);
-        jScrollPane2.setViewportView(jTableProductStock);
+        m_jStockCurrent.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jStockCurrent.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        m_jStockCurrent.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jStockCurrent.getDocument().addDocumentListener(m_Dirty);
+
+        jLabelStockMinimum.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelStockMinimum.setText("Cantidad Mínima:"); // NOI18N
+        jLabelStockMinimum.setPreferredSize(new java.awt.Dimension(150, 30));
+
+        m_jStockMinimum.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jStockMinimum.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        m_jStockMinimum.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jStockMinimum.getDocument().addDocumentListener(m_Dirty);
 
         m_jPrintKB.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
 
@@ -1733,6 +2257,29 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabelStockCurrent, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(m_jStockCurrent, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(30, 30, 30)
+                        .addComponent(jLabelStockMinimum, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(m_jStockMinimum, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel22, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
+                            .addComponent(m_jPriceBuy, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(m_jPriceSell, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(m_jPriceSellTax, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(m_jGrossProfit, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
+                            .addComponent(m_jmargin, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE))
+                        .addGap(30, 30, 30)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
@@ -1745,56 +2292,53 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                             .addGroup(jPanel2Layout.createSequentialGroup()
                                 .addComponent(webLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                .addComponent(m_jPrintTo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(18, 18, 18)
+                                .addComponent(m_jPrintTo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jConstant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jstockcost, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                .addComponent(m_jstockvolume, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGap(30, 30, 30)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanel2Layout.createSequentialGroup()
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                    .addGroup(jPanel2Layout.createSequentialGroup()
-                                        .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(m_jConstant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                    .addComponent(m_jstockvolume, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addComponent(m_jstockcost, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                            .addComponent(jLabel23, javax.swing.GroupLayout.DEFAULT_SIZE, 418, Short.MAX_VALUE)))
-                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                        .addGroup(jPanel2Layout.createSequentialGroup()
-                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                                 .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGroup(jPanel2Layout.createSequentialGroup()
-                                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                        .addComponent(jLabel33, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(jLabel20, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                                        .addComponent(m_jService, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(m_jCheckWarrantyReceipt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(m_jComment, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(m_jScale, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addComponent(m_jVprice, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                .addGroup(jPanel2Layout.createSequentialGroup()
-                                    .addComponent(m_jPrintKB, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                    .addComponent(m_jSendStatus, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                    .addComponent(m_jStockUnits, javax.swing.GroupLayout.PREFERRED_SIZE, 24, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                            .addGap(18, 18, 18)
-                            .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 372, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel2Layout.createSequentialGroup()
-                            .addComponent(jLblDate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                            .addComponent(m_jbtndate, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(0, 0, 0)
-                            .addComponent(m_jdate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jBtnShowTrans, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jService, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel33, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jCheckWarrantyReceipt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jComment, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jScale, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabel20, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jVprice, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addGroup(jPanel2Layout.createSequentialGroup()
+                                .addComponent(jLabelAccumPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addComponent(m_jAccumulatesPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addGap(0, 0, Short.MAX_VALUE))
+                    .addGroup(jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLblDate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(m_jbtndate, javax.swing.GroupLayout.PREFERRED_SIZE, 40, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, 0)
+                        .addComponent(m_jdate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
         jPanel2Layout.setVerticalGroup(
@@ -1803,20 +2347,27 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 .addContainerGap()
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(m_jstockcost, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(m_jConstant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jPriceBuy, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(m_jstockvolume, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGap(18, 18, 18)
-                        .addComponent(jLabel23, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE))
+                            .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jPriceSell, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel16, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jPriceSellTax, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel22, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jGrossProfit, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel19, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jmargin, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(m_jInCatalog, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -1826,43 +2377,53 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                         .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(webLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(m_jPrintTo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jBtnShowTrans, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jbtndate, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jdate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLblDate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.PREFERRED_SIZE, 206, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jPrintTo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel14, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jConstant, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(jLabel9, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jstockcost, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jstockvolume, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                     .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel15, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(m_jService, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel33, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(m_jCheckWarrantyReceipt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel11, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(m_jComment, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel12, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(m_jScale, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                             .addComponent(jLabel20, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                             .addComponent(m_jVprice, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                .addComponent(m_jPrintKB, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(m_jSendStatus, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(m_jStockUnits, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                .addContainerGap())
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(jLabelAccumPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jAccumulatesPoints, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLblDate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jbtndate, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jdate, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabelStockCurrent, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jStockCurrent, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabelStockMinimum, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(m_jStockMinimum, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addContainerGap(500, Short.MAX_VALUE))
         );
 
         m_jService.getAccessibleContext().setAccessibleDescription("null");
@@ -2136,8 +2697,19 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jTabbedPane1.addTab(AppLocal.getIntString("label.button"), jPanel4); // NOI18N
 
         add(jTabbedPane1);
-        jTabbedPane1.setBounds(0, 10, 640, 490);
+        jTabbedPane1.setBounds(0, 10, 1200, 700);
         jTabbedPane1.getAccessibleContext().setAccessibleName("Product Editor Tab");
+        
+        // Agregar listener para mostrar automáticamente la tabla de stock cuando se seleccione la pestaña Stock
+        jTabbedPane1.addChangeListener(new javax.swing.event.ChangeListener() {
+            @Override
+            public void stateChanged(javax.swing.event.ChangeEvent evt) {
+                // Verificar si la pestaña Stock está seleccionada (índice 1: General=0, Stock=1)
+                if (jTabbedPane1.getSelectedIndex() == 1 && productId != null) {
+                    showStockTableAutomatically();
+                }
+            }
+        });
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonHTMLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonHTMLActionPerformed
@@ -2214,21 +2786,50 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         }
     }//GEN-LAST:event_m_jbtndateActionPerformed
 
-    private void jBtnShowTransActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jBtnShowTransActionPerformed
-
-        if (productId != null) {
-            StockTableModel stockModel = new StockTableModel(getProductOfName(productId));
-            jTableProductStock.setModel(stockModel);
-            if (stockModel.getRowCount() > 0) {
-                jTableProductStock.setVisible(true);
-            } else {
-                jTableProductStock.setVisible(false);
-                JOptionPane.showMessageDialog(null,
-                        "No Stock Locations for this Product", "Locations", JOptionPane.INFORMATION_MESSAGE);
-            }
-            resetTranxTable();
+    /**
+     * Muestra automáticamente la tabla de stock cuando se selecciona la pestaña Stock
+     */
+    private void showStockTableAutomatically() {
+        if (productId == null || m_jStockCurrent == null || m_jStockMinimum == null) {
+            return;
         }
-    }//GEN-LAST:event_jBtnShowTransActionPerformed
+        try {
+            List<ProductStock> stockList = getProductOfName(productId);
+            if (stockList != null && !stockList.isEmpty()) {
+                // Obtener la primera entrada (o sumar todas las cantidades)
+                double totalCurrent = 0.0;
+                double totalMinimum = 0.0;
+                
+                for (ProductStock stock : stockList) {
+                    if (stock.getUnits() != null) {
+                        totalCurrent += stock.getUnits();
+                    }
+                    if (stock.getMinimum() != null) {
+                        totalMinimum += stock.getMinimum();
+                    }
+                }
+                
+                m_jStockCurrent.setText(Formats.DOUBLE.formatValue(totalCurrent));
+                m_jStockMinimum.setText(Formats.DOUBLE.formatValue(totalMinimum));
+            } else {
+                m_jStockCurrent.setText("0");
+                m_jStockMinimum.setText("0");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al cargar stock", e);
+            try {
+                if (m_jStockCurrent != null) {
+                    m_jStockCurrent.setText("0");
+                }
+                if (m_jStockMinimum != null) {
+                    m_jStockMinimum.setText("0");
+                }
+            } catch (Exception ex) {
+                // Ignorar errores al establecer valores por defecto
+            }
+        }
+    }
+    
 
     private void m_jInCatalogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jInCatalogActionPerformed
 
@@ -2347,6 +2948,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JTabbedPane jTabbedPane1;
     private javax.swing.JTable jTableProductStock;
+    private javax.swing.JLabel jLabelStockCurrent;
+    private javax.swing.JTextField m_jStockCurrent;
+    private javax.swing.JLabel jLabelStockMinimum;
+    private javax.swing.JTextField m_jStockMinimum;
     private javax.swing.JComboBox m_jAtt;
     private javax.swing.JTextField m_jCatalogOrder;
     private javax.swing.JComboBox m_jCategory;

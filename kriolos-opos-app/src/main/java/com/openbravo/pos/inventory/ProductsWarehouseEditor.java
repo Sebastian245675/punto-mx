@@ -47,6 +47,7 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
     public Object prodref;
     public Object prodname;
     public Object location;
+    private Double originalQuantity; // Guardar cantidad original para calcular diferencia
     
     /** Creates new form ProductsWarehouseEditor
      * @param dirty */
@@ -56,17 +57,23 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
         // Configurar filtros decimales para mejor entrada de datos
         setupDecimalFilters();
         
+        // Habilitar campo de cantidad para edición
+        m_jQuantity.setEnabled(true);
+        
+        // Agregar listeners para detectar cambios
         m_jMinimum.getDocument().addDocumentListener(dirty);
         m_jMaximum.getDocument().addDocumentListener(dirty);
+        m_jQuantity.getDocument().addDocumentListener(dirty);
     }
     
     /**
      * Configura filtros para permitir entrada decimal en los campos de stock
      */
     private void setupDecimalFilters() {
-        // Aplicar filtro decimal a campos de stock
+        // Aplicar filtro decimal a campos de stock (incluyendo cantidad)
         ((AbstractDocument) m_jMinimum.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
         ((AbstractDocument) m_jMaximum.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
+        ((AbstractDocument) m_jQuantity.getDocument()).setDocumentFilter(new DecimalDocumentFilter());
         
         // Mejorar experiencia de usuario con efectos de foco
         setupFocusEffects(m_jMinimum);
@@ -101,9 +108,11 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
         prodref = null;
         prodname = null;
         location = null;
+        originalQuantity = null;
         m_jQuantity.setText(null);
         m_jMinimum.setText(null);
         m_jMaximum.setText(null);
+        m_jQuantity.setEnabled(false);
         m_jMinimum.setEnabled(false);
         m_jMaximum.setEnabled(false);
     }
@@ -119,9 +128,11 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
         prodref = null;
         prodname = null;
         location = null;
+        originalQuantity = 0.0;
         m_jQuantity.setText("0.000");
         m_jMinimum.setText("0.000");
         m_jMaximum.setText("100.000");
+        m_jQuantity.setEnabled(true);
         m_jMinimum.setEnabled(true);
         m_jMaximum.setEnabled(true);
     }
@@ -139,9 +150,12 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
         prodname = myprod[3];
         location = myprod[4];
         m_jTitle.setText(Formats.STRING.formatValue((String)myprod[2]) + " - " + Formats.STRING.formatValue((String)myprod[3]));
-        m_jQuantity.setText(Formats.DOUBLE.formatValue((Double)myprod[7]));
+        Double quantity = (Double)myprod[7];
+        originalQuantity = quantity; // Guardar cantidad original
+        m_jQuantity.setText(Formats.DOUBLE.formatValue(quantity));
         m_jMinimum.setText(Formats.DOUBLE.formatValue((Double)myprod[5]));
         m_jMaximum.setText(Formats.DOUBLE.formatValue((Double)myprod[6]));
+        m_jQuantity.setEnabled(true);
         m_jMinimum.setEnabled(true);
         m_jMaximum.setEnabled(true);
      }
@@ -158,10 +172,12 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
         prodref = myprod[2];
         prodname = myprod[3];
         location = myprod[4];
+        originalQuantity = null;
         m_jTitle.setText(Formats.STRING.formatValue((String)myprod[2]) + " - " + Formats.STRING.formatValue((String)myprod[3]));
         m_jQuantity.setText(Formats.DOUBLE.formatValue((Double)myprod[7]));
         m_jMinimum.setText(Formats.DOUBLE.formatValue((Double)myprod[5]));
         m_jMaximum.setText(Formats.DOUBLE.formatValue((Double)myprod[6]));
+        m_jQuantity.setEnabled(false);
         m_jMinimum.setEnabled(false);
         m_jMaximum.setEnabled(false);
     }
@@ -201,6 +217,14 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
     public void refresh() {
     }
     
+    /**
+     * Obtiene la cantidad original antes de la edición
+     * @return cantidad original o null si no hay
+     */
+    public Double getOriginalQuantity() {
+        return originalQuantity;
+    }
+    
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -226,7 +250,7 @@ public class ProductsWarehouseEditor extends javax.swing.JPanel implements Edito
 
         m_jQuantity.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jQuantity.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
-        m_jQuantity.setEnabled(false);
+        m_jQuantity.setEnabled(true); // Habilitado para permitir edición de existencia
         m_jQuantity.setPreferredSize(new java.awt.Dimension(0, 30));
 
         jLabel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N

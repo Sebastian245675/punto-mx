@@ -1011,48 +1011,27 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private void incProduct(ProductInfoExt prod) {
 
         if (prod.isScale()) {
-            try {
-                // Usar el diálogo estilo Eleventa para productos de granel
-                Double peso = JGranelDialog.mostrarDialogo(
-                    SwingUtilities.getWindowAncestor(this), 
-                    prod.getPriceSell()
-                );
-                
-                if (peso != null) {
-                    incProduct(prod, peso);
-                }
-            } catch (Exception ex) {
-                LOGGER.log(System.Logger.Level.WARNING, "Error en diálogo de granel: ", ex);
-                Toolkit.getDefaultToolkit().beep();
-                
-                // Fallback al diálogo simple si hay error
-                String input = JOptionPane.showInputDialog(
-                    this,
-                    AppLocal.getIntString("label.scaleinput"),
-                    AppLocal.getIntString("label.scale"),
-                    JOptionPane.QUESTION_MESSAGE
-                );
-                
-                if (input != null && !input.trim().isEmpty()) {
-                    try {
-                        Double value = Double.parseDouble(input.trim());
-                        if (value > 0) {
-                            incProduct(prod, value);
-                        } else {
-                            Toolkit.getDefaultToolkit().beep();
-                            JOptionPane.showMessageDialog(this, 
-                                "El peso debe ser mayor a 0",
-                                "Error", 
-                                JOptionPane.ERROR_MESSAGE);
-                        }
-                    } catch (NumberFormatException nfe) {
-                        Toolkit.getDefaultToolkit().beep();
-                        JOptionPane.showMessageDialog(this, 
-                            "Formato de peso inválido",
-                            "Error", 
-                            JOptionPane.ERROR_MESSAGE);
-                    }
-                }
+            // Usar el diálogo estilo Eleventa para productos de granel
+            System.out.println("DEBUG: Producto es granel, mostrando diálogo...");
+            Window parentWindow = SwingUtilities.getWindowAncestor(this);
+            if (parentWindow == null) {
+                parentWindow = (Window) SwingUtilities.getRoot(this);
+            }
+            
+            System.out.println("DEBUG: Ventana padre: " + (parentWindow != null ? parentWindow.getClass().getName() : "null"));
+            System.out.println("DEBUG: Nombre producto: " + prod.getName());
+            System.out.println("DEBUG: Precio: " + prod.getPriceSell());
+            
+            Double peso = JGranelDialog.mostrarDialogo(
+                parentWindow, 
+                prod.getName() != null ? prod.getName() : "Producto Granel",
+                prod.getPriceSell()
+            );
+            
+            System.out.println("DEBUG: Peso retornado: " + peso);
+            
+            if (peso != null && peso > 0) {
+                incProduct(prod, peso);
             }
         } else {
             if (!prod.isVprice()) {

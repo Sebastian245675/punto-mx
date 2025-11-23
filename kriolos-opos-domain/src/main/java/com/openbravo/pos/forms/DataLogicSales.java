@@ -997,9 +997,9 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "MAX(stockcurrent.units) AS Current, "
                 + "MAX(stocklevel.stocksecurity) AS Minimum, "
                 + "MAX(stocklevel.stockmaximum) AS Maximum, "
-                + "Round(products.pricebuy,2) AS PriceBuy, "
-                + "Round((products.pricesell * MAX(taxes.rate)) + products.pricesell,2) AS PriceSell, "
-                + "products.memodate "
+                + "Round(MAX(products.pricebuy),2) AS PriceBuy, "
+                + "Round((MAX(products.pricesell) * MAX(taxes.rate)) + MAX(products.pricesell),2) AS PriceSell, "
+                + "MAX(products.memodate) AS memodate "
                 + "FROM ((((taxcategories TC "
                 + "INNER JOIN taxes taxes "
                 + "ON (TC.id = taxes.category)) "
@@ -1012,7 +1012,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "INNER JOIN locations locations "
                 + "ON (stockcurrent.location = locations.id) "
                 + "WHERE products.id= ? "
-                + "GROUP BY locations.name",
+                + "GROUP BY products.id, locations.name",
                 SerializerWriteString.INSTANCE,
                 ProductStock.getSerializerRead()).list(pId);
     }

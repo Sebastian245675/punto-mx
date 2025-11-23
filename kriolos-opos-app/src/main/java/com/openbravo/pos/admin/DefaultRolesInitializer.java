@@ -23,7 +23,6 @@ import com.openbravo.data.loader.StaticSentence;
 import com.openbravo.data.loader.SerializerWriteBasic;
 import com.openbravo.data.loader.SerializerReadBasic;
 import com.openbravo.data.loader.Datas;
-import com.openbravo.format.Formats;
 import java.util.*;
 
 /**
@@ -102,7 +101,14 @@ public class DefaultRolesInitializer {
         }
         
         String permissionsXML = generatePermissionsXML(permissions);
-        byte[] permissionsBytes = Formats.BYTEA.parseValue(permissionsXML);
+        // Convertir XML a bytes usando UTF-8 directamente
+        byte[] permissionsBytes;
+        try {
+            permissionsBytes = permissionsXML.getBytes("UTF-8");
+        } catch (java.io.UnsupportedEncodingException e) {
+            // Fallback a la codificación por defecto si UTF-8 no está disponible
+            permissionsBytes = permissionsXML.getBytes();
+        }
         
         if (!roleExists) {
             // Insertar nuevo rol
@@ -144,7 +150,14 @@ public class DefaultRolesInitializer {
         if (resultRow == null) {
             // Solo insertar si NO existe
             String permissionsXML = generatePermissionsXML(permissions);
-            byte[] permissionsBytes = Formats.BYTEA.parseValue(permissionsXML);
+            // Convertir XML a bytes usando UTF-8 directamente
+            byte[] permissionsBytes;
+            try {
+                permissionsBytes = permissionsXML.getBytes("UTF-8");
+            } catch (java.io.UnsupportedEncodingException e) {
+                // Fallback a la codificación por defecto si UTF-8 no está disponible
+                permissionsBytes = permissionsXML.getBytes();
+            }
             
             StaticSentence insertRole = new StaticSentence(session,
                 "INSERT INTO roles (id, name, permissions) VALUES (?, ?, ?)",

@@ -679,10 +679,15 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
      */
     @Override
     public void activate() throws BasicException {
+        // Primero activar el editor para inicializar taxeslogic antes de que super.activate() lo necesite
+        if (jeditor != null) {
+            jeditor.activate(); 
+        }
+        if (jproductfilter != null) {
+            jproductfilter.activate();
+        }
         
-        jeditor.activate(); 
-        jproductfilter.activate();
-        
+        // Luego llamar a super.activate() que necesita taxeslogic inicializado
         super.activate();
     }
 
@@ -692,6 +697,12 @@ public class ProductsPanel extends JPanelTable2 implements EditorListener {
      */
     @Override
     public void updateValue(Object value) {
+        // Guardar valores de stock después de actualizar el producto
+        try {
+            jeditor.saveStockValues();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al guardar valores de stock", e);
+        }
     }
     
     /**

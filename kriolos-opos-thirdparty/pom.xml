@@ -22,6 +22,7 @@
                 <artifactId>maven-install-plugin</artifactId>
                 <executions>
                     
+                    <!-- OneWireAPI.jar fue eliminado, comentando esta ejecución
                     <execution>
                         <id>install-OneWireAPI-0.1</id>
                         <goals>
@@ -36,6 +37,7 @@
                             <packaging>jar</packaging>
                         </configuration>
                     </execution>
+                    -->
                     
                     <execution>
                         <id>install-weblaf-complete-1.29</id>

@@ -379,6 +379,8 @@ public class StockManagement extends JPanel implements JPanelView {
             jTableProductStock.setModel((TableModel) stockModel);
             if (stockModel.getRowCount() > 0) {
                 jTableProductStock.setVisible(true);
+                // Habilitar edición de celdas
+                jTableProductStock.setDefaultEditor(Double.class, new javax.swing.DefaultCellEditor(new javax.swing.JTextField()));
             } else {
                 jTableProductStock.setVisible(false);
                 JOptionPane.showMessageDialog(null,
@@ -390,6 +392,48 @@ public class StockManagement extends JPanel implements JPanelView {
             resetTranxTable();
         }
 
+    }
+    
+    /**
+     * Actualiza el stock en la base de datos cuando se edita directamente en la tabla
+     */
+    private void updateStockInDatabase(String productId, String location, Double originalQuantity, 
+                                       Double newQuantity, double quantityDifference) throws BasicException {
+        
+        // Obtener la ubicación actual si no se proporciona
+        if (location == null) {
+            LocationInfo currentLocation = (LocationInfo) m_LocationsModel.getSelectedItem();
+            if (currentLocation != null) {
+                location = currentLocation.getID();
+            } else {
+                location = m_App.getInventoryLocation();
+            }
+        }
+        
+        // Obtener usuario y fecha
+        String userName = m_App.getAppUserView().getUser().getName();
+        Date currentDate = DateUtils.getTodayMinutes();
+        
+        // Determinar el motivo del movimiento
+        Object reasonKey = quantityDifference > 0 
+            ? MovementReason.IN_MOVEMENT.getKey() 
+            : MovementReason.OUT_MOVEMENT.getKey();
+        
+        // Actualizar stockcurrent y registrar en stockdiary
+        SentenceExec stockDiaryInsert = m_dlSales.getStockDiaryInsert1();
+        stockDiaryInsert.exec(new Object[]{
+            UUID.randomUUID().toString(),
+            currentDate,
+            reasonKey,
+            location,
+            productId,
+            null, // ATTRIBUTESETINSTANCE_ID
+            quantityDifference, // UNITS (diferencia)
+            0.0, // PRICE
+            userName, // AppUser
+            null, // SUPPLIER
+            null  // SUPPLIERDOC
+        });
     }
 
     public void sumStockTable() {
@@ -640,11 +684,16 @@ public class StockManagement extends JPanel implements JPanelView {
         private String val = AppLocal.getIntString("label.tblProdHeaderCol6");
 
         private List<ProductStock> stockList;
+        private String currentProductId; // Guardar el ID del producto actual
 
         String[] columnNames = {loc, qty, max, min, buy, val};
 
         public ProductStockTableModel(List<ProductStock> list) {
             stockList = list;
+            // Guardar el ID del producto si hay elementos
+            if (list != null && !list.isEmpty()) {
+                currentProductId = list.get(0).getProductId();
+            }
         }
 
         @Override
@@ -682,27 +731,72 @@ public class StockManagement extends JPanel implements JPanelView {
 
         }
 
-        public Object setValueAt(int row, int column) {
-            ProductStock productStock = stockList.get(row);
-
-            switch (column) {
-                case 0:
-                    return productStock.getLocation();
-                case 1:
-                    return productStock.getUnits();
-                case 2:
-                    return productStock.getMinimum();
-                case 3:
-                    return productStock.getMaximum();
-                case 4:
-                    return productStock.getPriceSell();
-                case 5:
-                    return productStock.getUnits() * productStock.getPriceSell();
-                case 6:
-                    return productStock.getProductId();
-                default:
-                    return "";
+        @Override
+        public void setValueAt(Object value, int row, int column) {
+            // Solo permitir editar la columna de cantidad (columna 1)
+            if (column == 1) {
+                ProductStock productStock = stockList.get(row);
+                Double originalQuantity = productStock.getUnits();
+                Double newQuantity;
+                
+                try {
+                    // Convertir el valor a Double
+                    if (value instanceof Double) {
+                        newQuantity = (Double) value;
+                    } else if (value instanceof String) {
+                        newQuantity = Double.parseDouble(((String) value).trim());
+                    } else {
+                        newQuantity = Double.parseDouble(value.toString());
+                    }
+                    
+                    // Solo actualizar si hay cambio
+                    if (originalQuantity != null && !originalQuantity.equals(newQuantity)) {
+                        double quantityDifference = newQuantity - originalQuantity;
+                        
+                        if (Math.abs(quantityDifference) > 0.0001) {
+                            // Actualizar el modelo
+                            productStock.setUnits(newQuantity);
+                            fireTableCellUpdated(row, column);
+                            fireTableCellUpdated(row, 5); // Actualizar también la columna de valor
+                            
+                            // Actualizar en la base de datos
+                            updateStockInDatabase(
+                                productStock.getProductId(),
+                                productStock.getLocation(),
+                                originalQuantity,
+                                newQuantity,
+                                quantityDifference
+                            );
+                            
+                            // Actualizar totales
+                            sumStockTable();
+                        }
+                    }
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(StockManagement.this,
+                        AppLocal.getIntString("message.invalidnumber"),
+                        AppLocal.getIntString("message.title"),
+                        JOptionPane.ERROR_MESSAGE);
+                } catch (BasicException e) {
+                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                        AppLocal.getIntString("message.cannotsaveinventorydata"), e);
+                    msg.show(StockManagement.this);
+                }
             }
+        }
+        
+        @Override
+        public boolean isCellEditable(int row, int column) {
+            // Solo la columna de cantidad (columna 1) es editable
+            return column == 1;
+        }
+        
+        @Override
+        public Class<?> getColumnClass(int column) {
+            if (column == 1 || column == 2 || column == 3 || column == 4 || column == 5) {
+                return Double.class;
+            }
+            return String.class;
         }
 
         @Override
