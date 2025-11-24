@@ -150,7 +150,8 @@ public abstract class JEditorNumber<T extends Number> extends JEditorAbstract {
 
         String sOldText = getText();
 
-        if (cTrans == '\u007f') {
+        // Soporte tanto para DEL (\u007f) como para Backspace (\u0008)
+        if (cTrans == '\u007f' || cTrans == '\u0008') {
             reset();
         } else if (cTrans == '-') {
             m_bNegative = !m_bNegative;

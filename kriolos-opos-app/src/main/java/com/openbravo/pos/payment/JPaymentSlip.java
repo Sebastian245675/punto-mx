@@ -142,6 +142,9 @@ public class JPaymentSlip extends javax.swing.JPanel implements JPaymentInterfac
         int iCompare = RoundUtils.compare(m_dPaid, m_dTotal);
         
         m_notifier.setStatus(m_dPaid > 0.0 && iCompare <= 0, iCompare == 0);
+        
+        // Actualizar el campo "Restante" en el diálogo principal en tiempo real
+        m_notifier.updateRemaining(m_dPaid);
     }
     
     private class RecalculateState implements PropertyChangeListener {

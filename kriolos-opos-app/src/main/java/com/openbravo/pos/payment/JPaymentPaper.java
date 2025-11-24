@@ -150,6 +150,9 @@ public class JPaymentPaper extends javax.swing.JPanel implements JPaymentInterfa
 
         // it is allowed to pay more
         m_notifier.setStatus(m_dTicket > 0.0, iCompare >= 0);
+        
+        // Actualizar el campo "Restante" en el diálogo principal en tiempo real
+        m_notifier.updateRemaining(m_dTicket);
     }
 
     private class RecalculateState implements PropertyChangeListener {

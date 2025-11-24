@@ -124,6 +124,9 @@ public class JPaymentBank extends javax.swing.JPanel implements JPaymentInterfac
         
         // if iCompare > 0 then the payment is not valid
         m_notifier.setStatus(m_dPaid > 0.0 && iCompare <= 0, iCompare == 0);
+        
+        // Actualizar el campo "Restante" en el diálogo principal en tiempo real
+        m_notifier.updateRemaining(m_dPaid);
     }
     
     private class RecalculateState implements PropertyChangeListener {

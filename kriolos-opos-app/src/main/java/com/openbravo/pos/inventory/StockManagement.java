@@ -25,6 +25,11 @@ import com.openbravo.data.gui.MessageInf;
 import com.openbravo.data.loader.LocalRes;
 import com.openbravo.data.loader.SentenceExec;
 import com.openbravo.data.loader.SentenceList;
+import com.openbravo.data.loader.SentenceFind;
+import com.openbravo.data.loader.PreparedSentence;
+import com.openbravo.data.loader.SerializerWriteBasicExt;
+import com.openbravo.data.loader.SerializerReadString;
+import com.openbravo.data.loader.Datas;
 import com.openbravo.format.Formats;
 import com.openbravo.pos.catalog.CatalogSelector;
 import com.openbravo.pos.catalog.JCatalog;
@@ -332,13 +337,40 @@ public class StockManagement extends JPanel implements JPanelView {
     }
 
     public void resetTranxTable() {
-
-        jTableProductStock.getColumnModel().getColumn(0).setPreferredWidth(50);
-        jTableProductStock.getColumnModel().getColumn(1).setPreferredWidth(50);
-        jTableProductStock.getColumnModel().getColumn(2).setPreferredWidth(50);
-        jTableProductStock.getColumnModel().getColumn(3).setPreferredWidth(50);
-        jTableProductStock.getColumnModel().getColumn(4).setPreferredWidth(50);
-        jTableProductStock.getColumnModel().getColumn(5).setPreferredWidth(50);
+        // Configurar anchos de columna más apropiados
+        jTableProductStock.getColumnModel().getColumn(0).setPreferredWidth(120); // Location
+        jTableProductStock.getColumnModel().getColumn(1).setPreferredWidth(80);  // Current (Actual)
+        jTableProductStock.getColumnModel().getColumn(2).setPreferredWidth(80);  // Minimum
+        jTableProductStock.getColumnModel().getColumn(3).setPreferredWidth(80);  // Maximum
+        jTableProductStock.getColumnModel().getColumn(4).setPreferredWidth(90);  // Price Buy
+        jTableProductStock.getColumnModel().getColumn(5).setPreferredWidth(100); // Value
+        
+        // Alinear columnas numéricas a la derecha
+        javax.swing.table.DefaultTableCellRenderer rightRenderer = new javax.swing.table.DefaultTableCellRenderer();
+        rightRenderer.setHorizontalAlignment(javax.swing.JLabel.RIGHT);
+        
+        for (int i = 1; i <= 5; i++) {
+            jTableProductStock.getColumnModel().getColumn(i).setCellRenderer(rightRenderer);
+        }
+        
+        // Mejorar altura de fila para mejor legibilidad
+        jTableProductStock.setRowHeight(28);
+        
+        // Habilitar edición con doble clic
+        jTableProductStock.setDefaultEditor(Double.class, new javax.swing.DefaultCellEditor(new javax.swing.JTextField()) {
+            @Override
+            public boolean isCellEditable(java.util.EventObject e) {
+                if (e instanceof java.awt.event.MouseEvent) {
+                    return ((java.awt.event.MouseEvent) e).getClickCount() >= 2;
+                }
+                return super.isCellEditable(e);
+            }
+        });
+        
+        // Aplicar colores alternados para mejor legibilidad
+        jTableProductStock.setSelectionBackground(new java.awt.Color(184, 207, 229));
+        jTableProductStock.setSelectionForeground(java.awt.Color.BLACK);
+        jTableProductStock.setGridColor(new java.awt.Color(220, 220, 220));
 
         jTableProductStock.repaint();
     }
@@ -363,35 +395,62 @@ public class StockManagement extends JPanel implements JPanelView {
     }
 
     public void showStockTable() {
-
         String pId = null;
         int i = m_invlines.getSelectedRow();
 
         if (i < 0) {
             Toolkit.getDefaultToolkit().beep();
+            JOptionPane.showMessageDialog(null,
+                    "Por favor seleccione un producto de la lista",
+                    "Seleccionar Producto",
+                    JOptionPane.INFORMATION_MESSAGE);
         } else {
             InventoryLine line = m_invlines.getLine(i);
             pId = line.getProductID();
         }
+        
         if (pId != null) {
-            stockModel = new StockManagement.ProductStockTableModel(getProductOfName(pId));
+            try {
+                stockModel = new StockManagement.ProductStockTableModel(getProductOfName(pId));
 
-            jTableProductStock.setModel((TableModel) stockModel);
-            if (stockModel.getRowCount() > 0) {
-                jTableProductStock.setVisible(true);
-                // Habilitar edición de celdas
-                jTableProductStock.setDefaultEditor(Double.class, new javax.swing.DefaultCellEditor(new javax.swing.JTextField()));
-            } else {
-                jTableProductStock.setVisible(false);
+                jTableProductStock.setModel((TableModel) stockModel);
+                if (stockModel.getRowCount() > 0) {
+                    jTableProductStock.setVisible(true);
+                    
+                    // Configurar el renderizado y edición de la tabla
+                    resetTranxTable();
+                    sumStockTable();
+                    
+                    // Mostrar mensaje informativo
+                    JOptionPane.showMessageDialog(null,
+                            "<html><body style='width: 300px; padding: 10px;'>" +
+                            "<b>Información de Stock</b><br><br>" +
+                            "• Doble clic en las columnas <b>Actual</b>, <b>Mínimo</b> o <b>Máximo</b> para editar<br>" +
+                            "• Los cambios se guardan automáticamente al presionar Enter<br>" +
+                            "• Actual: Cantidad en inventario<br>" +
+                            "• Mínimo: Stock de seguridad<br>" +
+                            "• Máximo: Stock máximo permitido" +
+                            "</body></html>",
+                            "Tabla de Stock",
+                            JOptionPane.INFORMATION_MESSAGE);
+                } else {
+                    jTableProductStock.setVisible(false);
+                    JOptionPane.showMessageDialog(null,
+                            "<html><body style='width: 250px; padding: 10px;'>" +
+                            "<b>No hay stock en ubicaciones</b><br><br>" +
+                            "El producto seleccionado no tiene stock registrado en ninguna ubicación.<br><br>" +
+                            "Por favor agregue el producto a una ubicación primero." +
+                            "</body></html>",
+                            "Sin Stock",
+                            JOptionPane.WARNING_MESSAGE);
+                }
+            } catch (Exception e) {
                 JOptionPane.showMessageDialog(null,
-                        AppLocal.getIntString("message.nostocklocation"),
-                        AppLocal.getIntString("message.title.nostocklocation"),
-                        JOptionPane.INFORMATION_MESSAGE);
+                        "Error al cargar la información de stock: " + e.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
             }
-            sumStockTable();
-            resetTranxTable();
         }
-
     }
     
     /**
@@ -434,6 +493,86 @@ public class StockManagement extends JPanel implements JPanelView {
             null, // SUPPLIER
             null  // SUPPLIERDOC
         });
+    }
+    
+    /**
+     * Actualiza los valores de mínimo y máximo en stocklevel
+     */
+    private void updateStockLevelInDatabase(String productId, String locationName, Double minimum, Double maximum) throws BasicException {
+        // Obtener el ID de la ubicación desde el nombre
+        String locationId = null;
+        try {
+            List<LocationInfo> locations = m_dlSales.getLocationsList().list();
+            for (LocationInfo loc : locations) {
+                if (loc.getName().equals(locationName)) {
+                    locationId = loc.getID();
+                    break;
+                }
+            }
+            
+            // Si no se encuentra, usar la ubicación de inventario principal
+            if (locationId == null) {
+                LocationInfo currentLocation = (LocationInfo) m_LocationsModel.getSelectedItem();
+                if (currentLocation != null) {
+                    locationId = currentLocation.getID();
+                } else {
+                    locationId = m_App.getInventoryLocation();
+                }
+            }
+        } catch (BasicException ex) {
+            LocationInfo currentLocation = (LocationInfo) m_LocationsModel.getSelectedItem();
+            if (currentLocation != null) {
+                locationId = currentLocation.getID();
+            } else {
+                locationId = m_App.getInventoryLocation();
+            }
+        }
+        
+        // Manejar null como 0
+        if (minimum == null) {
+            minimum = 0.0;
+        }
+        if (maximum == null) {
+            maximum = 0.0;
+        }
+        
+        // Verificar si existe una entrada en stocklevel
+        try {
+            SentenceFind checkStmt = new PreparedSentence(m_dlSales.getSession(),
+                "SELECT ID FROM stocklevel WHERE LOCATION = ? AND PRODUCT = ?",
+                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING}, new int[]{0, 1}),
+                SerializerReadString.INSTANCE);
+            
+            String existingId = (String) checkStmt.find(new Object[]{locationId, productId});
+            
+            if (existingId != null) {
+                // UPDATE
+                PreparedSentence updateStmt = new PreparedSentence(m_dlSales.getSession(),
+                    "UPDATE stocklevel SET STOCKSECURITY = ?, STOCKMAXIMUM = ? WHERE LOCATION = ? AND PRODUCT = ?",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2, 3}));
+                updateStmt.exec(new Object[]{minimum, maximum, locationId, productId});
+            } else {
+                // INSERT
+                PreparedSentence insertStmt = new PreparedSentence(m_dlSales.getSession(),
+                    "INSERT INTO stocklevel (ID, LOCATION, PRODUCT, STOCKSECURITY, STOCKMAXIMUM) VALUES (?, ?, ?, ?, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE}, new int[]{0, 1, 2, 3, 4}));
+                insertStmt.exec(new Object[]{UUID.randomUUID().toString(), locationId, productId, minimum, maximum});
+            }
+        } catch (BasicException e) {
+            // Si falla el check, intentar insertar directamente
+            try {
+                PreparedSentence insertStmt = new PreparedSentence(m_dlSales.getSession(),
+                    "INSERT INTO stocklevel (ID, LOCATION, PRODUCT, STOCKSECURITY, STOCKMAXIMUM) VALUES (?, ?, ?, ?, ?)",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE}, new int[]{0, 1, 2, 3, 4}));
+                insertStmt.exec(new Object[]{UUID.randomUUID().toString(), locationId, productId, minimum, maximum});
+            } catch (BasicException ex2) {
+                // Si ya existe, actualizar
+                PreparedSentence updateStmt = new PreparedSentence(m_dlSales.getSession(),
+                    "UPDATE stocklevel SET STOCKSECURITY = ?, STOCKMAXIMUM = ? WHERE LOCATION = ? AND PRODUCT = ?",
+                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2, 3}));
+                updateStmt.exec(new Object[]{minimum, maximum, locationId, productId});
+            }
+        }
     }
 
     public void sumStockTable() {
@@ -733,29 +872,31 @@ public class StockManagement extends JPanel implements JPanelView {
 
         @Override
         public void setValueAt(Object value, int row, int column) {
-            // Solo permitir editar la columna de cantidad (columna 1)
-            if (column == 1) {
-                ProductStock productStock = stockList.get(row);
-                Double originalQuantity = productStock.getUnits();
-                Double newQuantity;
+            ProductStock productStock = stockList.get(row);
+            
+            try {
+                // Convertir el valor a Double
+                Double newValue;
+                if (value instanceof Double) {
+                    newValue = (Double) value;
+                } else if (value instanceof String) {
+                    String strValue = ((String) value).trim();
+                    newValue = strValue.isEmpty() ? 0.0 : Double.parseDouble(strValue);
+                } else {
+                    newValue = Double.parseDouble(value.toString());
+                }
                 
-                try {
-                    // Convertir el valor a Double
-                    if (value instanceof Double) {
-                        newQuantity = (Double) value;
-                    } else if (value instanceof String) {
-                        newQuantity = Double.parseDouble(((String) value).trim());
-                    } else {
-                        newQuantity = Double.parseDouble(value.toString());
-                    }
+                // Columna 1: Cantidad actual (Current)
+                if (column == 1) {
+                    Double originalQuantity = productStock.getUnits();
                     
                     // Solo actualizar si hay cambio
-                    if (originalQuantity != null && !originalQuantity.equals(newQuantity)) {
-                        double quantityDifference = newQuantity - originalQuantity;
+                    if (originalQuantity != null && !originalQuantity.equals(newValue)) {
+                        double quantityDifference = newValue - originalQuantity;
                         
                         if (Math.abs(quantityDifference) > 0.0001) {
                             // Actualizar el modelo
-                            productStock.setUnits(newQuantity);
+                            productStock.setUnits(newValue);
                             fireTableCellUpdated(row, column);
                             fireTableCellUpdated(row, 5); // Actualizar también la columna de valor
                             
@@ -764,7 +905,7 @@ public class StockManagement extends JPanel implements JPanelView {
                                 productStock.getProductId(),
                                 productStock.getLocation(),
                                 originalQuantity,
-                                newQuantity,
+                                newValue,
                                 quantityDifference
                             );
                             
@@ -772,23 +913,60 @@ public class StockManagement extends JPanel implements JPanelView {
                             sumStockTable();
                         }
                     }
-                } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(StockManagement.this,
-                        AppLocal.getIntString("message.invalidnumber"),
-                        AppLocal.getIntString("message.title"),
-                        JOptionPane.ERROR_MESSAGE);
-                } catch (BasicException e) {
-                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
-                        AppLocal.getIntString("message.cannotsaveinventorydata"), e);
-                    msg.show(StockManagement.this);
                 }
+                // Columna 2: Mínimo (Minimum)
+                else if (column == 2) {
+                    Double originalMinimum = productStock.getMinimum();
+                    
+                    if (originalMinimum == null || !originalMinimum.equals(newValue)) {
+                        // Actualizar el modelo
+                        productStock.setMinimum(newValue);
+                        fireTableCellUpdated(row, column);
+                        
+                        // Actualizar en la base de datos
+                        updateStockLevelInDatabase(
+                            productStock.getProductId(),
+                            productStock.getLocation(),
+                            newValue,
+                            productStock.getMaximum()
+                        );
+                    }
+                }
+                // Columna 3: Máximo (Maximum)
+                else if (column == 3) {
+                    Double originalMaximum = productStock.getMaximum();
+                    
+                    if (originalMaximum == null || !originalMaximum.equals(newValue)) {
+                        // Actualizar el modelo
+                        productStock.setMaximum(newValue);
+                        fireTableCellUpdated(row, column);
+                        
+                        // Actualizar en la base de datos
+                        updateStockLevelInDatabase(
+                            productStock.getProductId(),
+                            productStock.getLocation(),
+                            productStock.getMinimum(),
+                            newValue
+                        );
+                    }
+                }
+                
+            } catch (NumberFormatException e) {
+                JOptionPane.showMessageDialog(StockManagement.this,
+                    AppLocal.getIntString("message.invalidnumber"),
+                    AppLocal.getIntString("message.title"),
+                    JOptionPane.ERROR_MESSAGE);
+            } catch (BasicException e) {
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    AppLocal.getIntString("message.cannotsaveinventorydata"), e);
+                msg.show(StockManagement.this);
             }
         }
         
         @Override
         public boolean isCellEditable(int row, int column) {
-            // Solo la columna de cantidad (columna 1) es editable
-            return column == 1;
+            // Las columnas de cantidad (1), mínimo (2) y máximo (3) son editables
+            return column == 1 || column == 2 || column == 3;
         }
         
         @Override

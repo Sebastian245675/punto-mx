@@ -16,15 +16,12 @@
  */
 package com.openbravo.beans;
 
-import static com.openbravo.beans.JEditorTextDialog.getWindow;
-import static com.openbravo.beans.JEditorTextDialog.showDialog;
 import com.openbravo.editor.JEditorPassword;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.util.Hashcypher;
 import java.awt.Component;
-import java.awt.Dialog;
 import java.awt.Frame;
-import java.awt.Window;
+import java.awt.Dialog;
 import javax.swing.Icon;
 import javax.swing.ImageIcon;
 import javax.swing.JOptionPane;
@@ -58,17 +55,8 @@ public class JPasswordDialog extends JEditorTextDialog{
     }
 
     public static String showEditor(Component parent, String title, String message, Icon icon) {
-        
-        Window window = getWindow(parent);      
-        
-        JPasswordDialog dialog;
-        if (window instanceof Frame) { 
-            dialog = new JPasswordDialog((Frame) window, true);
-        } else {
-            dialog = new JPasswordDialog((Dialog) window, true);
-        }
-        
-        return showDialog(dialog, title, message, icon);
+        // Sebastian - Usar el nuevo diálogo simple sin teclado en pantalla
+        return JPasswordDialogSimple.showEditor(parent, title, message, icon);
     }
 
     public static String changePassword(Component parent) {

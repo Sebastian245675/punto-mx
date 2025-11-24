@@ -15,15 +15,15 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package com.openbravo.pos.payment;
 
-import com.openbravo.data.gui.MessageInf;
+// import com.openbravo.data.gui.MessageInf; // No usado - botones predefinidos deshabilitados
 import com.openbravo.format.Formats;
 import com.openbravo.pos.customers.CustomerInfoExt;
 import com.openbravo.pos.forms.AppConfig;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.forms.DataLogicSystem;
-import com.openbravo.pos.scripting.ScriptEngine;
-import com.openbravo.pos.scripting.ScriptException;
-import com.openbravo.pos.scripting.ScriptFactory;
+// import com.openbravo.pos.scripting.ScriptEngine; // No usado - botones predefinidos deshabilitados
+// import com.openbravo.pos.scripting.ScriptException; // No usado - botones predefinidos deshabilitados
+// import com.openbravo.pos.scripting.ScriptFactory; // No usado - botones predefinidos deshabilitados
 import com.openbravo.pos.util.RoundUtils;
 import com.openbravo.pos.util.ThumbNailBuilder;
 import java.awt.Component;
@@ -119,6 +119,8 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
         }
 //        m_config=null;
 
+        // Sebastian - Deshabilitado: Botones de montos predefinidos no necesarios
+        /*
         String code = dlSystem.getResourceAsXML("payment.cash");
         if (code != null) {
             try {
@@ -130,6 +132,7 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
                 msg.show(this);
             }
         }
+        */
         
         // Sebastian - Ajustes simples de UI
         adjustUIComponents();
@@ -173,7 +176,6 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
             m_dPaid = m_dTotal;
         } else {
             m_dPaid = value;
-
         }
 
         int iCompare = RoundUtils.compare(m_dPaid, m_dTotal);
@@ -184,6 +186,9 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
                 : null);
 
         m_notifier.setStatus(m_dPaid > 0.0, iCompare >= 0);
+        
+        // Actualizar el campo "Restante" en el diálogo principal en tiempo real
+        m_notifier.updateRemaining(m_dPaid);
     }
 
     private class RecalculateState implements PropertyChangeListener {
@@ -444,6 +449,7 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
 
         jPanel6.setPreferredSize(new java.awt.Dimension(450, 10));
         jPanel6.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+        jPanel6.setVisible(false); // Sebastian - Ocultar botones de montos predefinidos
         jPanel5.add(jPanel6, java.awt.BorderLayout.CENTER);
 
         add(jPanel5, java.awt.BorderLayout.CENTER);
@@ -456,10 +462,10 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
         jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         jPanel3.setLayout(new java.awt.BorderLayout());
 
-        m_jTendered.setFont(m_jTendered.getFont().deriveFont(m_jTendered.getFont().getSize()+5f));
-        m_jTendered.setMaximumSize(new java.awt.Dimension(130, 30));
-        m_jTendered.setMinimumSize(new java.awt.Dimension(130, 30));
-        m_jTendered.setPreferredSize(new java.awt.Dimension(130, 30));
+        m_jTendered.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 28));
+        m_jTendered.setMaximumSize(new java.awt.Dimension(180, 45));
+        m_jTendered.setMinimumSize(new java.awt.Dimension(180, 45));
+        m_jTendered.setPreferredSize(new java.awt.Dimension(180, 45));
         jPanel3.add(m_jTendered, java.awt.BorderLayout.CENTER);
 
         jPanel1.add(jPanel3);

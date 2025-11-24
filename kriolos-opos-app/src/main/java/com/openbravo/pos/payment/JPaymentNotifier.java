@@ -27,9 +27,15 @@ public interface JPaymentNotifier {
 //    public void setAddEnabled(boolean bValue);
 
     /**
-     *
+     * Update button status based on payment state
      * @param isPositive
      * @param isComplete
      */
-        public void setStatus(boolean isPositive, boolean isComplete);
+    public void setStatus(boolean isPositive, boolean isComplete);
+    
+    /**
+     * Update remaining amount display in real-time
+     * @param tendered Amount entered by user
+     */
+    public void updateRemaining(double tendered);
 }

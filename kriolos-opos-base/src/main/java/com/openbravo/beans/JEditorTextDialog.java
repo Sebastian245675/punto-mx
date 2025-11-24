@@ -45,7 +45,13 @@ public class JEditorTextDialog extends javax.swing.JDialog {
     
     private void init() {
      
-        jPanelKe.add(m_jKeyPad);
+        // Sebastian - Completamente ocultar y remover el teclado
+        jPanelKe.removeAll();
+        jPanelKe.setVisible(false);
+        jPanelKe.setPreferredSize(new java.awt.Dimension(0, 0));
+        jPanelKe.setMinimumSize(new java.awt.Dimension(0, 0));
+        jPanelKe.setMaximumSize(new java.awt.Dimension(0, 0));
+        
         jPanelInput.add(m_jtextEditor);
         
         if (m_resources == null) {
@@ -55,12 +61,15 @@ public class JEditorTextDialog extends javax.swing.JDialog {
        
         getRootPane().setDefaultButton(jcmdOK);   
         
-        m_jtextEditor.addEditorKeys(m_jKeyPad);
+        // No vincular el teclado en pantalla, solo usar el físico
         m_jtextEditor.reset();
         m_jtextEditor.activate();
         
         m_jPanelTitle.setBorder(RoundedBorder.createGradientBorder());
-
+        
+        // Ajustar el tamaño del diálogo para que sea más compacto sin el teclado
+        setPreferredSize(new java.awt.Dimension(400, 250));
+        pack();
     }
     
     public void setEditor(JEditorText newTextEditor){

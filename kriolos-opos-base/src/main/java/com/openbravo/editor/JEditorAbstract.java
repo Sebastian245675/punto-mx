@@ -149,14 +149,15 @@ public abstract class JEditorAbstract extends javax.swing.JPanel implements Edit
         panBackground.setLayout(new java.awt.BorderLayout());
 
         m_jText.setBackground(javax.swing.UIManager.getDefaults().getColor("TextField.background"));
-        m_jText.setFont(m_jText.getFont());
+        m_jText.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24)); // Fuente más grande y visible
         m_jText.setContentAreaFilled(false);
         m_jText.setFocusPainted(false);
         m_jText.setFocusable(false);
-        m_jText.setMinimumSize(new java.awt.Dimension(100, 25));
-        m_jText.setPreferredSize(new java.awt.Dimension(100, 25));
+        m_jText.setMinimumSize(new java.awt.Dimension(250, 45));
+        m_jText.setPreferredSize(new java.awt.Dimension(250, 45));
         m_jText.setRequestFocusEnabled(false);
-        m_jText.setVerticalAlignment(javax.swing.SwingConstants.TOP);
+        m_jText.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+        m_jText.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         m_jText.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 m_jTextActionPerformed(evt);

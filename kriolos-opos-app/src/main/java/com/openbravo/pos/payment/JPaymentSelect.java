@@ -565,8 +565,28 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
 
     @Override
     public void setStatus(boolean isPositive, boolean isComplete) {
-
         setStatusPanel(isPositive, isComplete);
+    }
+    
+    @Override
+    public void updateRemaining(double tendered) {
+        // Calcular el restante basado en el monto introducido
+        double remaining = m_dTotal - tendered;
+        
+        // Actualizar el campo de restante en tiempo real
+        m_jRemaininglEuros.setText(Formats.CURRENCY.formatValue(remaining));
+        
+        // Cambiar el color según si falta dinero o hay cambio
+        if (remaining > 0.01) {
+            // Falta dinero - color rojo
+            m_jRemaininglEuros.setForeground(new java.awt.Color(220, 38, 38)); // Rojo
+        } else if (remaining < -0.01) {
+            // Hay cambio - color verde
+            m_jRemaininglEuros.setForeground(new java.awt.Color(22, 163, 74)); // Verde
+        } else {
+            // Pago exacto - color normal
+            m_jRemaininglEuros.setForeground(java.awt.Color.BLACK);
+        }
     }
 
     public void setTransactionID(String tID) {

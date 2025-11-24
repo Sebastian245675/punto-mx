@@ -119,6 +119,8 @@ public class JPaymentDebt extends javax.swing.JPanel implements JPaymentInterfac
             m_jMoneyEuros.setText(null);
             jlblMessage.setText(AppLocal.getIntString("message.nocustomernodebt"));
             notifier.setStatus(false, false);
+            // Actualizar el campo "Restante" con el total (no hay pago)
+            notifier.updateRemaining(0.0);
         } else {
             Double value = m_jTendered.getValue();
             if (value == null || value == 0.0) {
@@ -129,17 +131,20 @@ public class JPaymentDebt extends javax.swing.JPanel implements JPaymentInterfac
 
             m_jMoneyEuros.setText(Formats.CURRENCY.formatValue(m_dPaid));
 
-
             if (RoundUtils.compare(RoundUtils.getValue(customerext.getAccdebt()) + m_dPaid, 
                     RoundUtils.getValue(customerext.getMaxdebt())) >= 0) {
                 // maximum debt exceded
                 jlblMessage.setText(AppLocal.getIntString("message.customerdebtexceded"));
                 notifier.setStatus(false, false);
+                // Actualizar el campo "Restante"
+                notifier.updateRemaining(m_dPaid);
             } else {
                 jlblMessage.setText(null);
                 int iCompare = RoundUtils.compare(m_dPaid, m_dTotal);
                 // if iCompare > 0 then the payment is not valid
                 notifier.setStatus(m_dPaid > 0.0 && iCompare <= 0, iCompare == 0);
+                // Actualizar el campo "Restante" en el diálogo principal en tiempo real
+                notifier.updateRemaining(m_dPaid);
             }
         }
     }
