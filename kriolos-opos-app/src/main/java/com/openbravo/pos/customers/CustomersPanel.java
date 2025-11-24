@@ -296,10 +296,13 @@ public class CustomersPanel extends JPanelTable {
             // Guardar configuración REAL
             btnGuardarConfig.addActionListener(e -> {
                 try {
-                    double monto = Double.parseDouble(txtMontoRequerido.getText());
-                    int puntos = Integer.parseInt(txtCantidadPuntos.getText());
+                    // Parsear monto aceptando coma o punto decimal
+                    String montoTexto = txtMontoRequerido.getText().trim().replace(",", ".");
+                    double monto = Double.parseDouble(montoTexto);
+                    
+                    int puntos = Integer.parseInt(txtCantidadPuntos.getText().trim());
                     String moneda = txtMoneda.getText().trim();
-                    int limiteDiario = Integer.parseInt(txtLimiteDiario.getText()); // Sebastian - Nuevo campo
+                    int limiteDiario = Integer.parseInt(txtLimiteDiario.getText().trim()); // Sebastian - Nuevo campo
                     boolean activo = chkSistemaActivo.isSelected();
                     
                     if (monto <= 0 || puntos <= 0 || limiteDiario <= 0 || moneda.isEmpty()) {

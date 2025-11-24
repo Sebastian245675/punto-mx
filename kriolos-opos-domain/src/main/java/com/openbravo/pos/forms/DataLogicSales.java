@@ -992,7 +992,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
     @SuppressWarnings("unchecked")
     public final List<ProductStock> getProductStockList(String pId) throws BasicException {
         return new PreparedSentence(s,
-                "SELECT products.id, "
+                "SELECT MAX(products.id) AS id, "
                 + "locations.name AS Location, "
                 + "MAX(stockcurrent.units) AS Current, "
                 + "MAX(stocklevel.stocksecurity) AS Minimum, "
@@ -1012,7 +1012,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 + "INNER JOIN locations locations "
                 + "ON (stockcurrent.location = locations.id) "
                 + "WHERE products.id= ? "
-                + "GROUP BY products.id, locations.name",
+                + "GROUP BY locations.name, locations.id",
                 SerializerWriteString.INSTANCE,
                 ProductStock.getSerializerRead()).list(pId);
     }

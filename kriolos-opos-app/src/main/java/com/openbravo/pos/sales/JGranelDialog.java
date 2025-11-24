@@ -6,10 +6,10 @@
  */
 package com.openbravo.pos.sales;
 
-import com.openbravo.pos.util.ModernLookAndFeel;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.DecimalFormat;
+import java.text.ParseException;
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
@@ -49,6 +49,12 @@ public class JGranelDialog extends JDialog {
         super(parent, "¿Cantidad del Producto?", ModalityType.APPLICATION_MODAL);
         this.precioUnitario = precioUnitario;
         this.nombreProducto = nombreProducto;
+        
+        System.out.println("DEBUG GRANEL - Constructor:");
+        System.out.println("  Producto: " + nombreProducto);
+        System.out.println("  Precio Unitario recibido: " + precioUnitario);
+        System.out.println("  Precio Unitario formateado: " + PRECIO_FORMAT.format(precioUnitario));
+        
         initComponents();
         setupEvents();
         setLocationRelativeTo(parent);
@@ -58,38 +64,38 @@ public class JGranelDialog extends JDialog {
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setResizable(false);
         
-        // Tamaño del diálogo - normal, pero con números grandes
-        setSize(800, 350);
+        // Tamaño del diálogo ajustado para casillas panorámicas
+        setSize(1300, 500);
         
-        // Fondo blanco simple - SIN decoraciones de ventana
-        getContentPane().setBackground(Color.WHITE);
+        // Fondo blanco limpio
+        getContentPane().setBackground(new Color(250, 250, 250));
         getContentPane().setLayout(new BorderLayout(0, 0));
         
-        // Panel principal - fondo blanco
+        // Panel principal con fondo suave
         JPanel panelPrincipal = new JPanel(new BorderLayout(0, 0));
-        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
-        panelPrincipal.setBackground(Color.WHITE);
+        panelPrincipal.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panelPrincipal.setBackground(new Color(250, 250, 250));
         panelPrincipal.setOpaque(true);
         
-        // --- Nombre del producto arriba (muy pequeño, discreto) ---
+        // --- Nombre del producto arriba - más visible y elegante ---
         lblNombreProducto = new JLabel(nombreProducto);
-        lblNombreProducto.setFont(new Font("Arial", Font.PLAIN, 12));
+        lblNombreProducto.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblNombreProducto.setHorizontalAlignment(SwingConstants.CENTER);
-        lblNombreProducto.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        lblNombreProducto.setForeground(new Color(100, 100, 100));
+        lblNombreProducto.setBorder(BorderFactory.createEmptyBorder(10, 10, 15, 10));
+        lblNombreProducto.setForeground(new Color(50, 50, 50));
         panelPrincipal.add(lblNombreProducto, BorderLayout.NORTH);
         
         // --- Panel central con campos lado a lado - SOLO LAS DOS CASILLAS ---
-        JPanel panelCampos = new JPanel(new GridLayout(1, 2, 15, 0));
-        panelCampos.setBackground(Color.WHITE);
+        JPanel panelCampos = new JPanel(new GridLayout(1, 2, 30, 0));
+        panelCampos.setBackground(new Color(250, 250, 250));
         panelCampos.setOpaque(true);
-        panelCampos.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        panelCampos.setBorder(BorderFactory.createEmptyBorder(25, 30, 25, 30));
         
         // Campo VALOR (Importe Actual) - IZQUIERDA
         CampoConPanel resultadoValor = crearCampoSimple("Importe Actual:", PRECIO_FORMAT.format(precioUnitario), false);
         txtValor = resultadoValor.campo;
         
-        // Campo CANTIDAD - DERECHA
+        // Campo CANTIDAD - DERECHA (iniciar en 1.000 kilo)
         CampoConPanel resultadoCantidad = crearCampoSimple("Cantidad del Producto:", "1.000", true);
         txtCantidad = resultadoCantidad.campo;
         
@@ -98,12 +104,12 @@ public class JGranelDialog extends JDialog {
         
         panelPrincipal.add(panelCampos, BorderLayout.CENTER);
         
-        // --- Precio Unidad (muy pequeño, discreto) ---
+        // --- Precio Unidad - más visible y elegante ---
         lblPrecioUnidad = new JLabel("Precio Unidad = " + PRECIO_FORMAT.format(precioUnitario));
-        lblPrecioUnidad.setFont(new Font("Arial", Font.PLAIN, 10));
+        lblPrecioUnidad.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         lblPrecioUnidad.setHorizontalAlignment(SwingConstants.CENTER);
-        lblPrecioUnidad.setBorder(BorderFactory.createEmptyBorder(3, 0, 3, 0));
-        lblPrecioUnidad.setForeground(new Color(120, 120, 120));
+        lblPrecioUnidad.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        lblPrecioUnidad.setForeground(new Color(100, 100, 100));
         
         // --- Panel de acciones (botones) - SIN borde decorativo ---
         JPanel panelAcciones = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 8));
@@ -112,20 +118,22 @@ public class JGranelDialog extends JDialog {
         panelAcciones.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
         btnAceptar = new JButton("✓ Aceptar");
-        btnAceptar.setPreferredSize(new Dimension(130, 40));
-        btnAceptar.setFont(new Font("Arial", Font.BOLD, 14));
+        btnAceptar.setPreferredSize(new Dimension(160, 50));
+        btnAceptar.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnAceptar.setFocusPainted(false);
         btnAceptar.setBackground(new Color(76, 175, 80));
         btnAceptar.setForeground(Color.WHITE);
         btnAceptar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnAceptar.setBorder(BorderFactory.createRaisedBevelBorder());
         
         btnCancelar = new JButton("✗ Cancelar");
-        btnCancelar.setPreferredSize(new Dimension(130, 40));
-        btnCancelar.setFont(new Font("Arial", Font.BOLD, 14));
+        btnCancelar.setPreferredSize(new Dimension(160, 50));
+        btnCancelar.setFont(new Font("Segoe UI", Font.BOLD, 16));
         btnCancelar.setFocusPainted(false);
         btnCancelar.setBackground(new Color(244, 67, 54));
         btnCancelar.setForeground(Color.WHITE);
         btnCancelar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCancelar.setBorder(BorderFactory.createRaisedBevelBorder());
         
         panelAcciones.add(btnAceptar);
         panelAcciones.add(btnCancelar);
@@ -144,33 +152,64 @@ public class JGranelDialog extends JDialog {
         // Calcular importe inicial
         calcularDesdeCantidad();
         campoActivo = txtCantidad; // Empezar con cantidad activa
+        
+        // Aplicar fuentes grandes inmediatamente después de inicializar
+        aplicarFuentesGrandes();
+    }
+    
+    /**
+     * Método para aplicar fuentes grandes a los campos
+     * Se llama después de inicializar y puede ser llamado nuevamente si se sobrescriben
+     */
+    private void aplicarFuentesGrandes() {
+        if (txtCantidad != null) {
+            Font fuenteCantidad = new Font("Segoe UI", Font.BOLD, 140);
+            txtCantidad.setFont(fuenteCantidad);
+            System.out.println("DEBUG: Aplicando fuente cantidad: " + fuenteCantidad.getSize() + " puntos");
+        }
+        if (txtValor != null) {
+            Font fuenteValor = new Font("Segoe UI", Font.BOLD, 100);
+            txtValor.setFont(fuenteValor);
+            System.out.println("DEBUG: Aplicando fuente valor: " + fuenteValor.getSize() + " puntos");
+        }
     }
     
     private CampoConPanel crearCampoSimple(String etiqueta, String valorInicial, boolean esCantidad) {
-        JPanel panel = new JPanel(new BorderLayout(0, 3));
-        panel.setBackground(Color.WHITE);
+        JPanel panel = new JPanel(new BorderLayout(0, 5));
+        panel.setBackground(new Color(250, 250, 250));
         panel.setOpaque(true);
         
-        // Etiqueta muy pequeña arriba (casi invisible)
+        // Etiqueta más pequeña para dar más espacio a los números
         JLabel lbl = new JLabel(etiqueta);
-        lbl.setFont(new Font("Arial", Font.PLAIN, 9));
+        lbl.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lbl.setHorizontalAlignment(SwingConstants.CENTER);
-        lbl.setForeground(new Color(150, 150, 150));
+        lbl.setForeground(new Color(100, 100, 100));
         panel.add(lbl, BorderLayout.NORTH);
         
-        // Campo de texto con NÚMEROS MUY GRANDES
+        // Campo de texto con números grandes
         JTextField campo = new JTextField(valorInicial);
-        // NÚMEROS EXTRA GRANDES para el campo de cantidad (como en la segunda foto)
-        int tamanoFuente = esCantidad ? 180 : 120; // Campo cantidad más grande
-        campo.setFont(new Font("Arial", Font.BOLD, tamanoFuente));
+        // Números más proporcionados - cantidad más grande que valor
+        int tamanoFuente = esCantidad ? 140 : 100; // Números más pequeños para casillas panorámicas
+        campo.setFont(new Font("Segoe UI", Font.BOLD, tamanoFuente));
         campo.setHorizontalAlignment(JTextField.CENTER);
+        
+        // Borde moderno con padding adecuado para números grandes
         campo.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(80, 80, 80), 2),
-            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+            BorderFactory.createLineBorder(new Color(100, 100, 100), 3, true),
+            BorderFactory.createEmptyBorder(20, 25, 20, 25) // Padding adecuado para números grandes
         ));
-        campo.setBackground(Color.WHITE);
-        campo.setForeground(Color.BLACK);
+        
+        // Fondo y color mejorados
+        campo.setBackground(new Color(255, 255, 255));
+        campo.setForeground(new Color(30, 30, 30));
         campo.setOpaque(true);
+        
+        // Casillas panorámicas: menos altas, más anchas
+        int alturaCampo = esCantidad ? 160 : 130; // Altura reducida
+        int anchoCampo = 550; // Muy anchas (estiradas horizontalmente)
+        campo.setPreferredSize(new Dimension(anchoCampo, alturaCampo));
+        campo.setMinimumSize(new Dimension(anchoCampo, alturaCampo));
+        campo.setMaximumSize(new Dimension(anchoCampo, alturaCampo));
         
         panel.add(campo, BorderLayout.CENTER);
         
@@ -321,11 +360,12 @@ public class JGranelDialog extends JDialog {
                 campoActivo = txtValor;
                 // Al ganar foco, mostrar solo el número sin formato
                 try {
-                    String texto = txtValor.getText().replace("$", "").replace(",", "").trim();
-                    double valor = Double.parseDouble(texto);
+                    // Parsear correctamente usando el formato
+                    Number num = PRECIO_FORMAT.parse(txtValor.getText());
+                    double valor = num.doubleValue();
                     txtValor.setText(String.format("%.2f", valor));
                     txtValor.selectAll();
-                } catch (NumberFormatException ex) {
+                } catch (Exception ex) {
                     txtValor.selectAll();
                 }
             }
@@ -334,7 +374,9 @@ public class JGranelDialog extends JDialog {
             public void focusLost(FocusEvent e) {
                 // Al perder foco, formatear como precio
                 try {
-                    String texto = txtValor.getText().replace("$", "").replace(",", "").trim();
+                    // Intentar parsear con punto decimal
+                    String texto = txtValor.getText().replace("$", "").trim();
+                    texto = texto.replace(",", "."); // Convertir coma a punto
                     double valor = Double.parseDouble(texto);
                     txtValor.setText(PRECIO_FORMAT.format(valor));
                 } catch (NumberFormatException ex) {
@@ -358,7 +400,7 @@ public class JGranelDialog extends JDialog {
         if (campoActivo == txtCantidad) {
             try {
                 double cantidad = Double.parseDouble(txtCantidad.getText().trim());
-                cantidad += 0.100;
+                cantidad += 0.250; // Incrementar de 0.25 en 0.25 kilos
                 if (cantidad < 0) cantidad = 0;
                 actualizando = true; // Evitar actualización recursiva
                 txtCantidad.setText(CANTIDAD_FORMAT.format(cantidad));
@@ -366,24 +408,35 @@ public class JGranelDialog extends JDialog {
                 calcularDesdeCantidad();
             } catch (NumberFormatException ex) {
                 actualizando = true;
-                txtCantidad.setText("1.000");
+                txtCantidad.setText("0.250");
                 actualizando = false;
                 calcularDesdeCantidad();
             }
         } else if (campoActivo == txtValor) {
             try {
-                String texto = txtValor.getText().replace("$", "").replace(",", "").trim();
-                double valor = Double.parseDouble(texto);
-                valor += precioUnitario;
+                // Parsear correctamente el valor actual
+                String texto = txtValor.getText();
+                double valor = 0.0;
+                try {
+                    // Si tiene formato de precio, parsearlo
+                    Number num = PRECIO_FORMAT.parse(texto);
+                    valor = num.doubleValue();
+                } catch (Exception e) {
+                    // Si no tiene $, intentar parseo directo (punto decimal)
+                    texto = texto.replace("$", "").replace(",", ".").trim();
+                    valor = Double.parseDouble(texto);
+                }
+                
+                valor += 50.0; // Incrementar de 50 en 50 pesos
                 if (valor < 0) valor = 0;
                 actualizando = true; // Evitar actualización recursiva
                 // Mostrar sin formato mientras está activo
                 txtValor.setText(String.format("%.2f", valor));
                 actualizando = false;
                 calcularDesdeValor();
-            } catch (NumberFormatException ex) {
+            } catch (Exception ex) {
                 actualizando = true;
-                txtValor.setText(String.format("%.2f", precioUnitario));
+                txtValor.setText("50.00");
                 actualizando = false;
                 calcularDesdeValor();
             }
@@ -394,7 +447,7 @@ public class JGranelDialog extends JDialog {
         if (campoActivo == txtCantidad) {
             try {
                 double cantidad = Double.parseDouble(txtCantidad.getText().trim());
-                cantidad -= 0.100;
+                cantidad -= 0.250; // Decrementar de 0.25 en 0.25 kilos
                 if (cantidad < 0) cantidad = 0;
                 actualizando = true; // Evitar actualización recursiva
                 txtCantidad.setText(CANTIDAD_FORMAT.format(cantidad));
@@ -408,16 +461,27 @@ public class JGranelDialog extends JDialog {
             }
         } else if (campoActivo == txtValor) {
             try {
-                String texto = txtValor.getText().replace("$", "").replace(",", "").trim();
-                double valor = Double.parseDouble(texto);
-                valor -= precioUnitario;
+                // Parsear correctamente el valor actual
+                String texto = txtValor.getText();
+                double valor = 0.0;
+                try {
+                    // Si tiene formato de precio, parsearlo
+                    Number num = PRECIO_FORMAT.parse(texto);
+                    valor = num.doubleValue();
+                } catch (Exception e) {
+                    // Si no tiene $, intentar parseo directo (punto decimal)
+                    texto = texto.replace("$", "").replace(",", ".").trim();
+                    valor = Double.parseDouble(texto);
+                }
+                
+                valor -= 50.0; // Decrementar de 50 en 50 pesos
                 if (valor < 0) valor = 0;
                 actualizando = true; // Evitar actualización recursiva
                 // Mostrar sin formato mientras está activo
                 txtValor.setText(String.format("%.2f", valor));
                 actualizando = false;
                 calcularDesdeValor();
-            } catch (NumberFormatException ex) {
+            } catch (Exception ex) {
                 actualizando = true;
                 txtValor.setText("0.00");
                 actualizando = false;
@@ -442,6 +506,11 @@ public class JGranelDialog extends JDialog {
             } else {
                 double cantidad = Double.parseDouble(textoCantidad);
                 double valor = cantidad * precioUnitario;
+                
+                System.out.println("DEBUG CALCULAR DESDE CANTIDAD:");
+                System.out.println("  Cantidad: " + cantidad);
+                System.out.println("  Precio Unitario: " + precioUnitario);
+                System.out.println("  Valor calculado: " + valor);
                 
                 if (!txtValor.hasFocus()) {
                     txtValor.setText(PRECIO_FORMAT.format(valor));
@@ -472,15 +541,37 @@ public class JGranelDialog extends JDialog {
             // Remover listener temporalmente para evitar bucle infinito
             txtCantidad.getDocument().removeDocumentListener(listenerCantidad);
             
-            String textoValor = txtValor.getText().replace("$", "").replace(",", "").trim();
+            String textoValor = txtValor.getText().replace("$", "").trim();
             if (textoValor.isEmpty() || textoValor.equals(".")) {
                 if (!txtCantidad.hasFocus()) {
                     txtCantidad.setText("0.000");
                 }
                 btnAceptar.setEnabled(false);
             } else {
-                double valor = Double.parseDouble(textoValor);
+                // Parsear correctamente usando el NumberFormat para manejar separadores
+                double valor = 0.0;
+                try {
+                    // Intentar parsear con el formato de precio (respeta coma decimal)
+                    Number num = PRECIO_FORMAT.parse("$" + textoValor);
+                    valor = num.doubleValue();
+                } catch (ParseException e) {
+                    // Si falla, intentar con punto decimal
+                    try {
+                        textoValor = textoValor.replace(",", ".");
+                        valor = Double.parseDouble(textoValor);
+                    } catch (NumberFormatException ex) {
+                        valor = 0.0;
+                    }
+                }
+                
                 double cantidad = (precioUnitario > 0) ? (valor / precioUnitario) : 0.0;
+                
+                System.out.println("DEBUG CALCULAR DESDE VALOR:");
+                System.out.println("  Texto original: " + txtValor.getText());
+                System.out.println("  Texto parseado: " + textoValor);
+                System.out.println("  Valor: " + valor);
+                System.out.println("  Precio Unitario: " + precioUnitario);
+                System.out.println("  Cantidad calculada: " + cantidad);
                 
                 if (!txtCantidad.hasFocus()) {
                     txtCantidad.setText(CANTIDAD_FORMAT.format(cantidad));
@@ -629,13 +720,15 @@ public class JGranelDialog extends JDialog {
      * @return la cantidad (peso) ingresado, o null si se canceló
      */
     public static Double mostrarDialogo(Window parent, String nombreProducto, double precioUnitario) {
-        // Aplicar Look and Feel moderno antes de crear el diálogo
-        ModernLookAndFeel.aplicarEstiloModerno();
+        // NO aplicar estilo moderno para evitar que sobrescriba las fuentes
         
         JGranelDialog dialog = new JGranelDialog(parent, nombreProducto, precioUnitario);
         
-        // Aplicar estilo moderno específico al diálogo
-        ModernLookAndFeel.aplicarEstiloModernoADialogo(dialog);
+        // Verificar fuentes antes de mostrar
+        System.out.println("DEBUG: Antes de mostrar - Fuente cantidad: " + 
+            (dialog.txtCantidad != null ? dialog.txtCantidad.getFont().getSize() : "null") + " puntos");
+        System.out.println("DEBUG: Antes de mostrar - Fuente valor: " + 
+            (dialog.txtValor != null ? dialog.txtValor.getFont().getSize() : "null") + " puntos");
         
         // Asegurar que el diálogo sea visible
         dialog.setAlwaysOnTop(true);
@@ -644,6 +737,13 @@ public class JGranelDialog extends JDialog {
         
         System.out.println("DEBUG: Mostrando diálogo granel...");
         dialog.setVisible(true);
+        
+        // Verificar fuentes después de mostrar
+        System.out.println("DEBUG: Después de mostrar - Fuente cantidad: " + 
+            (dialog.txtCantidad != null ? dialog.txtCantidad.getFont().getSize() : "null") + " puntos");
+        System.out.println("DEBUG: Después de mostrar - Fuente valor: " + 
+            (dialog.txtValor != null ? dialog.txtValor.getFont().getSize() : "null") + " puntos");
+        
         System.out.println("DEBUG: Diálogo visible: " + dialog.isVisible());
         
         if (dialog.fueAceptado()) {

@@ -431,6 +431,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     public void activate() throws BasicException {
 
         LOGGER.log(System.Logger.Level.INFO, "JPanelTicket.activate");
+        
+        // Aplicar fuentes grandes para campos numéricos (después de que Metal los sobrescriba)
+        aplicarFuentesGrandesVentas();
 
         Action logoutAction = new LogoutAction();
         if (isAutoLogout()) {
@@ -497,6 +500,34 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
 
         refreshTicket();
+        
+        // Aplicar fuentes grandes nuevamente por si acaso
+        SwingUtilities.invokeLater(() -> {
+            aplicarFuentesGrandesVentas();
+        });
+    }
+    
+    /**
+     * Aplica fuentes grandes a los campos numéricos del panel de ventas
+     * Se llama en activate() para sobrescribir las fuentes del Look and Feel Metal
+     */
+    private void aplicarFuentesGrandesVentas() {
+        if (m_jKeyFactory != null) {
+            m_jKeyFactory.setFont(new Font("Segoe UI", Font.BOLD, 28));
+            m_jKeyFactory.setForeground(Color.BLACK); // Números negros
+        }
+        if (m_jPrice != null) {
+            m_jPrice.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        }
+        if (m_jTotalEuros != null) {
+            m_jTotalEuros.setFont(new Font("Segoe UI", Font.BOLD, 56)); // Total más grande
+        }
+        if (m_jSubtotalEuros != null) {
+            m_jSubtotalEuros.setFont(new Font("Segoe UI", Font.PLAIN, 32)); // Subtotal más grande
+        }
+        if (m_jTaxesEuros != null) {
+            m_jTaxesEuros.setFont(new Font("Segoe UI", Font.PLAIN, 32)); // Impuestos más grande
+        }
     }
 
     @Override
@@ -2107,7 +2138,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
             //TODO EVALUATE PERFORMANCE TO CREATE THIS EVERY TIME
             JTicketLines m_ticketlines2 = new JTicketLines(this.dlSystem.getResourceAsXML(TicketConstants.RES_TICKET_LINES));
-            m_ticketlines2.setTicketTableFont(new Font("Arial", 0, 18));
+            m_ticketlines2.setTicketTableFont(new Font("Segoe UI", Font.PLAIN, 22)); // Fuente moderna y números grandes en tabla
 
             this.m_ticketlines.addListSelectionListener((ListSelectionEvent e) -> {
                 EventQueue.invokeLater(() -> {
@@ -2890,64 +2921,64 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         ));
         // No añadir aquí, se añadirá al customerPointsPanel más adelante
 
-        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(450, 60)); // Más ancho para estar más a la derecha
+        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(620, 120)); // Más ancho y alto para números MUY grandes
         m_jPanelTotals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 50, 0, 0)); // Margen izquierdo para empujar a la derecha
         m_jPanelTotals.setLayout(new java.awt.GridLayout(2, 3, 4, 0));
 
-        m_jLblSubTotalEuros.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        m_jLblSubTotalEuros.setFont(new java.awt.Font("Segoe UI", 1, 16)); // Fuente moderna y más grande
         m_jLblSubTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         m_jLblSubTotalEuros.setLabelFor(m_jSubtotalEuros);
         m_jLblSubTotalEuros.setText(AppLocal.getIntString("label.subtotalcash")); // NOI18N
         m_jPanelTotals.add(m_jLblSubTotalEuros);
 
-        m_jLblTaxEuros.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        m_jLblTaxEuros.setFont(new java.awt.Font("Segoe UI", 1, 16)); // Fuente moderna y más grande
         m_jLblTaxEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         m_jLblTaxEuros.setLabelFor(m_jSubtotalEuros);
         m_jLblTaxEuros.setText(AppLocal.getIntString("label.taxcash")); // NOI18N
         m_jPanelTotals.add(m_jLblTaxEuros);
 
-        m_jLblTotalEuros.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        m_jLblTotalEuros.setFont(new java.awt.Font("Segoe UI", 1, 18)); // Fuente moderna y más grande para el total
         m_jLblTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         m_jLblTotalEuros.setLabelFor(m_jTotalEuros);
         m_jLblTotalEuros.setText(AppLocal.getIntString("label.totalcash")); // NOI18N
         m_jPanelTotals.add(m_jLblTotalEuros);
 
         m_jSubtotalEuros.setBackground(m_jEditLine.getBackground());
-        m_jSubtotalEuros.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N
+        m_jSubtotalEuros.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 32)); // Fuente moderna y números más grandes
         m_jSubtotalEuros.setForeground(m_jEditLine.getForeground());
         m_jSubtotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         m_jSubtotalEuros.setLabelFor(m_jSubtotalEuros);
         m_jSubtotalEuros.setToolTipText(bundle.getString("tooltip.salesubtotal")); // NOI18N
-        m_jSubtotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
-        m_jSubtotalEuros.setMaximumSize(new java.awt.Dimension(125, 25));
-        m_jSubtotalEuros.setMinimumSize(new java.awt.Dimension(80, 25));
-        m_jSubtotalEuros.setPreferredSize(new java.awt.Dimension(80, 25));
+        m_jSubtotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 2, true));
+        m_jSubtotalEuros.setMaximumSize(new java.awt.Dimension(180, 45));
+        m_jSubtotalEuros.setMinimumSize(new java.awt.Dimension(120, 45));
+        m_jSubtotalEuros.setPreferredSize(new java.awt.Dimension(130, 45));
         m_jSubtotalEuros.setRequestFocusEnabled(false);
         m_jPanelTotals.add(m_jSubtotalEuros);
 
         m_jTaxesEuros.setBackground(m_jEditLine.getBackground());
-        m_jTaxesEuros.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N
+        m_jTaxesEuros.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 32)); // Fuente moderna y números más grandes
         m_jTaxesEuros.setForeground(m_jEditLine.getForeground());
         m_jTaxesEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         m_jTaxesEuros.setLabelFor(m_jTaxesEuros);
         m_jTaxesEuros.setToolTipText(bundle.getString("tooltip.saletax")); // NOI18N
-        m_jTaxesEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
-        m_jTaxesEuros.setMaximumSize(new java.awt.Dimension(125, 25));
-        m_jTaxesEuros.setMinimumSize(new java.awt.Dimension(80, 25));
-        m_jTaxesEuros.setPreferredSize(new java.awt.Dimension(80, 25));
+        m_jTaxesEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 2, true));
+        m_jTaxesEuros.setMaximumSize(new java.awt.Dimension(180, 45));
+        m_jTaxesEuros.setMinimumSize(new java.awt.Dimension(120, 45));
+        m_jTaxesEuros.setPreferredSize(new java.awt.Dimension(130, 45));
         m_jTaxesEuros.setRequestFocusEnabled(false);
         m_jPanelTotals.add(m_jTaxesEuros);
 
         m_jTotalEuros.setBackground(m_jEditLine.getBackground());
-        m_jTotalEuros.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N
+        m_jTotalEuros.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 56)); // Fuente moderna, bold y números MUY grandes
         m_jTotalEuros.setForeground(m_jEditLine.getForeground());
         m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         m_jTotalEuros.setLabelFor(m_jTotalEuros);
         m_jTotalEuros.setToolTipText(bundle.getString("tooltip.saletotal")); // NOI18N
-        m_jTotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 1, true));
-        m_jTotalEuros.setMaximumSize(new java.awt.Dimension(125, 25));
-        m_jTotalEuros.setMinimumSize(new java.awt.Dimension(80, 25));
-        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(100, 25));
+        m_jTotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 3, true));
+        m_jTotalEuros.setMaximumSize(new java.awt.Dimension(300, 70));
+        m_jTotalEuros.setMinimumSize(new java.awt.Dimension(220, 70));
+        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(260, 70));
         m_jTotalEuros.setRequestFocusEnabled(false);
         m_jPanelTotals.add(m_jTotalEuros);
 
@@ -3078,15 +3109,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - TODO: Investigar de dónde viene el botón '=' azul
 
         jPanelScanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        jPanelScanner.setMaximumSize(new java.awt.Dimension(800, 50));
-        jPanelScanner.setPreferredSize(new java.awt.Dimension(800, 50));
+        jPanelScanner.setMaximumSize(new java.awt.Dimension(800, 70)); // Más alto para el campo grande
+        jPanelScanner.setPreferredSize(new java.awt.Dimension(800, 70));
 
-        m_jPrice.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
+        m_jPrice.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24)); // Fuente moderna y números grandes
         m_jPrice.setForeground(new java.awt.Color(76, 197, 237));
         m_jPrice.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        m_jPrice.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237)), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
+        m_jPrice.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237), 2), javax.swing.BorderFactory.createEmptyBorder(4, 8, 4, 8)));
         m_jPrice.setOpaque(true);
-        m_jPrice.setPreferredSize(new java.awt.Dimension(500, 30));
+        m_jPrice.setPreferredSize(new java.awt.Dimension(500, 40));
         m_jPrice.setRequestFocusEnabled(false);
 
         m_jEnter.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/barcode.png"))); // NOI18N
@@ -3107,12 +3138,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPor.setRequestFocusEnabled(false);
 
         m_jKeyFactory.setEditable(true);
-        m_jKeyFactory.setFont(new java.awt.Font("Arial", 1, 16));
-        m_jKeyFactory.setForeground(new java.awt.Color(76, 197, 237));
+        m_jKeyFactory.setFont(new java.awt.Font("Segoe UI", 1, 28)); // Fuente moderna y números grandes
+        m_jKeyFactory.setForeground(java.awt.Color.BLACK); // Números negros
         m_jKeyFactory.setBackground(java.awt.Color.WHITE);
         m_jKeyFactory.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        m_jKeyFactory.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237)), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
-        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 30));
+        m_jKeyFactory.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237), 2), javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)));
+        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 50)); // Campo más alto para números grandes
         m_jKeyFactory.setAutoscrolls(false);
         m_jKeyFactory.setCaretColor(new java.awt.Color(76, 197, 237));
         m_jKeyFactory.setRequestFocusEnabled(true);
