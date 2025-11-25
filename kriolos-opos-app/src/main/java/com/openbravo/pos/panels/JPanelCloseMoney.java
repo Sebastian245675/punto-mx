@@ -57,6 +57,7 @@ import java.util.logging.Logger;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
+import javax.swing.DefaultListModel;
 
 /**
  *
@@ -102,11 +103,37 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     
     /** Creates new form JPanelCloseMoney */
     public JPanelCloseMoney() {
-        initComponents();
-        
-        // Aplicar diseño moderno
-        setupModernUI();
-             
+        // Inicializar componentes básicos primero
+        initBasicComponents();
+        // Crear el diseño moderno
+        createModernLayout();
+    }
+    
+    /**
+     * Inicializa solo los componentes básicos necesarios
+     */
+    private void initBasicComponents() {
+        // Inicializar componentes que se usan en otros métodos
+        m_jSequence = new JTextField();
+        m_jMinDate = new JTextField();
+        m_jMaxDate = new JTextField();
+        m_jCash = new JTextField();
+        m_jInitialAmount = new JTextField();
+        m_jCount = new JTextField();
+        m_jLinesRemoved = new JTextField();
+        m_jNoCashSales = new JTextField();
+        m_jSalesTotal = new JTextField();
+        m_jSalesTaxes = new JTextField();
+        m_jSales = new JTextField();
+        m_jSalesSubtotal = new JTextField();
+        m_jTicketTable = new JTable();
+        m_jsalestable = new JTable();
+        m_jScrollTableTicket = new JScrollPane();
+        m_jScrollSales = new JScrollPane();
+        m_jCloseCash = new JButton();
+        m_jPrintCashPreview = new JButton();
+        m_jPrintCash1 = new JButton();
+        m_jReprintCash = new JButton();
     }
     
     /**
@@ -232,43 +259,77 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             m_jCount.setText(m_PaymentsToClose.printPayments());
             m_jCash.setText(m_PaymentsToClose.printPaymentsTotal());
             
-            // Obtener el monto inicial de la caja abierta basado en HOSTSEQUENCE
+            // Obtener el monto inicial de la caja activa actual directamente desde la BD
             try {
-                int hostSequence = m_PaymentsToClose.getSequence(); // Obtener HOSTSEQUENCE
-                String host = m_App.getProperties().getHost();
-                
+                Double initialAmount = null;
+                String activeCashIndex = m_App.getActiveCashIndex();
                 s = m_App.getSession();
                 con = s.getConnection();
                 
-                SQL = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE HOST = ? AND HOSTSEQUENCE = ? ORDER BY DATEEND DESC LIMIT 1";
-                
-                // Para HSQLDB cambiar LIMIT por TOP
-                String sdbmanager = m_dlSystem.getDBVersion();
-                if ("HSQL Database Engine".equals(sdbmanager)) {
-                    SQL = "SELECT TOP 1 INITIAL_AMOUNT FROM CLOSEDCASH WHERE HOST = ? AND HOSTSEQUENCE = ? ORDER BY DATEEND DESC";
-                }
+                // Consultar directamente desde la BD para asegurar que obtenemos el valor correcto
+                SQL = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ? AND DATEEND IS NULL";
                 
                 java.sql.PreparedStatement pstmt = con.prepareStatement(SQL);
-                pstmt.setString(1, host);
-                pstmt.setInt(2, hostSequence);
+                pstmt.setString(1, activeCashIndex);
                 
                 ResultSet rsInitial = pstmt.executeQuery();
                 if (rsInitial.next()) {
-                    double initialAmount = rsInitial.getDouble("INITIAL_AMOUNT");
+                    double dbInitialAmount = rsInitial.getDouble("INITIAL_AMOUNT");
                     if (!rsInitial.wasNull()) {
-                        m_jInitialAmount.setText(Formats.CURRENCY.formatValue(initialAmount));
+                        initialAmount = dbInitialAmount;
+                        LOGGER.info("Fondo inicial obtenido desde BD en loadData: " + initialAmount);
+                    } else {
+                        LOGGER.warning("INITIAL_AMOUNT es NULL en la BD para MONEY: " + activeCashIndex);
+                    }
+                } else {
+                    LOGGER.warning("No se encontró registro en CLOSEDCASH para MONEY: " + activeCashIndex);
+                }
+                
+                if (rsInitial != null) rsInitial.close();
+                if (pstmt != null) pstmt.close();
+                
+                // Si no se encontró en la BD, intentar desde PaymentsModel como respaldo
+                if (initialAmount == null) {
+                    try {
+                        initialAmount = m_PaymentsToClose.getInitialAmount();
+                        if (initialAmount != null && initialAmount > 0.0) {
+                            LOGGER.info("Fondo inicial obtenido desde PaymentsModel en loadData: " + initialAmount);
+                        } else {
+                            // Intentar desde getActiveCashInitialAmount como último recurso
+                            try {
+                                initialAmount = m_App.getActiveCashInitialAmount();
+                                LOGGER.info("Fondo inicial obtenido desde getActiveCashInitialAmount() en loadData: " + initialAmount);
+                            } catch (Exception e) {
+                                LOGGER.log(Level.WARNING, "Error obteniendo fondo inicial desde getActiveCashInitialAmount() en loadData: " + e.getMessage());
+                            }
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error obteniendo fondo inicial desde PaymentsModel en loadData: " + e.getMessage());
+                    }
+                }
+                
+                // Establecer el valor en el campo (usar 0.0 si aún es null)
+                if (initialAmount == null) {
+                    initialAmount = 0.0;
+                    LOGGER.warning("Fondo inicial no encontrado en loadData, usando 0.0 por defecto");
+                }
+                m_jInitialAmount.setText(Formats.CURRENCY.formatValue(initialAmount));
+                LOGGER.info("Fondo inicial final establecido en campo m_jInitialAmount: " + initialAmount);
+                
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error obteniendo monto inicial en loadData: " + e.getMessage(), e);
+                // Intentar obtener desde PaymentsModel como último recurso
+                try {
+                    Double fallbackAmount = m_PaymentsToClose.getInitialAmount();
+                    if (fallbackAmount != null) {
+                        m_jInitialAmount.setText(Formats.CURRENCY.formatValue(fallbackAmount));
+                        LOGGER.info("Fondo inicial establecido desde fallback en loadData: " + fallbackAmount);
                     } else {
                         m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
                     }
-                } else {
+                } catch (Exception ex) {
                     m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
                 }
-                
-                rsInitial.close();
-                pstmt.close();
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Error obteniendo monto inicial: " + e.getMessage(), e);
-                m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
             }
             
             m_jSales.setText(m_PaymentsToClose.printSales());
@@ -334,7 +395,256 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         catch (SQLException e){}         
 
         m_jLinesRemoved.setText(dresult.toString());
-        m_jNoCashSales.setText(result.toString());              
+        m_jNoCashSales.setText(result.toString());
+        
+        // Actualizar componentes del diseño moderno
+        updateModernLayoutData();
+    }
+    
+    /**
+     * Actualiza los componentes del diseño moderno con los datos reales
+     */
+    private void updateModernLayoutData() {
+        if (m_PaymentsToClose == null) {
+            return;
+        }
+        
+        try {
+            // Actualizar información del turno
+            if (m_jShiftInfoLabel != null) {
+                String userName = m_PaymentsToClose.getUser();
+                String dateStart = m_PaymentsToClose.printDateStart();
+                String dateEnd = m_PaymentsToClose.printDateEnd();
+                String timeRange = "";
+                
+                if (dateStart != null && !dateStart.isEmpty()) {
+                    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+                    SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
+                    try {
+                        Date startDate = sdf.parse(dateStart);
+                        String startTime = timeFormat.format(startDate);
+                        if (dateEnd != null && !dateEnd.isEmpty()) {
+                            Date endDate = sdf.parse(dateEnd);
+                            String endTime = timeFormat.format(endDate);
+                            timeRange = String.format("De %s a %s - (Turno Actual)", startTime, endTime);
+                        } else {
+                            timeRange = String.format("De %s - (Turno Actual)", startTime);
+                        }
+                    } catch (ParseException e) {
+                        timeRange = dateStart;
+                    }
+                }
+                
+                String shiftInfo = String.format("Corte de %s iniciado el %s", userName, dateStart != null ? dateStart.split(" ")[0] : "");
+                if (!timeRange.isEmpty()) {
+                    shiftInfo += "\n" + timeRange;
+                }
+                m_jShiftInfoLabel.setText(shiftInfo);
+            }
+            
+            // Actualizar tarjetas de métricas
+            if (m_jSalesTotalLabel != null) {
+                String salesTotal = m_PaymentsToClose.printSalesTotal();
+                m_jSalesTotalLabel.setText(salesTotal != null ? salesTotal : "$0.00");
+            }
+            
+            if (m_jProfitLabel != null) {
+                // Calcular ganancia real (ventas totales - costo de compra)
+                double profit = 0.0;
+                try {
+                    String activeCashIndex = m_App.getActiveCashIndex();
+                    Session session = m_App.getSession();
+                    Connection conn = session.getConnection();
+                    
+                    // Consulta para calcular ganancia real: SUM((precio_venta - precio_compra) * unidades)
+                    String profitSql = "SELECT SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) " +
+                                      "FROM ticketlines " +
+                                      "INNER JOIN receipts ON ticketlines.TICKET = receipts.ID " +
+                                      "LEFT JOIN products ON ticketlines.PRODUCT = products.ID " +
+                                      "WHERE receipts.MONEY = ? AND ticketlines.PRODUCT IS NOT NULL";
+                    
+                    java.sql.PreparedStatement pstmt = conn.prepareStatement(profitSql);
+                    pstmt.setString(1, activeCashIndex);
+                    
+                    ResultSet rs = pstmt.executeQuery();
+                    if (rs.next()) {
+                        double dbProfit = rs.getDouble(1);
+                        if (!rs.wasNull()) {
+                            profit = dbProfit;
+                            LOGGER.info("Ganancia calculada desde BD: " + profit);
+                        }
+                    }
+                    
+                    if (rs != null) rs.close();
+                    if (pstmt != null) pstmt.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error calculando ganancia desde BD, usando cálculo alternativo: " + e.getMessage());
+                    // Fallback: intentar calcular desde salesBase si hay error
+                    try {
+                        String salesBaseStr = m_PaymentsToClose.printSalesBase();
+                        if (salesBaseStr != null && !salesBaseStr.isEmpty()) {
+                            double salesBase = Formats.CURRENCY.parseValue(salesBaseStr);
+                            // Si no podemos obtener el costo, asumir 50% de ganancia como fallback
+                            profit = salesBase * 0.5;
+                            LOGGER.warning("Usando cálculo de ganancia aproximado (50%): " + profit);
+                        }
+                    } catch (BasicException ex) {
+                        LOGGER.log(Level.WARNING, "Error en cálculo alternativo de ganancia: " + ex.getMessage());
+                        profit = 0.0;
+                    }
+                }
+                
+                m_jProfitLabel.setText(Formats.CURRENCY.formatValue(profit));
+            }
+            
+            // Actualizar sección Dinero en Caja
+            // Obtener fondo inicial directamente desde la BD
+            double initialAmount = 0.0;
+            try {
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Session session = m_App.getSession();
+                Connection conn = session.getConnection();
+                
+                String sql = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ? AND DATEEND IS NULL";
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+                pstmt.setString(1, activeCashIndex);
+                
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    double dbAmount = rs.getDouble("INITIAL_AMOUNT");
+                    if (!rs.wasNull()) {
+                        initialAmount = dbAmount;
+                    }
+                }
+                
+                if (rs != null) rs.close();
+                if (pstmt != null) pstmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo fondo inicial para diseño moderno: " + e.getMessage());
+                // Fallback
+                if (m_PaymentsToClose != null && m_PaymentsToClose.getInitialAmount() != null) {
+                    initialAmount = m_PaymentsToClose.getInitialAmount();
+                }
+            }
+            
+            // Actualizar label de fondo de caja
+            if (m_jInitialAmountLabel != null) {
+                m_jInitialAmountLabel.setText(Formats.CURRENCY.formatValue(initialAmount));
+            }
+            
+            // Actualizar ventas en efectivo
+            if (m_jCashSalesLabel != null && m_PaymentsToClose != null) {
+                double cashSales = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
+                m_jCashSalesLabel.setText("+" + Formats.CURRENCY.formatValue(cashSales));
+            }
+            
+            // Actualizar total
+            if (m_jCashTotalLabel != null) {
+                double cashTotal = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
+                double total = initialAmount + cashTotal;
+                m_jCashTotalLabel.setText(Formats.CURRENCY.formatValue(total));
+            }
+            
+            // Actualizar listas de entradas y salidas
+            updateCashMovements();
+            
+            // Actualizar ventas por departamento
+            updateDepartmentSales();
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error actualizando diseño moderno: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Actualiza las listas de movimientos de efectivo (entradas y salidas)
+     */
+    private void updateCashMovements() {
+        if (m_PaymentsToClose == null || m_inflowsListModel == null || m_outflowsListModel == null) {
+            return;
+        }
+        
+        try {
+            m_inflowsListModel.clear();
+            m_outflowsListModel.clear();
+            
+            // Obtener entradas y salidas de efectivo desde draweropened
+            s = m_App.getSession();
+            con = s.getConnection();
+            String sdbmanager = m_dlSystem.getDBVersion();
+            
+            SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
+            SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+            
+            // Buscar entradas de dinero (TICKETID que no sea 'No Sale' y tenga información de entrada)
+            // Por ahora, usar draweropened con TICKETID específico para entradas
+            String sqlInflows = "SELECT OPENDATE, NAME, TICKETID FROM draweropened " +
+                                "WHERE TICKETID LIKE 'Entrada%' AND OPENDATE > {fn TIMESTAMP('" + 
+                                m_PaymentsToClose.getDateStartDerby() + "')} " +
+                                "ORDER BY OPENDATE DESC";
+            
+            stmt = con.createStatement();
+            rs = stmt.executeQuery(sqlInflows);
+            while (rs.next()) {
+                Date openDate = rs.getTimestamp("OPENDATE");
+                String name = rs.getString("NAME");
+                String ticketId = rs.getString("TICKETID");
+                String timeStr = timeFormat.format(openDate);
+                // Extraer monto si está en el TICKETID o NAME
+                String item = String.format("%s %s", timeStr, name != null ? name : ticketId);
+                m_inflowsListModel.addElement(item);
+            }
+            rs.close();
+            
+            // Buscar salidas de dinero
+            String sqlOutflows = "SELECT OPENDATE, NAME, TICKETID FROM draweropened " +
+                                "WHERE TICKETID LIKE 'Salida%' AND OPENDATE > {fn TIMESTAMP('" + 
+                                m_PaymentsToClose.getDateStartDerby() + "')} " +
+                                "ORDER BY OPENDATE DESC";
+            
+            rs = stmt.executeQuery(sqlOutflows);
+            while (rs.next()) {
+                Date openDate = rs.getTimestamp("OPENDATE");
+                String name = rs.getString("NAME");
+                String ticketId = rs.getString("TICKETID");
+                String timeStr = timeFormat.format(openDate);
+                String item = String.format("%s %s", timeStr, name != null ? name : ticketId);
+                m_outflowsListModel.addElement(item);
+            }
+            rs.close();
+            stmt.close();
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error actualizando movimientos de efectivo: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Actualiza la lista de ventas por departamento
+     */
+    private void updateDepartmentSales() {
+        if (m_PaymentsToClose == null || m_deptSalesListModel == null) {
+            return;
+        }
+        
+        try {
+            m_deptSalesListModel.clear();
+            
+            // Obtener ventas por categoría/departamento
+            java.util.List categorySales = m_PaymentsToClose.getCategorySalesLines();
+            if (categorySales != null) {
+                for (Object obj : categorySales) {
+                    PaymentsModel.CategorySalesLine category = (PaymentsModel.CategorySalesLine) obj;
+                    String deptName = category.printCategoryName();
+                    String totalStr = category.printCategorySum();
+                    String item = String.format("%s: %s", deptName, totalStr);
+                    m_deptSalesListModel.addElement(item);
+                }
+            }
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error actualizando ventas por departamento: " + e.getMessage(), e);
+        }
     }   
     
     private void CloseCash() {
@@ -437,18 +747,51 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     private ValidacionDineroResult validarDineroFisicoEnCaja() {
         try {
-            // Calcular el dinero esperado en caja
-            double fondoInicial = m_PaymentsToClose.getInitialAmount() != null ? m_PaymentsToClose.getInitialAmount() : 0.0;
+            LOGGER.info("=== Iniciando validación de dinero físico en caja ===");
+            
+            // Obtener fondo inicial directamente de la base de datos para la caja activa
+            double fondoInicial = 0.0;
+            try {
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Session session = m_App.getSession();
+                Connection conn = session.getConnection();
+                
+                String sql = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ? AND DATEEND IS NULL";
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+                pstmt.setString(1, activeCashIndex);
+                
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    double dbAmount = rs.getDouble("INITIAL_AMOUNT");
+                    if (!rs.wasNull()) {
+                        fondoInicial = dbAmount;
+                        LOGGER.info("Validación: Fondo inicial obtenido desde BD: " + fondoInicial);
+                    } else {
+                        LOGGER.warning("Validación: INITIAL_AMOUNT es NULL en BD");
+                    }
+                } else {
+                    LOGGER.warning("Validación: No se encontró registro en CLOSEDCASH para MONEY: " + activeCashIndex);
+                }
+                
+                if (rs != null) rs.close();
+                if (pstmt != null) pstmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Validación: Error obteniendo fondo inicial desde BD, usando fallback: " + e.getMessage());
+                // Fallback a PaymentsModel
+                if (m_PaymentsToClose != null && m_PaymentsToClose.getInitialAmount() != null) {
+                    fondoInicial = m_PaymentsToClose.getInitialAmount();
+                    LOGGER.info("Validación: Usando fondo inicial desde PaymentsModel: " + fondoInicial);
+                }
+            }
+            
             double efectivoRecibido = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
             double dineroEsperado = fondoInicial + efectivoRecibido;
             
-            // Mostrar diálogo simple para ingresar dinero físico (sin mostrar detalles iniciales)
-            String inputDineroFisico = JOptionPane.showInputDialog(
-                this,
-                "Ingrese la cantidad de dinero físico que tiene en la caja:",
-                "Validar Dinero en Caja",
-                JOptionPane.QUESTION_MESSAGE
-            );
+            LOGGER.info(String.format("Validación dinero: Fondo inicial=%.2f, Efectivo recibido=%.2f, Esperado=%.2f",
+                fondoInicial, efectivoRecibido, dineroEsperado));
+            
+            // Crear diálogo personalizado mejorado para ingresar dinero físico
+            String inputDineroFisico = mostrarDialogoDineroFisico(fondoInicial, efectivoRecibido, dineroEsperado);
             
             // Si el usuario cancela, no cerrar la caja
             if (inputDineroFisico == null || inputDineroFisico.trim().isEmpty()) {
@@ -464,18 +807,29 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Validar que el input sea un número válido
             double dineroFisico;
             try {
-                // Eliminar espacios y reemplazar comas por puntos si es necesario
-                String inputLimpio = inputDineroFisico.trim().replace(",", ".");
-                dineroFisico = Double.parseDouble(inputLimpio);
-            } catch (NumberFormatException e) {
-                JOptionPane.showMessageDialog(
-                    this,
-                    "❌ Error: Debe ingresar un número válido.\n\n" +
-                    "Ejemplo: 5000 o 5000.50",
-                    "Error de Validación",
-                    JOptionPane.ERROR_MESSAGE
-                );
-                return new ValidacionDineroResult(false, 0.0, 0.0);
+                // Usar Formats.CURRENCY.parseValue() que sabe cómo parsear valores formateados como moneda
+                dineroFisico = Formats.CURRENCY.parseValue(inputDineroFisico);
+            } catch (BasicException e) {
+                // Si falla el parseo con Formats, intentar limpiar y parsear manualmente
+                try {
+                    // Eliminar símbolos de moneda, espacios y reemplazar comas por puntos
+                    String inputLimpio = inputDineroFisico.trim()
+                        .replace("$", "")
+                        .replace(",", "")
+                        .replace(" ", "");
+                    dineroFisico = Double.parseDouble(inputLimpio);
+                } catch (NumberFormatException ex) {
+                    JOptionPane.showMessageDialog(
+                        this,
+                        "❌ Error: Debe ingresar un número válido.\n\n" +
+                        "Ejemplo: 5000 o 5000.50\n" +
+                        "El valor ingresado fue: " + inputDineroFisico,
+                        "Error de Validación",
+                        JOptionPane.ERROR_MESSAGE
+                    );
+                    LOGGER.log(Level.WARNING, "Error parseando dinero físico: " + inputDineroFisico, ex);
+                    return new ValidacionDineroResult(false, 0.0, 0.0);
+                }
             }
             
             // Comparar dinero físico con dinero esperado
@@ -490,27 +844,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             if (diferencia < -tolerancia) {
                 // Falta dinero - mostrar advertencia pero permitir continuar
                 faltante = Math.abs(diferencia);
-                int respuesta = JOptionPane.showConfirmDialog(
-                    this,
-                    String.format(
-                        "ADVERTENCIA: FALTA DINERO\n\n" +
-                        "Fondo Inicial: %s\n" +
-                        "Efectivo Recibido: %s\n" +
-                        "─────────────────────────\n" +
-                        "DEBE HABER EN CAJA: %s\n" +
-                        "TIENE EN CAJA: %s\n" +
-                        "─────────────────────────\n" +
-                        "FALTA EN CAJA: %s\n\n" +
-                        "¿Desea continuar con el cierre de caja de todos modos?",
-                        Formats.CURRENCY.formatValue(fondoInicial),
-                        Formats.CURRENCY.formatValue(efectivoRecibido),
-                        Formats.CURRENCY.formatValue(dineroEsperado),
-                        Formats.CURRENCY.formatValue(dineroFisico),
-                        Formats.CURRENCY.formatValue(faltante)
-                    ),
-                    "Advertencia: Falta Dinero",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE
+                int respuesta = mostrarDialogoFaltanteDinero(
+                    fondoInicial, efectivoRecibido, dineroEsperado, dineroFisico, faltante
                 );
                 
                 if (respuesta != JOptionPane.YES_OPTION) {
@@ -530,27 +865,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             } else if (diferencia > tolerancia) {
                 // Sobra dinero (se permite pero se informa) - mostrar desglose completo
                 sobrante = diferencia;
-                int respuesta = JOptionPane.showConfirmDialog(
-                    this,
-                    String.format(
-                        "ADVERTENCIA: SOBRA DINERO\n\n" +
-                        "Fondo Inicial: %s\n" +
-                        "Efectivo Recibido: %s\n" +
-                        "─────────────────────────\n" +
-                        "DEBE HABER EN CAJA: %s\n" +
-                        "TIENE EN CAJA: %s\n" +
-                        "─────────────────────────\n" +
-                        "SOBRA EN CAJA: %s\n\n" +
-                        "¿Desea continuar con el cierre de caja?",
-                        Formats.CURRENCY.formatValue(fondoInicial),
-                        Formats.CURRENCY.formatValue(efectivoRecibido),
-                        Formats.CURRENCY.formatValue(dineroEsperado),
-                        Formats.CURRENCY.formatValue(dineroFisico),
-                        Formats.CURRENCY.formatValue(sobrante)
-                    ),
-                    "Advertencia: Sobra Dinero",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.WARNING_MESSAGE
+                int respuesta = mostrarDialogoSobranteDinero(
+                    fondoInicial, efectivoRecibido, dineroEsperado, dineroFisico, sobrante
                 );
                 
                 if (respuesta != JOptionPane.YES_OPTION) {
@@ -614,6 +930,342 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 return new ValidacionDineroResult(false, 0.0, 0.0);
             }
         }
+    }
+    
+    /**
+     * Muestra un diálogo mejorado para ingresar el dinero físico en caja
+     * @param fondoInicial El fondo inicial de la caja
+     * @param efectivoRecibido El efectivo recibido por ventas
+     * @param dineroEsperado El dinero total esperado en caja
+     * @return El valor ingresado por el usuario, o null si canceló
+     */
+    private String mostrarDialogoDineroFisico(double fondoInicial, double efectivoRecibido, double dineroEsperado) {
+        // Crear un panel personalizado con mejor diseño
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panel.setBackground(Color.WHITE);
+        
+        // Título
+        JLabel titulo = new JLabel("💰 Validar Dinero en Caja");
+        titulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titulo.setForeground(new Color(30, 30, 30));
+        titulo.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titulo.setBorder(BorderFactory.createEmptyBorder(0, 0, 15, 0));
+        panel.add(titulo);
+        
+        // Panel de información con fondo gris claro
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setBackground(new Color(249, 250, 251));
+        infoPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(229, 231, 235), 1),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        
+        // Fondo inicial
+        JPanel fondoPanel = crearLineaInfo("Fondo Inicial", fondoInicial, new Color(59, 130, 246));
+        infoPanel.add(fondoPanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Efectivo recibido
+        JPanel efectivoPanel = crearLineaInfo("Efectivo Recibido", efectivoRecibido, new Color(34, 197, 94));
+        infoPanel.add(efectivoPanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Separador
+        JSeparator separator = new JSeparator();
+        separator.setForeground(new Color(229, 231, 235));
+        infoPanel.add(separator);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Total esperado (destacado)
+        JPanel totalPanel = crearLineaInfo("Total Esperado", dineroEsperado, new Color(30, 30, 30), true);
+        infoPanel.add(totalPanel);
+        
+        panel.add(infoPanel);
+        panel.add(Box.createVerticalStrut(20));
+        
+        // Campo de entrada
+        JLabel labelInput = new JLabel("Ingrese la cantidad de dinero físico que tiene en caja:");
+        labelInput.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        labelInput.setForeground(new Color(50, 50, 50));
+        labelInput.setAlignmentX(Component.LEFT_ALIGNMENT);
+        panel.add(labelInput);
+        panel.add(Box.createVerticalStrut(10));
+        
+        JTextField campoDinero = new JTextField();
+        campoDinero.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        campoDinero.setHorizontalAlignment(JTextField.RIGHT);
+        campoDinero.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(209, 213, 219), 2),
+            BorderFactory.createEmptyBorder(12, 15, 12, 15)
+        ));
+        campoDinero.setBackground(Color.WHITE);
+        campoDinero.setPreferredSize(new Dimension(300, 45));
+        campoDinero.setMaximumSize(new Dimension(300, 45));
+        campoDinero.setText(Formats.CURRENCY.formatValue(dineroEsperado)); // Pre-llenar con el total esperado
+        campoDinero.selectAll();
+        campoDinero.addFocusListener(new java.awt.event.FocusAdapter() {
+            public void focusGained(java.awt.event.FocusEvent evt) {
+                campoDinero.selectAll();
+            }
+        });
+        panel.add(campoDinero);
+        
+        // Mostrar el diálogo
+        int resultado = JOptionPane.showConfirmDialog(
+            this,
+            panel,
+            "Validar Dinero en Caja",
+            JOptionPane.OK_CANCEL_OPTION,
+            JOptionPane.PLAIN_MESSAGE
+        );
+        
+        if (resultado == JOptionPane.OK_OPTION) {
+            return campoDinero.getText();
+        } else {
+            return null;
+        }
+    }
+    
+    /**
+     * Crea una línea de información para el diálogo
+     */
+    private JPanel crearLineaInfo(String label, double valor, Color color) {
+        return crearLineaInfo(label, valor, color, false);
+    }
+    
+    /**
+     * Crea una línea de información para el diálogo
+     */
+    private JPanel crearLineaInfo(String label, double valor, Color color, boolean destacado) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(249, 250, 251));
+        panel.setOpaque(false);
+        
+        JLabel labelComp = new JLabel(label + ":");
+        labelComp.setFont(new Font("Segoe UI", destacado ? Font.BOLD : Font.PLAIN, destacado ? 15 : 14));
+        labelComp.setForeground(new Color(75, 85, 99));
+        panel.add(labelComp, BorderLayout.WEST);
+        
+        JLabel valorComp = new JLabel(Formats.CURRENCY.formatValue(valor));
+        valorComp.setFont(new Font("Segoe UI", Font.BOLD, destacado ? 16 : 15));
+        valorComp.setForeground(color);
+        panel.add(valorComp, BorderLayout.EAST);
+        
+        return panel;
+    }
+    
+    /**
+     * Muestra un diálogo mejorado para advertencia de dinero faltante
+     */
+    private int mostrarDialogoFaltanteDinero(double fondoInicial, double efectivoRecibido, 
+                                               double dineroEsperado, double dineroFisico, double faltante) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panel.setBackground(Color.WHITE);
+        
+        // Título con icono de advertencia
+        JPanel tituloPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        tituloPanel.setBackground(Color.WHITE);
+        tituloPanel.setOpaque(false);
+        
+        JLabel icono = new JLabel("⚠️");
+        icono.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+        tituloPanel.add(icono);
+        
+        JLabel titulo = new JLabel(" ADVERTENCIA: FALTA DINERO");
+        titulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titulo.setForeground(new Color(220, 38, 38)); // Rojo
+        tituloPanel.add(titulo);
+        
+        panel.add(tituloPanel);
+        panel.add(Box.createVerticalStrut(15));
+        
+        // Panel de información con fondo rojo claro
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setBackground(new Color(254, 242, 242));
+        infoPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(220, 38, 38), 2),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        
+        // Fondo inicial
+        JPanel fondoPanel = crearLineaInfoAdvertencia("Fondo Inicial", fondoInicial, new Color(75, 85, 99));
+        infoPanel.add(fondoPanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Efectivo recibido
+        JPanel efectivoPanel = crearLineaInfoAdvertencia("Efectivo Recibido", efectivoRecibido, new Color(75, 85, 99));
+        infoPanel.add(efectivoPanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Separador
+        JSeparator separator1 = new JSeparator();
+        separator1.setForeground(new Color(220, 38, 38));
+        infoPanel.add(separator1);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Debe haber en caja
+        JPanel debePanel = crearLineaInfoAdvertencia("DEBE HABER EN CAJA", dineroEsperado, new Color(30, 30, 30), true);
+        infoPanel.add(debePanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Tiene en caja
+        JPanel tienePanel = crearLineaInfoAdvertencia("TIENE EN CAJA", dineroFisico, new Color(75, 85, 99));
+        infoPanel.add(tienePanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Separador
+        JSeparator separator2 = new JSeparator();
+        separator2.setForeground(new Color(220, 38, 38));
+        infoPanel.add(separator2);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Falta en caja (destacado en rojo)
+        JPanel faltaPanel = crearLineaInfoAdvertencia("FALTA EN CAJA", faltante, new Color(220, 38, 38), true);
+        infoPanel.add(faltaPanel);
+        
+        panel.add(infoPanel);
+        panel.add(Box.createVerticalStrut(20));
+        
+        // Mensaje de confirmación
+        JLabel mensaje = new JLabel("<html><div style='text-align: center;'>" +
+            "¿Desea continuar con el cierre de caja<br/>de todos modos?</div></html>");
+        mensaje.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        mensaje.setForeground(new Color(50, 50, 50));
+        mensaje.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(mensaje);
+        
+        return JOptionPane.showConfirmDialog(
+            this,
+            panel,
+            "Advertencia: Falta Dinero",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+    }
+    
+    /**
+     * Muestra un diálogo mejorado para advertencia de dinero sobrante
+     */
+    private int mostrarDialogoSobranteDinero(double fondoInicial, double efectivoRecibido, 
+                                               double dineroEsperado, double dineroFisico, double sobrante) {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        panel.setBackground(Color.WHITE);
+        
+        // Título con icono de advertencia
+        JPanel tituloPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        tituloPanel.setBackground(Color.WHITE);
+        tituloPanel.setOpaque(false);
+        
+        JLabel icono = new JLabel("⚠️");
+        icono.setFont(new Font("Segoe UI", Font.PLAIN, 24));
+        tituloPanel.add(icono);
+        
+        JLabel titulo = new JLabel(" ADVERTENCIA: SOBRA DINERO");
+        titulo.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        titulo.setForeground(new Color(234, 179, 8)); // Amarillo/Naranja
+        tituloPanel.add(titulo);
+        
+        panel.add(tituloPanel);
+        panel.add(Box.createVerticalStrut(15));
+        
+        // Panel de información con fondo amarillo claro
+        JPanel infoPanel = new JPanel();
+        infoPanel.setLayout(new BoxLayout(infoPanel, BoxLayout.Y_AXIS));
+        infoPanel.setBackground(new Color(255, 251, 235));
+        infoPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(234, 179, 8), 2),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        
+        // Fondo inicial
+        JPanel fondoPanel = crearLineaInfoAdvertencia("Fondo Inicial", fondoInicial, new Color(75, 85, 99));
+        infoPanel.add(fondoPanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Efectivo recibido
+        JPanel efectivoPanel = crearLineaInfoAdvertencia("Efectivo Recibido", efectivoRecibido, new Color(75, 85, 99));
+        infoPanel.add(efectivoPanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Separador
+        JSeparator separator1 = new JSeparator();
+        separator1.setForeground(new Color(234, 179, 8));
+        infoPanel.add(separator1);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Debe haber en caja
+        JPanel debePanel = crearLineaInfoAdvertencia("DEBE HABER EN CAJA", dineroEsperado, new Color(30, 30, 30), true);
+        infoPanel.add(debePanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Tiene en caja
+        JPanel tienePanel = crearLineaInfoAdvertencia("TIENE EN CAJA", dineroFisico, new Color(75, 85, 99));
+        infoPanel.add(tienePanel);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Separador
+        JSeparator separator2 = new JSeparator();
+        separator2.setForeground(new Color(234, 179, 8));
+        infoPanel.add(separator2);
+        infoPanel.add(Box.createVerticalStrut(8));
+        
+        // Sobra en caja (destacado en amarillo/naranja)
+        JPanel sobraPanel = crearLineaInfoAdvertencia("SOBRA EN CAJA", sobrante, new Color(234, 179, 8), true);
+        infoPanel.add(sobraPanel);
+        
+        panel.add(infoPanel);
+        panel.add(Box.createVerticalStrut(20));
+        
+        // Mensaje de confirmación
+        JLabel mensaje = new JLabel("<html><div style='text-align: center;'>" +
+            "¿Desea continuar con el cierre de caja?</div></html>");
+        mensaje.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        mensaje.setForeground(new Color(50, 50, 50));
+        mensaje.setAlignmentX(Component.CENTER_ALIGNMENT);
+        panel.add(mensaje);
+        
+        return JOptionPane.showConfirmDialog(
+            this,
+            panel,
+            "Advertencia: Sobra Dinero",
+            JOptionPane.YES_NO_OPTION,
+            JOptionPane.WARNING_MESSAGE
+        );
+    }
+    
+    /**
+     * Crea una línea de información para los diálogos de advertencia
+     */
+    private JPanel crearLineaInfoAdvertencia(String label, double valor, Color color) {
+        return crearLineaInfoAdvertencia(label, valor, color, false);
+    }
+    
+    /**
+     * Crea una línea de información para los diálogos de advertencia
+     */
+    private JPanel crearLineaInfoAdvertencia(String label, double valor, Color color, boolean destacado) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setOpaque(false);
+        
+        JLabel labelComp = new JLabel(label + ":");
+        labelComp.setFont(new Font("Segoe UI", destacado ? Font.BOLD : Font.PLAIN, destacado ? 15 : 14));
+        labelComp.setForeground(new Color(75, 85, 99));
+        panel.add(labelComp, BorderLayout.WEST);
+        
+        JLabel valorComp = new JLabel(Formats.CURRENCY.formatValue(valor));
+        valorComp.setFont(new Font("Segoe UI", Font.BOLD, destacado ? 16 : 15));
+        valorComp.setForeground(color);
+        panel.add(valorComp, BorderLayout.EAST);
+        
+        return panel;
     }
     
     /**
@@ -693,6 +1345,499 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         }         
     }    
    
+    // Variables para almacenar referencias a los componentes del diseño moderno
+    private JLabel m_jSalesTotalLabel;
+    private JLabel m_jProfitLabel;
+    private JLabel m_jCashTotalLabel;
+    private JLabel m_jShiftInfoLabel;
+    private JLabel m_jInitialAmountLabel; // Label para fondo de caja en diseño moderno
+    private JLabel m_jCashSalesLabel; // Label para ventas en efectivo
+    private DefaultListModel<String> m_inflowsListModel;
+    private DefaultListModel<String> m_outflowsListModel;
+    private DefaultListModel<String> m_deptSalesListModel;
+    
+    /**
+     * Crea el diseño moderno basado en la imagen de referencia
+     */
+    private void createModernLayout() {
+        setLayout(new BorderLayout());
+        setBackground(Color.WHITE);
+        
+        // Panel principal con scroll
+        JPanel mainPanel = new JPanel();
+        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
+        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        
+        // Título y botones de acción
+        JPanel headerPanel = createHeaderPanel();
+        mainPanel.add(headerPanel);
+        mainPanel.add(Box.createVerticalStrut(15));
+        
+        // Información del turno
+        JPanel shiftInfoPanel = createShiftInfoPanel();
+        mainPanel.add(shiftInfoPanel);
+        mainPanel.add(Box.createVerticalStrut(20));
+        
+        // Tarjetas de Ventas Totales y Ganancia
+        JPanel metricsPanel = createMetricsCards();
+        mainPanel.add(metricsPanel);
+        mainPanel.add(Box.createVerticalStrut(20));
+        
+        // Sección Dinero en Caja
+        JPanel cashPanel = createCashSection();
+        mainPanel.add(cashPanel);
+        mainPanel.add(Box.createVerticalStrut(20));
+        
+        // Sección Ventas por tipo
+        JPanel salesTypePanel = createSalesTypeSection();
+        mainPanel.add(salesTypePanel);
+        mainPanel.add(Box.createVerticalStrut(20));
+        
+        // Sección Ingresos de contado
+        JPanel cashIncomePanel = createCashIncomeSection();
+        mainPanel.add(cashIncomePanel);
+        mainPanel.add(Box.createVerticalStrut(20));
+        
+        // Panel inferior con listas
+        JPanel bottomPanel = createBottomPanel();
+        mainPanel.add(bottomPanel);
+        
+        // Scroll pane para el contenido
+        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        scrollPane.setBorder(null);
+        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        
+        add(scrollPane, BorderLayout.CENTER);
+    }
+    
+    /**
+     * Crea el panel de encabezado con título y botones
+     */
+    private JPanel createHeaderPanel() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        
+        // Panel izquierdo con título y botones de acción
+        JPanel leftPanel = new JPanel();
+        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
+        leftPanel.setBackground(Color.WHITE);
+        
+        // Título
+        JLabel titleLabel = new JLabel("CORTE");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
+        titleLabel.setForeground(new Color(50, 50, 50));
+        leftPanel.add(titleLabel);
+        leftPanel.add(Box.createVerticalStrut(10));
+        
+        // Botones de acción
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        buttonPanel.setBackground(Color.WHITE);
+        
+        // Botón Hacer corte de cajero
+        JButton btnCashier = new JButton("Hacer corte de cajero");
+        styleButton(btnCashier, new Color(33, 150, 243));
+        btnCashier.addActionListener(e -> {
+            LOGGER.info("Botón 'Hacer corte de cajero' presionado desde diseño moderno");
+            // Llamar directamente al método en lugar de doClick() para asegurar que se ejecute
+            m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnCashier, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
+        });
+        buttonPanel.add(btnCashier);
+        
+        // Botón Hacer corte del día - Implementar funcionalidad básica
+        JButton btnDay = new JButton("Hacer corte del día");
+        styleButton(btnDay, new Color(76, 175, 80));
+        btnDay.addActionListener(e -> {
+            LOGGER.info("Botón 'Hacer corte del día' presionado");
+            // Por ahora, hacer lo mismo que el corte de cajero hasta que se implemente la funcionalidad completa
+            int respuesta = JOptionPane.showConfirmDialog(
+                this,
+                "El corte del día cerrará todas las cajas activas del día.\n\n" +
+                "¿Desea continuar con el corte del día?",
+                "Corte del Día",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+            );
+            
+            if (respuesta == JOptionPane.YES_OPTION) {
+                // Por ahora, hacer el mismo proceso que el corte de cajero
+                m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnDay, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
+            }
+        });
+        buttonPanel.add(btnDay);
+        
+        leftPanel.add(buttonPanel);
+        panel.add(leftPanel, BorderLayout.WEST);
+        
+        return panel;
+    }
+    
+    /**
+     * Crea el panel con información del turno
+     */
+    private JPanel createShiftInfoPanel() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        
+        m_jShiftInfoLabel = new JLabel();
+        m_jShiftInfoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        m_jShiftInfoLabel.setForeground(new Color(107, 114, 128));
+        panel.add(m_jShiftInfoLabel);
+        
+        return panel;
+    }
+    
+    /**
+     * Crea las tarjetas de métricas (Ventas Totales y Ganancia)
+     */
+    private JPanel createMetricsCards() {
+        JPanel panel = new JPanel(new GridLayout(1, 2, 15, 0));
+        panel.setBackground(Color.WHITE);
+        
+        // Tarjeta Ventas Totales con icono
+        JPanel salesCard = createMetricCard("Ventas Totales", "$0.00", new Color(33, 150, 243), "💰");
+        panel.add(salesCard);
+        
+        // Tarjeta Ganancia con icono
+        JPanel profitCard = createMetricCard("Ganancia", "$0.00", new Color(76, 175, 80), "📊");
+        panel.add(profitCard);
+        
+        return panel;
+    }
+    
+    /**
+     * Crea una tarjeta de métrica con diseño mejorado
+     */
+    private JPanel createMetricCard(String title, String value, Color color, String icon) {
+        JPanel card = new JPanel(new BorderLayout());
+        // Fondo con color suave basado en el color principal
+        Color bgColor = new Color(
+            Math.min(255, color.getRed() + 240),
+            Math.min(255, color.getGreen() + 240),
+            Math.min(255, color.getBlue() + 240)
+        );
+        card.setBackground(bgColor);
+        card.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(color, 2),
+            BorderFactory.createEmptyBorder(25, 25, 25, 25)
+        ));
+        
+        // Panel principal con icono y título
+        JPanel contentPanel = new JPanel();
+        contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
+        contentPanel.setBackground(bgColor);
+        
+        // Icono y título
+        JLabel titleLabel = new JLabel(icon + " " + title);
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        titleLabel.setForeground(new Color(75, 85, 99));
+        contentPanel.add(titleLabel);
+        contentPanel.add(Box.createVerticalStrut(15));
+        
+        // Valor (almacenar referencia para actualizar) - NÚMERO MÁS GRANDE
+        JLabel valueLabel = new JLabel(value);
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 36)); // Aumentado de 24 a 36
+        valueLabel.setForeground(color);
+        contentPanel.add(valueLabel);
+        
+        if (title.contains("Ventas Totales")) {
+            m_jSalesTotalLabel = valueLabel;
+        } else if (title.contains("Ganancia")) {
+            m_jProfitLabel = valueLabel;
+        }
+        
+        card.add(contentPanel, BorderLayout.CENTER);
+        
+        return card;
+    }
+    
+    /**
+     * Crea la sección de Dinero en Caja con mejor diseño
+     */
+    private JPanel createCashSection() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        // Borde con color azul
+        panel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
+            "💰 Dinero en Caja",
+            javax.swing.border.TitledBorder.LEFT,
+            javax.swing.border.TitledBorder.TOP,
+            new Font("Segoe UI", Font.BOLD, 18),
+            new Color(59, 130, 246)
+        ));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            panel.getBorder(),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        // Fondo de caja - guardar referencia para actualizar
+        m_jInitialAmountLabel = addCashLine(panel, "Fondo de caja", "$0.00", false, false);
+        // Ventas en Efectivo - guardar referencia para actualizar
+        m_jCashSalesLabel = addCashLine(panel, "Ventas en Efectivo", "+$0.00", true, true);
+        // Abonos en efectivo
+        addCashLine(panel, "Abonos en efectivo", "+$0.00", true, true);
+        // Entradas
+        addCashLine(panel, "Entradas", "+$0.00", true, true);
+        // Salidas
+        addCashLine(panel, "Salidas", "-$0.00", false, false);
+        // Devoluciones en efectivo
+        addCashLine(panel, "Devoluciones en efectivo", "-$0.00", false, false);
+        
+        // Separador
+        panel.add(Box.createVerticalStrut(10));
+        JSeparator separator = new JSeparator();
+        separator.setForeground(new Color(229, 231, 235));
+        panel.add(separator);
+        panel.add(Box.createVerticalStrut(10));
+        
+        // Total - con número más grande y color destacado
+        JPanel totalPanel = new JPanel(new BorderLayout());
+        totalPanel.setBackground(new Color(249, 250, 251));
+        totalPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        JLabel totalLabel = new JLabel("Total");
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        totalLabel.setForeground(new Color(30, 30, 30));
+        totalPanel.add(totalLabel, BorderLayout.WEST);
+        
+        m_jCashTotalLabel = new JLabel("$0.00");
+        m_jCashTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 28)); // Aumentado de 18 a 28
+        m_jCashTotalLabel.setForeground(new Color(33, 150, 243)); // Azul destacado
+        totalPanel.add(m_jCashTotalLabel, BorderLayout.EAST);
+        panel.add(totalPanel);
+        
+        return panel;
+    }
+    
+    /**
+     * Agrega una línea a la sección de dinero en caja con números más grandes
+     * @return El JLabel del valor para poder actualizarlo después
+     */
+    private JLabel addCashLine(JPanel panel, String label, String value, boolean positive, boolean isGreen) {
+        JPanel linePanel = new JPanel(new BorderLayout());
+        linePanel.setBackground(Color.WHITE);
+        linePanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
+        
+        JLabel labelComp = new JLabel(label);
+        labelComp.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        labelComp.setForeground(new Color(50, 50, 50));
+        linePanel.add(labelComp, BorderLayout.WEST);
+        
+        JLabel valueComp = new JLabel(value);
+        valueComp.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Aumentado de 14 a 18
+        if (isGreen) {
+            valueComp.setForeground(new Color(34, 197, 94)); // Verde para positivos
+        } else if (positive) {
+            valueComp.setForeground(new Color(34, 197, 94)); // Verde
+        } else {
+            valueComp.setForeground(new Color(239, 68, 68)); // Rojo para negativos
+        }
+        linePanel.add(valueComp, BorderLayout.EAST);
+        
+        panel.add(linePanel);
+        return valueComp; // Retornar el label para poder actualizarlo
+    }
+    
+    /**
+     * Crea la sección de Ventas por tipo con mejor diseño
+     */
+    private JPanel createSalesTypeSection() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        // Borde con color verde
+        panel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(76, 175, 80), 2),
+            "🛒 Ventas",
+            javax.swing.border.TitledBorder.LEFT,
+            javax.swing.border.TitledBorder.TOP,
+            new Font("Segoe UI", Font.BOLD, 18),
+            new Color(76, 175, 80)
+        ));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            panel.getBorder(),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        addCashLine(panel, "En Efectivo", "+$0.00", true, true);
+        addCashLine(panel, "Con Tarjeta de Crédito", "+$0.00", true, true);
+        addCashLine(panel, "A Crédito", "+$0.00", true, true);
+        addCashLine(panel, "Con Vales de Despensa", "+$0.00", true, true);
+        addCashLine(panel, "Devoluciones de Ventas", "-$0.00", false, false);
+        
+        // Separador y total
+        panel.add(Box.createVerticalStrut(10));
+        JSeparator separator = new JSeparator();
+        separator.setForeground(new Color(229, 231, 235));
+        panel.add(separator);
+        panel.add(Box.createVerticalStrut(10));
+        
+        JPanel totalPanel = new JPanel(new BorderLayout());
+        totalPanel.setBackground(new Color(249, 250, 251));
+        totalPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        JLabel totalLabel = new JLabel("Total");
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        totalLabel.setForeground(new Color(30, 30, 30));
+        totalPanel.add(totalLabel, BorderLayout.WEST);
+        
+        JLabel totalValue = new JLabel("$0.00");
+        totalValue.setFont(new Font("Segoe UI", Font.BOLD, 24)); // Aumentado de 18 a 24
+        totalValue.setForeground(new Color(76, 175, 80)); // Verde destacado
+        totalPanel.add(totalValue, BorderLayout.EAST);
+        panel.add(totalPanel);
+        
+        return panel;
+    }
+    
+    /**
+     * Crea la sección de Ingresos de contado con mejor diseño
+     */
+    private JPanel createCashIncomeSection() {
+        JPanel panel = new JPanel();
+        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        panel.setBackground(Color.WHITE);
+        // Borde con color amarillo/naranja
+        panel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(new Color(234, 179, 8), 2),
+            "💵 Ingresos de contado",
+            javax.swing.border.TitledBorder.LEFT,
+            javax.swing.border.TitledBorder.TOP,
+            new Font("Segoe UI", Font.BOLD, 18),
+            new Color(234, 179, 8)
+        ));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            panel.getBorder(),
+            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+        ));
+        
+        addCashLine(panel, "Ventas en Efectivo", "+$0.00", true, true);
+        
+        // Separador y total
+        panel.add(Box.createVerticalStrut(10));
+        JSeparator separator = new JSeparator();
+        separator.setForeground(new Color(229, 231, 235));
+        panel.add(separator);
+        panel.add(Box.createVerticalStrut(10));
+        
+        JPanel totalPanel = new JPanel(new BorderLayout());
+        totalPanel.setBackground(new Color(249, 250, 251));
+        totalPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        JLabel totalLabel = new JLabel("Total");
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        totalLabel.setForeground(new Color(30, 30, 30));
+        totalPanel.add(totalLabel, BorderLayout.WEST);
+        
+        JLabel totalValue = new JLabel("$0.00");
+        totalValue.setFont(new Font("Segoe UI", Font.BOLD, 24)); // Aumentado de 18 a 24
+        totalValue.setForeground(new Color(76, 175, 80)); // Verde destacado
+        totalPanel.add(totalValue, BorderLayout.EAST);
+        panel.add(totalPanel);
+        
+        return panel;
+    }
+    
+    /**
+     * Crea el panel inferior con listas
+     */
+    private JPanel createBottomPanel() {
+        JPanel panel = new JPanel(new GridLayout(1, 3, 15, 0));
+        panel.setBackground(Color.WHITE);
+        
+        // Lista de Entradas de efectivo
+        m_inflowsListModel = new DefaultListModel<>();
+        JPanel inflowsPanel = createListPanel("⬇️ Entradas de efectivo", m_inflowsListModel);
+        panel.add(inflowsPanel);
+        
+        // Lista de Ventas por Departamento
+        m_deptSalesListModel = new DefaultListModel<>();
+        JPanel deptPanel = createListPanel("📦 Ventas por Departamento", m_deptSalesListModel);
+        panel.add(deptPanel);
+        
+        // Lista de Salidas de Efectivo
+        m_outflowsListModel = new DefaultListModel<>();
+        JPanel outflowsPanel = createListPanel("⬆️ Salidas de Efectivo", m_outflowsListModel);
+        panel.add(outflowsPanel);
+        
+        return panel;
+    }
+    
+    /**
+     * Crea un panel con lista con mejor diseño y color
+     */
+    private JPanel createListPanel(String title, DefaultListModel<String> listModel) {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(Color.WHITE);
+        
+        // Determinar color según el tipo de lista
+        Color borderColor = new Color(107, 114, 128); // Gris por defecto
+        if (title.contains("Entradas")) {
+            borderColor = new Color(34, 197, 94); // Verde para entradas
+        } else if (title.contains("Salidas")) {
+            borderColor = new Color(239, 68, 68); // Rojo para salidas
+        } else if (title.contains("Departamento")) {
+            borderColor = new Color(147, 51, 234); // Púrpura para departamentos
+        }
+        
+        panel.setBorder(BorderFactory.createTitledBorder(
+            BorderFactory.createLineBorder(borderColor, 2),
+            title,
+            javax.swing.border.TitledBorder.LEFT,
+            javax.swing.border.TitledBorder.TOP,
+            new Font("Segoe UI", Font.BOLD, 16),
+            borderColor
+        ));
+        panel.setBorder(BorderFactory.createCompoundBorder(
+            panel.getBorder(),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
+        ));
+        
+        JList<String> list = new JList<>(listModel);
+        list.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        list.setBackground(Color.WHITE);
+        list.setForeground(new Color(50, 50, 50));
+        list.setSelectionBackground(new Color(239, 246, 255));
+        list.setSelectionForeground(new Color(30, 64, 175));
+        
+        JScrollPane scrollPane = new JScrollPane(list);
+        scrollPane.setBorder(null);
+        scrollPane.setPreferredSize(new Dimension(200, 150));
+        panel.add(scrollPane, BorderLayout.CENTER);
+        
+        return panel;
+    }
+    
+    /**
+     * Estiliza un botón
+     */
+    private void styleButton(JButton button, Color color) {
+        button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        button.setBackground(color);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setOpaque(true);
+        button.setPreferredSize(new Dimension(180, 40));
+        button.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        
+        button.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                button.setBackground(color.darker());
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                button.setBackground(color);
+            }
+        });
+    }
+    
     /** This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
@@ -985,19 +2130,26 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
     private void m_jCloseCashActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jCloseCashActionPerformed
 
+        LOGGER.info("=== INICIO: Botón de cierre de caja presionado ===");
+        
         int res = JOptionPane.showConfirmDialog(this, 
                 AppLocal.getIntString("message.wannaclosecash"), 
                 AppLocal.getIntString("message.title"), 
                 JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        
+        LOGGER.info("Respuesta del diálogo de confirmación: " + (res == JOptionPane.YES_OPTION ? "SÍ" : "NO"));
         
         if (res == JOptionPane.YES_OPTION) {
             
             // Validación de dinero físico en caja
             ValidacionDineroResult validacion = validarDineroFisicoEnCaja();
             if (!validacion.valido) {
-                // Si la validación falla, no continuar con el cierre
+                // Si la validación falla y el usuario no quiso continuar, no hacer el cierre
+                LOGGER.info("Cierre de caja abortado debido a la validación de dinero físico.");
                 return;
             }
+            
+            LOGGER.info("Validación de dinero físico completada. Faltante: " + validacion.faltante + ", Sobrante: " + validacion.sobrante);
             
             // Los valores de faltante y sobrante ya están guardados en faltanteCierre y sobranteCierre
 
@@ -1014,16 +2166,20 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             }
 
             Date dNow = new Date();
+            
+            LOGGER.info("Iniciando proceso de cierre de caja. Faltante: " + faltanteCierre + ", Sobrante: " + sobranteCierre);
 
             try {
 
                 if (m_App.getActiveCashDateEnd() == null) {
+                    LOGGER.info("Caja activa encontrada, procediendo a cerrarla...");
                     // Verificar si las columnas faltante_cierre y sobrante_cierre existen
                     boolean columnasExisten = verificarColumnasFaltanteSobrante();
                     
                     if (columnasExisten) {
                         // Las columnas existen, usar UPDATE completo
                         try {
+                            LOGGER.info("Actualizando closedcash con columnas faltante_cierre y sobrante_cierre...");
                             new StaticSentence(m_App.getSession()
                                 , "UPDATE closedcash SET DATEEND = ?, NOSALES = ?, faltante_cierre = ?, sobrante_cierre = ? WHERE HOST = ? AND MONEY = ?"
                                 , new SerializerWriteBasic(new Datas[] {
@@ -1036,7 +2192,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             .exec(new Object[] {dNow, result, faltanteCierre, sobranteCierre,
                                 m_App.getProperties().getHost(), 
                                 m_App.getActiveCashIndex()});
-                            LOGGER.info(String.format("Cierre de caja guardado con faltante=%.2f, sobrante=%.2f", 
+                            LOGGER.info(String.format("Cierre de caja guardado exitosamente con faltante=%.2f, sobrante=%.2f", 
                                 faltanteCierre, sobranteCierre));
                         } catch (BasicException e1) {
                             // Si falla a pesar de verificar, usar fallback
@@ -1068,15 +2224,17 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     }
                 }
             } catch (BasicException e) {
+                LOGGER.log(Level.SEVERE, "Error al actualizar closedcash con DATEEND y NOSALES.", e);
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
                         AppLocal.getIntString("message.cannotclosecash"), e);
                 msg.show(this);
+                return; // No continuar si falla la actualización de closedcash
             }
 
             try {
-                // Creamos una nueva caja
+                // Creamos una nueva caja con fondo inicial en 0.0
                 m_App.setActiveCash(UUID.randomUUID().toString(), 
-                        m_App.getActiveCashSequence() + 1, dNow, null);
+                        m_App.getActiveCashSequence() + 1, dNow, null, 0.0);
 
                 // creamos la caja activa
                 m_dlSystem.execInsertCash(
@@ -1101,14 +2259,19 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         AppLocal.getIntString("message.title"), 
                         JOptionPane.INFORMATION_MESSAGE);
             } catch (BasicException e) {
+                LOGGER.log(Level.SEVERE, "Error al crear nueva caja o imprimir reporte.", e);
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
                         AppLocal.getIntString("message.cannotclosecash"), e);
                 msg.show(this);
+                return; // No continuar si falla la creación de la nueva caja
             }
 
             try {
                 loadData();
+                // Actualizar el diseño moderno después de cargar datos
+                updateModernLayoutData();
             } catch (BasicException e) {
+                LOGGER.log(Level.WARNING, "Error al recargar datos después del cierre.", e);
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
                         AppLocal.getIntString("label.noticketstoclose"), e);
                 msg.show(this);

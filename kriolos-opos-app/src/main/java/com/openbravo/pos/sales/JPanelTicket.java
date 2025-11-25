@@ -190,6 +190,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         LOGGER.log(System.Logger.Level.DEBUG, "JPanelTicket.init: criar: Ticket.Line");
         m_ticketlines = new JTicketLines(dlSystem.getResourceAsXML(TicketConstants.RES_TICKET_LINES));
+        // Configurar callback para eliminar líneas con Delete al pasar el mouse
+        m_ticketlines.setDeleteLineCallback((int rowIndex) -> {
+            if (m_oTicket != null && rowIndex >= 0 && rowIndex < m_oTicket.getLinesCount()) {
+                removeTicketLine(rowIndex);
+            }
+        });
         m_jPanelLines.add(m_ticketlines, java.awt.BorderLayout.CENTER);
         m_TTP = new TicketParser(m_App.getDeviceTicket(), dlSystem);
 
@@ -883,15 +889,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_oTicket.removeLine(i);
             m_ticketlines.removeTicketLine(i);
         } else {
+            // Verificar permisos pero eliminar directamente sin preguntar
             if (i < 1) {
                 if (m_App.hasPermission("sales.DeleteLines")) {
-                    int input = JOptionPane.showConfirmDialog(this,
-                            AppLocal.getIntString("message.deletelineyes"),
-                            AppLocal.getIntString("label.deleteline"), JOptionPane.YES_NO_OPTION);
-                    if (input == 0) {
-                        m_oTicket.removeLine(i);
-                        m_ticketlines.removeTicketLine(i);
-                    }
+                    m_oTicket.removeLine(i);
+                    m_ticketlines.removeTicketLine(i);
                 } else {
                     JOptionPane.showMessageDialog(this,
                             AppLocal.getIntString("message.deletelineno"),

@@ -24,7 +24,12 @@ import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
+import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.IOException;
 import java.io.StringReader;
 import java.util.ArrayList;
@@ -59,6 +64,8 @@ public class JTicketLines extends javax.swing.JPanel {
 
     private final TicketTableModel m_jTableModel;
     private Boolean sendStatus;
+    private DeleteLineCallback deleteLineCallback;
+    private int hoveredRow = -1;
 
     /**
      * Creates new form JLinesTicket
@@ -115,6 +122,91 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jTicketTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
 
         m_jTableModel.clear();
+        
+        // Configurar listeners para eliminar con Delete al pasar el mouse
+        setupDeleteOnHover();
+    }
+    
+    /**
+     * Interfaz para callback de eliminación de línea
+     */
+    public interface DeleteLineCallback {
+        void onDeleteLine(int rowIndex);
+    }
+    
+    /**
+     * Establece el callback para eliminar líneas
+     * @param callback El callback que se llamará cuando se presione Delete sobre una fila
+     */
+    public void setDeleteLineCallback(DeleteLineCallback callback) {
+        this.deleteLineCallback = callback;
+    }
+    
+    /**
+     * Configura los listeners de mouse y teclado para eliminar líneas
+     * cuando se pasa el mouse sobre una fila y se presiona Delete
+     */
+    private void setupDeleteOnHover() {
+        // Hacer la tabla focusable para recibir eventos de teclado
+        m_jTicketTable.setFocusable(true);
+        m_jTicketTable.setRequestFocusEnabled(true);
+        
+        // Listener de mouse para detectar cuando el mouse está sobre una fila
+        m_jTicketTable.addMouseMotionListener(new MouseAdapter() {
+            @Override
+            public void mouseMoved(MouseEvent e) {
+                Point point = e.getPoint();
+                int row = m_jTicketTable.rowAtPoint(point);
+                if (row >= 0 && row < m_jTableModel.getRowCount()) {
+                    hoveredRow = row;
+                    // Solicitar foco cuando el mouse está sobre una fila para poder usar Delete
+                    if (!m_jTicketTable.hasFocus()) {
+                        m_jTicketTable.requestFocusInWindow();
+                    }
+                } else {
+                    hoveredRow = -1;
+                }
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                hoveredRow = -1;
+            }
+        });
+        
+        // Listener de teclado para detectar cuando se presiona Delete
+        // Se agrega tanto a la tabla como al panel para capturar el evento en ambos casos
+        KeyAdapter deleteKeyListener = new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_DELETE || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
+                    int rowToDelete = -1;
+                    
+                    // Si hay una fila bajo el mouse, usar esa
+                    if (hoveredRow >= 0 && hoveredRow < m_jTableModel.getRowCount()) {
+                        rowToDelete = hoveredRow;
+                    } 
+                    // Si no, usar la fila seleccionada
+                    else {
+                        int selectedRow = m_jTicketTable.getSelectedRow();
+                        if (selectedRow >= 0 && selectedRow < m_jTableModel.getRowCount()) {
+                            rowToDelete = selectedRow;
+                        }
+                    }
+                    
+                    // Si hay una fila válida para eliminar, llamar al callback
+                    if (rowToDelete >= 0 && deleteLineCallback != null) {
+                        deleteLineCallback.onDeleteLine(rowToDelete);
+                        e.consume(); // Consumir el evento para evitar comportamiento por defecto
+                    }
+                }
+            }
+        };
+        
+        m_jTicketTable.addKeyListener(deleteKeyListener);
+        // También agregar al panel para capturar eventos cuando la tabla no tiene foco
+        this.addKeyListener(deleteKeyListener);
+        this.setFocusable(true);
     }
 
     /**
