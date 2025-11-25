@@ -313,8 +313,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     initialAmount = 0.0;
                     LOGGER.warning("Fondo inicial no encontrado en loadData, usando 0.0 por defecto");
                 }
-                m_jInitialAmount.setText(Formats.CURRENCY.formatValue(initialAmount));
-                LOGGER.info("Fondo inicial final establecido en campo m_jInitialAmount: " + initialAmount);
+                // Redondear a 2 decimales para evitar mostrar ceros innecesarios
+                double initialAmountRounded = Math.round(initialAmount * 100.0) / 100.0;
+                m_jInitialAmount.setText(Formats.CURRENCY.formatValue(initialAmountRounded));
+                LOGGER.info("Fondo inicial final establecido en campo m_jInitialAmount: " + initialAmountRounded);
                 
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error obteniendo monto inicial en loadData: " + e.getMessage(), e);
@@ -322,8 +324,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 try {
                     Double fallbackAmount = m_PaymentsToClose.getInitialAmount();
                     if (fallbackAmount != null) {
-                        m_jInitialAmount.setText(Formats.CURRENCY.formatValue(fallbackAmount));
-                        LOGGER.info("Fondo inicial establecido desde fallback en loadData: " + fallbackAmount);
+                        // Redondear a 2 decimales
+                        double fallbackRounded = Math.round(fallbackAmount * 100.0) / 100.0;
+                        m_jInitialAmount.setText(Formats.CURRENCY.formatValue(fallbackRounded));
+                        LOGGER.info("Fondo inicial establecido desde fallback en loadData: " + fallbackRounded);
                     } else {
                         m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
                     }
@@ -529,7 +533,9 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             
             // Actualizar label de fondo de caja
             if (m_jInitialAmountLabel != null) {
-                m_jInitialAmountLabel.setText(Formats.CURRENCY.formatValue(initialAmount));
+                // Redondear a 2 decimales para evitar mostrar ceros innecesarios
+                double initialAmountRounded = Math.round(initialAmount * 100.0) / 100.0;
+                m_jInitialAmountLabel.setText(Formats.CURRENCY.formatValue(initialAmountRounded));
             }
             
             // Actualizar ventas en efectivo
