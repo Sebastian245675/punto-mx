@@ -36,6 +36,8 @@ import javax.swing.*;
 import javax.swing.border.*;
 import javax.swing.table.DefaultTableCellRenderer;
 import com.openbravo.data.loader.StaticSentence;
+import com.openbravo.data.loader.SerializerReadClass;
+import com.openbravo.data.loader.SerializerWriteString;
 import com.openbravo.format.Formats;
 import com.openbravo.pos.forms.*;
 import com.openbravo.pos.printer.TicketParser;
@@ -79,6 +81,9 @@ import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import javax.swing.DefaultListModel;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 
 /**
  *
@@ -227,7 +232,45 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         // Verificar y crear las columnas faltante_cierre y sobrante_cierre si no existen
         verificarColumnasFaltanteSobrante();
         
+        // Actualizar el template en la base de datos desde el archivo XML
+        actualizarTemplateEnBD();
+        
         loadData();
+    }
+    
+    /**
+     * Actualiza el template Printer.CloseCash en la base de datos desde el archivo XML
+     */
+    private void actualizarTemplateEnBD() {
+        try {
+            // Leer el archivo XML desde el classpath
+            InputStream is = getClass().getResourceAsStream("/com/openbravo/pos/templates/Printer.CloseCash.xml");
+            if (is == null) {
+                LOGGER.warning("No se pudo encontrar el archivo Printer.CloseCash.xml en el classpath");
+                return;
+            }
+            
+            // Leer todo el contenido del archivo
+            ByteArrayOutputStream baos = new ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesRead);
+            }
+            byte[] templateContent = baos.toByteArray();
+            is.close();
+            baos.close();
+            
+            // Actualizar el template en la base de datos
+            // Tipo 0 = texto/XML
+            m_dlSystem.setResource("Printer.CloseCash", 0, templateContent);
+            LOGGER.info("Template Printer.CloseCash actualizado en la base de datos");
+            
+        } catch (IOException e) {
+            LOGGER.log(Level.SEVERE, "Error leyendo el archivo Printer.CloseCash.xml: " + e.getMessage(), e);
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error actualizando template en BD: " + e.getMessage(), e);
+        }
     }
 
     /**
@@ -1336,6 +1379,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     }
     
     private void printPayments(String report) {
+        printPayments(report, false);
+    }
+    
+    private void printPayments(String report, boolean isDayClose) {
         
         String sresource = m_dlSystem.getResourceAsXML(report);
         if (sresource == null) {
@@ -1346,8 +1393,53 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             try {
                 ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
                 script.put("payments", m_PaymentsToClose);
-                script.put("nosales",result.toString());                
-                m_TTP.printTicket(script.eval(sresource).toString());
+                script.put("nosales",result.toString());
+                
+                // Si es cierre del día, obtener todos los turnos del día con sus productos
+                Date closeDate = m_PaymentsToClose.getDateEnd();
+                if (isDayClose && closeDate != null) {
+                    LOGGER.info("Es cierre del día, obteniendo todos los turnos...");
+                    java.util.List<ShiftData> allShifts = getAllShiftsForDay(closeDate);
+                    LOGGER.info("Turnos obtenidos: " + (allShifts != null ? allShifts.size() : 0));
+                    
+                    // Verificar productos en cada turno antes de pasar al template
+                    if (allShifts != null) {
+                        for (ShiftData shift : allShifts) {
+                            LOGGER.info("Verificando turno #" + shift.sequence + 
+                                       " - ProductLines size: " + shift.getProductLines().size());
+                            if (!shift.getProductLines().isEmpty()) {
+                                LOGGER.info("  Primer producto: " + shift.getProductLines().get(0).printProductName());
+                            }
+                        }
+                    }
+                    
+                    script.put("allShifts", allShifts);
+                    script.put("isDayClose", Boolean.TRUE);
+                    LOGGER.info("Datos pasados al template - isDayClose: true, allShifts size: " + (allShifts != null ? allShifts.size() : 0));
+                    
+                    // Calcular totales del día
+                    double totalDaySales = 0.0;
+                    double totalDayPayments = 0.0;
+                    if (allShifts != null) {
+                        for (ShiftData shift : allShifts) {
+                            totalDaySales += shift.getTotalSales();
+                            totalDayPayments += shift.getTotalPayments();
+                        }
+                    }
+                    script.put("totalDaySales", Formats.CURRENCY.formatValue(totalDaySales));
+                    script.put("totalDayPayments", Formats.CURRENCY.formatValue(totalDayPayments));
+                    LOGGER.info("Totales del día - Ventas: " + totalDaySales + ", Pagos: " + totalDayPayments);
+                } else {
+                    script.put("isDayClose", Boolean.FALSE);
+                    script.put("allShifts", null);
+                    LOGGER.info("No es cierre del día o closeDate es null. isDayClose: " + isDayClose + ", closeDate: " + closeDate);
+                }
+                
+                String ticketOutput = script.eval(sresource).toString();
+                LOGGER.info("Ticket generado - Longitud: " + ticketOutput.length() + " caracteres");
+                LOGGER.info("Ticket contiene 'REPORTE DEL DÍA': " + ticketOutput.contains("REPORTE DEL DÍA"));
+                LOGGER.info("Ticket contiene 'Productos Vendidos': " + ticketOutput.contains("Productos Vendidos"));
+                m_TTP.printTicket(ticketOutput);
 // JG 16 May 2012 use multicatch
             } catch (ScriptException | TicketPrinterException e) {
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
@@ -1355,6 +1447,192 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 msg.show(this);
             }
         }
+    }
+    
+    /**
+     * Clase auxiliar para almacenar datos de un turno
+     */
+    public static class ShiftData {
+        public String money;
+        public String host;
+        public int sequence;
+        public Date dateStart;
+        public Date dateEnd;
+        private double totalSales;
+        private double totalPayments;
+        public java.util.List<PaymentsModel.PaymentsLine> paymentLines;
+        public java.util.List<PaymentsModel.ProductSalesLine> productLines;
+        
+        public ShiftData(String money, String host, int sequence, Date dateStart, Date dateEnd) {
+            this.money = money;
+            this.host = host;
+            this.sequence = sequence;
+            this.dateStart = dateStart;
+            this.dateEnd = dateEnd;
+            this.paymentLines = new java.util.ArrayList<>();
+            this.productLines = new java.util.ArrayList<>();
+        }
+        
+        public String getMoney() { return money; }
+        public String getHost() { return host; }
+        public int getSequence() { return sequence; }
+        public Date getDateStart() { return dateStart; }
+        public Date getDateEnd() { return dateEnd; }
+        public double getTotalSales() { return totalSales; }
+        public void setTotalSales(double total) { this.totalSales = total; }
+        public double getTotalPayments() { return totalPayments; }
+        public void setTotalPayments(double total) { this.totalPayments = total; }
+        public java.util.List<PaymentsModel.PaymentsLine> getPaymentLines() { return paymentLines; }
+        public java.util.List<PaymentsModel.ProductSalesLine> getProductLines() { return productLines; }
+        
+        public String printDateStart() {
+            return Formats.TIMESTAMP.formatValue(dateStart);
+        }
+        
+        public String printDateEnd() {
+            return Formats.TIMESTAMP.formatValue(dateEnd);
+        }
+        
+        public String printTotalSales() {
+            return Formats.CURRENCY.formatValue(totalSales);
+        }
+        
+        public String printTotalPayments() {
+            return Formats.CURRENCY.formatValue(totalPayments);
+        }
+    }
+    
+    /**
+     * Obtiene todos los turnos cerrados del día con sus datos y productos vendidos
+     */
+    private java.util.List<ShiftData> getAllShiftsForDay(Date dayDate) {
+        java.util.List<ShiftData> shifts = new java.util.ArrayList<>();
+        
+        try {
+            Session session = m_App.getSession();
+            java.text.SimpleDateFormat dateFormat = new java.text.SimpleDateFormat("yyyy-MM-dd");
+            String dayStr = dateFormat.format(dayDate);
+            
+            // Calcular inicio y fin del día para comparación
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(dayDate);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp dayStart = new java.sql.Timestamp(cal.getTimeInMillis());
+            
+            cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
+            java.sql.Timestamp dayEnd = new java.sql.Timestamp(cal.getTimeInMillis());
+            
+            // Obtener todos los turnos cerrados del día (compatible con HSQLDB)
+            String sql = "SELECT MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND " +
+                        "FROM closedcash " +
+                        "WHERE DATEEND IS NOT NULL " +
+                        "AND DATESTART >= ? AND DATESTART < ? " +
+                        "ORDER BY HOSTSEQUENCE ASC";
+            
+            java.sql.PreparedStatement pstmt = session.getConnection().prepareStatement(sql);
+            pstmt.setTimestamp(1, dayStart);
+            pstmt.setTimestamp(2, dayEnd);
+            java.sql.ResultSet rs = pstmt.executeQuery();
+            
+            LOGGER.info("Buscando turnos del día: " + dayStr + " (desde " + dayStart + " hasta " + dayEnd + ")");
+            
+            int shiftCount = 0;
+            while (rs.next()) {
+                shiftCount++;
+                String money = rs.getString("MONEY");
+                String host = rs.getString("HOST");
+                int sequence = rs.getInt("HOSTSEQUENCE");
+                Date dateStart = rs.getTimestamp("DATESTART");
+                Date dateEnd = rs.getTimestamp("DATEEND");
+                
+                LOGGER.info("Procesando turno #" + sequence + " (MONEY: " + money + ")");
+                
+                ShiftData shift = new ShiftData(money, host, sequence, dateStart, dateEnd);
+                
+                // Obtener pagos del turno
+                java.util.List<PaymentsModel.PaymentsLine> payments = new StaticSentence(session,
+                    "SELECT payments.PAYMENT, SUM(payments.TOTAL), payments.NOTES, COUNT(payments.PAYMENT) " +
+                    "FROM payments, receipts " +
+                    "WHERE payments.RECEIPT = receipts.ID AND receipts.MONEY = ? " +
+                    "GROUP BY payments.PAYMENT, payments.NOTES",
+                    SerializerWriteString.INSTANCE,
+                    new SerializerReadClass(PaymentsModel.PaymentsLine.class))
+                    .list(money);
+                
+                if (payments != null && !payments.isEmpty()) {
+                    shift.getPaymentLines().addAll(payments);
+                    // Calcular total de pagos
+                    double totalPayments = 0.0;
+                    for (PaymentsModel.PaymentsLine pl : payments) {
+                        totalPayments += pl.getValue();
+                    }
+                    shift.setTotalPayments(totalPayments);
+                    LOGGER.info("Turno #" + sequence + ": " + payments.size() + " tipos de pago, Total: " + totalPayments);
+                } else {
+                    LOGGER.info("Turno #" + sequence + ": Sin pagos");
+                }
+                
+                // Obtener productos vendidos del turno
+                // Usar la misma consulta que PaymentsModel para consistencia
+                try {
+                    java.util.List<PaymentsModel.ProductSalesLine> products = new StaticSentence(session,
+                        "SELECT products.NAME, SUM(ticketlines.UNITS), ticketlines.PRICE, taxes.RATE " +
+                        "FROM ticketlines, tickets, receipts, products, taxes " +
+                        "WHERE ticketlines.PRODUCT = products.ID " +
+                        "AND ticketlines.TICKET = tickets.ID " +
+                        "AND tickets.ID = receipts.ID " +
+                        "AND ticketlines.TAXID = taxes.ID " +
+                        "AND receipts.MONEY = ? " +
+                        "GROUP BY products.NAME, ticketlines.PRICE, taxes.RATE",
+                        SerializerWriteString.INSTANCE,
+                        new SerializerReadClass(PaymentsModel.ProductSalesLine.class))
+                        .list(money);
+                    
+                    LOGGER.info("Consulta productos ejecutada para turno #" + sequence + " (MONEY: " + money + ")");
+                    
+                    if (products != null) {
+                        LOGGER.info("Productos obtenidos: " + products.size());
+                        if (!products.isEmpty()) {
+                            shift.getProductLines().addAll(products);
+                            // Calcular total de ventas
+                            double totalSales = 0.0;
+                            int productIndex = 0;
+                            for (PaymentsModel.ProductSalesLine psl : products) {
+                                double priceWithTax = psl.getProductPrice() * (1.0 + psl.getTaxRate());
+                                totalSales += priceWithTax * psl.getProductUnits();
+                                LOGGER.info("  Producto " + (++productIndex) + ": " + psl.printProductName() + 
+                                           " - Cantidad: " + psl.printProductUnits() + 
+                                           " - Total: " + psl.printProductSubValue());
+                            }
+                            shift.setTotalSales(totalSales);
+                            LOGGER.info("Turno #" + sequence + ": " + products.size() + " productos vendidos, Total ventas: " + totalSales);
+                            LOGGER.info("Tamaño de productLines en shift después de agregar: " + shift.getProductLines().size());
+                        } else {
+                            LOGGER.warning("Turno #" + sequence + ": Lista de productos está vacía");
+                        }
+                    } else {
+                        LOGGER.warning("Turno #" + sequence + ": products es null");
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.SEVERE, "Error obteniendo productos para turno #" + sequence + ": " + e.getMessage(), e);
+                }
+                
+                shifts.add(shift);
+            }
+            
+            LOGGER.info("Total de turnos encontrados: " + shiftCount);
+            
+            rs.close();
+            pstmt.close();
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error obteniendo turnos del día: " + e.getMessage(), e);
+        }
+        
+        return shifts;
     }
     
     private class FormatsPayment extends Formats {
@@ -2350,7 +2628,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 m_PaymentsToClose.setDateEnd(dNow);
 
                 // print report
-                printPayments("Printer.CloseCash");
+                printPayments("Printer.CloseCash", isDayClose);
 
                 // Si es "corte del día", siempre mostrar el reporte del día completo
                 if (isDayClose) {

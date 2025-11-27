@@ -26,6 +26,97 @@
             <text align ="center" bold="true" length="42">Close Cash Report</text>
         </line>
         <line></line>
+        #if ($isDayClose && $allShifts && !$allShifts.isEmpty())
+        <!-- REPORTE POR TURNOS (CIERRE DEL DÍA) -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">REPORTE DEL DÍA POR TURNOS</text>
+        </line>
+        <line></line>
+        #foreach ($shift in $allShifts)
+        <line size="1">
+            <text align ="left" bold="true" length="42">TURNO #${shift.sequence}</text>
+        </line>
+        <line>
+            <text align ="left" length="20">Inicio:</text>
+            <text align ="left" length="22">${shift.printDateStart()}</text>
+        </line>
+        <line>
+            <text align ="left" length="20">Fin:</text>
+            <text align ="left" length="22">${shift.printDateEnd()}</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        <line>
+           <text align ="left" bold="true" length="30">Pagos del Turno</text>
+           <text align ="right" bold="true" length="12">Monto</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        #if ($shift.paymentLines && !$shift.paymentLines.isEmpty())
+        #foreach ($line in $shift.paymentLines)
+        <line>
+            <text align ="left" length="30">${line.printType()} ${line.printReason()}</text>
+            <text align ="right" length="12">${line.printValue()}</text>
+        </line>
+        #end
+        #else
+        <line>
+            <text align ="left" length="42">Sin pagos en este turno</text>
+        </line>
+        #end
+        <line><text>------------------------------------------</text></line>
+        <line>
+            <text align ="left" length="30" bold="true">Total Pagos Turno:</text>
+            <text align ="right" length="12" bold="true">${shift.printTotalPayments()}</text>
+        </line>
+        <line></line>
+        <line size="1">
+           <text align ="left" bold="true" length="42">Productos Vendidos</text>
+        </line>
+        <line>
+           <text align ="left" bold="true" length="25">Producto</text>
+           <text align ="right" bold="true" length="8">Cantidad</text>
+           <text align ="right" bold="true" length="9">Total</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        #set ($productList = $shift.getProductLines())
+        #if ($productList && !$productList.isEmpty())
+        #foreach ($product in $productList)
+        <line>
+            <text align ="left" length="25">${product.printProductName()}</text>
+            <text align ="right" length="8">${product.printProductUnits()}</text>
+            <text align ="right" length="9">${product.printProductSubValue()}</text>
+        </line>
+        #end
+        #else
+        <line>
+            <text align ="left" length="42">Sin productos vendidos</text>
+        </line>
+        #end
+        <line><text>------------------------------------------</text></line>
+        <line>
+            <text align ="left" length="30" bold="true">Total Ventas Turno:</text>
+            <text align ="right" length="12" bold="true">${shift.printTotalSales()}</text>
+        </line>
+        <line></line>
+        <line></line>
+        #end
+        <!-- RESUMEN TOTAL DEL DÍA -->
+        <line><text>==========================================</text></line>
+        <line size="1">
+            <text align ="center" bold="true" length="42">RESUMEN TOTAL DEL DÍA</text>
+        </line>
+        <line><text>==========================================</text></line>
+        <line>
+            <text align ="left" length="30" bold="true">Total Pagos del Día:</text>
+            <text align ="right" length="12" bold="true">$totalDayPayments</text>
+        </line>
+        <line>
+            <text align ="left" length="30" bold="true">Total Ventas del Día:</text>
+            <text align ="right" length="12" bold="true">$totalDaySales</text>
+        </line>
+        <line><text>==========================================</text></line>
+        <line></line>
+        #else
+        <!-- REPORTE NORMAL (CIERRE DE TURNO) -->
         <line>
            <text align ="left" bold="true" length="30">Payments Report</text>
            <text align ="right" bold="true" length="12">Amount</text>
@@ -121,6 +212,7 @@
         <line><text length="18" bold="true">Sequence:</text><text>${payments.printSequence()}</text></line>
         <line><text length="18" bold="true">Start Date:</text><text>${payments.printDateStart()}</text></line>
         <line><text length="18" bold="true">End Date:</text><text>${payments.printDateEnd()}</text></line>
+        #end
          
     </ticket>
 </output>
