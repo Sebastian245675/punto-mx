@@ -37,4 +37,16 @@
             </column>
         </addColumn>
     </changeSet>
+    
+    <!-- Sebastian - Agregar campos de pregunta y respuesta de seguridad para recuperación de contraseña -->
+    <changeSet author="sebastian (unicenta-pos)" id="20241127-01">
+        <addColumn tableName="people">
+            <column name="security_question" type="VARCHAR(500)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="security_answer" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
 </databaseChangeLog>

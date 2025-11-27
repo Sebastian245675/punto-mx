@@ -618,6 +618,9 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Actualizar listas de entradas y salidas
             updateCashMovements();
             
+            // Actualizar totales de entradas y salidas
+            updateInflowsOutflowsTotals();
+            
             // Actualizar ventas por departamento
             updateDepartmentSales();
             
@@ -631,6 +634,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     private void updateCashMovements() {
         if (m_PaymentsToClose == null || m_inflowsListModel == null || m_outflowsListModel == null) {
+            LOGGER.info("updateCashMovements: m_PaymentsToClose o modelos son null");
             return;
         }
         
@@ -638,54 +642,161 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             m_inflowsListModel.clear();
             m_outflowsListModel.clear();
             
-            // Obtener entradas y salidas de efectivo desde draweropened
+            // Obtener entradas y salidas de efectivo desde receipts y payments
             s = m_App.getSession();
             con = s.getConnection();
-            String sdbmanager = m_dlSystem.getDBVersion();
+            String activeCashIndex = m_App.getActiveCashIndex();
+            Date dateStart = m_PaymentsToClose.getDateStart();
+            
+            LOGGER.info("updateCashMovements: Buscando movimientos para MONEY=" + activeCashIndex + 
+                       ", fecha inicio=" + dateStart);
             
             SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
-            SimpleDateFormat dateFormat = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
             
-            // Buscar entradas de dinero (TICKETID que no sea 'No Sale' y tenga información de entrada)
-            // Por ahora, usar draweropened con TICKETID específico para entradas
-            String sqlInflows = "SELECT OPENDATE, NAME, TICKETID FROM draweropened " +
-                                "WHERE TICKETID LIKE 'Entrada%' AND OPENDATE > {fn TIMESTAMP('" + 
-                                m_PaymentsToClose.getDateStartDerby() + "')} " +
-                                "ORDER BY OPENDATE DESC";
+            // Buscar entradas de dinero desde payments con PAYMENT = 'cashin'
+            String sqlInflows = "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
+                                "FROM receipts " +
+                                "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                                "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashin' " +
+                                "AND receipts.DATENEW >= ? " +
+                                "ORDER BY receipts.DATENEW DESC";
             
-            stmt = con.createStatement();
-            rs = stmt.executeQuery(sqlInflows);
+            java.sql.PreparedStatement pstmtInflows = con.prepareStatement(sqlInflows);
+            pstmtInflows.setString(1, activeCashIndex);
+            pstmtInflows.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+            
+            LOGGER.info("updateCashMovements: Ejecutando consulta de entradas: " + sqlInflows);
+            
+            rs = pstmtInflows.executeQuery();
+            int countInflows = 0;
             while (rs.next()) {
-                Date openDate = rs.getTimestamp("OPENDATE");
-                String name = rs.getString("NAME");
-                String ticketId = rs.getString("TICKETID");
-                String timeStr = timeFormat.format(openDate);
-                // Extraer monto si está en el TICKETID o NAME
-                String item = String.format("%s %s", timeStr, name != null ? name : ticketId);
+                countInflows++;
+                Date dateNew = rs.getTimestamp("DATENEW");
+                double total = rs.getDouble("TOTAL");
+                String notes = rs.getString("NOTES");
+                String timeStr = timeFormat.format(dateNew);
+                String item = String.format("%s $%.2f%s", timeStr, total, 
+                                          (notes != null && !notes.isEmpty()) ? " - " + notes : "");
                 m_inflowsListModel.addElement(item);
+                LOGGER.info("updateCashMovements: Entrada encontrada: " + item);
             }
             rs.close();
+            pstmtInflows.close();
             
-            // Buscar salidas de dinero
-            String sqlOutflows = "SELECT OPENDATE, NAME, TICKETID FROM draweropened " +
-                                "WHERE TICKETID LIKE 'Salida%' AND OPENDATE > {fn TIMESTAMP('" + 
-                                m_PaymentsToClose.getDateStartDerby() + "')} " +
-                                "ORDER BY OPENDATE DESC";
+            LOGGER.info("updateCashMovements: Total entradas encontradas: " + countInflows);
             
-            rs = stmt.executeQuery(sqlOutflows);
+            // Buscar salidas de dinero desde payments con PAYMENT = 'cashout'
+            String sqlOutflows = "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
+                                "FROM receipts " +
+                                "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                                "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' " +
+                                "AND receipts.DATENEW >= ? " +
+                                "ORDER BY receipts.DATENEW DESC";
+            
+            java.sql.PreparedStatement pstmtOutflows = con.prepareStatement(sqlOutflows);
+            pstmtOutflows.setString(1, activeCashIndex);
+            pstmtOutflows.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+            
+            rs = pstmtOutflows.executeQuery();
+            int countOutflows = 0;
             while (rs.next()) {
-                Date openDate = rs.getTimestamp("OPENDATE");
-                String name = rs.getString("NAME");
-                String ticketId = rs.getString("TICKETID");
-                String timeStr = timeFormat.format(openDate);
-                String item = String.format("%s %s", timeStr, name != null ? name : ticketId);
+                countOutflows++;
+                Date dateNew = rs.getTimestamp("DATENEW");
+                double total = Math.abs(rs.getDouble("TOTAL")); // Valor absoluto para mostrar positivo
+                String notes = rs.getString("NOTES");
+                String timeStr = timeFormat.format(dateNew);
+                String item = String.format("%s $%.2f%s", timeStr, total, 
+                                          (notes != null && !notes.isEmpty()) ? " - " + notes : "");
                 m_outflowsListModel.addElement(item);
+                LOGGER.info("updateCashMovements: Salida encontrada: " + item);
             }
             rs.close();
-            stmt.close();
+            pstmtOutflows.close();
+            
+            LOGGER.info("updateCashMovements: Total salidas encontradas: " + countOutflows);
             
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error actualizando movimientos de efectivo: " + e.getMessage(), e);
+            e.printStackTrace();
+        }
+    }
+    
+    /**
+     * Actualiza los totales de entradas y salidas en los labels
+     */
+    private void updateInflowsOutflowsTotals() {
+        if (m_jInflowsLabel == null || m_jOutflowsLabel == null) {
+            return;
+        }
+        
+        try {
+            // Calcular total de entradas desde la base de datos
+            s = m_App.getSession();
+            con = s.getConnection();
+            String activeCashIndex = m_App.getActiveCashIndex();
+            Date dateStart = m_PaymentsToClose.getDateStart();
+            
+            // Sumar todas las entradas (cashin)
+            String sqlInflowsTotal = "SELECT COALESCE(SUM(payments.TOTAL), 0) " +
+                                    "FROM receipts " +
+                                    "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                                    "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashin' " +
+                                    "AND receipts.DATENEW >= ?";
+            
+            java.sql.PreparedStatement pstmtInflows = con.prepareStatement(sqlInflowsTotal);
+            pstmtInflows.setString(1, activeCashIndex);
+            pstmtInflows.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+            
+            rs = pstmtInflows.executeQuery();
+            double inflowsTotal = 0.0;
+            if (rs.next()) {
+                inflowsTotal = rs.getDouble(1);
+            }
+            rs.close();
+            pstmtInflows.close();
+            
+            // Actualizar label de entradas
+            m_jInflowsLabel.setText("+" + Formats.CURRENCY.formatValue(inflowsTotal));
+            LOGGER.info("updateInflowsOutflowsTotals: Total entradas = " + inflowsTotal);
+            
+            // Sumar todas las salidas (cashout) - usar valor absoluto
+            String sqlOutflowsTotal = "SELECT COALESCE(SUM(ABS(payments.TOTAL)), 0) " +
+                                     "FROM receipts " +
+                                     "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                                     "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' " +
+                                     "AND receipts.DATENEW >= ?";
+            
+            java.sql.PreparedStatement pstmtOutflows = con.prepareStatement(sqlOutflowsTotal);
+            pstmtOutflows.setString(1, activeCashIndex);
+            pstmtOutflows.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+            
+            rs = pstmtOutflows.executeQuery();
+            double outflowsTotal = 0.0;
+            if (rs.next()) {
+                outflowsTotal = rs.getDouble(1);
+            }
+            rs.close();
+            pstmtOutflows.close();
+            
+            // Actualizar label de salidas
+            m_jOutflowsLabel.setText("-" + Formats.CURRENCY.formatValue(outflowsTotal));
+            LOGGER.info("updateInflowsOutflowsTotals: Total salidas = " + outflowsTotal);
+            
+            // Actualizar el total de efectivo incluyendo entradas y salidas
+            if (m_jCashTotalLabel != null) {
+                double initialAmount = m_jInitialAmountLabel != null ? 
+                    Formats.CURRENCY.parseValue(m_jInitialAmountLabel.getText()) : 0.0;
+                double cashSales = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
+                double total = initialAmount + cashSales + inflowsTotal - outflowsTotal;
+                m_jCashTotalLabel.setText(Formats.CURRENCY.formatValue(total));
+                LOGGER.info("updateInflowsOutflowsTotals: Total actualizado = " + total + 
+                           " (inicial=" + initialAmount + ", ventas=" + cashSales + 
+                           ", entradas=" + inflowsTotal + ", salidas=" + outflowsTotal + ")");
+            }
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error actualizando totales de entradas y salidas: " + e.getMessage(), e);
+            e.printStackTrace();
         }
     }
     
@@ -1657,6 +1768,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private JLabel m_jShiftInfoLabel;
     private JLabel m_jInitialAmountLabel; // Label para fondo de caja en diseño moderno
     private JLabel m_jCashSalesLabel; // Label para ventas en efectivo
+    private JLabel m_jInflowsLabel; // Label para total de entradas
+    private JLabel m_jOutflowsLabel; // Label para total de salidas
     private DefaultListModel<String> m_inflowsListModel;
     private DefaultListModel<String> m_outflowsListModel;
     private DefaultListModel<String> m_deptSalesListModel;
@@ -1916,10 +2029,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         m_jCashSalesLabel = addCashLine(panel, "Ventas en Efectivo", "+$0.00", true, true);
         // Abonos en efectivo
         addCashLine(panel, "Abonos en efectivo", "+$0.00", true, true);
-        // Entradas
-        addCashLine(panel, "Entradas", "+$0.00", true, true);
-        // Salidas
-        addCashLine(panel, "Salidas", "-$0.00", false, false);
+        // Entradas - guardar referencia para actualizar
+        m_jInflowsLabel = addCashLine(panel, "Entradas", "+$0.00", true, true);
+        // Salidas - guardar referencia para actualizar
+        m_jOutflowsLabel = addCashLine(panel, "Salidas", "-$0.00", false, false);
         // Devoluciones en efectivo
         addCashLine(panel, "Devoluciones en efectivo", "-$0.00", false, false);
         

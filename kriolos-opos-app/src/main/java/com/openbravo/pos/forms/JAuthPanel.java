@@ -43,13 +43,21 @@ public class JAuthPanel extends javax.swing.JPanel {
     // Colores modernos mejorados
     private static final Color PRIMARY_BLUE = new Color(59, 130, 246); // Azul moderno
     private static final Color PRIMARY_BLUE_HOVER = new Color(37, 99, 235); // Azul hover
+    private static final Color PRIMARY_BLUE_LIGHT = new Color(147, 197, 253); // Azul claro para efectos
     private static final Color BACKGROUND_LIGHT = new Color(249, 250, 251); // Fondo claro
+    private static final Color BACKGROUND_GRADIENT_START = new Color(250, 251, 252); // Inicio gradiente
+    private static final Color BACKGROUND_GRADIENT_END = new Color(241, 245, 249); // Fin gradiente
     private static final Color CARD_WHITE = new Color(255, 255, 255); // Fondo de tarjeta
-    private static final Color TEXT_DARK = new Color(31, 41, 55); // Texto oscuro
+    private static final Color TEXT_DARK = new Color(17, 24, 39); // Texto oscuro más intenso
     private static final Color TEXT_GRAY = new Color(107, 114, 128); // Texto gris
+    private static final Color TEXT_GRAY_LIGHT = new Color(156, 163, 175); // Texto gris claro
     private static final Color BORDER_LIGHT = new Color(229, 231, 235); // Borde claro
     private static final Color BORDER_FOCUS = new Color(59, 130, 246); // Borde cuando tiene foco
-    private static final Color SHADOW_COLOR = new Color(0, 0, 0, 20); // Sombra suave
+    private static final Color BORDER_FOCUS_GLOW = new Color(59, 130, 246, 100); // Glow del foco
+    private static final Color SHADOW_COLOR = new Color(0, 0, 0, 15); // Sombra suave
+    private static final Color SHADOW_COLOR_DARK = new Color(0, 0, 0, 30); // Sombra más oscura
+    private static final Color ERROR_RED = new Color(239, 68, 68); // Rojo para errores
+    private static final Color SUCCESS_GREEN = new Color(34, 197, 94); // Verde para éxito
 
     private StringBuilder inputtext;
     
@@ -60,6 +68,7 @@ public class JAuthPanel extends javax.swing.JPanel {
     private JTextField txtUsername;
     private JPasswordField txtPassword;
     private JButton btnLogin;
+    private boolean btnLoginHovered = false;
 
     public JAuthPanel(DataLogicSystem dlSystem, AuthListener authcListener) {
         
@@ -95,16 +104,19 @@ public class JAuthPanel extends javax.swing.JPanel {
     }
     
     private void setupLoginForm() {
-        // Crear panel principal con fondo degradado
+        // Crear panel principal con fondo degradado mejorado
         javax.swing.JPanel mainContainer = new javax.swing.JPanel() {
             @Override
             protected void paintComponent(java.awt.Graphics g) {
                 super.paintComponent(g);
                 java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Gradiente diagonal más suave
                 java.awt.GradientPaint gp = new java.awt.GradientPaint(
-                    0, 0, new Color(249, 250, 251),
-                    0, getHeight(), new Color(243, 244, 246)
+                    0, 0, BACKGROUND_GRADIENT_START,
+                    getWidth(), getHeight(), BACKGROUND_GRADIENT_END
                 );
                 g2d.setPaint(gp);
                 g2d.fillRect(0, 0, getWidth(), getHeight());
@@ -114,84 +126,120 @@ public class JAuthPanel extends javax.swing.JPanel {
         mainContainer.setLayout(new GridBagLayout());
         mainContainer.setOpaque(false);
         
-        // Crear tarjeta de login con sombra
-        javax.swing.JPanel loginCard = new javax.swing.JPanel();
+        // Crear tarjeta de login con sombra mejorada
+        javax.swing.JPanel loginCard = new javax.swing.JPanel() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Dibujar sombra múltiple para efecto de profundidad
+                int shadowOffset = 8;
+                for (int i = shadowOffset; i >= 0; i--) {
+                    float alpha = (float)(0.1f - (i * 0.01f));
+                    if (alpha > 0) {
+                        g2d.setColor(new Color(0, 0, 0, (int)(alpha * 255)));
+                        g2d.fillRoundRect(i, i, getWidth() - (i * 2), getHeight() - (i * 2), 16, 16);
+                    }
+                }
+                
+                // Fondo blanco de la tarjeta
+                g2d.setColor(CARD_WHITE);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 16, 16);
+                
+                // Borde sutil
+                g2d.setColor(BORDER_LIGHT);
+                g2d.setStroke(new java.awt.BasicStroke(1.0f));
+                g2d.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 16, 16);
+                
+                g2d.dispose();
+            }
+        };
         loginCard.setLayout(new GridBagLayout());
-        loginCard.setBackground(CARD_WHITE);
-        loginCard.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_LIGHT, 1),
-            BorderFactory.createEmptyBorder(60, 60, 60, 60)
-        ));
-        
-        // Agregar sombra visual
-        loginCard.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_LIGHT, 1),
-            BorderFactory.createEmptyBorder(60, 60, 60, 60)
-        ));
+        loginCard.setOpaque(false);
+        loginCard.setBorder(BorderFactory.createEmptyBorder(40, 50, 40, 50));
         
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(20, 0, 20, 0);
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         
-        // Título principal
-        JLabel titleLabel = new JLabel("Bienvenido");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        titleLabel.setForeground(TEXT_DARK);
-        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // Icono de bienvenida (emoji o texto decorativo) - Reducido
+        JLabel iconLabel = new JLabel("🔐");
+        iconLabel.setFont(new Font("Segoe UI", Font.PLAIN, 36));
+        iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
         gbc.gridx = 0;
         gbc.gridy = 0;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(0, 0, 10, 0);
-        loginCard.add(titleLabel, gbc);
+        loginCard.add(iconLabel, gbc);
         
-        // Subtítulo
-        JLabel subtitleLabel = new JLabel("Inicia sesión para continuar");
-        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        subtitleLabel.setForeground(TEXT_GRAY);
-        subtitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        // Título principal mejorado - Reducido
+        JLabel titleLabel = new JLabel("Bienvenido");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        titleLabel.setForeground(TEXT_DARK);
+        titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         gbc.gridx = 0;
         gbc.gridy = 1;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(0, 0, 40, 0);
-        loginCard.add(subtitleLabel, gbc);
+        gbc.insets = new Insets(0, 0, 5, 0);
+        loginCard.add(titleLabel, gbc);
         
-        // Etiqueta de usuario
-        JLabel lblUsername = new JLabel("Usuario");
-        lblUsername.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblUsername.setForeground(TEXT_DARK);
+        // Subtítulo mejorado - Reducido
+        JLabel subtitleLabel = new JLabel("Inicia sesión para continuar");
+        subtitleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        subtitleLabel.setForeground(TEXT_GRAY);
+        subtitleLabel.setHorizontalAlignment(SwingConstants.CENTER);
         gbc.gridx = 0;
         gbc.gridy = 2;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 25, 0);
+        loginCard.add(subtitleLabel, gbc);
+        
+        // Panel contenedor para campo de usuario con icono
+        javax.swing.JPanel usernameContainer = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+        usernameContainer.setOpaque(false);
+        
+        // Etiqueta de usuario mejorada
+        JLabel lblUsername = new JLabel("👤 Usuario");
+        lblUsername.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblUsername.setForeground(TEXT_DARK);
+        gbc.gridx = 0;
+        gbc.gridy = 3;
         gbc.weightx = 1.0;
         gbc.anchor = GridBagConstraints.WEST;
         gbc.insets = new Insets(0, 0, 8, 0);
         loginCard.add(lblUsername, gbc);
         
-        // Campo de usuario - Diseño moderno
+        // Campo de usuario - Diseño moderno mejorado
         txtUsername = new JTextField(30);
         txtUsername.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         txtUsername.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_LIGHT, 1),
-            BorderFactory.createEmptyBorder(14, 16, 14, 16)
+            BorderFactory.createLineBorder(BORDER_LIGHT, 2),
+            BorderFactory.createEmptyBorder(12, 15, 12, 15)
         ));
-        txtUsername.setBackground(CARD_WHITE);
+        txtUsername.setBackground(new Color(249, 250, 251));
         txtUsername.setForeground(TEXT_DARK);
+        txtUsername.putClientProperty("JTextField.placeholderText", "Ingresa tu nombre de usuario");
         
-        // Efecto de foco
+        // Efecto de foco mejorado con animación
         txtUsername.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
             public void focusGained(java.awt.event.FocusEvent e) {
                 txtUsername.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(BORDER_FOCUS, 2),
-                    BorderFactory.createEmptyBorder(13, 15, 13, 15)
+                    BorderFactory.createLineBorder(BORDER_FOCUS, 3),
+                    BorderFactory.createEmptyBorder(11, 14, 11, 14)
                 ));
+                txtUsername.setBackground(CARD_WHITE);
             }
             @Override
             public void focusLost(java.awt.event.FocusEvent e) {
                 txtUsername.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(BORDER_LIGHT, 1),
-                    BorderFactory.createEmptyBorder(14, 16, 14, 16)
+                    BorderFactory.createLineBorder(BORDER_LIGHT, 2),
+                    BorderFactory.createEmptyBorder(12, 15, 12, 15)
                 ));
+                txtUsername.setBackground(new Color(249, 250, 251));
             }
         });
         
@@ -203,50 +251,59 @@ public class JAuthPanel extends javax.swing.JPanel {
                 }
             }
         });
-        gbc.gridx = 0;
-        gbc.gridy = 3;
-        gbc.fill = GridBagConstraints.HORIZONTAL;
-        gbc.weightx = 1.0;
-        gbc.insets = new Insets(0, 0, 25, 0);
-        loginCard.add(txtUsername, gbc);
         
-        // Etiqueta de contraseña
-        JLabel lblPassword = new JLabel("Contraseña");
-        lblPassword.setFont(new Font("Segoe UI", Font.BOLD, 13));
-        lblPassword.setForeground(TEXT_DARK);
+        usernameContainer.add(txtUsername, java.awt.BorderLayout.CENTER);
         gbc.gridx = 0;
         gbc.gridy = 4;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 18, 0);
+        loginCard.add(usernameContainer, gbc);
+        
+        // Panel contenedor para campo de contraseña con icono
+        javax.swing.JPanel passwordContainer = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
+        passwordContainer.setOpaque(false);
+        
+        // Etiqueta de contraseña mejorada
+        JLabel lblPassword = new JLabel("🔒 Contraseña");
+        lblPassword.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblPassword.setForeground(TEXT_DARK);
+        gbc.gridx = 0;
+        gbc.gridy = 5;
         gbc.fill = GridBagConstraints.NONE;
         gbc.anchor = GridBagConstraints.WEST;
         gbc.weightx = 1.0;
         gbc.insets = new Insets(0, 0, 8, 0);
         loginCard.add(lblPassword, gbc);
         
-        // Campo de contraseña - Diseño moderno
+        // Campo de contraseña - Diseño moderno mejorado
         txtPassword = new JPasswordField(30);
         txtPassword.setFont(new Font("Segoe UI", Font.PLAIN, 15));
         txtPassword.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(BORDER_LIGHT, 1),
-            BorderFactory.createEmptyBorder(14, 16, 14, 16)
+            BorderFactory.createLineBorder(BORDER_LIGHT, 2),
+            BorderFactory.createEmptyBorder(12, 15, 12, 15)
         ));
-        txtPassword.setBackground(CARD_WHITE);
+        txtPassword.setBackground(new Color(249, 250, 251));
         txtPassword.setForeground(TEXT_DARK);
+        txtPassword.putClientProperty("JPasswordField.placeholderText", "Ingresa tu contraseña");
         
-        // Efecto de foco
+        // Efecto de foco mejorado
         txtPassword.addFocusListener(new java.awt.event.FocusAdapter() {
             @Override
             public void focusGained(java.awt.event.FocusEvent e) {
                 txtPassword.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(BORDER_FOCUS, 2),
-                    BorderFactory.createEmptyBorder(13, 15, 13, 15)
+                    BorderFactory.createLineBorder(BORDER_FOCUS, 3),
+                    BorderFactory.createEmptyBorder(11, 14, 11, 14)
                 ));
+                txtPassword.setBackground(CARD_WHITE);
             }
             @Override
             public void focusLost(java.awt.event.FocusEvent e) {
                 txtPassword.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createLineBorder(BORDER_LIGHT, 1),
-                    BorderFactory.createEmptyBorder(14, 16, 14, 16)
+                    BorderFactory.createLineBorder(BORDER_LIGHT, 2),
+                    BorderFactory.createEmptyBorder(12, 15, 12, 15)
                 ));
+                txtPassword.setBackground(new Color(249, 250, 251));
             }
         });
         
@@ -258,35 +315,57 @@ public class JAuthPanel extends javax.swing.JPanel {
                 }
             }
         });
+        
+        passwordContainer.add(txtPassword, java.awt.BorderLayout.CENTER);
         gbc.gridx = 0;
-        gbc.gridy = 5;
+        gbc.gridy = 6;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(0, 0, 35, 0);
-        loginCard.add(txtPassword, gbc);
+        gbc.insets = new Insets(0, 0, 20, 0);
+        loginCard.add(passwordContainer, gbc);
         
-        // Botón de login - Diseño moderno mejorado
-        btnLogin = new JButton("Iniciar Sesión") {
+        // Botón de login - Diseño moderno mejorado con efectos
+        btnLogin = new JButton("🚀 Iniciar Sesión") {
             @Override
             protected void paintComponent(java.awt.Graphics g) {
                 java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
                 g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
                 
-                // Fondo con gradiente
+                // Color según estado
+                Color startColor = btnLoginHovered ? PRIMARY_BLUE_HOVER : PRIMARY_BLUE;
+                Color endColor = btnLoginHovered ? new Color(29, 78, 216) : PRIMARY_BLUE_HOVER;
+                
+                // Fondo con gradiente mejorado
                 java.awt.GradientPaint gp = new java.awt.GradientPaint(
-                    0, 0, PRIMARY_BLUE,
-                    0, getHeight(), PRIMARY_BLUE_HOVER
+                    0, 0, startColor,
+                    0, getHeight(), endColor
                 );
                 g2d.setPaint(gp);
-                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                g2d.fillRoundRect(0, 0, getWidth(), getHeight(), 12, 12);
                 
-                // Texto
+                // Sombra sutil en el botón
+                if (btnLoginHovered) {
+                    g2d.setColor(new Color(0, 0, 0, 20));
+                    g2d.fillRoundRect(2, 2, getWidth() - 4, getHeight() - 4, 12, 12);
+                }
+                
+                // Texto con sombra sutil
                 g2d.setColor(Color.WHITE);
                 g2d.setFont(getFont());
                 java.awt.FontMetrics fm = g2d.getFontMetrics();
-                int x = (getWidth() - fm.stringWidth(getText())) / 2;
+                String text = getText();
+                int x = (getWidth() - fm.stringWidth(text)) / 2;
                 int y = (getHeight() + fm.getAscent() - fm.getDescent()) / 2;
-                g2d.drawString(getText(), x, y);
+                
+                // Sombra del texto
+                g2d.setColor(new Color(0, 0, 0, 30));
+                g2d.drawString(text, x + 1, y + 1);
+                
+                // Texto principal
+                g2d.setColor(Color.WHITE);
+                g2d.drawString(text, x, y);
+                
                 g2d.dispose();
             }
         };
@@ -296,9 +375,9 @@ public class JAuthPanel extends javax.swing.JPanel {
         btnLogin.setBorderPainted(false);
         btnLogin.setFocusPainted(false);
         btnLogin.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnLogin.setPreferredSize(new Dimension(0, 48));
-        btnLogin.setMinimumSize(new Dimension(0, 48));
-        btnLogin.setMaximumSize(new Dimension(Integer.MAX_VALUE, 48));
+        btnLogin.setPreferredSize(new Dimension(0, 45));
+        btnLogin.setMinimumSize(new Dimension(0, 45));
+        btnLogin.setMaximumSize(new Dimension(Integer.MAX_VALUE, 45));
         
         btnLogin.addActionListener(new ActionListener() {
             @Override
@@ -307,33 +386,73 @@ public class JAuthPanel extends javax.swing.JPanel {
             }
         });
         
-        // Efecto hover mejorado
+        // Efecto hover mejorado con estado
         btnLogin.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
+                btnLoginHovered = true;
                 btnLogin.repaint();
             }
             
             @Override
             public void mouseExited(MouseEvent e) {
+                btnLoginHovered = false;
                 btnLogin.repaint();
             }
         });
         
         gbc.gridx = 0;
-        gbc.gridy = 6;
+        gbc.gridy = 7;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(0, 0, 0, 0);
+        gbc.insets = new Insets(0, 0, 10, 0);
         loginCard.add(btnLogin, gbc);
+        
+        // Botón "Olvidé mi contraseña"
+        JButton btnForgotPassword = new JButton("¿Olvidaste tu contraseña?");
+        btnForgotPassword.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        btnForgotPassword.setForeground(PRIMARY_BLUE);
+        btnForgotPassword.setContentAreaFilled(false);
+        btnForgotPassword.setBorderPainted(false);
+        btnForgotPassword.setFocusPainted(false);
+        btnForgotPassword.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnForgotPassword.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                showForgotPasswordDialog();
+            }
+        });
+        
+        // Efecto hover para el botón de olvidé contraseña
+        btnForgotPassword.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseEntered(MouseEvent e) {
+                btnForgotPassword.setForeground(PRIMARY_BLUE_HOVER);
+                btnForgotPassword.setText("<html><u>¿Olvidaste tu contraseña?</u></html>");
+            }
+            
+            @Override
+            public void mouseExited(MouseEvent e) {
+                btnForgotPassword.setForeground(PRIMARY_BLUE);
+                btnForgotPassword.setText("¿Olvidaste tu contraseña?");
+            }
+        });
+        
+        gbc.gridx = 0;
+        gbc.gridy = 8;
+        gbc.fill = GridBagConstraints.NONE;
+        gbc.anchor = GridBagConstraints.CENTER;
+        gbc.weightx = 1.0;
+        gbc.insets = new Insets(0, 0, 0, 0);
+        loginCard.add(btnForgotPassword, gbc);
         
         // Agregar la tarjeta al contenedor principal
         GridBagConstraints cardGbc = new GridBagConstraints();
         cardGbc.gridx = 0;
         cardGbc.gridy = 0;
         cardGbc.anchor = GridBagConstraints.CENTER;
-        cardGbc.insets = new Insets(20, 20, 20, 20);
+        cardGbc.insets = new Insets(10, 10, 10, 10);
         mainContainer.add(loginCard, cardGbc);
         
         // Agregar el panel principal al scroll pane
@@ -341,6 +460,12 @@ public class JAuthPanel extends javax.swing.JPanel {
         usersLisScrollPane.setVisible(true);
         usersLisScrollPane.setOpaque(false);
         usersLisScrollPane.getViewport().setOpaque(false);
+    }
+    
+    private void showForgotPasswordDialog() {
+        java.awt.Frame parentFrame = (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this);
+        JDialogForgotPassword dialog = new JDialogForgotPassword(parentFrame, m_dlSystem);
+        dialog.setVisible(true);
     }
     
     private void performLogin() {
@@ -570,8 +695,8 @@ public class JAuthPanel extends javax.swing.JPanel {
         usersLisScrollPane.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         usersLisScrollPane.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_NEVER);
         usersLisScrollPane.setFont(new java.awt.Font("Segoe UI", 0, 14));
-        usersLisScrollPane.setMinimumSize(new java.awt.Dimension(450, 550));
-        usersLisScrollPane.setPreferredSize(new java.awt.Dimension(500, 650));
+        usersLisScrollPane.setMinimumSize(new java.awt.Dimension(450, 500));
+        usersLisScrollPane.setPreferredSize(new java.awt.Dimension(500, 550));
         usersLisScrollPane.setBackground(BACKGROUND_LIGHT);
         usersLisScrollPane.setOpaque(false);
         leftPanel.add(usersLisScrollPane, java.awt.BorderLayout.CENTER);

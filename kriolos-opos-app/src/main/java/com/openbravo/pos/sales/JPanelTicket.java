@@ -329,10 +329,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         m_jPanelBagExt.add(m_jbtnconfig);
         
-        // Sebastian - Agregar los 2 botones personalizados en lugar de los 5 originales
-        javax.swing.JPanel panelDosBotones = new javax.swing.JPanel();
-        panelDosBotones.setLayout(new java.awt.GridLayout(2, 1, 5, 5));
-        panelDosBotones.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        // Sebastian - Agregar los 3 botones personalizados: Cliente, Historial y Entradas/Salidas
+        javax.swing.JPanel panelBotones = new javax.swing.JPanel();
+        panelBotones.setLayout(new java.awt.GridLayout(3, 1, 5, 5));
+        panelBotones.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         
         // Botón 1 - Cliente
         javax.swing.JButton btnCliente = new javax.swing.JButton("Cliente");
@@ -366,9 +366,41 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             javax.swing.JOptionPane.showMessageDialog(this, "Función de Historial", "Historial", javax.swing.JOptionPane.INFORMATION_MESSAGE);
         });
         
-        panelDosBotones.add(btnCliente);
-        panelDosBotones.add(btnHistorial);
-        m_jPanelBagExt.add(panelDosBotones);
+        // Botón 3 - Entradas y Salidas
+        javax.swing.JButton btnEntradasSalidas = new javax.swing.JButton("<html><center>Entradas<br/>y Salidas</center></html>");
+        btnEntradasSalidas.setPreferredSize(new java.awt.Dimension(120, 40));
+        btnEntradasSalidas.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 10));
+        btnEntradasSalidas.setBackground(new java.awt.Color(255, 140, 0)); // Color naranja
+        btnEntradasSalidas.setForeground(java.awt.Color.WHITE);
+        btnEntradasSalidas.setFocusPainted(false);
+        try {
+            // Intentar usar el icono de pagos si existe
+            btnEntradasSalidas.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/payments.png")));
+        } catch (Exception e) {
+            // Si no existe, usar un icono alternativo o sin icono
+            try {
+                btnEntradasSalidas.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/calculator.png")));
+            } catch (Exception ex) {
+                // Sin icono si no se encuentra ninguno
+            }
+        }
+        btnEntradasSalidas.addActionListener(e -> {
+            try {
+                // Abrir el panel de Entradas y Salidas
+                m_App.getAppUserView().showTask("com.openbravo.pos.panels.JPanelPayments");
+            } catch (Exception ex) {
+                LOGGER.log(System.Logger.Level.ERROR, "Error al abrir panel de Entradas y Salidas: " + ex.getMessage(), ex);
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "Error al abrir Entradas y Salidas: " + ex.getMessage(), 
+                    "Error", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        panelBotones.add(btnCliente);
+        panelBotones.add(btnHistorial);
+        panelBotones.add(btnEntradasSalidas);
+        m_jPanelBagExt.add(panelBotones);
         
         // Sebastian - Hacer visible el panel para mostrar los 2 botones nuevos
         m_jPanelBagExt.setVisible(true);
@@ -3020,6 +3052,23 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         totalsWithPay.setOpaque(false);
         totalsWithPay.add(payBeforePanel, java.awt.BorderLayout.NORTH); // Botón arriba
         totalsWithPay.add(m_jPanelTotals, java.awt.BorderLayout.CENTER);
+        
+        // Sebastian - Botón pequeño de Entradas y Salidas en la parte inferior
+        javax.swing.JPanel btnEntradasSalidasPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 5));
+        btnEntradasSalidasPanel.setOpaque(false);
+        javax.swing.JButton btnEntradasSalidas = new javax.swing.JButton("E/S");
+        btnEntradasSalidas.setPreferredSize(new java.awt.Dimension(60, 25));
+        btnEntradasSalidas.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnEntradasSalidas.setBackground(new java.awt.Color(255, 140, 0)); // Color naranja
+        btnEntradasSalidas.setForeground(java.awt.Color.WHITE);
+        btnEntradasSalidas.setFocusPainted(false);
+        btnEntradasSalidas.setBorderPainted(true);
+        btnEntradasSalidas.setToolTipText("Entradas y Salidas");
+        btnEntradasSalidas.addActionListener(e -> {
+            showEntradasSalidasDialog();
+        });
+        btnEntradasSalidasPanel.add(btnEntradasSalidas);
+        totalsWithPay.add(btnEntradasSalidasPanel, java.awt.BorderLayout.SOUTH);
 
         // Sebastian - Panel original del botón comentado porque ya está arriba
         /*
@@ -4371,6 +4420,142 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 "Error al buscar cliente: " + e.getMessage(), 
                 "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    /**
+     * Muestra un diálogo para registrar entradas y salidas de efectivo
+     */
+    private void showEntradasSalidasDialog() {
+        javax.swing.JDialog dialog = new javax.swing.JDialog((java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this), "Entradas y Salidas", true);
+        dialog.setSize(350, 250);
+        dialog.setLocationRelativeTo(this);
+        
+        javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+        
+        // Tipo (Entrada/Salida)
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(new javax.swing.JLabel("Tipo:"), gbc);
+        gbc.gridx = 1;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        javax.swing.JComboBox<String> cmbTipo = new javax.swing.JComboBox<>(new String[]{"Entrada", "Salida"});
+        cmbTipo.setPreferredSize(new java.awt.Dimension(200, 25));
+        panel.add(cmbTipo, gbc);
+        
+        // Monto
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        panel.add(new javax.swing.JLabel("Monto:"), gbc);
+        gbc.gridx = 1;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        javax.swing.JTextField txtMonto = new javax.swing.JTextField();
+        txtMonto.setPreferredSize(new java.awt.Dimension(200, 25));
+        panel.add(txtMonto, gbc);
+        
+        // Notas
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        panel.add(new javax.swing.JLabel("Notas:"), gbc);
+        gbc.gridx = 1;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        javax.swing.JTextField txtNotas = new javax.swing.JTextField();
+        txtNotas.setPreferredSize(new java.awt.Dimension(200, 25));
+        panel.add(txtNotas, gbc);
+        
+        // Botones
+        javax.swing.JPanel btnPanel = new javax.swing.JPanel(new java.awt.FlowLayout());
+        javax.swing.JButton btnAceptar = new javax.swing.JButton("Aceptar");
+        javax.swing.JButton btnCancelar = new javax.swing.JButton("Cancelar");
+        btnPanel.add(btnAceptar);
+        btnPanel.add(btnCancelar);
+        
+        gbc.gridx = 0;
+        gbc.gridy = 3;
+        gbc.gridwidth = 2;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        panel.add(btnPanel, gbc);
+        
+        dialog.add(panel);
+        
+        btnCancelar.addActionListener(e -> dialog.dispose());
+        btnAceptar.addActionListener(e -> {
+            try {
+                String tipo = (String) cmbTipo.getSelectedItem();
+                String montoStr = txtMonto.getText().trim();
+                String notas = txtNotas.getText().trim();
+                
+                if (montoStr.isEmpty()) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog, 
+                        "Por favor ingrese un monto", 
+                        "Error", 
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                
+                double monto = Double.parseDouble(montoStr);
+                if (monto <= 0) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog, 
+                        "El monto debe ser mayor a cero", 
+                        "Error", 
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+                
+                // Crear el registro de pago
+                // Usar "cashin" y "cashout" como tipos de pago, igual que PaymentsEditor
+                String reason = "Entrada".equals(tipo) ? "cashin" : "cashout";
+                double total = "Entrada".equals(tipo) ? monto : -monto;
+                
+                Object[] payment = new Object[7];
+                payment[0] = java.util.UUID.randomUUID().toString(); // ID del receipt
+                payment[1] = m_App.getActiveCashIndex(); // MONEY (caja activa)
+                payment[2] = new java.util.Date(); // DATENEW
+                payment[3] = java.util.UUID.randomUUID().toString(); // ID del payment
+                payment[4] = reason; // PAYMENT: "cashin" o "cashout"
+                payment[5] = total; // TOTAL (positivo para entrada, negativo para salida)
+                payment[6] = notas.isEmpty() ? "" : notas; // NOTES
+                
+                // Guardar en la base de datos
+                dlSales.getPaymentMovementInsert().exec(payment);
+                
+                // Log para depuración
+                LOGGER.log(System.Logger.Level.INFO, 
+                    "Entrada/Salida guardada: Tipo=" + reason + ", Monto=" + total + 
+                    ", MONEY=" + payment[1] + ", ReceiptID=" + payment[0]);
+                
+                javax.swing.JOptionPane.showMessageDialog(dialog, 
+                    tipo + " de $" + String.format("%.2f", monto) + " registrada correctamente.\n" +
+                    "Nota: Cierra y reabre el panel de cierre para ver los cambios.", 
+                    "Éxito", 
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                
+                dialog.dispose();
+            } catch (NumberFormatException ex) {
+                javax.swing.JOptionPane.showMessageDialog(dialog, 
+                    "El monto debe ser un número válido", 
+                    "Error", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            } catch (com.openbravo.basic.BasicException ex) {
+                LOGGER.log(System.Logger.Level.ERROR, "Error al guardar entrada/salida: " + ex.getMessage(), ex);
+                javax.swing.JOptionPane.showMessageDialog(dialog, 
+                    "Error al guardar: " + ex.getMessage(), 
+                    "Error", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        });
+        
+        dialog.setVisible(true);
     }
 
 }
