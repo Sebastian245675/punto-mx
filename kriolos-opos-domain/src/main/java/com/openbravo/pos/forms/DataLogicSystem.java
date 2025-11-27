@@ -161,6 +161,22 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
     }
 
     /**
+     * Find user by username (name) - case insensitive
+     * @param username
+     * @return
+     * @throws BasicException
+     */
+    public final AppUser findPeopleByName(String username) throws BasicException {
+        final SentenceFind<AppUser> m_peoplebyname = new PreparedSentence<String, AppUser>(this.session,
+                "SELECT ID, NAME, APPPASSWORD, CARD, ROLE, IMAGE "
+                + "FROM people "
+                + "WHERE UPPER(NAME) = UPPER(?) AND VISIBLE = " + this.session.DB.TRUE(),
+                SerializerWriteString.INSTANCE,
+                new AppuserReader());
+        return m_peoplebyname.find(username);
+    }
+
+    /**
      * Find role permissions by role name
      * @param sRole
      * @return
