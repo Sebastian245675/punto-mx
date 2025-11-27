@@ -26,6 +26,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SwingConstants;
+import javax.swing.SwingUtilities;
 import javax.swing.WindowConstants;
 import javax.swing.border.Border;
 import javax.swing.border.CompoundBorder;
@@ -54,7 +55,7 @@ public class JDialogInitialCash extends JDialog {
     
     private void initComponents() {
         setDefaultCloseOperation(WindowConstants.DO_NOTHING_ON_CLOSE);
-        setSize(450, 280);
+        setSize(600, 420);
         setLayout(new BorderLayout());
         setResizable(false);
         getContentPane().setBackground(Color.WHITE); // Fondo blanco para el contenido
@@ -81,12 +82,20 @@ public class JDialogInitialCash extends JDialog {
         
         // Campo de texto para la cantidad con borde azul
         m_jInitialAmount = new JTextField(15);
-        m_jInitialAmount.setFont(new Font("Segoe UI", Font.PLAIN, 20));
-        m_jInitialAmount.setText(Formats.CURRENCY.formatValue(0.0));
+        // Fuente aún más grande y gruesa
+        Font boldFont = new Font("Segoe UI", Font.BOLD, 56);
+        m_jInitialAmount.setFont(boldFont);
         m_jInitialAmount.setHorizontalAlignment(SwingConstants.CENTER);
         m_jInitialAmount.setBorder(createBlueBorder());
-        m_jInitialAmount.setPreferredSize(new Dimension(200, 45));
+        m_jInitialAmount.setPreferredSize(new Dimension(450, 90));
+        m_jInitialAmount.setMinimumSize(new Dimension(450, 90));
         m_jInitialAmount.setBackground(Color.WHITE);
+        m_jInitialAmount.setOpaque(true);
+        m_jInitialAmount.setForeground(Color.BLACK);
+        // Establecer texto inicial después de configurar todas las propiedades
+        String initialText = Formats.CURRENCY.formatValue(0.0);
+        m_jInitialAmount.setText(initialText);
+        m_jInitialAmount.setCaretPosition(initialText.length());
         m_jInitialAmount.selectAll();
         gbc.gridy = 1;
         gbc.insets = new Insets(0, 0, 30, 0);
@@ -94,7 +103,7 @@ public class JDialogInitialCash extends JDialog {
         gbc.anchor = GridBagConstraints.CENTER;
         mainPanel.add(m_jInitialAmount, gbc);
         
-        add(mainPanel, BorderLayout.CENTER);
+        getContentPane().add(mainPanel, BorderLayout.CENTER);
         
         // Panel de botones con fondo blanco
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 0, 0));
@@ -159,10 +168,21 @@ public class JDialogInitialCash extends JDialog {
         
         buttonPanel.add(m_jOK);
         
-        add(buttonPanel, BorderLayout.SOUTH);
+        getContentPane().add(buttonPanel, BorderLayout.SOUTH);
         
-        // Focus inicial
-        m_jInitialAmount.requestFocusInWindow();
+        // Asegurar que el diálogo sea visible
+        setVisible(false); // Primero ocultar para configurar todo
+        validate();
+        repaint();
+        
+        // Focus inicial después de mostrar
+        SwingUtilities.invokeLater(new Runnable() {
+            @Override
+            public void run() {
+                m_jInitialAmount.requestFocusInWindow();
+                m_jInitialAmount.selectAll();
+            }
+        });
         
         // Enter en el campo de texto activa OK
         m_jInitialAmount.addActionListener(new ActionListener() {

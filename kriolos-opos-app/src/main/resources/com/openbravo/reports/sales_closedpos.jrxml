@@ -26,6 +26,7 @@ ORDER BY CLOSEDCASH.HOST, CLOSEDCASH.DATESTART]]></query>
 	<field name="MONEY" class="java.lang.String"/>
 	<field name="DATESTART" class="java.util.Date"/>
 	<field name="DATEEND" class="java.util.Date"/>
+	<field name="INITIAL_AMOUNT" class="java.lang.Double"/>
 	<field name="PAYMENT" class="java.lang.String"/>
 	<field name="HOSTSEQUENCE" class="java.lang.Integer"/>
 	<variable name="BIGTOTAL" calculation="Sum" class="java.lang.Double">
@@ -107,7 +108,7 @@ ORDER BY CLOSEDCASH.HOST, CLOSEDCASH.DATESTART]]></query>
 	<group name="bymoney">
 		<expression><![CDATA[$F{MONEY}]]></expression>
 		<groupHeader>
-			<band height="16">
+			<band height="31">
 				<element kind="textField" uuid="0bd9ff6b-485d-4eae-a804-3100c66e6a63" key="textField-4" mode="Opaque" x="251" y="0" width="110" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Top">
 					<paragraph lineSpacing="Single"/>
 					<expression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue($F{DATESTART})]]></expression>
@@ -151,6 +152,14 @@ ORDER BY CLOSEDCASH.HOST, CLOSEDCASH.DATESTART]]></query>
 				</element>
 				<element kind="textField" uuid="ae5cdd00-4233-47b2-989d-233cf9bcf31d" x="110" y="0" width="100" height="15" fontName="SansSerif">
 					<expression><![CDATA[$F{HOSTSEQUENCE}]]></expression>
+				</element>
+				<element kind="textField" uuid="a1b2c3d4-e5f6-7890-abcd-ef1234567890" mode="Opaque" x="0" y="15" width="110" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="true" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
+					<paragraph lineSpacing="Single"/>
+					<expression><![CDATA["Monto Inicial:"]]></expression>
+				</element>
+				<element kind="textField" uuid="b2c3d4e5-f6a7-8901-bcde-f12345678901" mode="Opaque" x="110" y="15" width="100" height="15" forecolor="#000000" backcolor="#FFFFFF" rotation="None" fontName="SansSerif" fontSize="9.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="false" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
+					<paragraph lineSpacing="Single"/>
+					<expression><![CDATA[com.openbravo.format.Formats.CURRENCY.formatValue($F{INITIAL_AMOUNT})]]></expression>
 				</element>
 			</band>
 		</groupHeader>

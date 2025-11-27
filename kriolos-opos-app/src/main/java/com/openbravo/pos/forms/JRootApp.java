@@ -19,6 +19,8 @@ import com.openbravo.pos.firebase.FirebaseSyncManagerREST;
 import java.awt.CardLayout;
 import java.awt.ComponentOrientation;
 import java.awt.Cursor;
+import java.awt.Dialog;
+import java.awt.Frame;
 import java.io.*;
 import java.sql.SQLException;
 import java.text.DateFormat;
@@ -606,7 +608,7 @@ public class JRootApp extends JPanel implements AppView {
             }
             
             JDialogInitialCash dialog = new JDialogInitialCash(parentFrame);
-            dialog.setInitialAmount(4000.0);
+            dialog.setInitialAmount(0.0);
             
             // Asegurar que el diálogo esté al frente
             dialog.setAlwaysOnTop(true);
@@ -688,6 +690,81 @@ public class JRootApp extends JPanel implements AppView {
 
     public void tryToClose() {
 
+        // Verificar si hay un turno abierto antes de cerrar
+        if (m_principalapp != null && getActiveCashDateEnd() == null && getActiveCashIndex() != null) {
+            // Hay un turno abierto, mostrar diálogo simple primero
+            int opcion = JOptionPane.showOptionDialog(
+                this,
+                "Tienes un turno abierto.\n¿Qué deseas hacer?",
+                "Turno Abierto",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                new Object[]{"Cerrar Turno", "Mantener Turno"},
+                "Cerrar Turno"
+            );
+            
+            if (opcion == JOptionPane.YES_OPTION) {
+                // El usuario eligió "Cerrar Turno" - mostrar diálogo completo con información y dinero físico
+                java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
+                Frame parentFrame = null;
+                if (parentWindow instanceof Frame) {
+                    parentFrame = (Frame) parentWindow;
+                } else if (parentWindow instanceof Dialog) {
+                    parentFrame = (Frame) ((Dialog) parentWindow).getParent();
+                }
+                
+                JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, this);
+                dialog.setVisible(true);
+                
+                if (dialog.isClosed() && dialog.shouldCloseShift()) {
+                    // El turno fue cerrado exitosamente, ahora cerrar la aplicación
+                    if (closeAppView()) {
+                        releaseResources();
+                        if(session != null){
+                            try {
+                                session.close();
+                            } catch (SQLException ex) {
+                                LOGGER.log(Level.WARNING, "", ex);
+                            }
+                        }
+                        java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
+                        if(parent != null){
+                            parent.dispose();
+                        }else {
+                            this.setVisible(false);
+                            this.setEnabled(false);
+                        }
+                    }
+                }
+                // Si canceló el diálogo de cierre, no hacer nada (no cerrar la aplicación)
+                return;
+            } else if (opcion == JOptionPane.NO_OPTION || opcion == JOptionPane.CLOSED_OPTION) {
+                // El usuario eligió "Mantener Turno" o cerró el diálogo, cerrar la aplicación normalmente
+                if (closeAppView()) {
+                    releaseResources();
+                    if(session != null){
+                        try {
+                            session.close();
+                        } catch (SQLException ex) {
+                            LOGGER.log(Level.WARNING, "", ex);
+                        }
+                    }
+                    java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
+                    if(parent != null){
+                        parent.dispose();
+                    }else {
+                        this.setVisible(false);
+                        this.setEnabled(false);
+                    }
+                }
+                return;
+            }
+            // Si canceló, no hacer nada
+            return;
+        }
+
+        // No hay turno abierto, cerrar normalmente
         if (closeAppView()) {
             releaseResources();
             if(session != null){

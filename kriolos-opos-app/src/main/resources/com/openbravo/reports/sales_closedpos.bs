@@ -26,12 +26,15 @@ report.setSentence("SELECT " +
                     "closedcash.MONEY, " +
                     "closedcash.DATESTART, " +
                     "closedcash.DATEEND, " +
-                    "payments.PAYMENT, " +
-                    "SUM(payments.TOTAL) AS TOTAL " +
-                    "FROM closedcash, payments, receipts " +
-                    "WHERE closedcash.MONEY = receipts.MONEY AND payments.RECEIPT = receipts.ID AND ?(QBF_FILTER) " +
-                    "GROUP BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.MONEY, closedcash.DATESTART, closedcash.DATEEND, payments.PAYMENT " +
-                    "ORDER BY closedcash.HOST, closedcash.HOSTSEQUENCE");
+                    "closedcash.initial_amount AS INITIAL_AMOUNT, " +
+                    "COALESCE(payments.PAYMENT, 'Sin ventas') AS PAYMENT, " +
+                    "COALESCE(SUM(payments.TOTAL), 0.0) AS TOTAL " +
+                    "FROM closedcash " +
+                    "LEFT JOIN receipts ON closedcash.MONEY = receipts.MONEY " +
+                    "LEFT JOIN payments ON payments.RECEIPT = receipts.ID " +
+                    "WHERE closedcash.DATEEND IS NOT NULL AND ?(QBF_FILTER) " +
+                    "GROUP BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.MONEY, closedcash.DATESTART, closedcash.DATEEND, closedcash.initial_amount, COALESCE(payments.PAYMENT, 'Sin ventas') " +
+                    "ORDER BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.DATEEND DESC");
 
 report.addParameter("closedcash.DATEEND");
 report.addParameter("closedcash.DATEEND");
@@ -49,6 +52,7 @@ report.addField("HOSTSEQUENCE", com.openbravo.data.loader.Datas.INT);
 report.addField("MONEY", com.openbravo.data.loader.Datas.STRING);
 report.addField("DATESTART", com.openbravo.data.loader.Datas.TIMESTAMP);
 report.addField("DATEEND", com.openbravo.data.loader.Datas.TIMESTAMP);
+report.addField("INITIAL_AMOUNT", com.openbravo.data.loader.Datas.DOUBLE);
 report.addField("PAYMENT", com.openbravo.data.loader.Datas.STRING);
 report.addField("TOTAL", com.openbravo.data.loader.Datas.DOUBLE);
 

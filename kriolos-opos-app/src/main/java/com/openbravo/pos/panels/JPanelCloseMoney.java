@@ -27,6 +27,7 @@ import com.openbravo.data.gui.ComboBoxValModel;
 import com.openbravo.data.gui.MessageInf;
 import com.openbravo.data.gui.TableRendererBasic;
 import com.openbravo.data.loader.Datas;
+import com.openbravo.data.loader.QBFCompareEnum;
 import com.openbravo.data.loader.SerializerWriteBasic;
 import com.openbravo.data.loader.Session;
 import java.awt.*;
@@ -52,8 +53,28 @@ import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.UUID;
+import java.util.HashMap;
+import java.util.Locale;
+import java.util.Map;
+import java.util.MissingResourceException;
+import java.util.ResourceBundle;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import com.openbravo.data.loader.BaseSentence;
+import com.openbravo.data.loader.QBFBuilder;
+import com.openbravo.data.loader.SerializerReadBasic;
+import com.openbravo.pos.reports.JRDataSourceBasic;
+import com.openbravo.pos.reports.JRViewer400;
+import com.openbravo.pos.reports.ReportFields;
+import com.openbravo.pos.reports.ReportFieldsArray;
+import com.openbravo.pos.reports.JPanelReport;
+import java.sql.PreparedStatement;
+import net.sf.jasperreports.engine.JRException;
+import net.sf.jasperreports.engine.JasperExportManager;
+import net.sf.jasperreports.engine.JasperFillManager;
+import net.sf.jasperreports.engine.JasperPrint;
+import net.sf.jasperreports.engine.JasperReport;
+import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.swing.*;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
@@ -1432,10 +1453,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
         leftPanel.setBackground(Color.WHITE);
         
-        // Título
-        JLabel titleLabel = new JLabel("CORTE");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
-        titleLabel.setForeground(new Color(50, 50, 50));
+        // Título con diseño más moderno
+        JLabel titleLabel = new JLabel("CORTE DE CAJA");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
+        titleLabel.setForeground(new Color(30, 30, 30));
         leftPanel.add(titleLabel);
         leftPanel.add(Box.createVerticalStrut(10));
         
@@ -1443,8 +1464,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         buttonPanel.setBackground(Color.WHITE);
         
-        // Botón Hacer corte de cajero
+        // Botón Hacer corte de cajero con diseño mejorado
         JButton btnCashier = new JButton("Hacer corte de cajero");
+        btnCashier.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnCashier.setPreferredSize(new Dimension(200, 45));
         styleButton(btnCashier, new Color(33, 150, 243));
         btnCashier.addActionListener(e -> {
             LOGGER.info("Botón 'Hacer corte de cajero' presionado desde diseño moderno");
@@ -1453,8 +1476,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         });
         buttonPanel.add(btnCashier);
         
-        // Botón Hacer corte del día - Implementar funcionalidad básica
+        // Botón Hacer corte del día con diseño mejorado
         JButton btnDay = new JButton("Hacer corte del día");
+        btnDay.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        btnDay.setPreferredSize(new Dimension(200, 45));
         styleButton(btnDay, new Color(76, 175, 80));
         btnDay.addActionListener(e -> {
             LOGGER.info("Botón 'Hacer corte del día' presionado");
@@ -1517,37 +1542,61 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     }
     
     /**
-     * Crea una tarjeta de métrica con diseño mejorado
+     * Crea una tarjeta de métrica con diseño moderno mejorado
      */
     private JPanel createMetricCard(String title, String value, Color color, String icon) {
-        JPanel card = new JPanel(new BorderLayout());
+        // Panel principal con sombra simulada
+        JPanel card = new JPanel(new BorderLayout()) {
+            @Override
+            protected void paintComponent(Graphics g) {
+                super.paintComponent(g);
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                // Sombra suave
+                g2.setColor(new Color(0, 0, 0, 10));
+                g2.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 12, 12);
+                
+                // Fondo con gradiente sutil
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, new Color(color.getRed(), color.getGreen(), color.getBlue(), 5),
+                    0, getHeight(), new Color(color.getRed(), color.getGreen(), color.getBlue(), 15)
+                );
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, getWidth() - 3, getHeight() - 3, 12, 12);
+                
+                g2.dispose();
+            }
+        };
+        
         // Fondo con color suave basado en el color principal
         Color bgColor = new Color(
-            Math.min(255, color.getRed() + 240),
-            Math.min(255, color.getGreen() + 240),
-            Math.min(255, color.getBlue() + 240)
+            Math.min(255, color.getRed() + 245),
+            Math.min(255, color.getGreen() + 245),
+            Math.min(255, color.getBlue() + 245)
         );
         card.setBackground(bgColor);
+        card.setOpaque(false);
         card.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(color, 2),
-            BorderFactory.createEmptyBorder(25, 25, 25, 25)
+            BorderFactory.createLineBorder(new Color(color.getRed(), color.getGreen(), color.getBlue(), 30), 1),
+            BorderFactory.createEmptyBorder(30, 30, 30, 30)
         ));
         
         // Panel principal con icono y título
         JPanel contentPanel = new JPanel();
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
-        contentPanel.setBackground(bgColor);
+        contentPanel.setOpaque(false);
         
-        // Icono y título
-        JLabel titleLabel = new JLabel(icon + " " + title);
-        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        // Icono y título con mejor espaciado
+        JLabel titleLabel = new JLabel(icon + "  " + title);
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         titleLabel.setForeground(new Color(75, 85, 99));
         contentPanel.add(titleLabel);
-        contentPanel.add(Box.createVerticalStrut(15));
+        contentPanel.add(Box.createVerticalStrut(20));
         
-        // Valor (almacenar referencia para actualizar) - NÚMERO MÁS GRANDE
+        // Valor (almacenar referencia para actualizar) - NÚMERO AÚN MÁS GRANDE
         JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 36)); // Aumentado de 24 a 36
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 42)); // Aumentado de 36 a 42
         valueLabel.setForeground(color);
         contentPanel.add(valueLabel);
         
@@ -1822,24 +1871,57 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Estiliza un botón
      */
     private void styleButton(JButton button, Color color) {
-        button.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        button.setBackground(color);
+        button.setFont(new Font("Segoe UI", Font.BOLD, 14));
         button.setForeground(Color.WHITE);
         button.setFocusPainted(false);
         button.setBorderPainted(false);
-        button.setOpaque(true);
-        button.setPreferredSize(new Dimension(180, 40));
+        button.setOpaque(false);
+        button.setContentAreaFilled(false);
         button.setCursor(new Cursor(Cursor.HAND_CURSOR));
         
+        // Botón personalizado con gradiente y sombra
         button.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseEntered(MouseEvent e) {
-                button.setBackground(color.darker());
+                button.repaint();
             }
             
             @Override
             public void mouseExited(MouseEvent e) {
-                button.setBackground(color);
+                button.repaint();
+            }
+        });
+        
+        // Renderizado personalizado del botón
+        button.setUI(new javax.swing.plaf.basic.BasicButtonUI() {
+            @Override
+            public void paint(Graphics g, JComponent c) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                
+                JButton btn = (JButton) c;
+                boolean isHover = btn.getModel().isRollover();
+                
+                // Sombra
+                g2.setColor(new Color(0, 0, 0, 20));
+                g2.fillRoundRect(2, 2, btn.getWidth() - 4, btn.getHeight() - 4, 8, 8);
+                
+                // Gradiente
+                Color startColor = isHover ? color.brighter() : color;
+                Color endColor = isHover ? color : color.darker();
+                GradientPaint gradient = new GradientPaint(
+                    0, 0, startColor,
+                    0, btn.getHeight(), endColor
+                );
+                g2.setPaint(gradient);
+                g2.fillRoundRect(0, 0, btn.getWidth() - 2, btn.getHeight() - 2, 8, 8);
+                
+                // Borde
+                g2.setColor(new Color(255, 255, 255, 30));
+                g2.drawRoundRect(0, 0, btn.getWidth() - 2, btn.getHeight() - 2, 8, 8);
+                
+                g2.dispose();
+                super.paint(g, c);
             }
         });
     }
@@ -2138,6 +2220,17 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
         LOGGER.info("=== INICIO: Botón de cierre de caja presionado ===");
         
+        // Detectar si viene del botón "Hacer corte del día"
+        boolean isDayClose = false;
+        if (evt.getSource() instanceof javax.swing.JButton) {
+            javax.swing.JButton sourceButton = (javax.swing.JButton) evt.getSource();
+            String buttonText = sourceButton.getText();
+            if (buttonText != null && buttonText.contains("corte del día")) {
+                isDayClose = true;
+                LOGGER.info("Detectado: Cierre desde botón 'Hacer corte del día'");
+            }
+        }
+        
         int res = JOptionPane.showConfirmDialog(this, 
                 AppLocal.getIntString("message.wannaclosecash"), 
                 AppLocal.getIntString("message.title"), 
@@ -2259,11 +2352,26 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 // print report
                 printPayments("Printer.CloseCash");
 
-                // Mostramos el mensaje
-                JOptionPane.showMessageDialog(this, 
-                        AppLocal.getIntString("message.closecashok"), 
-                        AppLocal.getIntString("message.title"), 
-                        JOptionPane.INFORMATION_MESSAGE);
+                // Si es "corte del día", siempre mostrar el reporte del día completo
+                if (isDayClose) {
+                    LOGGER.info("Mostrando reporte del día completo (corte del día)");
+                    // Mostrar mensaje de éxito y luego el reporte
+                    JOptionPane.showMessageDialog(this, 
+                            AppLocal.getIntString("message.closecashok"), 
+                            AppLocal.getIntString("message.title"), 
+                            JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Mostrar reporte del día automáticamente
+                    SwingUtilities.invokeLater(() -> {
+                        showDayReport(dNow);
+                    });
+                } else {
+                    // Mostrar mensaje normal si es cierre de turno normal
+                    JOptionPane.showMessageDialog(this, 
+                            AppLocal.getIntString("message.closecashok"), 
+                            AppLocal.getIntString("message.title"), 
+                            JOptionPane.INFORMATION_MESSAGE);
+                }
             } catch (BasicException e) {
                 LOGGER.log(Level.SEVERE, "Error al crear nueva caja o imprimir reporte.", e);
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
@@ -2947,6 +3055,262 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             }
         } catch (NumberFormatException e) {
             // Si no es un número válido, dejar como está
+        }
+    }
+    
+    /**
+     * Verifica si este es el último turno del día
+     */
+    private boolean isLastShiftOfDay(Date closeDate, String excludeCashIndex) {
+        try {
+            Connection conn = m_App.getSession().getConnection();
+            
+            // Crear rango de fechas para el día (inicio y fin del día)
+            java.util.Calendar cal = java.util.Calendar.getInstance();
+            cal.setTime(closeDate);
+            cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+            cal.set(java.util.Calendar.MINUTE, 0);
+            cal.set(java.util.Calendar.SECOND, 0);
+            cal.set(java.util.Calendar.MILLISECOND, 0);
+            java.sql.Timestamp startOfDay = new java.sql.Timestamp(cal.getTimeInMillis());
+            
+            cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
+            java.sql.Timestamp nextDayStart = new java.sql.Timestamp(cal.getTimeInMillis());
+            
+            // Contar turnos abiertos del día (que no tengan DATEEND)
+            // Excluir el turno que estamos cerrando (excludeCashIndex)
+            // Usar comparación de TIMESTAMP en lugar de DATE() para compatibilidad con HSQLDB
+            String sql = "SELECT COUNT(*) FROM closedcash " +
+                        "WHERE DATESTART >= ? AND DATESTART < ? AND DATEEND IS NULL AND HOST = ? AND MONEY != ?";
+            PreparedStatement pstmt = conn.prepareStatement(sql);
+            pstmt.setTimestamp(1, startOfDay);
+            pstmt.setTimestamp(2, nextDayStart);
+            pstmt.setString(3, m_App.getProperties().getHost());
+            pstmt.setString(4, excludeCashIndex);
+            
+            ResultSet rs = pstmt.executeQuery();
+            int openShifts = 0;
+            if (rs.next()) {
+                openShifts = rs.getInt(1);
+            }
+            rs.close();
+            pstmt.close();
+            
+            LOGGER.info("Verificación último turno del día: turnos abiertos (excluyendo el actual) = " + openShifts);
+            
+            // Si no hay turnos abiertos (además del que estamos cerrando), este era el último
+            return openShifts == 0;
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error verificando si es último turno del día", e);
+            return false; // En caso de error, no mostrar reporte automáticamente
+        }
+    }
+    
+    /**
+     * Muestra el reporte del día con todos los turnos cerrados
+     */
+    private void showDayReport(Date closeDate) {
+        try {
+            // Crear diálogo para mostrar el reporte
+            JDialog reportDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
+                "Reporte de Caja Cerrada - Día Completo", true);
+            reportDialog.setSize(1000, 700);
+            reportDialog.setLocationRelativeTo(this);
+            
+            // Crear panel con el visor de reportes
+            JPanel panel = new JPanel(new BorderLayout());
+            JRViewer400 reportViewer = new JRViewer400(null);
+            panel.add(reportViewer, BorderLayout.CENTER);
+            
+            // Panel de botones: Guardar PDF y Cerrar
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton btnSavePDF = new JButton("Guardar PDF");
+            JButton btnClose = new JButton("Cerrar");
+            
+            // Variable para almacenar el JasperPrint generado
+            final JasperPrint[] jpRef = new JasperPrint[1];
+            
+            btnSavePDF.addActionListener(e -> {
+                if (jpRef[0] != null) {
+                    try {
+                        // Crear diálogo para elegir ubicación del archivo
+                        JFileChooser fileChooser = new JFileChooser();
+                        fileChooser.setDialogTitle("Guardar reporte como PDF");
+                        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos PDF (*.pdf)", "pdf"));
+                        
+                        // Sugerir nombre de archivo con fecha
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                        String defaultFileName = "Reporte_Caja_Cerrada_" + sdf.format(closeDate) + ".pdf";
+                        fileChooser.setSelectedFile(new java.io.File(defaultFileName));
+                        
+                        int userSelection = fileChooser.showSaveDialog(reportDialog);
+                        if (userSelection == JFileChooser.APPROVE_OPTION) {
+                            java.io.File fileToSave = fileChooser.getSelectedFile();
+                            String filePath = fileToSave.getAbsolutePath();
+                            
+                            // Asegurar extensión .pdf
+                            if (!filePath.toLowerCase().endsWith(".pdf")) {
+                                filePath += ".pdf";
+                            }
+                            
+                            // Exportar a PDF
+                            JasperExportManager.exportReportToPdfFile(jpRef[0], filePath);
+                            
+                            JOptionPane.showMessageDialog(reportDialog,
+                                "Reporte guardado exitosamente en:\n" + filePath,
+                                "Éxito",
+                                JOptionPane.INFORMATION_MESSAGE);
+                        }
+                    } catch (JRException ex) {
+                        LOGGER.log(Level.SEVERE, "Error guardando PDF", ex);
+                        JOptionPane.showMessageDialog(reportDialog,
+                            "Error al guardar el PDF: " + ex.getMessage(),
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
+                    }
+                } else {
+                    JOptionPane.showMessageDialog(reportDialog,
+                        "No hay reporte para guardar",
+                        "Advertencia",
+                        JOptionPane.WARNING_MESSAGE);
+                }
+            });
+            
+            btnClose.addActionListener(e -> reportDialog.dispose());
+            
+            buttonPanel.add(btnSavePDF);
+            buttonPanel.add(btnClose);
+            panel.add(buttonPanel, BorderLayout.SOUTH);
+            
+            reportDialog.add(panel);
+            
+            // Cargar y mostrar el reporte
+            m_App.waitCursorBegin();
+            
+            try {
+                // Compilar el reporte
+                JasperReport jasperReport = JPanelReport.createJasperReport("/com/openbravo/reports/sales_closedpos");
+                
+                if (jasperReport != null) {
+                    // Crear rango de fechas para el día (inicio y fin del día)
+                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                    cal.setTime(closeDate);
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    cal.set(java.util.Calendar.MINUTE, 0);
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    java.sql.Timestamp startOfDay = new java.sql.Timestamp(cal.getTimeInMillis());
+                    
+                    cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
+                    java.sql.Timestamp endOfDay = new java.sql.Timestamp(cal.getTimeInMillis());
+                    
+                    // Crear la consulta SQL con filtro directo de fechas (más simple y confiable)
+                    // Incluimos initial_amount para mostrar los montos iniciales
+                    String sentence = "SELECT " + 
+                        "closedcash.HOST, " +
+                        "closedcash.HOSTSEQUENCE, " +
+                        "closedcash.MONEY, " +
+                        "closedcash.DATESTART, " +
+                        "closedcash.DATEEND, " +
+                        "COALESCE(closedcash.initial_amount, 0.0) AS INITIAL_AMOUNT, " +
+                        "COALESCE(payments.PAYMENT, 'Sin ventas') AS PAYMENT, " +
+                        "COALESCE(SUM(payments.TOTAL), 0.0) AS TOTAL " +
+                        "FROM closedcash " +
+                        "LEFT JOIN receipts ON closedcash.MONEY = receipts.MONEY " +
+                        "LEFT JOIN payments ON payments.RECEIPT = receipts.ID " +
+                        "WHERE closedcash.DATEEND IS NOT NULL AND closedcash.DATEEND >= ? AND closedcash.DATEEND < ? " +
+                        "GROUP BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.MONEY, closedcash.DATESTART, closedcash.DATEEND, closedcash.initial_amount, COALESCE(payments.PAYMENT, 'Sin ventas') " +
+                        "ORDER BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.DATEEND DESC";
+                    
+                    // Crear sentence con parámetros directos de fecha
+                    BaseSentence<Object[]> reportSentence = new StaticSentence<Object[], Object[]>(
+                        m_App.getSession(),
+                        sentence,
+                        new SerializerWriteBasic(new Datas[] {Datas.TIMESTAMP, Datas.TIMESTAMP}),
+                        new SerializerReadBasic(new Datas[] {
+                            Datas.STRING, Datas.INT, Datas.STRING, 
+                            Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.DOUBLE, Datas.STRING, Datas.DOUBLE
+                        })
+                    );
+                    
+                    // Crear campos del reporte (incluyendo INITIAL_AMOUNT)
+                    ReportFields reportFields = new ReportFieldsArray(
+                        new String[] {"HOST", "HOSTSEQUENCE", "MONEY", "DATESTART", "DATEEND", "INITIAL_AMOUNT", "PAYMENT", "TOTAL"}
+                    );
+                    
+                    // Crear parámetros de fecha en el formato que espera el reporte para ARG
+                    // El formato es: [COMP_GREATEROREQUALS, startDate, COMP_LESS, endDate]
+                    Object[] dateParams = new Object[] {
+                        QBFCompareEnum.COMP_GREATEROREQUALS,
+                        startOfDay,
+                        QBFCompareEnum.COMP_LESS,
+                        endOfDay
+                    };
+                    
+                    // El parámetro ARG debe ser un array que contiene el array de fechas como primer elemento
+                    // Esto es lo que espera el reporte: ((Object[])$P{ARG})[0])[1] y [3]
+                    Object[] arg = new Object[] { dateParams };
+                    
+                    // Crear fuente de datos con los parámetros de fecha directos
+                    JRDataSourceBasic dataSource = new JRDataSourceBasic(
+                        reportSentence, 
+                        reportFields, 
+                        new Object[] {startOfDay, endOfDay}
+                    );
+                    
+                    // Parámetros del reporte
+                    Map<String, Object> reportParams = new HashMap<>();
+                    reportParams.put("ARG", arg);
+                    
+                    // Cargar bundle en español si existe, sino usar el por defecto
+                    ResourceBundle bundle = null;
+                    try {
+                        // Intentar cargar el bundle en español
+                        bundle = ResourceBundle.getBundle(
+                            "com.openbravo.reports.sales_closedpos_messages_es", 
+                            Locale.getDefault()
+                        );
+                    } catch (MissingResourceException e) {
+                        // Si no existe el bundle en español, usar el por defecto
+                        try {
+                            bundle = ResourceBundle.getBundle(
+                                "com.openbravo.reports.sales_closedpos_messages",
+                                Locale.getDefault()
+                            );
+                        } catch (MissingResourceException ex) {
+                            LOGGER.log(Level.WARNING, "No se pudo cargar el bundle de recursos", ex);
+                        }
+                    }
+                    if (bundle != null) {
+                        reportParams.put("REPORT_RESOURCE_BUNDLE", bundle);
+                    }
+                    
+                    // Generar el reporte
+                    JasperPrint jp = JasperFillManager.fillReport(jasperReport, reportParams, dataSource);
+                    jpRef[0] = jp; // Guardar referencia para el botón de PDF
+                    reportViewer.loadJasperPrint(jp);
+                    
+                    // Mostrar el diálogo
+                    reportDialog.setVisible(true);
+                }
+            } catch (JRException | BasicException e) {
+                LOGGER.log(Level.SEVERE, "Error generando reporte", e);
+                JOptionPane.showMessageDialog(reportDialog,
+                    "Error al generar el reporte: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+                reportDialog.dispose();
+            } finally {
+                m_App.waitCursorEnd();
+            }
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error mostrando reporte del día", e);
+            JOptionPane.showMessageDialog(this,
+                "Error al mostrar el reporte: " + e.getMessage(),
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
     
