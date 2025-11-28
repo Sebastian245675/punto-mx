@@ -201,7 +201,9 @@ public class PaymentsModel {
             p.m_dPaymentsTotal = 0.0;
         } else {
             p.m_iPayments = (Integer) valtickets[0];
-            p.m_dPaymentsTotal = (Double) valtickets[1];
+            p.m_dPaymentsTotal = valtickets[1] == null ? 0.0 : (Double) valtickets[1];
+            // Log para depuración
+            System.out.println("DEBUG PaymentsModel: Count=" + p.m_iPayments + ", Total=" + p.m_dPaymentsTotal + ", MONEY=" + app.getActiveCashIndex());
         }
 
         //Get Payments
@@ -877,6 +879,10 @@ public class PaymentsModel {
         public String printProductName() {
             return StringUtils.encodeXML(m_ProductName);
         }
+        
+        public String getProductName() {
+            return m_ProductName;
+        }
 
         public String printProductUnits() {
             return Formats.DOUBLE.formatValue(m_ProductUnits);
@@ -1156,7 +1162,7 @@ public class PaymentsModel {
     public Double getCashTotalWithInitial() {
         Double cashTotal = 0.0;
         
-        // Buscar pagos en efectivo
+        // Buscar pagos en efectivo (solo ventas, NO incluir movimientos de entrada/salida)
         for (PaymentsLine payment : m_lpayments) {
             if ("cash".equals(payment.getType())) {
                 cashTotal += payment.getValue();
@@ -1182,7 +1188,7 @@ public class PaymentsModel {
     public Double getCashTotal() {
         Double cashTotal = 0.0;
         
-        // Buscar pagos en efectivo
+        // Buscar pagos en efectivo (solo ventas, NO incluir movimientos de entrada/salida)
         for (PaymentsLine payment : m_lpayments) {
             if ("cash".equals(payment.getType())) {
                 cashTotal += payment.getValue();

@@ -115,7 +115,9 @@ public class JRootApp extends JPanel implements AppView {
             throw new BasicException("Fail on verify ActiveCash");
         }
         
-        // Limpiar tabla usuarios al arrancar (excepto admin, empl y manager)
+        // DESHABILITADO: Limpiar tabla usuarios al arrancar (excepto admin, empl y manager)
+        // Este código eliminaba los usuarios creados manualmente. Comentado para permitir usuarios personalizados.
+        /*
         try {
             LOGGER.log(Level.INFO, "🗑️ Limpiando tabla usuarios (people), excepto admin, empl y manager...");
             java.sql.Connection conn = session.getConnection();
@@ -170,6 +172,7 @@ public class JRootApp extends JPanel implements AppView {
             LOGGER.log(Level.SEVERE, "❌ ERROR al limpiar tabla usuarios: " + e.getMessage(), e);
             e.printStackTrace();
         }
+        */
         
         // Inicializar Supabase automáticamente con credenciales internas
         try {

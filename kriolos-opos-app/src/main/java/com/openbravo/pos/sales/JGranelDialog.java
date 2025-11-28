@@ -399,36 +399,81 @@ public class JGranelDialog extends JDialog {
     private void incrementarCampoActivo() {
         if (campoActivo == txtCantidad) {
             try {
-                double cantidad = Double.parseDouble(txtCantidad.getText().trim());
-                cantidad += 0.250; // Incrementar de 0.25 en 0.25 kilos
+                // Parsear la cantidad actual, asegurándose de manejar el formato correcto
+                String textoCantidad = txtCantidad.getText().trim();
+                // Reemplazar coma por punto si es necesario
+                textoCantidad = textoCantidad.replace(",", ".");
+                double cantidad = Double.parseDouble(textoCantidad);
+                
+                // Incremento fijo de 0.250 kilos (250 gramos) por cada flecha arriba
+                double incrementoPeso = 0.250;
+                double cantidadAnterior = cantidad;
+                cantidad += incrementoPeso;
                 if (cantidad < 0) cantidad = 0;
-                actualizando = true; // Evitar actualización recursiva
-                txtCantidad.setText(CANTIDAD_FORMAT.format(cantidad));
-                actualizando = false;
-                calcularDesdeCantidad();
-            } catch (NumberFormatException ex) {
+                
+                System.out.println("DEBUG INCREMENTAR CANTIDAD:");
+                System.out.println("  Texto cantidad original: " + txtCantidad.getText());
+                System.out.println("  Cantidad parseada: " + cantidadAnterior);
+                System.out.println("  Precio Unitario: " + precioUnitario);
+                System.out.println("  Incremento Peso calculado: " + incrementoPeso);
+                System.out.println("  Cantidad nueva: " + cantidad);
+                
+                // Actualizar cantidad y precio en una sola operación
                 actualizando = true;
-                txtCantidad.setText("0.250");
+                txtCantidad.getDocument().removeDocumentListener(listenerCantidad);
+                txtValor.getDocument().removeDocumentListener(listenerValor);
+                
+                String cantidadFormateada = CANTIDAD_FORMAT.format(cantidad);
+                txtCantidad.setText(cantidadFormateada);
+                System.out.println("  Cantidad formateada: " + cantidadFormateada);
+                
+                // Calcular y actualizar precio directamente
+                double valor = cantidad * precioUnitario;
+                txtValor.setText(PRECIO_FORMAT.format(valor));
+                btnAceptar.setEnabled(cantidad > 0);
+                
+                System.out.println("  Precio calculado: " + valor);
+                
+                // Restaurar listeners
+                txtCantidad.getDocument().addDocumentListener(listenerCantidad);
+                txtValor.getDocument().addDocumentListener(listenerValor);
                 actualizando = false;
-                calcularDesdeCantidad();
+            } catch (Exception ex) {
+                System.out.println("ERROR en incrementarCampoActivo: " + ex.getMessage());
+                ex.printStackTrace();
+                actualizando = false;
             }
         } else if (campoActivo == txtValor) {
             try {
-                // Parsear correctamente el valor actual
+                // Parsear correctamente el valor actual (optimizado para velocidad)
                 String texto = txtValor.getText();
                 double valor = 0.0;
-                try {
-                    // Si tiene formato de precio, parsearlo
-                    Number num = PRECIO_FORMAT.parse(texto);
-                    valor = num.doubleValue();
-                } catch (Exception e) {
-                    // Si no tiene $, intentar parseo directo (punto decimal)
-                    texto = texto.replace("$", "").replace(",", ".").trim();
+                // Si no tiene $, es un número directo (más rápido)
+                if (!texto.contains("$")) {
+                    texto = texto.replace(",", ".").trim();
                     valor = Double.parseDouble(texto);
+                } else {
+                    // Si tiene $, usar el formateador
+                    try {
+                        Number num = PRECIO_FORMAT.parse(texto);
+                        valor = num.doubleValue();
+                    } catch (Exception e) {
+                        texto = texto.replace("$", "").replace(",", ".").trim();
+                        valor = Double.parseDouble(texto);
+                    }
                 }
                 
-                valor += 50.0; // Incrementar de 50 en 50 pesos
-                if (valor < 0) valor = 0;
+                // Calcular el múltiplo de 250 actual
+                double multiploActual = Math.round(valor / 250.0) * 250.0;
+                // Si el valor está muy cerca de un múltiplo de 250, asumir que ya está en ese múltiplo
+                if (Math.abs(valor - multiploActual) < 1.0) {
+                    valor = multiploActual + 250.0; // Sumar 250 al múltiplo actual
+                } else {
+                    // Si no está cerca de un múltiplo, redondear al siguiente múltiplo de 250
+                    valor = Math.ceil(valor / 250.0) * 250.0;
+                }
+                
+                if (valor < 250.0) valor = 250.0; // Mínimo 250
                 actualizando = true; // Evitar actualización recursiva
                 // Mostrar sin formato mientras está activo
                 txtValor.setText(String.format("%.2f", valor));
@@ -436,7 +481,7 @@ public class JGranelDialog extends JDialog {
                 calcularDesdeValor();
             } catch (Exception ex) {
                 actualizando = true;
-                txtValor.setText("50.00");
+                txtValor.setText("250.00");
                 actualizando = false;
                 calcularDesdeValor();
             }
@@ -446,35 +491,75 @@ public class JGranelDialog extends JDialog {
     private void decrementarCampoActivo() {
         if (campoActivo == txtCantidad) {
             try {
-                double cantidad = Double.parseDouble(txtCantidad.getText().trim());
-                cantidad -= 0.250; // Decrementar de 0.25 en 0.25 kilos
+                // Parsear la cantidad actual, asegurándose de manejar el formato correcto
+                String textoCantidad = txtCantidad.getText().trim();
+                // Reemplazar coma por punto si es necesario
+                textoCantidad = textoCantidad.replace(",", ".");
+                double cantidad = Double.parseDouble(textoCantidad);
+                
+                // Decremento fijo de 0.250 kilos (250 gramos) por cada flecha abajo
+                double decrementoPeso = 0.250;
+                double cantidadAnterior = cantidad;
+                cantidad -= decrementoPeso;
                 if (cantidad < 0) cantidad = 0;
-                actualizando = true; // Evitar actualización recursiva
-                txtCantidad.setText(CANTIDAD_FORMAT.format(cantidad));
-                actualizando = false;
-                calcularDesdeCantidad();
-            } catch (NumberFormatException ex) {
+                
+                System.out.println("DEBUG DECREMENTAR CANTIDAD:");
+                System.out.println("  Cantidad anterior: " + cantidadAnterior);
+                System.out.println("  Precio Unitario: " + precioUnitario);
+                System.out.println("  Decremento Peso: " + decrementoPeso);
+                System.out.println("  Cantidad nueva: " + cantidad);
+                
+                // Actualizar cantidad y precio en una sola operación
                 actualizando = true;
-                txtCantidad.setText("0.000");
+                txtCantidad.getDocument().removeDocumentListener(listenerCantidad);
+                txtValor.getDocument().removeDocumentListener(listenerValor);
+                
+                txtCantidad.setText(CANTIDAD_FORMAT.format(cantidad));
+                
+                // Calcular y actualizar precio directamente
+                double valor = cantidad * precioUnitario;
+                txtValor.setText(PRECIO_FORMAT.format(valor));
+                btnAceptar.setEnabled(cantidad > 0);
+                
+                // Restaurar listeners
+                txtCantidad.getDocument().addDocumentListener(listenerCantidad);
+                txtValor.getDocument().addDocumentListener(listenerValor);
                 actualizando = false;
-                calcularDesdeCantidad();
+            } catch (Exception ex) {
+                System.out.println("ERROR en decrementarCampoActivo: " + ex.getMessage());
+                ex.printStackTrace();
+                actualizando = false;
             }
         } else if (campoActivo == txtValor) {
             try {
-                // Parsear correctamente el valor actual
+                // Parsear correctamente el valor actual (optimizado para velocidad)
                 String texto = txtValor.getText();
                 double valor = 0.0;
-                try {
-                    // Si tiene formato de precio, parsearlo
-                    Number num = PRECIO_FORMAT.parse(texto);
-                    valor = num.doubleValue();
-                } catch (Exception e) {
-                    // Si no tiene $, intentar parseo directo (punto decimal)
-                    texto = texto.replace("$", "").replace(",", ".").trim();
+                // Si no tiene $, es un número directo (más rápido)
+                if (!texto.contains("$")) {
+                    texto = texto.replace(",", ".").trim();
                     valor = Double.parseDouble(texto);
+                } else {
+                    // Si tiene $, usar el formateador
+                    try {
+                        Number num = PRECIO_FORMAT.parse(texto);
+                        valor = num.doubleValue();
+                    } catch (Exception e) {
+                        texto = texto.replace("$", "").replace(",", ".").trim();
+                        valor = Double.parseDouble(texto);
+                    }
                 }
                 
-                valor -= 50.0; // Decrementar de 50 en 50 pesos
+                // Calcular el múltiplo de 250 actual
+                double multiploActual = Math.round(valor / 250.0) * 250.0;
+                // Si el valor está muy cerca de un múltiplo de 250, asumir que ya está en ese múltiplo
+                if (Math.abs(valor - multiploActual) < 1.0) {
+                    valor = multiploActual - 250.0; // Restar 250 al múltiplo actual
+                } else {
+                    // Si no está cerca de un múltiplo, redondear al múltiplo de 250 anterior
+                    valor = Math.floor(valor / 250.0) * 250.0;
+                }
+                
                 if (valor < 0) valor = 0;
                 actualizando = true; // Evitar actualización recursiva
                 // Mostrar sin formato mientras está activo
@@ -487,6 +572,47 @@ public class JGranelDialog extends JDialog {
                 actualizando = false;
                 calcularDesdeValor();
             }
+        }
+    }
+    
+    /**
+     * Calcula el precio desde la cantidad, siempre actualizando el precio sin importar el foco
+     * Usado cuando se incrementa/decrementa con flechas
+     */
+    private void calcularPrecioDesdeCantidad(double cantidad) {
+        if (actualizando) return;
+        actualizando = true;
+        try {
+            // Remover listener temporalmente para evitar bucle infinito
+            txtValor.getDocument().removeDocumentListener(listenerValor);
+            
+            if (cantidad <= 0) {
+                txtValor.setText(PRECIO_FORMAT.format(0.0));
+                btnAceptar.setEnabled(false);
+            } else {
+                double valor = cantidad * precioUnitario;
+                
+                System.out.println("DEBUG CALCULAR PRECIO DESDE CANTIDAD:");
+                System.out.println("  Cantidad: " + cantidad);
+                System.out.println("  Precio Unitario: " + precioUnitario);
+                System.out.println("  Valor calculado: " + valor);
+                
+                // Siempre actualizar el precio, sin importar el foco
+                txtValor.setText(PRECIO_FORMAT.format(valor));
+                btnAceptar.setEnabled(cantidad > 0);
+            }
+            
+        } catch (Exception ex) {
+            txtValor.setText(PRECIO_FORMAT.format(0.0));
+            btnAceptar.setEnabled(false);
+        } finally {
+            // Volver a agregar el listener
+            try {
+                txtValor.getDocument().addDocumentListener(listenerValor);
+            } catch (Exception e) {
+                // Ignorar si ya está agregado
+            }
+            actualizando = false;
         }
     }
     

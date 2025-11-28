@@ -452,6 +452,46 @@ public class StockManagement extends JPanel implements JPanelView {
             }
         }
     }
+
+    /**
+     * Select a product by its product id and show the stock table for it.
+     * If the product is not present in the inventory lines, a new line is added
+     * with zero units so that the stock table can be displayed for it.
+     * @param productId the product id to select
+     */
+    public void selectProduct(String productId) {
+        if (productId == null) {
+            return;
+        }
+
+        // try to find a line with that product in the inventory lines
+        int indexToSelect = -1;
+        for (int i = 0; i < m_invlines.getLines().size(); i++) {
+            InventoryLine line = m_invlines.getLine(i);
+            if (line.getProductID().equals(productId)) {
+                indexToSelect = i;
+                break;
+            }
+        }
+
+        if (indexToSelect >= 0) {
+            m_invlines.setSelectedIndex(indexToSelect);
+            showStockTable();
+            return;
+        }
+
+        try {
+            ProductInfoExt p = m_dlSales.getProductInfo(productId);
+            if (p != null) {
+                // Add a new line with zero units so it doesn't affect stock
+                addLine(p, 0.0, p.getPriceSell());
+                m_invlines.setSelectedIndex(m_invlines.getCount() - 1);
+                showStockTable();
+            }
+        } catch (Exception e) {
+            // ignore - if we cannot find the product, nothing to select
+        }
+    }
     
     /**
      * Actualiza el stock en la base de datos cuando se edita directamente en la tabla

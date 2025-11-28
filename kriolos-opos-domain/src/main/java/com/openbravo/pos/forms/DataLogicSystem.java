@@ -217,6 +217,36 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
     }
     
     /**
+     * Obtiene la pregunta de seguridad de un usuario
+     * @param userId ID del usuario
+     * @return Pregunta de seguridad o null si no existe
+     * @throws BasicException
+     */
+    public final String getSecurityQuestion(String userId) throws BasicException {
+        final SentenceFind m_securityquestion = new PreparedSentence(this.session,
+                "SELECT SECURITY_QUESTION FROM people WHERE ID = ?",
+                SerializerWriteString.INSTANCE,
+                SerializerReadString.INSTANCE);
+        
+        return (String) m_securityquestion.find(userId);
+    }
+    
+    /**
+     * Obtiene la respuesta de seguridad de un usuario
+     * @param userId ID del usuario
+     * @return Respuesta de seguridad o null si no existe
+     * @throws BasicException
+     */
+    public final String getSecurityAnswer(String userId) throws BasicException {
+        final SentenceFind m_securityanswer = new PreparedSentence(this.session,
+                "SELECT SECURITY_ANSWER FROM people WHERE ID = ?",
+                SerializerWriteString.INSTANCE,
+                SerializerReadString.INSTANCE);
+        
+        return (String) m_securityanswer.find(userId);
+    }
+    
+    /**
      *
      * @param permissions
      * @throws BasicException

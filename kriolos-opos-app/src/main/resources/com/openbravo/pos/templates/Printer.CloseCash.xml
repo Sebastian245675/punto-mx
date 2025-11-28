@@ -115,6 +115,22 @@
         </line>
         <line><text>==========================================</text></line>
         <line></line>
+        <!-- LISTA CONSOLIDADA DE PRODUCTOS VENDIDOS DEL DÍA -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">PRODUCTOS VENDIDOS DEL DÍA</text>
+        </line>
+        <line>
+           <text align ="left" bold="true" length="25">Producto</text>
+           <text align ="right" bold="true" length="8">Cantidad</text>
+           <text align ="right" bold="true" length="9">Total</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        <!-- PRODUCTOS_PLACEHOLDER -->
+        <line>
+            <text align ="left" length="42">Sin productos vendidos</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        <line></line>
         #else
         <!-- REPORTE NORMAL (CIERRE DE TURNO) -->
         <line>
@@ -137,6 +153,22 @@
             <text align ="left" length="30">Number of Payments:</text>
             <text align ="right" length="12">${payments.printPayments()}</text>
         </line>
+        <line></line>
+        <!-- PRODUCTOS VENDIDOS DEL TURNO -->
+        <line size="1">
+            <text align ="left" bold="true" length="42">Productos Vendidos del Turno</text>
+        </line>
+        <line>
+           <text align ="left" bold="true" length="25">Producto</text>
+           <text align ="right" bold="true" length="8">Cantidad</text>
+           <text align ="right" bold="true" length="9">Total</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
+        <!-- PRODUCTOS_TURNO_PLACEHOLDER -->
+        <line>
+            <text align ="left" length="42">Sin productos vendidos en este turno</text>
+        </line>
+        <line><text>------------------------------------------</text></line>
         <line></line>
         <line>
             <text align ="left" bold="true" length="30">Tax Analysis</text>
