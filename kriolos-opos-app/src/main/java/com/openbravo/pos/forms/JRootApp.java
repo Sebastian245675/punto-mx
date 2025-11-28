@@ -36,6 +36,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import org.openide.util.Exceptions;
 import com.openbravo.pos.firebase.FirebaseDownloadManagerREST;
+
 /**
  *
  * @author adrianromero
@@ -62,7 +63,7 @@ public class JRootApp extends JPanel implements AppView {
     private JPrincipalApp m_principalapp = null;
     private JAuthPanel mAuthPanel = null;
     private FirebaseSyncManagerREST firebaseSyncManager = null;
-    
+
     // Sebastian - Indicar si la caja activa necesita configuración de fondo inicial
     private boolean needsInitialCashSetup = false;
 
@@ -79,12 +80,12 @@ public class JRootApp extends JPanel implements AppView {
         initComponents();
 
         appFileProperties = props;
-        //TODO load Windows Title 
-        //m_jLblTitle.setText(m_dlSystem.getResourceAsText("Window.Title"));
-        //m_jLblTitle.repaint();
+        // TODO load Windows Title
+        // m_jLblTitle.setText(m_dlSystem.getResourceAsText("Window.Title"));
+        // m_jLblTitle.repaint();
     }
 
-    public void initApp() throws BasicException{
+    public void initApp() throws BasicException {
 
         applyComponentOrientation(ComponentOrientation.getOrientation(Locale.getDefault()));
 
@@ -102,7 +103,7 @@ public class JRootApp extends JPanel implements AppView {
         try {
             com.openbravo.pos.data.DBMigrator.execDBMigration(session);
             LOGGER.log(Level.INFO, "Database verification or migration done sucessfully");
-        }catch(BasicException ex) {
+        } catch (BasicException ex) {
             throw new BasicException("Database verification fail", ex);
         }
 
@@ -114,74 +115,81 @@ public class JRootApp extends JPanel implements AppView {
             LOGGER.log(Level.WARNING, "Fail on verify ActiveCash");
             throw new BasicException("Fail on verify ActiveCash");
         }
-        
-        // DESHABILITADO: Limpiar tabla usuarios al arrancar (excepto admin, empl y manager)
-        // Este código eliminaba los usuarios creados manualmente. Comentado para permitir usuarios personalizados.
+
+        // DESHABILITADO: Limpiar tabla usuarios al arrancar (excepto admin, empl y
+        // manager)
+        // Este código eliminaba los usuarios creados manualmente. Comentado para
+        // permitir usuarios personalizados.
         /*
-        try {
-            LOGGER.log(Level.INFO, "🗑️ Limpiando tabla usuarios (people), excepto admin, empl y manager...");
-            java.sql.Connection conn = session.getConnection();
-            boolean autoCommitOriginal = conn.getAutoCommit();
-            
-            try {
-                // Asegurar que autocommit esté activo o hacer commit manual
-                conn.setAutoCommit(false);
-                
-                // Eliminar todos excepto admin, empl y manager
-                java.sql.PreparedStatement stmt = conn.prepareStatement(
-                    "DELETE FROM people WHERE NAME NOT IN ('admin', 'empl', 'manager')"
-                );
-                int deletedRows = stmt.executeUpdate();
-                stmt.close();
-                
-                // Hacer commit explícito
-                conn.commit();
-                
-                LOGGER.log(Level.INFO, "✅ Tabla usuarios (people) limpiada exitosamente. Registros eliminados: " + deletedRows);
-                
-                // Verificar que realmente se eliminaron y mostrar los usuarios restantes
-                java.sql.PreparedStatement checkStmt = conn.prepareStatement(
-                    "SELECT COUNT(*) as total FROM people"
-                );
-                java.sql.ResultSet rs = checkStmt.executeQuery();
-                if (rs.next()) {
-                    int remainingRows = rs.getInt(1);
-                    LOGGER.log(Level.INFO, "🔍 Verificación: Registros restantes en people: " + remainingRows);
-                }
-                rs.close();
-                checkStmt.close();
-                
-                // Mostrar qué usuarios quedaron
-                java.sql.PreparedStatement listStmt = conn.prepareStatement(
-                    "SELECT NAME FROM people ORDER BY NAME"
-                );
-                java.sql.ResultSet listRs = listStmt.executeQuery();
-                StringBuilder userList = new StringBuilder("👥 Usuarios restantes: ");
-                while (listRs.next()) {
-                    userList.append(listRs.getString("NAME")).append(", ");
-                }
-                LOGGER.log(Level.INFO, userList.toString());
-                listRs.close();
-                listStmt.close();
-                
-            } finally {
-                // Restaurar autocommit original
-                conn.setAutoCommit(autoCommitOriginal);
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.SEVERE, "❌ ERROR al limpiar tabla usuarios: " + e.getMessage(), e);
-            e.printStackTrace();
-        }
-        */
-        
+         * try {
+         * LOGGER.log(Level.INFO,
+         * "🗑️ Limpiando tabla usuarios (people), excepto admin, empl y manager...");
+         * java.sql.Connection conn = session.getConnection();
+         * boolean autoCommitOriginal = conn.getAutoCommit();
+         * 
+         * try {
+         * // Asegurar que autocommit esté activo o hacer commit manual
+         * conn.setAutoCommit(false);
+         * 
+         * // Eliminar todos excepto admin, empl y manager
+         * java.sql.PreparedStatement stmt = conn.prepareStatement(
+         * "DELETE FROM people WHERE NAME NOT IN ('admin', 'empl', 'manager')"
+         * );
+         * int deletedRows = stmt.executeUpdate();
+         * stmt.close();
+         * 
+         * // Hacer commit explícito
+         * conn.commit();
+         * 
+         * LOGGER.log(Level.INFO,
+         * "✅ Tabla usuarios (people) limpiada exitosamente. Registros eliminados: " +
+         * deletedRows);
+         * 
+         * // Verificar que realmente se eliminaron y mostrar los usuarios restantes
+         * java.sql.PreparedStatement checkStmt = conn.prepareStatement(
+         * "SELECT COUNT(*) as total FROM people"
+         * );
+         * java.sql.ResultSet rs = checkStmt.executeQuery();
+         * if (rs.next()) {
+         * int remainingRows = rs.getInt(1);
+         * LOGGER.log(Level.INFO, "🔍 Verificación: Registros restantes en people: " +
+         * remainingRows);
+         * }
+         * rs.close();
+         * checkStmt.close();
+         * 
+         * // Mostrar qué usuarios quedaron
+         * java.sql.PreparedStatement listStmt = conn.prepareStatement(
+         * "SELECT NAME FROM people ORDER BY NAME"
+         * );
+         * java.sql.ResultSet listRs = listStmt.executeQuery();
+         * StringBuilder userList = new StringBuilder("👥 Usuarios restantes: ");
+         * while (listRs.next()) {
+         * userList.append(listRs.getString("NAME")).append(", ");
+         * }
+         * LOGGER.log(Level.INFO, userList.toString());
+         * listRs.close();
+         * listStmt.close();
+         * 
+         * } finally {
+         * // Restaurar autocommit original
+         * conn.setAutoCommit(autoCommitOriginal);
+         * }
+         * } catch (Exception e) {
+         * LOGGER.log(Level.SEVERE, "❌ ERROR al limpiar tabla usuarios: " +
+         * e.getMessage(), e);
+         * e.printStackTrace();
+         * }
+         */
+
         // Inicializar Supabase automáticamente con credenciales internas
         try {
             com.openbravo.pos.forms.AppConfig dlConfig = new com.openbravo.pos.forms.AppConfig(null);
             dlConfig.load();
-            
+
             // Supabase siempre está conectado con credenciales internas
-            com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
-                new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
+            com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader = new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(
+                    session, dlConfig);
             java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
             // NO sincronizar usuarios al inicio para mantenerlos limpios
             selections.put("clientes", true);
@@ -195,9 +203,11 @@ public class JRootApp extends JPanel implements AppView {
             downloader.performSelectedDownload(selections).join();
             LOGGER.info("Supabase sincronización completada exitosamente");
         } catch (IllegalStateException e) {
-            LOGGER.log(Level.WARNING, "Error al inicializar Supabase. Continuando sin sincronización inicial: " + e.getMessage());
+            LOGGER.log(Level.WARNING,
+                    "Error al inicializar Supabase. Continuando sin sincronización inicial: " + e.getMessage());
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Error al inicializar Supabase. Continuando sin sincronización inicial: " + e.getMessage(), e);
+            LOGGER.log(Level.WARNING,
+                    "Error al inicializar Supabase. Continuando sin sincronización inicial: " + e.getMessage(), e);
         }
 
         setInventoryLocation();
@@ -213,22 +223,25 @@ public class JRootApp extends JPanel implements AppView {
 
     private void setTitlePanel() {
 
-        /*Timer show Date Hour:min:seg
-        javax.swing.Timer clockTimer = new javax.swing.Timer(1000, new ActionListener() {
+        /*
+         * Timer show Date Hour:min:seg
+         * javax.swing.Timer clockTimer = new javax.swing.Timer(1000, new
+         * ActionListener() {
+         * 
+         * @Override
+         * public void actionPerformed(ActionEvent evt) {
+         * String m_clock = getLineTimer();
+         * String m_date = getLineDate();
+         * jLabel2.setText("  " + m_date + " " + m_clock);
+         * }
+         * });
+         * 
+         * clockTimer.start();
+         */
 
-            @Override
-            public void actionPerformed(ActionEvent evt) {
-                String m_clock = getLineTimer();
-                String m_date = getLineDate();
-                jLabel2.setText("  " + m_date + " " + m_clock);
-            }
-        });
-
-        clockTimer.start();*/
-        
-        //Remove Panel Title
+        // Remove Panel Title
         remove(m_jPanelTitle);
-        
+
     }
 
     private String getHostID() {
@@ -262,35 +275,38 @@ public class JRootApp extends JPanel implements AppView {
                     ? null
                     : m_dlSystem.findActiveCash(sActiveCashIndex);
             if (valcash == null || !appFileProperties.getHost().equals(valcash[0])) {
-                // Sebastian - Solo inicializar caja sin monto inicial (se pedirá después del login)
+                // Sebastian - Solo inicializar caja sin monto inicial (se pedirá después del
+                // login)
                 setActiveCash(UUID.randomUUID().toString(),
                         m_dlSystem.getSequenceCash(appFileProperties.getHost()) + 1, new Date(), null, 0.0);
                 m_dlSystem.execInsertCash(
-                        new Object[]{getActiveCashIndex(), appFileProperties.getHost(),
-                            getActiveCashSequence(),
-                            getActiveCashDateStart(),
-                            getActiveCashDateEnd(), 0.0}); // Sebastian - Monto inicial temporal
+                        new Object[] { getActiveCashIndex(), appFileProperties.getHost(),
+                                getActiveCashSequence(),
+                                getActiveCashDateStart(),
+                                getActiveCashDateEnd(), 0.0 }); // Sebastian - Monto inicial temporal
                 needsInitialCashSetup = true; // Sebastian - Marcar que necesita configuración de fondo
                 return false; // Continuar normalmente
             } else {
                 // Sebastian - Recuperar fondo inicial guardado (si existe)
                 LOGGER.log(Level.INFO, "🔍 Sebastian - Datos de caja recuperados - Array length: " + valcash.length);
                 for (int i = 0; i < valcash.length; i++) {
-                    LOGGER.log(Level.INFO, "🔍 Sebastian - valcash[" + i + "] = " + valcash[i] + " (tipo: " + (valcash[i] != null ? valcash[i].getClass().getSimpleName() : "null") + ")");
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - valcash[" + i + "] = " + valcash[i] + " (tipo: "
+                            + (valcash[i] != null ? valcash[i].getClass().getSimpleName() : "null") + ")");
                 }
-                
+
                 double savedInitialAmount = valcash.length > 5 ? (Double) valcash[5] : 0.0;
                 setActiveCash(sActiveCashIndex,
                         (Integer) valcash[1],
                         (Date) valcash[2],
                         (Date) valcash[3],
                         savedInitialAmount);
-                
-                LOGGER.log(Level.INFO, "💰 Sebastian POS - Caja activa recuperada con fondo inicial: $" + savedInitialAmount);
-                
+
+                LOGGER.log(Level.INFO,
+                        "💰 Sebastian POS - Caja activa recuperada con fondo inicial: $" + savedInitialAmount);
+
                 // Sebastian - Solo necesita configuración si el fondo inicial es 0 o null
                 needsInitialCashSetup = (savedInitialAmount <= 0.0);
-                
+
                 return false; // Continuar normalmente
             }
         } catch (BasicException e) {
@@ -327,7 +343,6 @@ public class JRootApp extends JPanel implements AppView {
             return null;
         }
     }
-
 
     @Override
     public DeviceTicket getDeviceTicket() {
@@ -487,8 +502,7 @@ public class JRootApp extends JPanel implements AppView {
                 m_TicketParser.printTicket(xmlContent);
             } catch (TicketPrinterException eTP) {
                 m_DeviceTicket.getDeviceDisplay().writeVisor(AppLocal.APP_NAME, AppLocal.APP_VERSION);
-            }
-            catch (ScriptException ex) {
+            } catch (ScriptException ex) {
                 Exceptions.printStackTrace(ex);
             }
         }
@@ -514,20 +528,22 @@ public class JRootApp extends JPanel implements AppView {
             showView(viewID);
 
             m_principalapp.activate();
-            
+
             // Sebastian - Solo verificar monto inicial si realmente necesita configuración
             if (needsInitialCashSetup) {
-                LOGGER.log(Level.INFO, "🔧 Sebastian - Configurando fondo inicial para nueva caja o caja sin fondo configurado");
+                LOGGER.log(Level.INFO,
+                        "🔧 Sebastian - Configurando fondo inicial para nueva caja o caja sin fondo configurado");
                 checkAndSetupInitialCash();
             } else {
-                LOGGER.log(Level.INFO, "✅ Sebastian - Caja activa ya tiene fondo inicial configurado, omitiendo solicitud");
+                LOGGER.log(Level.INFO,
+                        "✅ Sebastian - Caja activa ya tiene fondo inicial configurado, omitiendo solicitud");
             }
-            
+
             // Inicializar Firebase Sync Manager después de activar la aplicación principal
             initializeFirebaseSync();
         }
     }
-    
+
     /**
      * Inicializa el Supabase Sync Manager y ejecuta la sincronización automática
      * si hay conexión a internet y Supabase está configurado.
@@ -537,25 +553,26 @@ public class JRootApp extends JPanel implements AppView {
             if (session != null && m_principalapp != null) {
                 // Crear el FirebaseSyncManagerREST con la sesión actual y el AppUserView
                 firebaseSyncManager = new FirebaseSyncManagerREST(session, m_principalapp);
-                
-                // Inicializar Supabase con el usuario actual - siempre conectado con credenciales internas
-                com.openbravo.pos.supabase.SupabaseServiceManager supabaseManager = 
-                    com.openbravo.pos.supabase.SupabaseServiceManager.getInstance();
+
+                // Inicializar Supabase con el usuario actual - siempre conectado con
+                // credenciales internas
+                com.openbravo.pos.supabase.SupabaseServiceManager supabaseManager = com.openbravo.pos.supabase.SupabaseServiceManager
+                        .getInstance();
                 if (!supabaseManager.initialize(appFileProperties, m_principalapp)) {
                     LOGGER.warning("No se pudo inicializar Supabase Service. Omitiendo sincronización.");
                     return;
                 }
-                
+
                 // Ejecutar sincronización completa en segundo plano
                 CompletableFuture.runAsync(() -> {
                     try {
                         LOGGER.info("Supabase sync iniciado automáticamente después del login");
                         com.openbravo.pos.forms.AppConfig dlConfig = new com.openbravo.pos.forms.AppConfig(null);
                         dlConfig.load();
-                        
+
                         // Supabase siempre está conectado con credenciales internas
-                        com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader =
-                            new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(session, dlConfig);
+                        com.openbravo.pos.firebase.FirebaseDownloadManagerREST downloader = new com.openbravo.pos.firebase.FirebaseDownloadManagerREST(
+                                session, dlConfig);
                         java.util.Map<String, Boolean> selections = new java.util.HashMap<>();
                         // NO sincronizar usuarios - mantenerlos limpios
                         selections.put("usuarios", true);
@@ -570,9 +587,11 @@ public class JRootApp extends JPanel implements AppView {
                         downloader.performSelectedDownload(selections).join();
                         LOGGER.info("Supabase sincronización completada exitosamente después del login");
                     } catch (IllegalStateException e) {
-                        LOGGER.log(Level.WARNING, "Error al inicializar Supabase. Omitiendo sincronización: " + e.getMessage());
+                        LOGGER.log(Level.WARNING,
+                                "Error al inicializar Supabase. Omitiendo sincronización: " + e.getMessage());
                     } catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "Error al ejecutar sincronización completa con Supabase: " + e.getMessage(), e);
+                        LOGGER.log(Level.WARNING,
+                                "Error al ejecutar sincronización completa con Supabase: " + e.getMessage(), e);
                     }
                 });
             }
@@ -580,46 +599,48 @@ public class JRootApp extends JPanel implements AppView {
             LOGGER.log(Level.WARNING, "Error al inicializar Supabase Sync Manager: " + e.getMessage(), e);
         }
     }
-    
+
     /**
-     * Sebastian - Configurar monto inicial (solo se llama cuando realmente se necesita)
+     * Sebastian - Configurar monto inicial (solo se llama cuando realmente se
+     * necesita)
      */
     private void checkAndSetupInitialCash() {
-        LOGGER.log(Level.INFO, "� Sebastian - Solicitando configuración de fondo inicial para caja: " + getActiveCashIndex());
+        LOGGER.log(Level.INFO,
+                "� Sebastian - Solicitando configuración de fondo inicial para caja: " + getActiveCashIndex());
         SwingUtilities.invokeLater(() -> {
             showInitialCashDialog();
         });
     }
-    
+
     /**
      * Sebastian - Mostrar diálogo para configurar monto inicial
      */
     private void showInitialCashDialog() {
         try {
             LOGGER.log(Level.INFO, "🔔 Sebastian - Mostrando diálogo de monto inicial...");
-            
+
             // Ejecutar en EDT si no estamos ya en él
             if (!SwingUtilities.isEventDispatchThread()) {
                 SwingUtilities.invokeAndWait(() -> showInitialCashDialog());
                 return;
             }
-            
+
             // Usar la aplicación principal como padre
             JFrame parentFrame = (JFrame) SwingUtilities.getWindowAncestor(this);
             if (parentFrame == null && getTopLevelAncestor() instanceof JFrame) {
                 parentFrame = (JFrame) getTopLevelAncestor();
             }
-            
+
             JDialogInitialCash dialog = new JDialogInitialCash(parentFrame);
             dialog.setInitialAmount(0.0);
-            
+
             // Asegurar que el diálogo esté al frente
             dialog.setAlwaysOnTop(true);
             dialog.toFront();
             dialog.requestFocus();
-            
+
             dialog.setVisible(true);
-            
+
             if (dialog.isAccepted()) {
                 double initialAmount = dialog.getInitialAmount();
                 LOGGER.log(Level.INFO, "💰 Sebastian POS - Fondo inicial establecido: $" + initialAmount);
@@ -629,58 +650,61 @@ public class JRootApp extends JPanel implements AppView {
             LOGGER.log(Level.WARNING, "Error mostrando diálogo de monto inicial", ex);
         }
     }
-    
+
     /**
      * Sebastian - Actualizar monto inicial de la caja activa
      */
     private void updateActiveCashInitialAmount(double initialAmount) {
         try {
             String activeCashIndex = getActiveCashIndex();
-            LOGGER.log(Level.INFO, "🔄 Sebastian - Actualizando monto inicial en BD. Caja: " + activeCashIndex + ", Monto: $" + initialAmount);
-            
+            LOGGER.log(Level.INFO, "🔄 Sebastian - Actualizando monto inicial en BD. Caja: " + activeCashIndex
+                    + ", Monto: $" + initialAmount);
+
             // Actualizar en la base de datos
             try {
                 m_dlSystem.execUpdateCashInitialAmount(activeCashIndex, initialAmount);
                 LOGGER.log(Level.INFO, "✅ Sebastian - Monto inicial actualizado en BD correctamente");
             } catch (Exception sqlEx) {
-                LOGGER.log(Level.SEVERE, "❌ Sebastian - ERROR CRÍTICO en execUpdateCashInitialAmount: " + sqlEx.getMessage(), sqlEx);
+                LOGGER.log(Level.SEVERE,
+                        "❌ Sebastian - ERROR CRÍTICO en execUpdateCashInitialAmount: " + sqlEx.getMessage(), sqlEx);
                 throw sqlEx; // Re-lanzar para que se vea el error completo
             }
-            
+
             // Verificar que el cambio se guardó consultando la BD inmediatamente
             Object[] verificationData = m_dlSystem.findActiveCash(activeCashIndex);
             if (verificationData != null && verificationData.length > 5) {
                 double savedAmount = (verificationData[5] != null) ? ((Number) verificationData[5]).doubleValue() : 0.0;
                 LOGGER.log(Level.INFO, "🔍 Sebastian - Verificación BD: Monto guardado = $" + savedAmount);
-                
+
                 if (Math.abs(savedAmount - initialAmount) < 0.01) {
                     LOGGER.log(Level.INFO, "✅ Sebastian - Verificación EXITOSA: BD actualizada correctamente");
                 } else {
-                    LOGGER.log(Level.WARNING, "❌ Sebastian - Verificación FALLÓ: BD muestra $" + savedAmount + ", esperaba $" + initialAmount);
+                    LOGGER.log(Level.WARNING, "❌ Sebastian - Verificación FALLÓ: BD muestra $" + savedAmount
+                            + ", esperaba $" + initialAmount);
                 }
             }
-            
+
             // Actualizar en memoria
             setActiveCashInitialAmount(initialAmount);
             LOGGER.log(Level.INFO, "✅ Sebastian - Monto inicial actualizado en memoria correctamente");
-            
+
             // Sebastian - Marcar que ya no necesita configuración de fondo inicial
             needsInitialCashSetup = false;
-            
+
             LOGGER.log(Level.INFO, "✅ Sebastian - PROCESO COMPLETO: Monto inicial actualizado: $" + initialAmount);
         } catch (Exception ex) {
             LOGGER.log(Level.WARNING, "❌ Sebastian - Error actualizando monto inicial: " + ex.getMessage(), ex);
         }
     }
-    
-    //Release hardware,files,...
+
+    // Release hardware,files,...
     private void releaseResources() {
-        if(m_DeviceTicket != null){
+        if (m_DeviceTicket != null) {
             m_DeviceTicket.getDeviceDisplay().clearVisor();
         }
-        
+
         // Limpiar el Firebase Sync Manager si existe
-        if(firebaseSyncManager != null) {
+        if (firebaseSyncManager != null) {
             try {
                 // Aquí se puede agregar cualquier limpieza necesaria del FirebaseSyncManager
                 firebaseSyncManager = null;
@@ -697,18 +721,18 @@ public class JRootApp extends JPanel implements AppView {
         if (m_principalapp != null && getActiveCashDateEnd() == null && getActiveCashIndex() != null) {
             // Hay un turno abierto, mostrar diálogo simple primero
             int opcion = JOptionPane.showOptionDialog(
-                this,
-                "Tienes un turno abierto.\n¿Qué deseas hacer?",
-                "Turno Abierto",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE,
-                null,
-                new Object[]{"Cerrar Turno", "Mantener Turno"},
-                "Cerrar Turno"
-            );
-            
+                    this,
+                    "Tienes un turno abierto.\n¿Qué deseas hacer?",
+                    "Turno Abierto",
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    new Object[] { "Cerrar Turno", "Mantener Turno" },
+                    "Cerrar Turno");
+
             if (opcion == JOptionPane.YES_OPTION) {
-                // El usuario eligió "Cerrar Turno" - mostrar diálogo completo con información y dinero físico
+                // El usuario eligió "Cerrar Turno" - mostrar diálogo completo con información y
+                // dinero físico
                 java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
                 Frame parentFrame = null;
                 if (parentWindow instanceof Frame) {
@@ -716,15 +740,15 @@ public class JRootApp extends JPanel implements AppView {
                 } else if (parentWindow instanceof Dialog) {
                     parentFrame = (Frame) ((Dialog) parentWindow).getParent();
                 }
-                
+
                 JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, this);
                 dialog.setVisible(true);
-                
+
                 if (dialog.isClosed() && dialog.shouldCloseShift()) {
                     // El turno fue cerrado exitosamente, ahora cerrar la aplicación
                     if (closeAppView()) {
                         releaseResources();
-                        if(session != null){
+                        if (session != null) {
                             try {
                                 session.close();
                             } catch (SQLException ex) {
@@ -732,9 +756,9 @@ public class JRootApp extends JPanel implements AppView {
                             }
                         }
                         java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
-                        if(parent != null){
+                        if (parent != null) {
                             parent.dispose();
-                        }else {
+                        } else {
                             this.setVisible(false);
                             this.setEnabled(false);
                         }
@@ -743,10 +767,11 @@ public class JRootApp extends JPanel implements AppView {
                 // Si canceló el diálogo de cierre, no hacer nada (no cerrar la aplicación)
                 return;
             } else if (opcion == JOptionPane.NO_OPTION || opcion == JOptionPane.CLOSED_OPTION) {
-                // El usuario eligió "Mantener Turno" o cerró el diálogo, cerrar la aplicación normalmente
+                // El usuario eligió "Mantener Turno" o cerró el diálogo, cerrar la aplicación
+                // normalmente
                 if (closeAppView()) {
                     releaseResources();
-                    if(session != null){
+                    if (session != null) {
                         try {
                             session.close();
                         } catch (SQLException ex) {
@@ -754,9 +779,9 @@ public class JRootApp extends JPanel implements AppView {
                         }
                     }
                     java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
-                    if(parent != null){
+                    if (parent != null) {
                         parent.dispose();
-                    }else {
+                    } else {
                         this.setVisible(false);
                         this.setEnabled(false);
                     }
@@ -770,7 +795,7 @@ public class JRootApp extends JPanel implements AppView {
         // No hay turno abierto, cerrar normalmente
         if (closeAppView()) {
             releaseResources();
-            if(session != null){
+            if (session != null) {
                 try {
                     session.close();
                 } catch (SQLException ex) {
@@ -778,9 +803,9 @@ public class JRootApp extends JPanel implements AppView {
                 }
             }
             java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
-            if(parent != null){
+            if (parent != null) {
                 parent.dispose();
-            }else {
+            } else {
                 this.setVisible(false);
                 this.setEnabled(false);
             }
@@ -801,7 +826,7 @@ public class JRootApp extends JPanel implements AppView {
             m_jPanelContainer.remove(m_principalapp);
             m_principalapp = null;
 
-            //showLoginPanel();
+            // showLoginPanel();
             return true;
         }
     }
@@ -809,11 +834,11 @@ public class JRootApp extends JPanel implements AppView {
     private void showLoginPanel() {
         LOGGER.log(Level.WARNING, "INFO :: showLoginPanel");
         if (mAuthPanel == null) {
-            mAuthPanel = new JAuthPanel(m_dlSystem, new JAuthPanel.AuthListener() {
+            mAuthPanel = new JAuthPanel(m_dlSystem, session, new JAuthPanel.AuthListener() {
                 @Override
                 public void onSucess(AppUser user) {
                     openAppView(user);
-                    
+
                 }
             });
             m_jPanelContainer.add(mAuthPanel, "login");
@@ -836,7 +861,8 @@ public class JRootApp extends JPanel implements AppView {
         } catch (SQLException e) {
             url = "";
         }
-        m_jHost.setText("<html>" + appFileProperties.getHost() + " ;<b>WareHouse<b>: " + sWareHouse + "<br>" + url + "</html>");
+        m_jHost.setText(
+                "<html>" + appFileProperties.getHost() + " ;<b>WareHouse<b>: " + sWareHouse + "<br>" + url + "</html>");
     }
 
     /**
@@ -844,7 +870,8 @@ public class JRootApp extends JPanel implements AppView {
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the FormEditor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         m_jPanelTitle = new javax.swing.JPanel();
@@ -862,7 +889,8 @@ public class JRootApp extends JPanel implements AppView {
         setPreferredSize(new java.awt.Dimension(1024, 768));
         setLayout(new java.awt.BorderLayout());
 
-        m_jPanelTitle.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")));
+        m_jPanelTitle.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0,
+                javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")));
         m_jPanelTitle.setPreferredSize(new java.awt.Dimension(449, 40));
         m_jPanelTitle.setLayout(new java.awt.BorderLayout());
 
@@ -888,7 +916,8 @@ public class JRootApp extends JPanel implements AppView {
         m_jPanelContainer.setLayout(new java.awt.CardLayout());
         add(m_jPanelContainer, java.awt.BorderLayout.CENTER);
 
-        statusBarPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0, javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")));
+        statusBarPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0,
+                javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")));
         statusBarPanel.setLayout(new javax.swing.BoxLayout(statusBarPanel, javax.swing.BoxLayout.LINE_AXIS));
 
         panelTask.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
@@ -924,10 +953,9 @@ public class JRootApp extends JPanel implements AppView {
         add(statusBarPanel, java.awt.BorderLayout.SOUTH);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void m_jCloseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jCloseActionPerformed
+    private void m_jCloseActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jCloseActionPerformed
         tryToClose();
-    }//GEN-LAST:event_m_jCloseActionPerformed
-
+    }// GEN-LAST:event_m_jCloseActionPerformed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel2;

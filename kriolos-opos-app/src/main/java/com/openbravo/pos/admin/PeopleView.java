@@ -41,28 +41,31 @@ import javax.swing.*;
 public class PeopleView extends JPanel implements EditorRecord<Object> {
 
     private static final long serialVersionUID = 1L;
-    
+
     private String m_oId;
     private String m_sPassword;
-    
+
     private final DirtyManager m_Dirty;
-    
+
     private final SentenceList<RoleInfo> m_sentrole;
-    private ComboBoxValModel<RoleInfo> m_RoleModel;  
-    
-    private final ComboBoxValModel<String> m_ReasonModel;        
-    
-    /** Creates new form PeopleEditor
+    private ComboBoxValModel<RoleInfo> m_RoleModel;
+
+    private final ComboBoxValModel<String> m_ReasonModel;
+
+    /**
+     * Creates new form PeopleEditor
+     * 
      * @param dlAdmin
-     * @param dirty */
+     * @param dirty
+     */
     public PeopleView(DataLogicAdmin dlAdmin, DirtyManager dirty) {
 
         initComponents();
-                
+
         // El modelo de roles
         m_sentrole = dlAdmin.getRolesList();
         m_RoleModel = new ComboBoxValModel<>();
-        
+
         m_Dirty = dirty;
         m_jName.getDocument().addDocumentListener(dirty);
         m_jRole.addActionListener(dirty);
@@ -72,18 +75,19 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
 
         m_ReasonModel = new ComboBoxValModel<>();
         m_ReasonModel.add(AppLocal.getIntString("cboption.generate"));
-        m_ReasonModel.add(AppLocal.getIntString("cboption.clear"));              
-        /*IBUTTON DISABLE 
-        m_ReasonModel.add(AppLocal.getIntString("cboption.iButton"));  
-        */
-        
+        m_ReasonModel.add(AppLocal.getIntString("cboption.clear"));
+        /*
+         * IBUTTON DISABLE
+         * m_ReasonModel.add(AppLocal.getIntString("cboption.iButton"));
+         */
+
         webCBSecurity.setModel(m_ReasonModel);
-        
+
         cleanFields();
         disableFields();
     }
 
-    private void cleanFields(){
+    private void cleanFields() {
         m_oId = null;
         m_sPassword = null;
         m_jName.setText(null);
@@ -93,10 +97,13 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jImage.setImage(null);
         name_sucursal.setText(null);
         direccion_sucursal.setText(null);
-        if (security_question != null) security_question.setText(null);
-        if (security_answer != null) security_answer.setText(null);
+        if (security_question != null)
+            security_question.setText(null);
+        if (security_answer != null)
+            security_answer.setText(null);
     }
-    private void disableFields(){
+
+    private void disableFields() {
         m_jName.setEnabled(false);
         m_jRole.setEnabled(false);
         m_jVisible.setEnabled(false);
@@ -104,11 +111,13 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jImage.setEnabled(false);
         jButton1.setEnabled(false);
         webCBSecurity.setEnabled(false);
-        if (security_question != null) security_question.setEnabled(false);
-        if (security_answer != null) security_answer.setEnabled(false);
+        if (security_question != null)
+            security_question.setEnabled(false);
+        if (security_answer != null)
+            security_answer.setEnabled(false);
     }
-    
-    private void enableFields(){
+
+    private void enableFields() {
         m_jName.setEnabled(true);
         m_jRole.setEnabled(true);
         m_jVisible.setEnabled(true);
@@ -116,17 +125,18 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_jImage.setEnabled(true);
         jButton1.setEnabled(true);
         webCBSecurity.setEnabled(true);
-        if (security_question != null) security_question.setEnabled(true);
-        if (security_answer != null) security_answer.setEnabled(true);
+        if (security_question != null)
+            security_question.setEnabled(true);
+        if (security_answer != null)
+            security_answer.setEnabled(true);
     }
-    
-    
+
     @Override
     public void writeValueEOF() {
         cleanFields();
         disableFields();
     }
-    
+
     /**
      *
      */
@@ -136,9 +146,9 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         m_oId = UUID.randomUUID().toString();
         // Marcar como visible por defecto para nuevos usuarios
         m_jVisible.setSelected(true);
-        enableFields();        
+        enableFields();
     }
-    
+
     /**
      *
      * @param value
@@ -146,28 +156,32 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
     @Override
     public void writeValueDelete(Object value) {
         Object[] people = (Object[]) value;
-        m_oId = (String)people[0];
-        m_jName.setText(Formats.STRING.formatValue((String)people[1]));
-        m_sPassword = Formats.STRING.formatValue((String)people[2]);
+        m_oId = (String) people[0];
+        m_jName.setText(Formats.STRING.formatValue((String) people[1]));
+        m_sPassword = Formats.STRING.formatValue((String) people[2]);
         m_RoleModel.setSelectedKey(people[3]);
         m_jVisible.setSelected(((Boolean) people[4]));
-        m_jcard.setText(Formats.STRING.formatValue((String)people[5]));
+        m_jcard.setText(Formats.STRING.formatValue((String) people[5]));
         m_jImage.setImage((BufferedImage) people[6]);
         if (people.length > 8) {
-            name_sucursal.setText(Formats.STRING.formatValue((String)people[7]));
-            direccion_sucursal.setText(Formats.STRING.formatValue((String)people[8]));
+            name_sucursal.setText(Formats.STRING.formatValue((String) people[7]));
+            direccion_sucursal.setText(Formats.STRING.formatValue((String) people[8]));
         } else {
             name_sucursal.setText(null);
             direccion_sucursal.setText(null);
         }
         if (people.length > 10) {
-            if (security_question != null) security_question.setText(Formats.STRING.formatValue((String)people[9]));
-            if (security_answer != null) security_answer.setText(Formats.STRING.formatValue((String)people[10]));
+            if (security_question != null)
+                security_question.setText(Formats.STRING.formatValue((String) people[9]));
+            if (security_answer != null)
+                security_answer.setText(Formats.STRING.formatValue((String) people[10]));
         } else {
-            if (security_question != null) security_question.setText(null);
-            if (security_answer != null) security_answer.setText(null);
+            if (security_question != null)
+                security_question.setText(null);
+            if (security_answer != null)
+                security_answer.setText(null);
         }
-        
+
         disableFields();
     }
 
@@ -178,37 +192,41 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
     @Override
     public void writeValueEdit(Object value) {
         Object[] people = (Object[]) value;
-        m_oId = (String)people[0];
-        m_jName.setText(Formats.STRING.formatValue((String)people[1]));
-        m_sPassword = Formats.STRING.formatValue((String)people[2]);
+        m_oId = (String) people[0];
+        m_jName.setText(Formats.STRING.formatValue((String) people[1]));
+        m_sPassword = Formats.STRING.formatValue((String) people[2]);
         m_RoleModel.setSelectedKey(people[3]);
         m_jVisible.setSelected(((Boolean) people[4]));
-        m_jcard.setText(Formats.STRING.formatValue((String)people[5]));
+        m_jcard.setText(Formats.STRING.formatValue((String) people[5]));
         m_jImage.setImage((BufferedImage) people[6]);
         if (people.length > 8) {
-            name_sucursal.setText(Formats.STRING.formatValue((String)people[7]));
-            direccion_sucursal.setText(Formats.STRING.formatValue((String)people[8]));
+            name_sucursal.setText(Formats.STRING.formatValue((String) people[7]));
+            direccion_sucursal.setText(Formats.STRING.formatValue((String) people[8]));
         } else {
             name_sucursal.setText(null);
             direccion_sucursal.setText(null);
         }
         if (people.length > 10) {
-            if (security_question != null) security_question.setText(Formats.STRING.formatValue((String)people[9]));
-            if (security_answer != null) security_answer.setText(Formats.STRING.formatValue((String)people[10]));
+            if (security_question != null)
+                security_question.setText(Formats.STRING.formatValue((String) people[9]));
+            if (security_answer != null)
+                security_answer.setText(Formats.STRING.formatValue((String) people[10]));
         } else {
-            if (security_question != null) security_question.setText(null);
-            if (security_answer != null) security_answer.setText(null);
+            if (security_question != null)
+                security_question.setText(null);
+            if (security_answer != null)
+                security_answer.setText(null);
         }
-        
+
         if (m_jcard.getText().length() == 16) {
             jLblCardID.setText(AppLocal.getIntString("label.ibutton"));
         } else {
-            jLblCardID.setText(AppLocal.getIntString("label.card"));            
+            jLblCardID.setText(AppLocal.getIntString("label.card"));
         }
 
-        enableFields();          
+        enableFields();
     }
-    
+
     /**
      *
      * @return
@@ -248,25 +266,26 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
      * @throws BasicException
      */
     public void activate() throws BasicException {
-        
+
         m_RoleModel = new ComboBoxValModel<>(m_sentrole.list());
         m_jRole.setModel(m_RoleModel);
     }
-    
-   
+
     /**
      *
      */
     @Override
     public void refresh() {
     }
-     
-    /** This method is called from within the constructor to
+
+    /**
+     * This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
      * always regenerated by the Form Editor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jTabbedPane1 = new javax.swing.JTabbedPane();
@@ -341,7 +360,8 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         jLblCardID.setPreferredSize(new java.awt.Dimension(110, 30));
 
         webCBSecurity.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        webCBSecurity.setModel(new javax.swing.DefaultComboBoxModel(new String[] { "Generate new key", "Delete exisitng key", "Use iButton ID" }));
+        webCBSecurity.setModel(new javax.swing.DefaultComboBoxModel(
+                new String[] { "Generate new key", "Delete exisitng key", "Use iButton ID" }));
         webCBSecurity.setSelectedIndex(0);
         webCBSecurity.setToolTipText(AppLocal.getIntString("tooltip.peoplesecurity")); // NOI18N
         webCBSecurity.setPreferredSize(new java.awt.Dimension(140, 45));
@@ -368,23 +388,23 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
 
         direccion_sucursal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         direccion_sucursal.setPreferredSize(new java.awt.Dimension(0, 30));
-        
+
         // Campos de pregunta y respuesta de seguridad
         jLabel7 = new javax.swing.JLabel();
         jLabel7.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jLabel7.setText("Pregunta de Seguridad"); // NOI18N
         jLabel7.setPreferredSize(new java.awt.Dimension(110, 30));
-        
+
         security_question = new javax.swing.JTextField();
         security_question.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         security_question.setPreferredSize(new java.awt.Dimension(0, 30));
         security_question.getDocument().addDocumentListener(m_Dirty);
-        
+
         jLabel8 = new javax.swing.JLabel();
         jLabel8.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         jLabel8.setText("Respuesta de Seguridad"); // NOI18N
         jLabel8.setPreferredSize(new java.awt.Dimension(110, 30));
-        
+
         security_answer = new javax.swing.JPasswordField();
         security_answer.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         security_answer.setPreferredSize(new java.awt.Dimension(0, 30));
@@ -393,100 +413,186 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         javax.swing.GroupLayout generalPanelLayout = new javax.swing.GroupLayout(generalPanel);
         generalPanel.setLayout(generalPanelLayout);
         generalPanelLayout.setHorizontalGroup(
-            generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(generalPanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(generalPanelLayout.createSequentialGroup()
-                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(name_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(generalPanelLayout.createSequentialGroup()
-                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(direccion_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(generalPanelLayout.createSequentialGroup()
-                        .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(security_question, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addGroup(generalPanelLayout.createSequentialGroup()
-                        .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addGap(18, 18, 18)
-                        .addComponent(security_answer, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addContainerGap(186, Short.MAX_VALUE))
-            .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(generalPanelLayout.createSequentialGroup()
-                    .addContainerGap()
-                    .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(generalPanelLayout.createSequentialGroup()
-                            .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(18, 18, 18)
-                            .addComponent(m_jVisible, javax.swing.GroupLayout.PREFERRED_SIZE, 207, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(generalPanelLayout.createSequentialGroup()
-                            .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                            .addComponent(m_jRole, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(generalPanelLayout.createSequentialGroup()
-                            .addComponent(jLblCardID, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                            .addComponent(m_jcard, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(webCBSecurity, 0, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(generalPanelLayout.createSequentialGroup()
-                            .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                            .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                    .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-        );
+                                .addContainerGap()
+                                .addGroup(generalPanelLayout
+                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addGroup(generalPanelLayout.createSequentialGroup()
+                                                .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(18, 18, 18)
+                                                .addComponent(name_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        180, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(generalPanelLayout.createSequentialGroup()
+                                                .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(18, 18, 18)
+                                                .addComponent(direccion_sucursal,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE, 180,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(generalPanelLayout.createSequentialGroup()
+                                                .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(18, 18, 18)
+                                                .addComponent(security_question, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        180, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addGroup(generalPanelLayout.createSequentialGroup()
+                                                .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addGap(18, 18, 18)
+                                                .addComponent(security_answer, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        180, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                                .addContainerGap(186, Short.MAX_VALUE))
+                        .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(generalPanelLayout.createSequentialGroup()
+                                        .addContainerGap()
+                                        .addGroup(generalPanelLayout
+                                                .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addGroup(generalPanelLayout.createSequentialGroup()
+                                                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addGap(18, 18, 18)
+                                                        .addComponent(m_jVisible,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE, 207,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addGroup(generalPanelLayout.createSequentialGroup()
+                                                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addPreferredGap(
+                                                                javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                        .addComponent(m_jRole, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                180, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addGroup(generalPanelLayout.createSequentialGroup()
+                                                        .addComponent(jLblCardID,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addPreferredGap(
+                                                                javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                        .addComponent(m_jcard, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                180, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addPreferredGap(
+                                                                javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                        .addComponent(webCBSecurity, 0,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                .addGroup(generalPanelLayout.createSequentialGroup()
+                                                        .addGroup(generalPanelLayout
+                                                                .createParallelGroup(
+                                                                        javax.swing.GroupLayout.Alignment.LEADING)
+                                                                .addComponent(jLabel1,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addComponent(jLabel6,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                                        .addPreferredGap(
+                                                                javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                                        .addGroup(generalPanelLayout
+                                                                .createParallelGroup(
+                                                                        javax.swing.GroupLayout.Alignment.LEADING)
+                                                                .addComponent(jButton1,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addComponent(m_jName,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE, 180,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                        .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))));
         generalPanelLayout.setVerticalGroup(
-            generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, generalPanelLayout.createSequentialGroup()
-                .addContainerGap(250, Short.MAX_VALUE)
-                .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(name_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(direccion_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(security_question, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(18, 18, 18)
-                .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(security_answer, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(50, 50, 50))
-            .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addGroup(generalPanelLayout.createSequentialGroup()
-                    .addContainerGap()
-                    .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                    .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                        .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                    .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                        .addComponent(jLblCardID, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(m_jcard, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(webCBSecurity, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                    .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                        .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(m_jRole, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                    .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE)
-                        .addComponent(m_jVisible, javax.swing.GroupLayout.PREFERRED_SIZE, 25, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addContainerGap(35, Short.MAX_VALUE)))
-        );
+                generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, generalPanelLayout.createSequentialGroup()
+                                .addContainerGap(250, Short.MAX_VALUE)
+                                .addGroup(generalPanelLayout
+                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, 25,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(name_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addGroup(generalPanelLayout
+                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel5, javax.swing.GroupLayout.PREFERRED_SIZE, 25,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(direccion_sucursal, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addGroup(generalPanelLayout
+                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, 25,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(security_question, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(18, 18, 18)
+                                .addGroup(generalPanelLayout
+                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel8, javax.swing.GroupLayout.PREFERRED_SIZE, 25,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(security_answer, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(50, 50, 50))
+                        .addGroup(generalPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                .addGroup(generalPanelLayout.createSequentialGroup()
+                                        .addContainerGap()
+                                        .addGroup(generalPanelLayout
+                                                .createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addGroup(generalPanelLayout
+                                                .createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                                                .addComponent(jLabel6, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(jButton1, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addGroup(generalPanelLayout
+                                                .createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
+                                                .addComponent(jLblCardID, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(m_jcard, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(webCBSecurity, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addGroup(generalPanelLayout
+                                                .createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                                .addComponent(jLabel2, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(m_jRole, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                        .addGroup(generalPanelLayout
+                                                .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                                .addComponent(jLabel3, javax.swing.GroupLayout.PREFERRED_SIZE, 25,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                .addComponent(m_jVisible, javax.swing.GroupLayout.PREFERRED_SIZE, 25,
+                                                        javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addContainerGap(35, Short.MAX_VALUE))));
 
         jTabbedPane1.addTab(AppLocal.getIntString("label.general"), generalPanel); // NOI18N
 
@@ -496,106 +602,103 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         javax.swing.GroupLayout imagePanelLayout = new javax.swing.GroupLayout(imagePanel);
         imagePanel.setLayout(imagePanelLayout);
         imagePanelLayout.setHorizontalGroup(
-            imagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(imagePanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(m_jImage, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
+                imagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(imagePanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(m_jImage, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap()));
         imagePanelLayout.setVerticalGroup(
-            imagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(imagePanelLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(m_jImage, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
+                imagePanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(imagePanelLayout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(m_jImage, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap()));
 
         jTabbedPane1.addTab(AppLocal.getIntString("label.peopleimage"), imagePanel); // NOI18N
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addComponent(jTabbedPane1, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addComponent(jTabbedPane1, javax.swing.GroupLayout.Alignment.TRAILING,
+                                javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                Short.MAX_VALUE));
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 488, Short.MAX_VALUE)
-                .addContainerGap())
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addContainerGap()
+                                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 488, Short.MAX_VALUE)
+                                .addContainerGap()));
     }// </editor-fold>//GEN-END:initComponents
 
-    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton1ActionPerformed
+    private void jButton1ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButton1ActionPerformed
 
         String sNewPassword = JPasswordDialog.changePassword(this);
         if (sNewPassword != null) {
-            m_sPassword = sNewPassword;
+            m_sPassword = Hashcypher.hashString(sNewPassword);
             m_Dirty.setDirty(true);
         }
 
-    }//GEN-LAST:event_jButton1ActionPerformed
+    }// GEN-LAST:event_jButton1ActionPerformed
 
-    private void webCBSecurityActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_webCBSecurityActionPerformed
+    private void webCBSecurityActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_webCBSecurityActionPerformed
 
-
-        if(webCBSecurity.getSelectedIndex() == 0){
-            if (JOptionPane.showConfirmDialog(this, 
-                AppLocal.getIntString("message.cardnew"), 
-                AppLocal.getIntString("title.editor"), 
-                JOptionPane.YES_NO_OPTION, 
-                JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) 
-            {  
+        if (webCBSecurity.getSelectedIndex() == 0) {
+            if (JOptionPane.showConfirmDialog(this,
+                    AppLocal.getIntString("message.cardnew"),
+                    AppLocal.getIntString("title.editor"),
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                 m_jcard.setText("C" + StringUtils.getCardNumber());
                 m_Dirty.setDirty(true);
-            }        
-        }         
+            }
+        }
 
-        if(webCBSecurity.getSelectedIndex() == 1){
-            if (JOptionPane.showConfirmDialog(this, 
-                AppLocal.getIntString("message.cardremove"), 
-                AppLocal.getIntString("title.editor"), 
-                JOptionPane.YES_NO_OPTION, 
-                JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) 
-            {  
+        if (webCBSecurity.getSelectedIndex() == 1) {
+            if (JOptionPane.showConfirmDialog(this,
+                    AppLocal.getIntString("message.cardremove"),
+                    AppLocal.getIntString("title.editor"),
+                    JOptionPane.YES_NO_OPTION,
+                    JOptionPane.QUESTION_MESSAGE) == JOptionPane.YES_OPTION) {
                 m_jcard.setText(null);
                 m_Dirty.setDirty(true);
             }
         }
-        
-        if(webCBSecurity.getSelectedIndex() == 2){
-            if (JOptionPane.showConfirmDialog(this, 
-                AppLocal.getIntString("message.ibuttonassign"), 
-                AppLocal.getIntString("title.editor"), 
-                JOptionPane.OK_CANCEL_OPTION, 
-                JOptionPane.INFORMATION_MESSAGE) == JOptionPane.OK_OPTION) 
 
-            {  
-                /* IBUTTON DISABLE
-                m_jcard.setText("TODO_SHOULD_PROVIDE_CODE_FROM_IBUTTON");
-                jLblCardID.setText(AppLocal.getIntString("label.ibutton"));
-                m_Dirty.setDirty(true);
-                */
+        if (webCBSecurity.getSelectedIndex() == 2) {
+            if (JOptionPane.showConfirmDialog(this,
+                    AppLocal.getIntString("message.ibuttonassign"),
+                    AppLocal.getIntString("title.editor"),
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.INFORMATION_MESSAGE) == JOptionPane.OK_OPTION)
+
+            {
+                /*
+                 * IBUTTON DISABLE
+                 * m_jcard.setText("TODO_SHOULD_PROVIDE_CODE_FROM_IBUTTON");
+                 * jLblCardID.setText(AppLocal.getIntString("label.ibutton"));
+                 * m_Dirty.setDirty(true);
+                 */
             }
 
-        }                
-               
-    }//GEN-LAST:event_webCBSecurityActionPerformed
+        }
 
-    private void jLabel1MouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jLabel1MouseClicked
+    }// GEN-LAST:event_webCBSecurityActionPerformed
+
+    private void jLabel1MouseClicked(java.awt.event.MouseEvent evt) {// GEN-FIRST:event_jLabel1MouseClicked
         if (evt.getClickCount() == 2) {
             String uuidString = m_oId.toString();
             StringSelection stringSelection = new StringSelection(uuidString);
             Clipboard clpbrd = Toolkit.getDefaultToolkit().getSystemClipboard();
             clpbrd.setContents(stringSelection, null);
-        
-            JOptionPane.showMessageDialog(null, 
-                AppLocal.getIntString("message.uuidcopy"));
+
+            JOptionPane.showMessageDialog(null,
+                    AppLocal.getIntString("message.uuidcopy"));
         }
-    }//GEN-LAST:event_jLabel1MouseClicked
-    
-    
+    }// GEN-LAST:event_jLabel1MouseClicked
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JTextField direccion_sucursal;
     private javax.swing.JPanel generalPanel;
@@ -621,5 +724,5 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
     private javax.swing.JPasswordField security_answer;
     private javax.swing.JComboBox webCBSecurity;
     // End of variables declaration//GEN-END:variables
-    
+
 }
