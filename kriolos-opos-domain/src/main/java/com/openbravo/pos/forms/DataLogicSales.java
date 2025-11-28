@@ -55,6 +55,8 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
 import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -1772,10 +1774,39 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         + "VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                         SerializerWriteBuilder.INSTANCE);
 
+                // Track cumulative delta per (product:attribute) so multiple lines in a ticket are validated together
+                Map<String, Double> cumulativeDelta = new HashMap<>();
+                Map<String, Double> currentStockCache = new HashMap<>();
                 for (TicketLineInfo l : ticket.getLines()) {
                     ticketlineinsert.exec(l);
 
                     if (l.getProductID() != null && l.isProductService() != true) {
+                        String key = l.getProductID() + ":" + (l.getProductAttSetInstId() == null ? "" : l.getProductAttSetInstId());
+                        double deltaUnits = -l.getMultiply(); // negative for sale
+                        double prevDelta = cumulativeDelta.containsKey(key) ? cumulativeDelta.get(key) : 0.0;
+                        double newDelta = prevDelta + deltaUnits;
+                        cumulativeDelta.put(key, newDelta);
+
+                        // cache current stock snapshot for this product+attset
+                        double currentUnits;
+                        if (currentStockCache.containsKey(key)) {
+                            currentUnits = currentStockCache.get(key);
+                        } else {
+                            currentUnits = findProductStock(location, l.getProductID(), l.getProductAttSetInstId());
+                            currentStockCache.put(key, currentUnits);
+                        }
+
+                        if (newDelta < 0.0 && currentUnits + newDelta < 0.0) {
+                            ProductInfoExt prod;
+                            try {
+                                prod = getProductInfo(l.getProductID());
+                            } catch (BasicException ex) {
+                                prod = null;
+                            }
+                            String productName = prod != null ? prod.getName() : l.getProductID();
+                            throw new BasicException("Insufficient stock for product " + productName + " (id=" + l.getProductID() + "). Available: " + currentUnits + " Requested: " + (-newDelta));
+                        }
+
                         getStockDiaryInsert().exec(new Object[]{
                             UUID.randomUUID().toString(),
                             ticket.getDate(),
@@ -2494,6 +2525,22 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         SerializerReadDouble.INSTANCE);
 
         Double d = (Double) p.find(warehouse, id, attsetinstid);
+        return d == null ? 0.0 : d;
+    }
+
+    /**
+     * Returns the minimum (security) stock for a product in a given location
+     * @param warehouse
+     * @param id
+     * @return
+     * @throws BasicException
+     */
+    public final double findProductMinimumStock(String warehouse, String id) throws BasicException {
+        PreparedSentence p = new PreparedSentence(s,
+                "SELECT STOCKSECURITY FROM stocklevel WHERE LOCATION = ? AND PRODUCT = ?",
+                new SerializerWriteBasic(Datas.STRING, Datas.STRING),
+                SerializerReadDouble.INSTANCE);
+        Double d = (Double) p.find(warehouse, id);
         return d == null ? 0.0 : d;
     }
 

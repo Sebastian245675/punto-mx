@@ -36,6 +36,9 @@ import com.openbravo.pos.customers.PuntosDataLogic;
 import com.openbravo.pos.customers.PuntosConfiguracion;
 import com.openbravo.pos.forms.*;
 import com.openbravo.pos.inventory.ProductStock;
+import com.openbravo.format.Formats;
+import java.text.MessageFormat;
+import com.openbravo.pos.inventory.ProductsBundleInfo;
 import com.openbravo.pos.inventory.TaxCategoryInfo;
 import com.openbravo.pos.panels.JProductFinder;
 import com.openbravo.pos.payment.JPaymentSelect;
@@ -805,6 +808,28 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 dPrice /= (1 + tax.getRate());
             }
 
+            // Check stock for variable price product as well
+            try {
+                if (!oProduct.isService() && dMul > 0.0) {
+                    ProductStock checkProduct = dlSales.getProductStockState(oProduct.getID(), m_App.getInventoryLocation());
+                    if (checkProduct == null) {
+                        MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.location.current"));
+                        msg.show(this);
+                        return;
+                    } else {
+                        double unitsAvailable = checkProduct.getUnits();
+                        if (unitsAvailable < dMul || unitsAvailable <= 0) {
+                            // Show actionable dialog to manage stock
+                            showInsufficientStockDialog(oProduct);
+                            return;
+                        }
+                    }
+                }
+            } catch (BasicException ex) {
+                LOGGER.log(System.Logger.Level.WARNING, "Could not check product stock", ex);
+                // Allow adding if stock check fails - backend also checks it on save
+            }
+
             addTicketLine(new TicketLineInfo(oProduct, dMul, dPrice, tax,
                     (java.util.Properties) (oProduct.getProperties().clone())));
 
@@ -817,6 +842,29 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             Properties props = new Properties();
             if (oProduct.getProperties() != null && !oProduct.getProperties().isEmpty()) {
                 props = (java.util.Properties) oProduct.getProperties().clone();
+            }
+
+            // Check stock before adding to the ticket (avoid negative stock at UI level)
+            try {
+                if (!oProduct.isService() && dMul > 0.0) {
+                    ProductStock checkProduct = dlSales.getProductStockState(oProduct.getID(), m_App.getInventoryLocation());
+                    if (checkProduct == null) {
+                        // No stock assigned to this location
+                        MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.location.current"));
+                        msg.show(this);
+                        return;
+                    } else {
+                        double unitsAvailable = checkProduct.getUnits();
+                        if (unitsAvailable < dMul || unitsAvailable <= 0) {
+                            // Show actionable dialog to manage stock
+                            showInsufficientStockDialog(oProduct);
+                            return;
+                        }
+                    }
+                }
+            } catch (BasicException ex) {
+                LOGGER.log(System.Logger.Level.WARNING, "Could not check product stock", ex);
+                // Allow adding if stock check fails - backend also checks it on save
             }
 
             addTicketLine(new TicketLineInfo(oProduct, dMul, dPrice, tax, props));
@@ -889,6 +937,35 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             executeEvent(m_oTicket, m_oTicketExt, TicketConstants.EV_TICKET_CHANGE);
         } else {
             Toolkit.getDefaultToolkit().beep();
+        }
+    }
+
+    /**
+     * Show an improved dialog for insufficient stock and propose opening Stock Management
+     * @param oProduct
+     */
+    private void showInsufficientStockDialog(ProductInfoExt oProduct) {
+        String msgTemplate = AppLocal.getIntString("message.stockinsufficient_action");
+        String title = AppLocal.getIntString("message.stockinsufficient_title");
+        String message = MessageFormat.format(msgTemplate, oProduct.getName());
+        Object[] options = new Object[]{AppLocal.getIntString("message.manage.stock"), AppLocal.getIntString("button.cancel")};
+        int res = JOptionPane.showOptionDialog(this, message, title, JOptionPane.YES_NO_OPTION, JOptionPane.WARNING_MESSAGE, null, options, options[0]);
+        if (res == 0) { // Manage stock
+            // Open Stock Management view and attempt to select the product in the stock view
+            try {
+                // First, show the StockManagement view
+                m_App.getAppUserView().showTask("com.openbravo.pos.inventory.StockManagement");
+
+                // Try to obtain the same bean instance and call the helper to select the product
+                Object bean = m_App.getBean("com.openbravo.pos.inventory.StockManagement");
+                if (bean instanceof com.openbravo.pos.inventory.StockManagement) {
+                    com.openbravo.pos.inventory.StockManagement sm = (com.openbravo.pos.inventory.StockManagement) bean;
+                    sm.selectProduct(oProduct.getID());
+                }
+            } catch (Exception ex) {
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotopenstockmanager"));
+                msg.show(this);
+            }
         }
     }
 
@@ -1964,11 +2041,64 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 
                                 // Sebastian - Otorgar puntos automáticamente después de guardar el ticket
                                 procesarPuntosAutomaticos(ticket);
+
+                                // Check low stock for products after the ticket is saved and notify the user
+                                List<String> lowStockProducts = new ArrayList<>();
+                                try {
+                                    String location = m_App.getInventoryLocation();
+                                    for (TicketLineInfo l : ticket.getLines()) {
+                                        if (l.getProductID() != null && !l.isProductService()) {
+                                            double current = dlSales.findProductStock(location, l.getProductID(), l.getProductAttSetInstId());
+                                            double min = dlSales.findProductMinimumStock(location, l.getProductID());
+                                            if (current <= min) {
+                                                lowStockProducts.add(l.getProductName() + " (" + Formats.DOUBLE.formatValue(current) + ")");
+                                            }
+                                            // bundle components too
+                                            List<ProductsBundleInfo> bundle = dlSales.getProductsBundle(l.getProductID());
+                                            if (bundle.size() > 0) {
+                                                for (ProductsBundleInfo comp : bundle) {
+                                                    double currentComp = dlSales.findProductStock(location, comp.getProductBundleId(), null);
+                                                    double minComp = dlSales.findProductMinimumStock(location, comp.getProductBundleId());
+                                                    if (currentComp <= minComp) {
+                                                        ProductInfoExt bundleProduct = dlSales.getProductInfo(comp.getProductBundleId());
+                                                        lowStockProducts.add(bundleProduct.getName() + " (" + Formats.DOUBLE.formatValue(currentComp) + ")");
+                                                    }
+                                                }
+                                            }
+                                        }
+                                    }
+                                } catch (BasicException ex) {
+                                    LOGGER.log(System.Logger.Level.WARNING, "Error while checking low stock after saving ticket", ex);
+                                }
+                                if (!lowStockProducts.isEmpty()) {
+                                    java.text.MessageFormat mf = new java.text.MessageFormat(AppLocal.getIntString("message.stocklowlist"));
+                                    String prodNames = String.join(", ", lowStockProducts);
+                                    String message = mf.format(new Object[]{prodNames});
+                                    MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, message);
+                                    msg.show(this);
+                                }
                                 
                             } catch (BasicException ex) {
-                                LOGGER.log(System.Logger.Level.ERROR, "Exception on save ticket ", ex);
-                                MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, AppLocal.getIntString("message.nosaveticket"), ex);
-                                msg.show(this);
+                                    LOGGER.log(System.Logger.Level.ERROR, "Exception on save ticket ", ex);
+                                    // If exception contains the type we threw in DataLogicSales, show the improved dialog
+                                    String message = ex.getMessage();
+                                    if (message != null && message.contains("Insufficient stock for product")) {
+                                        // Try to extract ID from message: pattern (id=PRODUCT_ID)
+                                        java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\(id=(.*?)\\)");
+                                        java.util.regex.Matcher m = p.matcher(message);
+                                        if (m.find()) {
+                                            String pid = m.group(1);
+                                            try {
+                                                ProductInfoExt prod = dlSales.getProductInfo(pid);
+                                                showInsufficientStockDialog(prod);
+                                                return false;
+                                            } catch (Exception e) {
+                                                // fallback to default message
+                                            }
+                                        }
+                                    }
+                                    MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, AppLocal.getIntString("message.nosaveticket"), ex);
+                                    msg.show(this);
                             }
 
                             String eventName = TicketConstants.EV_TICKET_CLOSE;

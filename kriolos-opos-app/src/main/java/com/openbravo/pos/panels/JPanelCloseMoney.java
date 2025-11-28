@@ -45,6 +45,7 @@ import com.openbravo.pos.printer.TicketPrinterException;
 import com.openbravo.pos.scripting.ScriptEngine;
 import com.openbravo.pos.scripting.ScriptException;
 import com.openbravo.pos.scripting.ScriptFactory;
+import com.openbravo.pos.util.StringUtils;
 import java.awt.Dimension;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -1076,10 +1077,12 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Guardar faltante y sobrante en variables de instancia
             faltanteCierre = faltante;
             sobranteCierre = sobrante;
-            
             // Mostrar mensaje de cierre realizado
             JOptionPane.showMessageDialog(
                 this,
+
+
+                
                 mensajeCierre,
                 "Cierre de Caja",
                 JOptionPane.INFORMATION_MESSAGE
@@ -1508,6 +1511,11 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 
                 // Si es cierre del día, obtener todos los turnos del día con sus productos
                 Date closeDate = m_PaymentsToClose.getDateEnd();
+                // Variables para almacenar datos de productos (fuera del bloque para poder usarlas después)
+                String productosXML = "";
+                java.util.List<ConsolidatedProduct> consolidatedProductList = new java.util.ArrayList<>();
+                java.util.List<PaymentsModel.ProductSalesLine> currentShiftProducts = new java.util.ArrayList<>();
+                
                 if (isDayClose && closeDate != null) {
                     LOGGER.info("Es cierre del día, obteniendo todos los turnos...");
                     java.util.List<ShiftData> allShifts = getAllShiftsForDay(closeDate);
@@ -1528,28 +1536,395 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     script.put("isDayClose", Boolean.TRUE);
                     LOGGER.info("Datos pasados al template - isDayClose: true, allShifts size: " + (allShifts != null ? allShifts.size() : 0));
                     
-                    // Calcular totales del día
+                    // Calcular totales del día y consolidar productos
                     double totalDaySales = 0.0;
                     double totalDayPayments = 0.0;
+                    java.util.Map<String, ConsolidatedProduct> consolidatedProducts = new java.util.HashMap<>();
+                    
                     if (allShifts != null) {
                         for (ShiftData shift : allShifts) {
                             totalDaySales += shift.getTotalSales();
                             totalDayPayments += shift.getTotalPayments();
+                            
+                            // Consolidar productos de este turno
+                            LOGGER.info("Procesando productos del turno #" + shift.getSequence() + " - Total productos: " + shift.getProductLines().size());
+                            for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
+                                // Usar el nombre sin codificar para la agrupación
+                                String productName = product.getProductName();
+                                if (productName == null || productName.trim().isEmpty()) {
+                                    LOGGER.warning("Producto con nombre vacío encontrado, saltando...");
+                                    continue;
+                                }
+                                ConsolidatedProduct consolidated = consolidatedProducts.get(productName);
+                                if (consolidated == null) {
+                                    consolidated = new ConsolidatedProduct(productName);
+                                    consolidatedProducts.put(productName, consolidated);
+                                    LOGGER.info("Nuevo producto agregado a consolidación: " + productName);
+                                }
+                                double units = product.getProductUnits() != null ? product.getProductUnits() : 0.0;
+                                double price = product.getProductPrice() != null ? product.getProductPrice() : 0.0;
+                                double taxRate = product.getTaxRate() != null ? product.getTaxRate() : 0.0;
+                                consolidated.addUnits(units);
+                                consolidated.addTotal(price * (1.0 + taxRate) * units);
+                                LOGGER.info("  Producto: " + productName + " - Unidades: " + units + " - Total: " + (price * (1.0 + taxRate) * units));
+                            }
                         }
                     }
+                    
+                    // Convertir el mapa a lista ordenada
+                    consolidatedProductList = new java.util.ArrayList<>(consolidatedProducts.values());
+                    java.util.Collections.sort(consolidatedProductList, (a, b) -> a.getName().compareTo(b.getName()));
+                    
+                    // SOLUCIÓN RADICAL: Generar las líneas XML directamente en Java
+                    StringBuilder productosText = new StringBuilder();
+                    if (!consolidatedProductList.isEmpty()) {
+                        for (ConsolidatedProduct product : consolidatedProductList) {
+                            String name = StringUtils.encodeXML(product.getName());
+                            // Limitar nombre a 25 caracteres
+                            if (name.length() > 25) {
+                                name = name.substring(0, 22) + "...";
+                            }
+                            String units = Formats.DOUBLE.formatValue(product.getTotalUnits());
+                            String total = Formats.CURRENCY.formatValue(product.getTotalValue());
+                            
+                            // Generar línea XML directamente
+                            productosText.append("<line>\n");
+                            productosText.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
+                            productosText.append("    <text align=\"right\" length=\"8\">").append(units).append("</text>\n");
+                            productosText.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
+                            productosText.append("</line>\n");
+                        }
+                    } else {
+                        productosText.append("<line>\n");
+                        productosText.append("    <text align=\"left\" length=\"42\">Sin productos vendidos</text>\n");
+                        productosText.append("</line>\n");
+                    }
+                    
+                    // Generar texto de productos por turno para el reporte del día
+                    StringBuilder productosPorTurnoText = new StringBuilder();
+                    if (allShifts != null && !allShifts.isEmpty()) {
+                        for (ShiftData shift : allShifts) {
+                            productosPorTurnoText.append("<line>\n");
+                            productosPorTurnoText.append("    <text align=\"center\" length=\"42\">--- TURNO #").append(shift.getSequence()).append(" ---</text>\n");
+                            productosPorTurnoText.append("</line>\n");
+                            
+                            if (!shift.getProductLines().isEmpty()) {
+                                for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
+                                    String name = StringUtils.encodeXML(product.printProductName());
+                                    if (name.length() > 25) {
+                                        name = name.substring(0, 22) + "...";
+                                    }
+                                    String units = product.printProductUnits();
+                                    String total = product.printProductSubValue();
+                                    
+                                    productosPorTurnoText.append("<line>\n");
+                                    productosPorTurnoText.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
+                                    productosPorTurnoText.append("    <text align=\"right\" length=\"8\">").append(units).append("</text>\n");
+                                    productosPorTurnoText.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
+                                    productosPorTurnoText.append("</line>\n");
+                                }
+                            } else {
+                                productosPorTurnoText.append("<line>\n");
+                                productosPorTurnoText.append("    <text align=\"left\" length=\"42\">Sin productos en este turno</text>\n");
+                                productosPorTurnoText.append("</line>\n");
+                            }
+                            
+                            productosPorTurnoText.append("<line>\n");
+                            productosPorTurnoText.append("    <text align=\"right\" length=\"42\">Total Turno: ").append(Formats.CURRENCY.formatValue(shift.getTotalSales())).append("</text>\n");
+                            productosPorTurnoText.append("</line>\n");
+                            productosPorTurnoText.append("<line>\n");
+                            productosPorTurnoText.append("</line>\n");
+                        }
+                    }
+                    
                     script.put("totalDaySales", Formats.CURRENCY.formatValue(totalDaySales));
                     script.put("totalDayPayments", Formats.CURRENCY.formatValue(totalDayPayments));
+                    script.put("consolidatedProducts", consolidatedProductList);
+                    productosXML = productosText.toString(); // Productos consolidados del día
+                    script.put("productosText", productosXML); // Variable de texto simple para productos consolidados
+                    script.put("productosPorTurnoText", productosPorTurnoText.toString()); // Productos por turno
                     LOGGER.info("Totales del día - Ventas: " + totalDaySales + ", Pagos: " + totalDayPayments);
+                    LOGGER.info("Productos consolidados: " + consolidatedProductList.size());
+                    LOGGER.info("Turnos procesados: " + (allShifts != null ? allShifts.size() : 0));
+                    LOGGER.info("Texto de productos consolidados generado:\n" + productosXML);
+                    LOGGER.info("Texto de productos por turno generado:\n" + productosPorTurnoText.toString());
+                    if (!consolidatedProductList.isEmpty()) {
+                        LOGGER.info("Primer producto consolidado: " + consolidatedProductList.get(0).getName() + 
+                                   " - Cantidad: " + consolidatedProductList.get(0).getTotalUnits() + 
+                                   " - Total: " + consolidatedProductList.get(0).getTotalValue());
+                    } else {
+                        LOGGER.warning("Lista de productos consolidados está vacía!");
+                    }
                 } else {
+                    // Cierre de turno: mostrar solo productos del turno actual
                     script.put("isDayClose", Boolean.FALSE);
                     script.put("allShifts", null);
-                    LOGGER.info("No es cierre del día o closeDate es null. isDayClose: " + isDayClose + ", closeDate: " + closeDate);
+                    script.put("consolidatedProducts", new java.util.ArrayList<>());
+                    
+                    // Obtener productos del turno actual desde PaymentsModel
+                    currentShiftProducts = 
+                        m_PaymentsToClose != null ? m_PaymentsToClose.getProductSalesLines() : new java.util.ArrayList<>();
+                    
+                    // Generar XML de productos del turno actual
+                    StringBuilder productosTextTurno = new StringBuilder();
+                    if (currentShiftProducts != null && !currentShiftProducts.isEmpty()) {
+                        LOGGER.info("Cierre de turno: " + currentShiftProducts.size() + " productos del turno actual");
+                        for (PaymentsModel.ProductSalesLine product : currentShiftProducts) {
+                            String name = StringUtils.encodeXML(product.printProductName());
+                            // Limitar nombre a 25 caracteres
+                            if (name.length() > 25) {
+                                name = name.substring(0, 22) + "...";
+                            }
+                            String units = product.printProductUnits();
+                            String total = product.printProductSubValue();
+                            
+                            // Generar línea XML directamente
+                            productosTextTurno.append("<line>\n");
+                            productosTextTurno.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
+                            productosTextTurno.append("    <text align=\"right\" length=\"8\">").append(units).append("</text>\n");
+                            productosTextTurno.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
+                            productosTextTurno.append("</line>\n");
+                        }
+                    } else {
+                        productosTextTurno.append("<line>\n");
+                        productosTextTurno.append("    <text align=\"left\" length=\"42\">Sin productos vendidos en este turno</text>\n");
+                        productosTextTurno.append("</line>\n");
+                        LOGGER.info("Cierre de turno: Sin productos vendidos en el turno actual");
+                    }
+                    
+                    productosXML = productosTextTurno.toString();
+                    script.put("productosText", productosXML);
+                    script.put("currentShiftProducts", currentShiftProducts);
+                    LOGGER.info("No es cierre del día. isDayClose: " + isDayClose + ", closeDate: " + closeDate);
+                    LOGGER.info("Productos del turno actual pasados al template: " + (currentShiftProducts != null ? currentShiftProducts.size() : 0));
                 }
                 
                 String ticketOutput = script.eval(sresource).toString();
+                
+                // Reemplazar productos consolidados en cierre de día
+                if (isDayClose && closeDate != null && !consolidatedProductList.isEmpty()) {
+                    String placeholder = "<!-- PRODUCTOS_PLACEHOLDER -->";
+                    int placeholderIndex = ticketOutput.indexOf(placeholder);
+                    if (placeholderIndex >= 0) {
+                        StringBuilder productosXMLConsolidados = new StringBuilder();
+                        for (ConsolidatedProduct product : consolidatedProductList) {
+                            String name = product.printName();
+                            if (name.length() > 25) {
+                                name = name.substring(0, 22) + "...";
+                            }
+                            productosXMLConsolidados.append("        <line>\n");
+                            productosXMLConsolidados.append("            <text align =\"left\" length=\"25\">").append(StringUtils.encodeXML(name)).append("</text>\n");
+                            productosXMLConsolidados.append("            <text align =\"right\" length=\"8\">").append(product.printUnits()).append("</text>\n");
+                            productosXMLConsolidados.append("            <text align =\"right\" length=\"9\">").append(product.printTotal()).append("</text>\n");
+                            productosXMLConsolidados.append("        </line>\n");
+                        }
+                        
+                        // Buscar y reemplazar el placeholder y la línea completa "Sin productos vendidos"
+                        int startIndex = placeholderIndex;
+                        // Buscar el inicio de la línea <line> que sigue al placeholder
+                        int searchStart = startIndex + placeholder.length();
+                        int lineStart = -1;
+                        // Buscar <line> con posibles espacios/saltos de línea antes
+                        for (int i = searchStart; i < Math.min(searchStart + 100, ticketOutput.length()); i++) {
+                            String remaining = ticketOutput.substring(i);
+                            if (remaining.startsWith("<line>") || remaining.trim().startsWith("<line>")) {
+                                lineStart = i;
+                                break;
+                            }
+                        }
+                        
+                        // Buscar el final de esa línea completa (hasta </line>)
+                        int lineEnd = -1;
+                        if (lineStart >= 0) {
+                            lineEnd = ticketOutput.indexOf("</line>", lineStart);
+                            if (lineEnd >= 0) {
+                                lineEnd += 7; // Incluir </line>
+                                // Incluir el salto de línea siguiente si existe
+                                while (lineEnd < ticketOutput.length() && 
+                                       (ticketOutput.charAt(lineEnd) == '\n' || 
+                                        ticketOutput.charAt(lineEnd) == '\r' || 
+                                        Character.isWhitespace(ticketOutput.charAt(lineEnd)))) {
+                                    lineEnd++;
+                                }
+                            }
+                        }
+                        
+                        if (lineStart > 0 && lineEnd > lineStart) {
+                            // Eliminar desde el placeholder hasta el final de la línea completa
+                            // Esto incluye: <!-- PRODUCTOS_PLACEHOLDER --> + espacios/saltos de línea + <line>...texto...</line>
+                            // Buscar el inicio real: desde el placeholder, encontrar el inicio de la línea que contiene el placeholder
+                            int lineStartIndex = startIndex;
+                            // Retroceder hasta encontrar el inicio de la línea (carácter anterior a \n o inicio del string)
+                            while (lineStartIndex > 0 && ticketOutput.charAt(lineStartIndex - 1) != '\n' && ticketOutput.charAt(lineStartIndex - 1) != '\r') {
+                                lineStartIndex--;
+                            }
+                            
+                            String before = ticketOutput.substring(0, lineStartIndex);
+                            String after = ticketOutput.substring(lineEnd);
+                            // El XML generado ya tiene la indentación correcta (8 espacios)
+                            String replacement = productosXMLConsolidados.toString();
+                            ticketOutput = before + replacement + after;
+                            LOGGER.info("Productos consolidados insertados en template: " + consolidatedProductList.size());
+                            LOGGER.info("Reemplazo exitoso - Longitud antes: " + before.length() + ", después: " + ticketOutput.length());
+                            // Log del fragmento que se está reemplazando
+                            String fragmentoReemplazado = ticketOutput.substring(startIndex, Math.min(startIndex + 200, lineEnd));
+                            LOGGER.info("Fragmento reemplazado (primeros 200 chars): " + fragmentoReemplazado.replace("\n", "\\n").replace("\r", "\\r"));
+                            // Verificar que el producto esté en el ticket después del reemplazo
+                            int productoIndex = ticketOutput.indexOf("Tortillas");
+                            LOGGER.info("Verificación: Producto 'Tortillas' encontrado en ticket después del reemplazo: " + (productoIndex >= 0) + " (posición: " + productoIndex + ")");
+                        } else {
+                            LOGGER.warning("No se pudo encontrar la línea a reemplazar después del placeholder PRODUCTOS_PLACEHOLDER. lineStart: " + lineStart + ", lineEnd: " + lineEnd);
+                            LOGGER.warning("Fragmento después del placeholder (primeros 200 chars): " + ticketOutput.substring(Math.max(0, searchStart), Math.min(ticketOutput.length(), searchStart + 200)));
+                        }
+                    } else {
+                        LOGGER.warning("No se encontró el marcador PRODUCTOS_PLACEHOLDER en el template");
+                    }
+                }
+                
+                // Reemplazar productos del turno en cierre de turno
+                if (!isDayClose && currentShiftProducts != null && !currentShiftProducts.isEmpty()) {
+                    String placeholderTurno = "<!-- PRODUCTOS_TURNO_PLACEHOLDER -->";
+                    int placeholderIndex = ticketOutput.indexOf(placeholderTurno);
+                    if (placeholderIndex >= 0) {
+                        StringBuilder productosTurnoXML = new StringBuilder();
+                        for (PaymentsModel.ProductSalesLine product : currentShiftProducts) {
+                            String name = product.printProductName();
+                            // El nombre ya viene codificado de printProductName()
+                            if (name.length() > 25) {
+                                name = name.substring(0, 22) + "...";
+                            }
+                            productosTurnoXML.append("        <line>\n");
+                            productosTurnoXML.append("            <text align =\"left\" length=\"25\">").append(StringUtils.encodeXML(name)).append("</text>\n");
+                            productosTurnoXML.append("            <text align =\"right\" length=\"8\">").append(product.printProductUnits()).append("</text>\n");
+                            productosTurnoXML.append("            <text align =\"right\" length=\"9\">").append(product.printProductSubValue()).append("</text>\n");
+                            productosTurnoXML.append("        </line>\n");
+                        }
+                        
+                        // Buscar y reemplazar el placeholder y la línea completa "Sin productos vendidos en este turno"
+                        int startIndex = placeholderIndex;
+                        // Buscar el inicio de la línea <line> que sigue al placeholder
+                        int searchStart = startIndex + placeholderTurno.length();
+                        int lineStart = -1;
+                        // Buscar <line> con posibles espacios/saltos de línea antes
+                        for (int i = searchStart; i < Math.min(searchStart + 100, ticketOutput.length()); i++) {
+                            String remaining = ticketOutput.substring(i);
+                            if (remaining.startsWith("<line>") || remaining.trim().startsWith("<line>")) {
+                                lineStart = i;
+                                break;
+                            }
+                        }
+                        
+                        // Buscar el final de esa línea completa (hasta </line>)
+                        int lineEnd = -1;
+                        if (lineStart >= 0) {
+                            lineEnd = ticketOutput.indexOf("</line>", lineStart);
+                            if (lineEnd >= 0) {
+                                lineEnd += 7; // Incluir </line>
+                                // Incluir el salto de línea siguiente si existe
+                                while (lineEnd < ticketOutput.length() && 
+                                       (ticketOutput.charAt(lineEnd) == '\n' || 
+                                        ticketOutput.charAt(lineEnd) == '\r' || 
+                                        Character.isWhitespace(ticketOutput.charAt(lineEnd)))) {
+                                    lineEnd++;
+                                }
+                            }
+                        }
+                        
+                        if (lineStart > 0 && lineEnd > lineStart) {
+                            // Reemplazar desde el placeholder (incluyéndolo) hasta el final de la línea "Sin productos vendidos en este turno"
+                            String before = ticketOutput.substring(0, startIndex);
+                            String after = ticketOutput.substring(lineEnd);
+                            // El XML generado ya tiene la indentación correcta (8 espacios)
+                            String replacement = productosTurnoXML.toString();
+                            ticketOutput = before + replacement + after;
+                            LOGGER.info("Productos del turno insertados en template: " + currentShiftProducts.size());
+                            LOGGER.info("Reemplazo exitoso - Longitud antes: " + before.length() + ", después: " + ticketOutput.length());
+                            // Verificar que el primer producto esté en el ticket después del reemplazo
+                            if (!currentShiftProducts.isEmpty()) {
+                                String primerProducto = currentShiftProducts.get(0).printProductName();
+                                int productoIndex = ticketOutput.indexOf(primerProducto);
+                                LOGGER.info("Verificación: Primer producto encontrado en ticket después del reemplazo: " + (productoIndex >= 0) + " (posición: " + productoIndex + ")");
+                            }
+                        } else {
+                            LOGGER.warning("No se pudo encontrar la línea a reemplazar después del placeholder PRODUCTOS_TURNO_PLACEHOLDER. lineStart: " + lineStart + ", lineEnd: " + lineEnd);
+                            LOGGER.warning("Fragmento después del placeholder (primeros 200 chars): " + ticketOutput.substring(Math.max(0, searchStart), Math.min(ticketOutput.length(), searchStart + 200)));
+                        }
+                    } else {
+                        LOGGER.warning("No se encontró el marcador PRODUCTOS_TURNO_PLACEHOLDER en el template");
+                    }
+                }
+                
                 LOGGER.info("Ticket generado - Longitud: " + ticketOutput.length() + " caracteres");
                 LOGGER.info("Ticket contiene 'REPORTE DEL DÍA': " + ticketOutput.contains("REPORTE DEL DÍA"));
                 LOGGER.info("Ticket contiene 'Productos Vendidos': " + ticketOutput.contains("Productos Vendidos"));
+                LOGGER.info("Ticket contiene 'PRODUCTOS VENDIDOS DEL DÍA': " + ticketOutput.contains("PRODUCTOS VENDIDOS DEL DÍA"));
+                // Verificar que el XML generado contiene las etiquetas correctas
+                int productosCount = 0;
+                int productosIndex = 0;
+                while ((productosIndex = ticketOutput.indexOf("<text align=\"left\" length=\"25\">", productosIndex)) != -1) {
+                    productosCount++;
+                    productosIndex += 1;
+                }
+                LOGGER.info("Número de líneas de productos encontradas en XML: " + productosCount);
+                // Mostrar un fragmento del XML alrededor del placeholder para verificar
+                int placeholderPos = ticketOutput.indexOf("<!-- PRODUCTOS_PLACEHOLDER -->");
+                if (placeholderPos >= 0) {
+                    int start = Math.max(0, placeholderPos - 100);
+                    int end = Math.min(ticketOutput.length(), placeholderPos + 500);
+                    LOGGER.info("Fragmento XML alrededor del placeholder (si aún existe): " + ticketOutput.substring(start, end));
+                } else {
+                    LOGGER.info("Placeholder PRODUCTOS_PLACEHOLDER no encontrado (fue reemplazado correctamente)");
+                }
+                // Log para verificar si la lista consolidada está presente en el contexto
+                Object consolidatedProductsObj = script.get("consolidatedProducts");
+                if (consolidatedProductsObj != null) {
+                    LOGGER.info("consolidatedProducts en script: " + consolidatedProductsObj.getClass().getName());
+                    if (consolidatedProductsObj instanceof java.util.List) {
+                        java.util.List<?> list = (java.util.List<?>) consolidatedProductsObj;
+                        LOGGER.info("Tamaño de consolidatedProducts en script: " + list.size());
+                        if (!list.isEmpty()) {
+                            LOGGER.info("Primer elemento: " + list.get(0).getClass().getName());
+                        }
+                    }
+                } else {
+                    LOGGER.warning("consolidatedProducts es NULL en el script!");
+                }
+                LOGGER.info("Ticket contiene 'PRODUCTOS VENDIDOS DEL DÍA': " + ticketOutput.contains("PRODUCTOS VENDIDOS DEL DÍA"));
+                // Verificar si el ticket contiene el nombre del producto consolidado
+                if (consolidatedProductsObj != null && consolidatedProductsObj instanceof java.util.List) {
+                    java.util.List<?> list = (java.util.List<?>) consolidatedProductsObj;
+                    if (!list.isEmpty() && list.get(0) instanceof ConsolidatedProduct) {
+                        ConsolidatedProduct firstProduct = (ConsolidatedProduct) list.get(0);
+                        String productName = firstProduct.getName();
+                        LOGGER.info("Buscando producto '" + productName + "' en ticket: " + ticketOutput.contains(productName));
+                    }
+                }
+                
+                // Log del fragmento XML alrededor de donde deberían estar los productos
+                int productosSectionStart = ticketOutput.indexOf("PRODUCTOS VENDIDOS DEL DÍA");
+                if (productosSectionStart >= 0) {
+                    int start = Math.max(0, productosSectionStart - 200);
+                    int end = Math.min(ticketOutput.length(), productosSectionStart + 800);
+                    String fragmento = ticketOutput.substring(start, end);
+                    LOGGER.info("Fragmento XML alrededor de 'PRODUCTOS VENDIDOS DEL DÍA' (primeros 800 chars después):");
+                    LOGGER.info(fragmento);
+                }
+                
+                // Verificar que el XML sea válido buscando etiquetas bien formadas
+                int lineCount = 0;
+                int textCount = 0;
+                int index = 0;
+                while ((index = ticketOutput.indexOf("<line>", index)) != -1) {
+                    lineCount++;
+                    index += 6;
+                }
+                index = 0;
+                while ((index = ticketOutput.indexOf("<text", index)) != -1) {
+                    textCount++;
+                    index += 5;
+                }
+                LOGGER.info("Conteo de etiquetas XML - <line>: " + lineCount + ", <text>: " + textCount);
+                
                 m_TTP.printTicket(ticketOutput);
 // JG 16 May 2012 use multicatch
             } catch (ScriptException | TicketPrinterException e) {
@@ -1610,6 +1985,53 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         
         public String printTotalPayments() {
             return Formats.CURRENCY.formatValue(totalPayments);
+        }
+    }
+    
+    /**
+     * Clase auxiliar para productos consolidados del día
+     */
+    public static class ConsolidatedProduct {
+        private String name;
+        private double totalUnits;
+        private double totalValue;
+        
+        public ConsolidatedProduct(String name) {
+            this.name = name;
+            this.totalUnits = 0.0;
+            this.totalValue = 0.0;
+        }
+        
+        public void addUnits(double units) {
+            this.totalUnits += units;
+        }
+        
+        public void addTotal(double value) {
+            this.totalValue += value;
+        }
+        
+        public String getName() {
+            return name;
+        }
+        
+        public String printName() {
+            return StringUtils.encodeXML(name);
+        }
+        
+        public String printUnits() {
+            return Formats.DOUBLE.formatValue(totalUnits);
+        }
+        
+        public String printTotal() {
+            return Formats.CURRENCY.formatValue(totalValue);
+        }
+        
+        public double getTotalUnits() {
+            return totalUnits;
+        }
+        
+        public double getTotalValue() {
+            return totalValue;
         }
     }
     

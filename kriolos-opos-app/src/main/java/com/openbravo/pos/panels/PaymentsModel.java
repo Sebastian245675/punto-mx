@@ -879,6 +879,10 @@ public class PaymentsModel {
         public String printProductName() {
             return StringUtils.encodeXML(m_ProductName);
         }
+        
+        public String getProductName() {
+            return m_ProductName;
+        }
 
         public String printProductUnits() {
             return Formats.DOUBLE.formatValue(m_ProductUnits);
