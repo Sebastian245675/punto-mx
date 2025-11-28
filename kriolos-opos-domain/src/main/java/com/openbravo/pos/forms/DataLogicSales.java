@@ -1807,6 +1807,15 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             throw new BasicException("Insufficient stock for product " + productName + " (id=" + l.getProductID() + "). Available: " + currentUnits + " Requested: " + (-newDelta));
                         }
 
+                        // Log antes de registrar movimiento de stock
+                        LOGGER.info("=== REGISTRANDO MOVIMIENTO DE STOCK ===");
+                        LOGGER.info("Product ID: " + l.getProductID());
+                        LOGGER.info("Location: " + location);
+                        LOGGER.info("AttSetInstId: " + l.getProductAttSetInstId());
+                        LOGGER.info("Multiply (cantidad): " + l.getMultiply());
+                        LOGGER.info("Delta Units (negativo para venta): " + (-l.getMultiply()));
+                        LOGGER.info("Stock actual ANTES: " + findProductStock(location, l.getProductID(), l.getProductAttSetInstId()));
+                        
                         getStockDiaryInsert().exec(new Object[]{
                             UUID.randomUUID().toString(),
                             ticket.getDate(),
@@ -1818,6 +1827,17 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                             l.getProductAttSetInstId(), -l.getMultiply(), l.getPrice(),
                             ticket.getUser().getName()
                         });
+                        
+                        // Log después de registrar movimiento
+                        LOGGER.info("Stock actual DESPUÉS: " + findProductStock(location, l.getProductID(), l.getProductAttSetInstId()));
+                        LOGGER.info("=== FIN MOVIMIENTO DE STOCK ===");
+                    }
+                } else {
+                    // Either productID is null or the product is a service; log for diagnostics
+                    if (l.getProductID() == null) {
+                        LOGGER.info("Skipping stock update: Ticket line productID is null. Line: " + l.getTicketLine());
+                    } else if (l.isProductService()) {
+                        LOGGER.info("Skipping stock update: product is marked as SERVICE. Product ID: " + l.getProductID() + ", Name: " + l.getProductName());
                     }
                 }
 
@@ -1922,6 +1942,12 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 Date d = new Date();
                 for (int i = 0; i < ticket.getLinesCount(); i++) {
                     if (ticket.getLine(i).getProductID() != null) {
+                        // Skip stock update for service products to mirror saveTicket behavior
+                        if (ticket.getLine(i).isProductService()) {
+                            LOGGER.info("Skipping stock update for service product on deleteTicket: "
+                                    + ticket.getLine(i).getProductID() + " - " + ticket.getLine(i).getProductName());
+                            continue;
+                        }
                         // Hay que actualizar el stock si el hay producto
                         getStockDiaryInsert().exec(new Object[]{
                             UUID.randomUUID().toString(),
@@ -1941,7 +1967,11 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     if (bundle.size() > 0) {
                         for (ProductsBundleInfo bundleComponent : bundle) {
                             ProductInfoExt bundleProduct = getProductInfo(bundleComponent.getProductBundleId());
-
+                            // Skip bundle components that are services
+                            if (bundleProduct != null && bundleProduct.isService()) {
+                                LOGGER.info("Skipping bundle component stock update: product is a SERVICE. Product ID: " + bundleComponent.getProductBundleId());
+                                continue;
+                            }
                             getStockDiaryInsert().exec(new Object[]{
                                 UUID.randomUUID().toString(),
                                 d,
@@ -2326,13 +2356,28 @@ public class DataLogicSales extends BeanFactoryDataSingle {
              */
             public int execInTransaction(Object[] params) throws BasicException {
 
-                Object[] adjustParams = new Object[4];
                 Object[] paramsArray = (Object[]) params;
-                adjustParams[0] = paramsArray[4];                               //product ->Location
-                adjustParams[1] = paramsArray[3];                               //location -> Product
-                adjustParams[2] = paramsArray[5];                               //attributesetinstance
+                Object[] adjustParams = new Object[4];
+                adjustParams[0] = paramsArray[4];                               //product
+                adjustParams[1] = paramsArray[3];                               //location
+                // Normalizar ATTRIBUTESETINSTANCE_ID: tratar cadena vacía como null
+                Object attSetInstId = paramsArray[5];
+                if (attSetInstId != null && attSetInstId.toString().trim().isEmpty()) {
+                    attSetInstId = null;
+                }
+                adjustParams[2] = attSetInstId;                                  //attributesetinstance
                 adjustParams[3] = paramsArray[6];                               //units
+                
+                LOGGER.info(">>> getStockDiaryInsert.execInTransaction - Llamando adjustStock");
+                LOGGER.info("    Product: " + adjustParams[0]);
+                LOGGER.info("    Location: " + adjustParams[1]);
+                LOGGER.info("    AttSetInstId (original): " + paramsArray[5]);
+                LOGGER.info("    AttSetInstId (normalizado): " + adjustParams[2]);
+                LOGGER.info("    Units (delta): " + adjustParams[3]);
+                
                 adjustStock(adjustParams);
+                
+                LOGGER.info("<<< getStockDiaryInsert.execInTransaction - adjustStock completado, insertando en stockdiary");
 
                 return new PreparedSentence(s,
                         "INSERT INTO stockdiary (ID, DATENEW, REASON, LOCATION, "
@@ -2426,6 +2471,12 @@ public class DataLogicSales extends BeanFactoryDataSingle {
         if (bundle.size() > 0) {
 
             for (ProductsBundleInfo component : bundle) {
+                // Obtain the product info for the bundle component and skip if it is a service
+                ProductInfoExt compProd = getProductInfo(component.getProductBundleId());
+                if (compProd != null && compProd.isService()) {
+                    LOGGER.info("Skipping stock adjustment for bundle component SERVICE product: " + component.getProductBundleId() + " - " + (compProd != null ? compProd.getName() : "<unknown>"));
+                    continue;
+                }
                 Object[] adjustParams = new Object[4];
                 adjustParams[0] = component.getProductBundleId();
                 adjustParams[1] = ((Object[]) params)[1];
@@ -2434,33 +2485,91 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 adjustStock(adjustParams);
             }
         } else {
+            // Normalizar ATTRIBUTESETINSTANCE_ID: tratar cadena vacía como null
+            Object attSetInstId = ((Object[]) params)[2];
+            if (attSetInstId != null && attSetInstId.toString().trim().isEmpty()) {
+                attSetInstId = null;
+            }
 
-            int updateresult = ((Object[]) params)[2] == null
-                    ? new PreparedSentence(s,
-                            "UPDATE stockcurrent SET UNITS = (UNITS + ?) "
+            String productId = (String) ((Object[]) params)[0];
+            String locationId = (String) ((Object[]) params)[1];
+            Double units = (Double) ((Object[]) params)[3];
+
+            LOGGER.info(">>> adjustStock - Iniciando ajuste de stock");
+            LOGGER.info("    Product ID: " + productId);
+            LOGGER.info("    Location ID: " + locationId);
+            LOGGER.info("    AttSetInstId: " + attSetInstId);
+            LOGGER.info("    Units (delta): " + units);
+            
+            // Obtener stock actual antes del ajuste
+            double stockAntes = findProductStock(locationId, productId, attSetInstId != null ? attSetInstId.toString() : null);
+            LOGGER.info("    Stock ANTES del ajuste: " + stockAntes);
+
+            // Para productos sin atributos, actualizar cualquier registro que coincida
+            // y luego normalizar ATTRIBUTESETINSTANCE_ID a NULL
+            int updateresult = 0;
+            if (attSetInstId == null) {
+                LOGGER.info("    AttSetInstId es NULL - Ejecutando UPDATE con condición (IS NULL OR = '')");
+                // Actualizar sin filtrar por ATTRIBUTESETINSTANCE_ID cuando es null
+                // Esto asegura que encuentre el registro sin importar si es NULL o ''
+                updateresult = new PreparedSentence(s,
+                        "UPDATE stockcurrent SET UNITS = (UNITS + ?) "
+                        + "WHERE LOCATION = ? AND PRODUCT = ? "
+                        + "AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                        new SerializerWriteBasicExt(stockAdjustDatas,
+                                new int[]{3, 1, 0}))
+                        .exec(params);
+                
+                LOGGER.info("    UPDATE ejecutado - Filas afectadas: " + updateresult);
+                
+                // Si se actualizó, normalizar ATTRIBUTESETINSTANCE_ID a NULL
+                if (updateresult > 0) {
+                    LOGGER.info("    Normalizando ATTRIBUTESETINSTANCE_ID de '' a NULL");
+                    int normalizeResult = new PreparedSentence(s,
+                            "UPDATE stockcurrent SET ATTRIBUTESETINSTANCE_ID = NULL "
                             + "WHERE LOCATION = ? AND PRODUCT = ? "
-                            + "AND ATTRIBUTESETINSTANCE_ID IS NULL",
-                            new SerializerWriteBasicExt(stockAdjustDatas,
-                                    new int[]{3, 1, 0}))
-                            .exec(params)
-                    : new PreparedSentence(s,
-                            "UPDATE stockcurrent SET UNITS = (UNITS + ?) "
-                            + "WHERE LOCATION = ? AND PRODUCT = ? "
-                            + "AND ATTRIBUTESETINSTANCE_ID = ?",
-                            new SerializerWriteBasicExt(stockAdjustDatas,
-                                    new int[]{3, 1, 0, 2}))
-                            .exec(params);
+                            + "AND ATTRIBUTESETINSTANCE_ID = ''",
+                            new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING}, new int[]{0, 1}))
+                            .exec(new Object[]{locationId, productId});
+                    LOGGER.info("    Normalización ejecutada - Filas afectadas: " + normalizeResult);
+                }
+            } else {
+                LOGGER.info("    AttSetInstId NO es NULL - Ejecutando UPDATE con AttSetInstId específico");
+                // Para productos con atributos específicos
+                updateresult = new PreparedSentence(s,
+                        "UPDATE stockcurrent SET UNITS = (UNITS + ?) "
+                        + "WHERE LOCATION = ? AND PRODUCT = ? "
+                        + "AND ATTRIBUTESETINSTANCE_ID = ?",
+                        new SerializerWriteBasicExt(stockAdjustDatas,
+                                new int[]{3, 1, 0, 2}))
+                        .exec(params);
+                LOGGER.info("    UPDATE ejecutado - Filas afectadas: " + updateresult);
+            }
 
             if (updateresult == 0) {
-
+                LOGGER.info("    No se actualizó ninguna fila - Ejecutando INSERT");
+                // Si no se actualizó ninguna fila, insertar
+                // Asegurar que ATTRIBUTESETINSTANCE_ID sea NULL si es null o cadena vacía
+                Object[] insertParams = new Object[4];
+                insertParams[0] = locationId; // location
+                insertParams[1] = productId; // product
+                insertParams[2] = null; // ATTRIBUTESETINSTANCE_ID siempre NULL para productos sin atributos
+                insertParams[3] = units; // units
+                
                 new PreparedSentence(s,
                         "INSERT INTO stockcurrent (LOCATION, PRODUCT, "
                         + "ATTRIBUTESETINSTANCE_ID, UNITS) "
-                        + "VALUES (?, ?, ?, ?)",
-                        new SerializerWriteBasicExt(stockAdjustDatas,
-                                new int[]{1, 0, 2, 3}))
-                        .exec(params);
+                        + "VALUES (?, ?, NULL, ?)",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}))
+                        .exec(insertParams);
+                LOGGER.info("    INSERT ejecutado - Nuevo stock: " + units);
             }
+            
+            // Obtener stock después del ajuste
+            double stockDespues = findProductStock(locationId, productId, attSetInstId != null ? attSetInstId.toString() : null);
+            LOGGER.info("    Stock DESPUÉS del ajuste: " + stockDespues);
+            LOGGER.info("    Diferencia esperada: " + units + ", Diferencia real: " + (stockDespues - stockAntes));
+            LOGGER.info("<<< adjustStock - Ajuste completado");
         }
     }
 
@@ -2514,18 +2623,25 @@ public class DataLogicSales extends BeanFactoryDataSingle {
      */
     public final double findProductStock(String warehouse, String id, String attsetinstid) throws BasicException {
 
-        PreparedSentence p = attsetinstid == null
-                ? new PreparedSentence(s, "SELECT UNITS FROM stockcurrent "
-                        + "WHERE LOCATION = ? AND PRODUCT = ? AND ATTRIBUTESETINSTANCE_ID IS NULL",
-                        new SerializerWriteBasic(Datas.STRING, Datas.STRING),
-                        SerializerReadDouble.INSTANCE)
-                : new PreparedSentence(s, "SELECT UNITS FROM stockcurrent "
-                        + "WHERE LOCATION = ? AND PRODUCT = ? AND ATTRIBUTESETINSTANCE_ID = ?",
-                        new SerializerWriteBasic(Datas.STRING, Datas.STRING, Datas.STRING),
-                        SerializerReadDouble.INSTANCE);
+        PreparedSentence p;
+        if (attsetinstid == null || attsetinstid.trim().isEmpty()) {
+            p = new PreparedSentence(s, "SELECT UNITS FROM stockcurrent "
+                    + "WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                    new SerializerWriteBasic(Datas.STRING, Datas.STRING),
+                    SerializerReadDouble.INSTANCE);
+        } else {
+            p = new PreparedSentence(s, "SELECT UNITS FROM stockcurrent "
+                    + "WHERE LOCATION = ? AND PRODUCT = ? AND ATTRIBUTESETINSTANCE_ID = ?",
+                    new SerializerWriteBasic(Datas.STRING, Datas.STRING, Datas.STRING),
+                    SerializerReadDouble.INSTANCE);
+        }
 
         Double d = (Double) p.find(warehouse, id, attsetinstid);
-        return d == null ? 0.0 : d;
+        double result = d == null ? 0.0 : d;
+        
+        LOGGER.info("    [findProductStock] Location: " + warehouse + ", Product: " + id + ", AttSetInstId: " + attsetinstid + " -> Stock: " + result);
+        
+        return result;
     }
 
     /**

@@ -834,6 +834,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     (java.util.Properties) (oProduct.getProperties().clone())));
 
         } else {
+            if (oProduct.isService()) {
+                LOGGER.info("Adding product marked as SERVICE to ticket: " + oProduct.getID() + " - " + oProduct.getName() + ". This product will not decrement stock on save.");
+            }
             CustomerInfoExt customer = m_oTicket.getCustomer();
 
             // get the line product tax

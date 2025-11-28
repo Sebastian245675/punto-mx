@@ -1555,7 +1555,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             return;
         }
         
-        // Obtener el stock anterior para calcular la diferencia
+        // Obtener el stock anterior para registrar el movimiento en stockdiary
         Double oldStock = 0.0;
         try {
             PreparedSentence getOldStock = new PreparedSentence(dlSales.getSession(),
@@ -1570,7 +1570,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             // Si no existe, oldStock queda en 0.0
         }
         
-        // Actualizar o insertar en stockcurrent
+        // Actualizar o insertar en stockcurrent - guarda el valor que el usuario establece
         try {
             PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
                 "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",

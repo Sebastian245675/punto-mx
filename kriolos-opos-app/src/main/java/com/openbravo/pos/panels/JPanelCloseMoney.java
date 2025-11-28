@@ -1535,40 +1535,95 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     script.put("allShifts", allShifts);
                     script.put("isDayClose", Boolean.TRUE);
                     LOGGER.info("Datos pasados al template - isDayClose: true, allShifts size: " + (allShifts != null ? allShifts.size() : 0));
+                    // DEBUG: also show a popup to confirm results for users who run day close
+                    try {
+                        SwingUtilities.invokeLater(() -> {
+                            StringBuilder msg = new StringBuilder();
+                            msg.append("Cantidad de turnos encontrados: ").append(allShifts != null ? allShifts.size() : 0).append("\n");
+                            int totalProducts = 0;
+                            if (allShifts != null) {
+                                for (ShiftData s : allShifts) totalProducts += s.getProductLines().size();
+                            }
+                            msg.append("Total productos por día encontrados: ").append(totalProducts).append("\n");
+                            if (totalProducts == 0) {
+                                msg.append("No se encontraron productos. Revisa el registro de errores o la base de datos.");
+                            }
+                            JOptionPane.showMessageDialog(this, msg.toString(), "Depuración: Corte del Día", JOptionPane.INFORMATION_MESSAGE);
+                        });
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "No se pudo mostrar popup de debug: " + e.getMessage(), e);
+                    }
                     
                     // Calcular totales del día y consolidar productos
                     double totalDaySales = 0.0;
                     double totalDayPayments = 0.0;
                     java.util.Map<String, ConsolidatedProduct> consolidatedProducts = new java.util.HashMap<>();
-                    
+
+                    // Primero, sumar totales a partir de los shift obtenidos
                     if (allShifts != null) {
                         for (ShiftData shift : allShifts) {
                             totalDaySales += shift.getTotalSales();
                             totalDayPayments += shift.getTotalPayments();
-                            
-                            // Consolidar productos de este turno
                             LOGGER.info("Procesando productos del turno #" + shift.getSequence() + " - Total productos: " + shift.getProductLines().size());
-                            for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
-                                // Usar el nombre sin codificar para la agrupación
+                        }
+                    }
+
+                    // Construir la lista consolidada usando DATENEW (receipts) para garantizar que capturamos todo el día
+                    try {
+                        Session session = m_App.getSession();
+                        java.util.Calendar cal2 = java.util.Calendar.getInstance();
+                        cal2.setTime(closeDate);
+                        cal2.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                        cal2.set(java.util.Calendar.MINUTE, 0);
+                        cal2.set(java.util.Calendar.SECOND, 0);
+                        cal2.set(java.util.Calendar.MILLISECOND, 0);
+                        java.sql.Timestamp dayStart = new java.sql.Timestamp(cal2.getTimeInMillis());
+                        cal2.add(java.util.Calendar.DAY_OF_MONTH, 1);
+                        java.sql.Timestamp dayEnd = new java.sql.Timestamp(cal2.getTimeInMillis());
+
+                        // Expand by 1 hour on either side to be tolerant
+                        cal2.add(java.util.Calendar.HOUR_OF_DAY, -1);
+                        java.sql.Timestamp fallbackStart = new java.sql.Timestamp(cal2.getTimeInMillis());
+                        cal2.add(java.util.Calendar.HOUR_OF_DAY, 25);
+                        java.sql.Timestamp fallbackEnd = new java.sql.Timestamp(cal2.getTimeInMillis());
+
+                        String fsql = "SELECT products.NAME, SUM(ticketlines.UNITS) AS UNITS, ticketlines.PRICE, COALESCE(taxes.RATE,0) AS RATE " +
+                            "FROM ticketlines " +
+                            "JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                            "JOIN receipts ON tickets.ID = receipts.ID " +
+                            "JOIN products ON ticketlines.PRODUCT = products.ID " +
+                            "LEFT JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                            "WHERE receipts.DATENEW >= ? AND receipts.DATENEW < ? " +
+                            "GROUP BY products.NAME, ticketlines.PRICE, COALESCE(taxes.RATE,0)";
+
+                        java.util.List<PaymentsModel.ProductSalesLine> fproducts = new StaticSentence(session,
+                            fsql,
+                            new SerializerWriteBasic(new Datas[]{Datas.TIMESTAMP, Datas.TIMESTAMP}),
+                            new SerializerReadClass(PaymentsModel.ProductSalesLine.class))
+                            .list(new Object[]{fallbackStart, fallbackEnd});
+
+                        LOGGER.info("Consolidated DATENEW query returned products: " + (fproducts != null ? fproducts.size() : 0));
+
+                        if (fproducts != null) {
+                            for (PaymentsModel.ProductSalesLine product : fproducts) {
                                 String productName = product.getProductName();
-                                if (productName == null || productName.trim().isEmpty()) {
-                                    LOGGER.warning("Producto con nombre vacío encontrado, saltando...");
-                                    continue;
-                                }
+                                if (productName == null || productName.trim().isEmpty()) continue;
                                 ConsolidatedProduct consolidated = consolidatedProducts.get(productName);
                                 if (consolidated == null) {
                                     consolidated = new ConsolidatedProduct(productName);
                                     consolidatedProducts.put(productName, consolidated);
-                                    LOGGER.info("Nuevo producto agregado a consolidación: " + productName);
                                 }
                                 double units = product.getProductUnits() != null ? product.getProductUnits() : 0.0;
                                 double price = product.getProductPrice() != null ? product.getProductPrice() : 0.0;
                                 double taxRate = product.getTaxRate() != null ? product.getTaxRate() : 0.0;
                                 consolidated.addUnits(units);
                                 consolidated.addTotal(price * (1.0 + taxRate) * units);
-                                LOGGER.info("  Producto: " + productName + " - Unidades: " + units + " - Total: " + (price * (1.0 + taxRate) * units));
+                                LOGGER.info("Consolidated product: " + productName + " - Units: " + units + " - Value: " + (price * (1.0 + taxRate) * units));
                             }
                         }
+
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error building consolidated products list by DATENEW: " + e.getMessage(), e);
                     }
                     
                     // Convertir el mapa a lista ordenada
@@ -1703,21 +1758,26 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 
                 // Reemplazar productos consolidados en cierre de día
                 if (isDayClose && closeDate != null && !consolidatedProductList.isEmpty()) {
-                    String placeholder = "<!-- PRODUCTOS_PLACEHOLDER -->";
-                    int placeholderIndex = ticketOutput.indexOf(placeholder);
-                    if (placeholderIndex >= 0) {
+                    // Prepare replacement string for consolidated products
+                    String replacement = "";
+                    try {
                         StringBuilder productosXMLConsolidados = new StringBuilder();
                         for (ConsolidatedProduct product : consolidatedProductList) {
                             String name = product.printName();
-                            if (name.length() > 25) {
-                                name = name.substring(0, 22) + "...";
-                            }
+                            if (name.length() > 25) name = name.substring(0, 22) + "...";
                             productosXMLConsolidados.append("        <line>\n");
-                            productosXMLConsolidados.append("            <text align =\"left\" length=\"25\">").append(StringUtils.encodeXML(name)).append("</text>\n");
-                            productosXMLConsolidados.append("            <text align =\"right\" length=\"8\">").append(product.printUnits()).append("</text>\n");
-                            productosXMLConsolidados.append("            <text align =\"right\" length=\"9\">").append(product.printTotal()).append("</text>\n");
+                            productosXMLConsolidados.append("            <text align =\"left\" length=\"25\">" + StringUtils.encodeXML(name) + "</text>\n");
+                            productosXMLConsolidados.append("            <text align =\"right\" length=\"8\">" + product.printUnits() + "</text>\n");
+                            productosXMLConsolidados.append("            <text align =\"right\" length=\"9\">" + product.printTotal() + "</text>\n");
                             productosXMLConsolidados.append("        </line>\n");
                         }
+                        replacement = productosXMLConsolidados.toString();
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error creando replacement para productos consolidados: " + e.getMessage(), e);
+                    }
+                    String placeholder = "<!-- PRODUCTOS_PLACEHOLDER -->";
+                    int placeholderIndex = ticketOutput.indexOf(placeholder);
+                    if (placeholderIndex >= 0) {
                         
                         // Buscar y reemplazar el placeholder y la línea completa "Sin productos vendidos"
                         int startIndex = placeholderIndex;
@@ -1749,35 +1809,92 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             }
                         }
                         
-                        if (lineStart > 0 && lineEnd > lineStart) {
-                            // Eliminar desde el placeholder hasta el final de la línea completa
-                            // Esto incluye: <!-- PRODUCTOS_PLACEHOLDER --> + espacios/saltos de línea + <line>...texto...</line>
-                            // Buscar el inicio real: desde el placeholder, encontrar el inicio de la línea que contiene el placeholder
-                            int lineStartIndex = startIndex;
-                            // Retroceder hasta encontrar el inicio de la línea (carácter anterior a \n o inicio del string)
-                            while (lineStartIndex > 0 && ticketOutput.charAt(lineStartIndex - 1) != '\n' && ticketOutput.charAt(lineStartIndex - 1) != '\r') {
-                                lineStartIndex--;
-                            }
-                            
-                            String before = ticketOutput.substring(0, lineStartIndex);
-                            String after = ticketOutput.substring(lineEnd);
-                            // El XML generado ya tiene la indentación correcta (8 espacios)
-                            String replacement = productosXMLConsolidados.toString();
-                            ticketOutput = before + replacement + after;
-                            LOGGER.info("Productos consolidados insertados en template: " + consolidatedProductList.size());
-                            LOGGER.info("Reemplazo exitoso - Longitud antes: " + before.length() + ", después: " + ticketOutput.length());
-                            // Log del fragmento que se está reemplazando
+                        // If placeholder present, replace comment with the generated lines directly (replacement already prepared)
+                        ticketOutput = ticketOutput.replace(placeholder, replacement);
+                        // Also remove the default "Sin productos vendidos" block if present after replacement
+                        String defaultNoProducts = "<line>\n" +
+                                "            <text align =\"left\" length=\"42\">Sin productos vendidos</text>\n" +
+                                "        </line>\n";
+                        if (ticketOutput.contains(defaultNoProducts)) {
+                            ticketOutput = ticketOutput.replace(defaultNoProducts, "");
+                        }
+                        LOGGER.info("Productos consolidados insertados en template: " + consolidatedProductList.size());
+                        LOGGER.info("Reemplazo exitoso - Longitud resultante: " + ticketOutput.length());
+                        // Log del fragmento que se está reemplazando
+                        if (startIndex >= 0 && lineEnd > startIndex) {
                             String fragmentoReemplazado = ticketOutput.substring(startIndex, Math.min(startIndex + 200, lineEnd));
                             LOGGER.info("Fragmento reemplazado (primeros 200 chars): " + fragmentoReemplazado.replace("\n", "\\n").replace("\r", "\\r"));
-                            // Verificar que el producto esté en el ticket después del reemplazo
-                            int productoIndex = ticketOutput.indexOf("Tortillas");
-                            LOGGER.info("Verificación: Producto 'Tortillas' encontrado en ticket después del reemplazo: " + (productoIndex >= 0) + " (posición: " + productoIndex + ")");
+                            // Verificar que alguno de los productos aparezca en el ticket después del reemplazo
+                            boolean anyFound = false;
+                            for (ConsolidatedProduct cp : consolidatedProductList) {
+                                if (ticketOutput.indexOf(cp.getName()) >= 0) {
+                                    anyFound = true; break;
+                                }
+                            }
+                            LOGGER.info("Verificación: ¿Algún producto consolidado encontrado en ticket?: " + anyFound);
+                            if (!anyFound) {
+                                // As a last resort, append the products list at the end of the ticket (just before </ticket>)
+                                try {
+                                    StringBuilder appendSection = new StringBuilder();
+                                    appendSection.append("\n<line size=\"1\">\n");
+                                    appendSection.append("    <text align =\"center\" bold=\"true\" length=\"42\">PRODUCTOS VENDIDOS DEL DÍA</text>\n");
+                                    appendSection.append("</line>\n");
+                                    appendSection.append("<line>\n");
+                                    appendSection.append("   <text align =\"left\" bold=\"true\" length=\"25\">Producto</text>\n");
+                                    appendSection.append("   <text align =\"right\" bold=\"true\" length=\"8\">Cantidad</text>\n");
+                                    appendSection.append("   <text align =\"right\" bold=\"true\" length=\"9\">Total</text>\n");
+                                    appendSection.append("</line>\n");
+                                    appendSection.append(replacement);
+                                    int idx = ticketOutput.lastIndexOf("</ticket>");
+                                    if (idx >= 0) {
+                                        ticketOutput = ticketOutput.substring(0, idx) + appendSection.toString() + ticketOutput.substring(idx);
+                                        LOGGER.info("Append fallback: se agregó la lista de productos al final del ticket.");
+                                    } else {
+                                        ticketOutput += appendSection.toString();
+                                        LOGGER.info("Append fallback: se agregó la lista de productos al final del output (no se encontró </ticket>).");
+                                    }
+                                } catch (Exception e) {
+                                    LOGGER.log(Level.WARNING, "Error appending consolidated products as fallback: " + e.getMessage(), e);
+                                }
+                            }
                         } else {
                             LOGGER.warning("No se pudo encontrar la línea a reemplazar después del placeholder PRODUCTOS_PLACEHOLDER. lineStart: " + lineStart + ", lineEnd: " + lineEnd);
                             LOGGER.warning("Fragmento después del placeholder (primeros 200 chars): " + ticketOutput.substring(Math.max(0, searchStart), Math.min(ticketOutput.length(), searchStart + 200)));
+                            // Try fallback: directly replace the default no-products line
+                            String defaultNoProductsFallback = "<line>\n" +
+                                    "            <text align =\"left\" length=\"42\">Sin productos vendidos</text>\n" +
+                                    "        </line>\n";
+                            if (ticketOutput.contains(defaultNoProductsFallback)) {
+                                ticketOutput = ticketOutput.replace(defaultNoProductsFallback, replacement);
+                                LOGGER.info("Fallback: default no-products replaced with consolidated products");
+                            } else if (ticketOutput.indexOf("Sin productos vendidos") >= 0) {
+                                // find the line block containing the phrase and replace it
+                                int pos = ticketOutput.indexOf("Sin productos vendidos");
+                                int startLine = ticketOutput.lastIndexOf("<line", pos);
+                                int endLine = ticketOutput.indexOf("</line>", pos);
+                                if (startLine >= 0 && endLine >= 0) {
+                                    endLine += 7; // include closing tag
+                                    ticketOutput = ticketOutput.substring(0, startLine) + replacement + ticketOutput.substring(endLine);
+                                    LOGGER.info("Fallback: replaced generic 'Sin productos vendidos' line with consolidated products");
+                                } else {
+                                    LOGGER.warning("Fallback: no se pudo localizar el bloque <line> que contiene 'Sin productos vendidos'");
+                                }
+                            } else {
+                                LOGGER.warning("Fallback: no default no-products placeholder found to replace");
+                            }
                         }
                     } else {
                         LOGGER.warning("No se encontró el marcador PRODUCTOS_PLACEHOLDER en el template");
+                        // Fallback: replace default text line directly if exists
+                        String defaultNoProducts = "<line>\n" +
+                                "            <text align =\"left\" length=\"42\">Sin productos vendidos</text>\n" +
+                                "        </line>\n";
+                        if (ticketOutput.contains(defaultNoProducts)) {
+                            ticketOutput = ticketOutput.replace(defaultNoProducts, replacement);
+                            LOGGER.info("Fallback: Replaced default 'Sin productos vendidos' with products list");
+                        } else {
+                            LOGGER.warning("Fallback: default 'Sin productos vendidos' not found in template for replacement");
+                        }
                     }
                 }
                 
@@ -1785,21 +1902,23 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 if (!isDayClose && currentShiftProducts != null && !currentShiftProducts.isEmpty()) {
                     String placeholderTurno = "<!-- PRODUCTOS_TURNO_PLACEHOLDER -->";
                     int placeholderIndex = ticketOutput.indexOf(placeholderTurno);
-                    if (placeholderIndex >= 0) {
-                        StringBuilder productosTurnoXML = new StringBuilder();
-                        for (PaymentsModel.ProductSalesLine product : currentShiftProducts) {
-                            String name = product.printProductName();
-                            // El nombre ya viene codificado de printProductName()
-                            if (name.length() > 25) {
-                                name = name.substring(0, 22) + "...";
-                            }
-                            productosTurnoXML.append("        <line>\n");
-                            productosTurnoXML.append("            <text align =\"left\" length=\"25\">").append(StringUtils.encodeXML(name)).append("</text>\n");
-                            productosTurnoXML.append("            <text align =\"right\" length=\"8\">").append(product.printProductUnits()).append("</text>\n");
-                            productosTurnoXML.append("            <text align =\"right\" length=\"9\">").append(product.printProductSubValue()).append("</text>\n");
-                            productosTurnoXML.append("        </line>\n");
+                    // Prepare productosTurnoXML regardless of placeholder presence
+                    StringBuilder productosTurnoXML = new StringBuilder();
+                    for (PaymentsModel.ProductSalesLine product : currentShiftProducts) {
+                        String name = product.printProductName();
+                        if (name.length() > 25) {
+                            name = name.substring(0, 22) + "...";
                         }
-                        
+                        productosTurnoXML.append("        <line>\n");
+                        productosTurnoXML.append("            <text align =\"left\" length=\"25\">" + StringUtils.encodeXML(name) + "</text>\n");
+                        productosTurnoXML.append("            <text align =\"right\" length=\"8\">" + product.printProductUnits() + "</text>\n");
+                        productosTurnoXML.append("            <text align =\"right\" length=\"9\">" + product.printProductSubValue() + "</text>\n");
+                        productosTurnoXML.append("        </line>\n");
+                    }
+                    if (placeholderIndex >= 0) {
+                        // productosTurnoXML ya está creado arriba, solo crear replacement
+                        // Crear replacement string
+                        String replacementTurno = productosTurnoXML.toString();
                         // Buscar y reemplazar el placeholder y la línea completa "Sin productos vendidos en este turno"
                         int startIndex = placeholderIndex;
                         // Buscar el inicio de la línea <line> que sigue al placeholder
@@ -1830,15 +1949,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             }
                         }
                         
-                        if (lineStart > 0 && lineEnd > lineStart) {
+                        if (lineStart >= 0 && lineEnd > lineStart) {
                             // Reemplazar desde el placeholder (incluyéndolo) hasta el final de la línea "Sin productos vendidos en este turno"
                             String before = ticketOutput.substring(0, startIndex);
                             String after = ticketOutput.substring(lineEnd);
                             // El XML generado ya tiene la indentación correcta (8 espacios)
-                            String replacement = productosTurnoXML.toString();
-                            ticketOutput = before + replacement + after;
+                            ticketOutput = before + replacementTurno + after;
                             LOGGER.info("Productos del turno insertados en template: " + currentShiftProducts.size());
-                            LOGGER.info("Reemplazo exitoso - Longitud antes: " + before.length() + ", después: " + ticketOutput.length());
+                            LOGGER.info("Reemplazo exitoso - Longitud resultante: " + ticketOutput.length());
                             // Verificar que el primer producto esté en el ticket después del reemplazo
                             if (!currentShiftProducts.isEmpty()) {
                                 String primerProducto = currentShiftProducts.get(0).printProductName();
@@ -1848,9 +1966,40 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         } else {
                             LOGGER.warning("No se pudo encontrar la línea a reemplazar después del placeholder PRODUCTOS_TURNO_PLACEHOLDER. lineStart: " + lineStart + ", lineEnd: " + lineEnd);
                             LOGGER.warning("Fragmento después del placeholder (primeros 200 chars): " + ticketOutput.substring(Math.max(0, searchStart), Math.min(ticketOutput.length(), searchStart + 200)));
+                            String defaultNoProductsTurno = "<line>\n" +
+                                    "            <text align =\"left\" length=\"42\">Sin productos vendidos en este turno</text>\n" +
+                                    "        </line>\n";
+                            String replacementTurnoFallback = productosTurnoXML.toString();
+                            if (ticketOutput.contains(defaultNoProductsTurno)) {
+                                ticketOutput = ticketOutput.replace(defaultNoProductsTurno, replacementTurnoFallback);
+                                LOGGER.info("Fallback: default no-products turno replaced with products list");
+                            } else if (ticketOutput.indexOf("Sin productos vendidos en este turno") >= 0) {
+                                int pos = ticketOutput.indexOf("Sin productos vendidos en este turno");
+                                int startLine = ticketOutput.lastIndexOf("<line", pos);
+                                int endLine = ticketOutput.indexOf("</line>", pos);
+                                if (startLine >= 0 && endLine >= 0) {
+                                    endLine += 7;
+                                    ticketOutput = ticketOutput.substring(0, startLine) + replacementTurnoFallback + ticketOutput.substring(endLine);
+                                    LOGGER.info("Fallback: replaced generic 'Sin productos vendidos en este turno' line with products list");
+                                } else {
+                                    LOGGER.warning("Fallback: no se pudo localizar el bloque <line> para 'Sin productos vendidos en este turno'");
+                                }
+                            } else {
+                                LOGGER.warning("Fallback: default 'Sin productos vendidos en este turno' not found for replacement");
+                            }
                         }
                     } else {
                         LOGGER.warning("No se encontró el marcador PRODUCTOS_TURNO_PLACEHOLDER en el template");
+                        String defaultNoProductsTurno = "<line>\n" +
+                                "            <text align =\"left\" length=\"42\">Sin productos vendidos en este turno</text>\n" +
+                                "        </line>\n";
+                        String replacementTurno2 = productosTurnoXML.toString();
+                        if (ticketOutput.contains(defaultNoProductsTurno)) {
+                            ticketOutput = ticketOutput.replace(defaultNoProductsTurno, replacementTurno2);
+                            LOGGER.info("Fallback: Replaced default 'Sin productos vendidos en este turno' with products list");
+                        } else {
+                            LOGGER.warning("Fallback: default 'Sin productos vendidos en este turno' not found in template for replacement");
+                        }
                     }
                 }
                 
