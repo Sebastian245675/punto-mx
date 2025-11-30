@@ -2904,7 +2904,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelMainToolbar.add(m_jPanelScripts, java.awt.BorderLayout.CENTER);
         m_jPanelScripts.getAccessibleContext().setAccessibleDescription("");
 
-        m_jPanelTicket.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        m_jPanelTicket.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 5, 5, 5)); // Reducir padding superior para acercar contenido
         m_jPanelTicket.setLayout(new java.awt.BorderLayout());
 
         m_jPanelLinesToolbar.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
@@ -3090,11 +3090,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         m_jPanelLinesToolbar.add(jPanel2, java.awt.BorderLayout.NORTH);
 
-        m_jPanelTicket.add(m_jPanelLinesToolbar, java.awt.BorderLayout.LINE_START);
+        // Sebastian - Ocultar completamente la barra lateral para que la tabla ocupe todo el ancho
+        m_jPanelLinesToolbar.setVisible(false);
+        m_jPanelLinesToolbar.setPreferredSize(new java.awt.Dimension(0, 0));
+        
+        // No agregar la barra lateral al panel de ticket
+        // m_jPanelTicket.add(m_jPanelLinesToolbar, java.awt.BorderLayout.LINE_START);
 
         m_jPanelLines.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        // Sebastian - Expandir el panel de líneas para ocupar más espacio horizontal
-        m_jPanelLines.setPreferredSize(new java.awt.Dimension(750, 240));
+        // Sebastian - Expandir el panel de líneas para ocupar TODO el ancho disponible (sin barra lateral)
+        // Remover el tamaño preferido limitado para que ocupe todo el espacio
+        m_jPanelLines.setPreferredSize(null);
         m_jPanelLines.setLayout(new java.awt.BorderLayout());
 
         m_jPanelLinesSum.setLayout(new java.awt.BorderLayout());
@@ -3486,8 +3492,118 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Crear panel para la barra de búsqueda en la parte superior
         javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 2, 5)); // Reducir padding inferior
         searchPanel.add(jPanelScanner, java.awt.BorderLayout.CENTER);
+
+        // Sebastian - Crear barra de botones de acción debajo del campo de búsqueda
+        javax.swing.JPanel actionButtonsPanel = new javax.swing.JPanel();
+        actionButtonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 3)); // Reducir espaciado vertical
+        actionButtonsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)); // Reducir padding vertical
+        actionButtonsPanel.setBackground(new java.awt.Color(245, 245, 245));
+        
+        // Botón Varios
+        javax.swing.JButton btnVarios = new javax.swing.JButton("INS Varios");
+        btnVarios.setPreferredSize(new java.awt.Dimension(120, 35));
+        btnVarios.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnVarios.setFocusPainted(false);
+        btnVarios.addActionListener(e -> {
+            // TODO: Implementar funcionalidad de Varios
+            javax.swing.JOptionPane.showMessageDialog(this, "Función Varios", "Varios", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        });
+        actionButtonsPanel.add(btnVarios);
+        
+        // Botón Artículo Común
+        javax.swing.JButton btnArticuloComun = new javax.swing.JButton("CTRL+P Art. Común");
+        btnArticuloComun.setPreferredSize(new java.awt.Dimension(150, 35));
+        btnArticuloComun.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnArticuloComun.setFocusPainted(false);
+        btnArticuloComun.addActionListener(e -> {
+            // TODO: Implementar funcionalidad de Artículo Común
+            javax.swing.JOptionPane.showMessageDialog(this, "Función Artículo Común", "Artículo Común", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        });
+        actionButtonsPanel.add(btnArticuloComun);
+        
+        // Botón Buscar
+        javax.swing.JButton btnBuscar = new javax.swing.JButton("F10 Buscar");
+        btnBuscar.setPreferredSize(new java.awt.Dimension(120, 35));
+        btnBuscar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnBuscar.setFocusPainted(false);
+        btnBuscar.addActionListener(e -> {
+            m_jListActionPerformed(null); // Usar la funcionalidad existente de búsqueda
+        });
+        actionButtonsPanel.add(btnBuscar);
+        
+        // Botón Mayoreo
+        javax.swing.JButton btnMayoreo = new javax.swing.JButton("F11 Mayoreo");
+        btnMayoreo.setPreferredSize(new java.awt.Dimension(120, 35));
+        btnMayoreo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnMayoreo.setFocusPainted(false);
+        btnMayoreo.addActionListener(e -> {
+            // TODO: Implementar funcionalidad de Mayoreo
+            javax.swing.JOptionPane.showMessageDialog(this, "Función Mayoreo", "Mayoreo", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        });
+        actionButtonsPanel.add(btnMayoreo);
+        
+        // Botón Entradas
+        javax.swing.JButton btnEntradas = new javax.swing.JButton("F7 Entradas");
+        btnEntradas.setPreferredSize(new java.awt.Dimension(120, 35));
+        btnEntradas.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnEntradas.setFocusPainted(false);
+        btnEntradas.addActionListener(e -> {
+            showEntradasSalidasDialog(); // Usar la funcionalidad existente de Entradas/Salidas
+        });
+        actionButtonsPanel.add(btnEntradas);
+        
+        // Botón Salidas
+        javax.swing.JButton btnSalidas = new javax.swing.JButton("F8 Salidas");
+        btnSalidas.setPreferredSize(new java.awt.Dimension(120, 35));
+        btnSalidas.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnSalidas.setFocusPainted(false);
+        btnSalidas.addActionListener(e -> {
+            showEntradasSalidasDialog(); // Usar la funcionalidad existente de Entradas/Salidas
+        });
+        actionButtonsPanel.add(btnSalidas);
+        
+        // Botón Borrar Artículo
+        javax.swing.JButton btnBorrarArt = new javax.swing.JButton("DEL Borrar Art.");
+        btnBorrarArt.setPreferredSize(new java.awt.Dimension(130, 35));
+        btnBorrarArt.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnBorrarArt.setFocusPainted(false);
+        btnBorrarArt.addActionListener(e -> {
+            m_jDeleteActionPerformed(null); // Usar la funcionalidad existente de borrar
+        });
+        actionButtonsPanel.add(btnBorrarArt);
+        
+        // Botones de la barra lateral movidos aquí
+        // Botón Nueva Venta
+        javax.swing.JButton btnNuevaVentaHoriz = new javax.swing.JButton("Nueva Venta");
+        btnNuevaVentaHoriz.setPreferredSize(new java.awt.Dimension(120, 35));
+        btnNuevaVentaHoriz.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnNuevaVentaHoriz.setFocusPainted(false);
+        btnNuevaVentaHoriz.addActionListener(e -> {
+            abrirNuevaVenta();
+        });
+        actionButtonsPanel.add(btnNuevaVentaHoriz);
+        
+        // Botón Ventas Pendientes
+        javax.swing.JButton btnVentasPendientesHoriz = new javax.swing.JButton("Ventas Pendientes");
+        btnVentasPendientesHoriz.setPreferredSize(new java.awt.Dimension(150, 35));
+        btnVentasPendientesHoriz.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnVentasPendientesHoriz.setFocusPainted(false);
+        btnVentasPendientesHoriz.addActionListener(e -> {
+            mostrarVentasPendientes();
+        });
+        actionButtonsPanel.add(btnVentasPendientesHoriz);
+        
+        // Botón ID Cliente
+        javax.swing.JButton btnIdClienteHoriz = new javax.swing.JButton("ID Cliente");
+        btnIdClienteHoriz.setPreferredSize(new java.awt.Dimension(120, 35));
+        btnIdClienteHoriz.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnIdClienteHoriz.setFocusPainted(false);
+        btnIdClienteHoriz.addActionListener(e -> {
+            mostrarModalIdCliente();
+        });
+        actionButtonsPanel.add(btnIdClienteHoriz);
 
         // Sebastian - Crear panel superior exclusivo para puntos del cliente
         javax.swing.JPanel customerPointsPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
@@ -3499,7 +3615,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Ocultar todo el toolbar principal para interfaz ultramoderna
         m_jPanelMainToolbar.setVisible(false);
         topPanel.add(m_jPanelMainToolbar, java.awt.BorderLayout.NORTH);
-        topPanel.add(searchPanel, java.awt.BorderLayout.SOUTH);
+        
+        // Agregar la barra de búsqueda y los botones de acción en un panel vertical
+        javax.swing.JPanel searchAndActionsPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        searchAndActionsPanel.add(searchPanel, java.awt.BorderLayout.NORTH);
+        searchAndActionsPanel.add(actionButtonsPanel, java.awt.BorderLayout.SOUTH);
+        
+        topPanel.add(searchAndActionsPanel, java.awt.BorderLayout.SOUTH);
 
         // Sebastian - Crear un panel contenedor completo que incluya los puntos arriba
         // de todo

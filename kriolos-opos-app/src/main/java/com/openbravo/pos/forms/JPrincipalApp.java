@@ -133,7 +133,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
     public void activate() {
 
-        setMenuVisible(getBounds().width > 800);
+        // Sebastian - Mantener el menú lateral siempre oculto para diseño tipo eleventa
+        setMenuVisible(false);
         rMenu.getViewManager().resetActionfirst();
     }
 
@@ -208,7 +209,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
                     rMenu.getViewManager().setLastView(viewPanel);
 
-                    setMenuVisible(getBounds().width > 800);
+                    // Sebastian - Mantener el menú lateral siempre oculto
+                    setMenuVisible(false);
 
                     showView(sTaskClass);
                     String sTitle = viewPanel.getTitle();
@@ -333,10 +335,175 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         m_jPanelLefSide.add(colapseHPanel, java.awt.BorderLayout.LINE_END);
 
-        add(m_jPanelLefSide, java.awt.BorderLayout.LINE_START);
+        // Sebastian - Ocultar la barra lateral del menú para diseño tipo eleventa
+        m_jPanelLefSide.setVisible(false);
+        // add(m_jPanelLefSide, java.awt.BorderLayout.LINE_START);
 
         m_jPanelRightSide.setPreferredSize(new java.awt.Dimension(200, 40));
         m_jPanelRightSide.setLayout(new java.awt.BorderLayout());
+        
+        // Sebastian - Crear barra horizontal superior con TODOS los botones del menú (estilo eleventa)
+        javax.swing.JPanel topMenuBar = new javax.swing.JPanel();
+        topMenuBar.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 5));
+        topMenuBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        topMenuBar.setBackground(new java.awt.Color(240, 240, 240));
+        // Asegurar que el panel pueda expandirse verticalmente para mostrar múltiples filas
+        topMenuBar.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
+        // Forzar que el panel calcule su tamaño preferido basado en el contenido
+        topMenuBar.setMinimumSize(new java.awt.Dimension(0, 50)); // Mínimo para una fila
+        topMenuBar.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE)); // Permitir expansión vertical
+        
+        // ========== MENU.MAIN - Elementos principales ==========
+        // Botón Ventas (Menu.Ticket)
+        javax.swing.JButton btnVentas = createMenuButton(
+            "/com/openbravo/images/sale.png",
+            AppLocal.getIntString("Menu.Ticket"),
+            "com.openbravo.pos.sales.JPanelTicketSales"
+        );
+        topMenuBar.add(btnVentas);
+        
+        // Botón Pagos de Clientes (Menu.CustomersPayment)
+        javax.swing.JButton btnPagosClientes = createMenuButton(
+            "/com/openbravo/images/customerpay.png",
+            AppLocal.getIntString("Menu.CustomersPayment"),
+            "com.openbravo.pos.customers.CustomersPayment"
+        );
+        topMenuBar.add(btnPagosClientes);
+        
+        // Botón Cierre de Caja (Menu.CloseTPV)
+        javax.swing.JButton btnCierre = createMenuButton(
+            "/com/openbravo/images/calculator.png",
+            AppLocal.getIntString("Menu.CloseTPV"),
+            "com.openbravo.pos.panels.JPanelCloseMoney"
+        );
+        topMenuBar.add(btnCierre);
+        
+        // Botón Gestión de Sucursales (Menu.BranchesManagement)
+        javax.swing.JButton btnSucursales = createMenuButton(
+            "/com/openbravo/images/user.png",
+            AppLocal.getIntString("Menu.BranchesManagement"),
+            "com.openbravo.pos.branches.JPanelBranchesManagement"
+        );
+        topMenuBar.add(btnSucursales);
+        
+        // ========== MENU.BACKOFFICE - Submenús ==========
+        // Botón Clientes (Menu.Customers - submenu)
+        javax.swing.JButton btnClientes = createMenuButton(
+            "/com/openbravo/images/customer.png",
+            AppLocal.getIntString("Menu.Customers"),
+            "com.openbravo.pos.forms.MenuCustomers"
+        );
+        topMenuBar.add(btnClientes);
+        
+        // Botón Proveedores (Menu.Suppliers - submenu)
+        javax.swing.JButton btnProveedores = createMenuButton(
+            "/com/openbravo/images/stockmaint.png",
+            AppLocal.getIntString("Menu.Suppliers"),
+            "com.openbravo.pos.forms.MenuSuppliers"
+        );
+        topMenuBar.add(btnProveedores);
+        
+        // Botón Gestión de Inventario (Menu.StockManagement - submenu)
+        javax.swing.JButton btnInventario = createMenuButton(
+            "/com/openbravo/images/products.png",
+            AppLocal.getIntString("Menu.StockManagement"),
+            "com.openbravo.pos.forms.MenuStockManagement"
+        );
+        topMenuBar.add(btnInventario);
+        
+        // Botón Gestión de Ventas (Menu.SalesManagement - submenu)
+        javax.swing.JButton btnVentasManagement = createMenuButton(
+            "/com/openbravo/images/sales.png",
+            AppLocal.getIntString("Menu.SalesManagement"),
+            "com.openbravo.pos.forms.MenuSalesManagement"
+        );
+        topMenuBar.add(btnVentasManagement);
+        
+        // Botón Mantenimiento (Menu.Maintenance - submenu)
+        javax.swing.JButton btnMantenimiento = createMenuButton(
+            "/com/openbravo/images/maintain.png",
+            AppLocal.getIntString("Menu.Maintenance"),
+            "com.openbravo.pos.forms.MenuMaintenance"
+        );
+        topMenuBar.add(btnMantenimiento);
+        
+        // Botón Gestión de Presencia (Menu.PresenceManagement - submenu)
+        javax.swing.JButton btnPresencia = createMenuButton(
+            "/com/openbravo/images/users.png",
+            AppLocal.getIntString("Menu.PresenceManagement"),
+            "com.openbravo.pos.forms.MenuEmployees"
+        );
+        topMenuBar.add(btnPresencia);
+        
+        // ========== MENU.UTILITIES ==========
+        // Botón Herramientas (Menu.Tools - submenu)
+        javax.swing.JButton btnHerramientas = createMenuButton(
+            "/com/openbravo/images/utilities.png",
+            AppLocal.getIntString("Menu.Tools"),
+            "com.openbravo.pos.imports.JPanelCSV"
+        );
+        topMenuBar.add(btnHerramientas);
+        
+        // ========== MENU.SYSTEM ==========
+        // Botón Cambiar Contraseña (Menu.ChangePassword)
+        javax.swing.JButton btnCambiarPassword = new javax.swing.JButton();
+        btnCambiarPassword.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/password.png")));
+        btnCambiarPassword.setText(AppLocal.getIntString("Menu.ChangePassword"));
+        btnCambiarPassword.setPreferredSize(new java.awt.Dimension(150, 40));
+        btnCambiarPassword.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                try {
+                    String sNewPassword = com.openbravo.beans.JPasswordDialog.changePassword(JPrincipalApp.this, m_appuser.getPassword());
+                    if (sNewPassword != null) {
+                        m_dlSystem.execChangePassword(new Object[]{sNewPassword, m_appuser.getId()});
+                        m_appuser.setPassword(sNewPassword);
+                    }
+                } catch (Exception e) {
+                    JMessageDialog.showMessage(JPrincipalApp.this,
+                            new MessageInf(MessageInf.SGN_WARNING,
+                                    AppLocal.getIntString("message.cannotchangepassword")));
+                }
+            }
+        });
+        topMenuBar.add(btnCambiarPassword);
+        
+        // Botón Configuración (Menu.Configuration)
+        javax.swing.JButton btnConfig = createMenuButton(
+            "/com/openbravo/images/configuration.png",
+            AppLocal.getIntString("Menu.Configuration"),
+            "com.openbravo.pos.config.JPanelConfiguration"
+        );
+        topMenuBar.add(btnConfig);
+        
+        // Botón Impresora (Menu.Printer)
+        javax.swing.JButton btnImpresora = createMenuButton(
+            "/com/openbravo/images/printer.png",
+            AppLocal.getIntString("Menu.Printer"),
+            "com.openbravo.pos.panels.JPanelPrinter"
+        );
+        topMenuBar.add(btnImpresora);
+        
+        // Botón Salir (Menu.Exit)
+        javax.swing.JButton btnSalir = new javax.swing.JButton();
+        btnSalir.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/logout.png")));
+        btnSalir.setText(AppLocal.getIntString("Menu.Exit"));
+        btnSalir.setPreferredSize(new java.awt.Dimension(100, 40));
+        btnSalir.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                exitToLogin();
+            }
+        });
+        topMenuBar.add(btnSalir);
+        
+        // Forzar el cálculo del tamaño preferido después de agregar todos los botones
+        // Calcular manualmente la altura necesaria para múltiples filas
+        // Cada botón tiene 40px de altura + 5px de padding superior + 5px de padding inferior = 50px por fila
+        // Asumir que se necesitan al menos 2 filas (más seguro)
+        int buttonHeight = 50; // Altura por fila (botón + padding)
+        int rowsNeeded = 2; // Mínimo 2 filas para asegurar que se vean todos los botones
+        int calculatedHeight = rowsNeeded * buttonHeight;
+        topMenuBar.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, calculatedHeight));
+        topMenuBar.setMinimumSize(new java.awt.Dimension(0, calculatedHeight));
 
         m_jPanelTitle.setLayout(new java.awt.BorderLayout());
 
@@ -347,8 +514,23 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jTitle.setMinimumSize(new java.awt.Dimension(30, 25));
         m_jTitle.setPreferredSize(new java.awt.Dimension(100, 35));
         m_jPanelTitle.add(m_jTitle, java.awt.BorderLayout.NORTH);
+        
+        // Sebastian - Agregar barra de menú horizontal arriba del título (con múltiples filas automáticas)
+        // Usar BoxLayout vertical para permitir que el panel de botones se expanda correctamente
+        javax.swing.JPanel topContainer = new javax.swing.JPanel();
+        topContainer.setLayout(new javax.swing.BoxLayout(topContainer, javax.swing.BoxLayout.Y_AXIS));
+        topMenuBar.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
+        topContainer.add(topMenuBar);
+        topContainer.add(m_jPanelTitle);
+        // Asegurar que el contenedor respete el tamaño preferido del panel de botones
+        topContainer.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
+        // Forzar el cálculo del tamaño preferido del contenedor
+        topContainer.validate();
+        java.awt.Dimension containerPreferredSize = topContainer.getPreferredSize();
+        topContainer.setPreferredSize(containerPreferredSize);
+        topContainer.setMinimumSize(containerPreferredSize);
 
-        m_jPanelRightSide.add(m_jPanelTitle, java.awt.BorderLayout.NORTH);
+        m_jPanelRightSide.add(topContainer, java.awt.BorderLayout.NORTH);
 
         m_jPanelContainer.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jPanelContainer.setLayout(new java.awt.CardLayout());
@@ -357,11 +539,32 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         add(m_jPanelRightSide, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
-private void colapseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_colapseButtonActionPerformed
+    private void colapseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_colapseButtonActionPerformed
 
     setMenuVisible(!m_jPanelMenu.isVisible());
 
 }//GEN-LAST:event_colapseButtonActionPerformed
+
+    /**
+     * Método helper para crear botones del menú de forma consistente
+     */
+    private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass) {
+        javax.swing.JButton button = new javax.swing.JButton();
+        try {
+            button.setIcon(new javax.swing.ImageIcon(getClass().getResource(iconPath)));
+        } catch (Exception e) {
+            // Si no se encuentra el icono, continuar sin él
+            LOGGER.log(Level.WARNING, "Icono no encontrado: " + iconPath);
+        }
+        button.setText(text);
+        button.setPreferredSize(new java.awt.Dimension(140, 40));
+        button.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                showTask(taskClass);
+            }
+        });
+        return button;
+    }
 
     /**
      * Convierte el ID del rol (0, 1, 2, 3...) al nombre del rol (ADMIN, MANAGER, Employee)
