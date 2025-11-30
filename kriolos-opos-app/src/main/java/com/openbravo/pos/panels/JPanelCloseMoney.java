@@ -1554,77 +1554,67 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         LOGGER.log(Level.WARNING, "No se pudo mostrar popup de debug: " + e.getMessage(), e);
                     }
                     
+                    // Obtener el fondo inicial del primer turno del día
+                    double initialAmount = 0.0;
+                    if (allShifts != null && !allShifts.isEmpty()) {
+                        try {
+                            String firstShiftMoney = allShifts.get(0).getMoney();
+                            Session session = m_App.getSession();
+                            java.sql.Connection con = session.getConnection();
+                            String sql = "SELECT INITIAL_AMOUNT FROM closedcash WHERE MONEY = ?";
+                            java.sql.PreparedStatement pstmt = con.prepareStatement(sql);
+                            pstmt.setString(1, firstShiftMoney);
+                            java.sql.ResultSet rs = pstmt.executeQuery();
+                            if (rs.next()) {
+                                double dbInitial = rs.getDouble("INITIAL_AMOUNT");
+                                if (!rs.wasNull()) {
+                                    initialAmount = dbInitial;
+                                    LOGGER.info("Fondo inicial obtenido del primer turno: " + initialAmount);
+                                }
+                            }
+                            rs.close();
+                            pstmt.close();
+                        } catch (Exception e) {
+                            LOGGER.log(Level.WARNING, "Error obteniendo fondo inicial: " + e.getMessage(), e);
+                        }
+                    }
+                    
                     // Calcular totales del día y consolidar productos
                     double totalDaySales = 0.0;
                     double totalDayPayments = 0.0;
                     java.util.Map<String, ConsolidatedProduct> consolidatedProducts = new java.util.HashMap<>();
 
-                    // Primero, sumar totales a partir de los shift obtenidos
+                    // Consolidar productos directamente desde los turnos obtenidos
                     if (allShifts != null) {
                         for (ShiftData shift : allShifts) {
                             totalDaySales += shift.getTotalSales();
                             totalDayPayments += shift.getTotalPayments();
                             LOGGER.info("Procesando productos del turno #" + shift.getSequence() + " - Total productos: " + shift.getProductLines().size());
-                        }
-                    }
-
-                    // Construir la lista consolidada usando DATENEW (receipts) para garantizar que capturamos todo el día
-                    try {
-                        Session session = m_App.getSession();
-                        java.util.Calendar cal2 = java.util.Calendar.getInstance();
-                        cal2.setTime(closeDate);
-                        cal2.set(java.util.Calendar.HOUR_OF_DAY, 0);
-                        cal2.set(java.util.Calendar.MINUTE, 0);
-                        cal2.set(java.util.Calendar.SECOND, 0);
-                        cal2.set(java.util.Calendar.MILLISECOND, 0);
-                        java.sql.Timestamp dayStart = new java.sql.Timestamp(cal2.getTimeInMillis());
-                        cal2.add(java.util.Calendar.DAY_OF_MONTH, 1);
-                        java.sql.Timestamp dayEnd = new java.sql.Timestamp(cal2.getTimeInMillis());
-
-                        // Expand by 1 hour on either side to be tolerant
-                        cal2.add(java.util.Calendar.HOUR_OF_DAY, -1);
-                        java.sql.Timestamp fallbackStart = new java.sql.Timestamp(cal2.getTimeInMillis());
-                        cal2.add(java.util.Calendar.HOUR_OF_DAY, 25);
-                        java.sql.Timestamp fallbackEnd = new java.sql.Timestamp(cal2.getTimeInMillis());
-
-                        String fsql = "SELECT products.NAME, SUM(ticketlines.UNITS) AS UNITS, ticketlines.PRICE, COALESCE(taxes.RATE,0) AS RATE " +
-                            "FROM ticketlines " +
-                            "JOIN tickets ON ticketlines.TICKET = tickets.ID " +
-                            "JOIN receipts ON tickets.ID = receipts.ID " +
-                            "JOIN products ON ticketlines.PRODUCT = products.ID " +
-                            "LEFT JOIN taxes ON ticketlines.TAXID = taxes.ID " +
-                            "WHERE receipts.DATENEW >= ? AND receipts.DATENEW < ? " +
-                            "GROUP BY products.NAME, ticketlines.PRICE, COALESCE(taxes.RATE,0)";
-
-                        java.util.List<PaymentsModel.ProductSalesLine> fproducts = new StaticSentence(session,
-                            fsql,
-                            new SerializerWriteBasic(new Datas[]{Datas.TIMESTAMP, Datas.TIMESTAMP}),
-                            new SerializerReadClass(PaymentsModel.ProductSalesLine.class))
-                            .list(new Object[]{fallbackStart, fallbackEnd});
-
-                        LOGGER.info("Consolidated DATENEW query returned products: " + (fproducts != null ? fproducts.size() : 0));
-
-                        if (fproducts != null) {
-                            for (PaymentsModel.ProductSalesLine product : fproducts) {
+                            
+                            // Consolidar productos de este turno
+                            for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
                                 String productName = product.getProductName();
                                 if (productName == null || productName.trim().isEmpty()) continue;
+                                
                                 ConsolidatedProduct consolidated = consolidatedProducts.get(productName);
                                 if (consolidated == null) {
                                     consolidated = new ConsolidatedProduct(productName);
                                     consolidatedProducts.put(productName, consolidated);
                                 }
+                                
                                 double units = product.getProductUnits() != null ? product.getProductUnits() : 0.0;
                                 double price = product.getProductPrice() != null ? product.getProductPrice() : 0.0;
                                 double taxRate = product.getTaxRate() != null ? product.getTaxRate() : 0.0;
+                                double totalValue = price * (1.0 + taxRate) * units;
+                                
                                 consolidated.addUnits(units);
-                                consolidated.addTotal(price * (1.0 + taxRate) * units);
-                                LOGGER.info("Consolidated product: " + productName + " - Units: " + units + " - Value: " + (price * (1.0 + taxRate) * units));
+                                consolidated.addTotal(totalValue);
+                                LOGGER.info("Consolidated product from shift #" + shift.getSequence() + ": " + productName + " - Units: " + units + " - Value: " + totalValue);
                             }
                         }
-
-                    } catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "Error building consolidated products list by DATENEW: " + e.getMessage(), e);
                     }
+                    
+                    LOGGER.info("Total productos consolidados desde turnos: " + consolidatedProducts.size());
                     
                     // Convertir el mapa a lista ordenada
                     consolidatedProductList = new java.util.ArrayList<>(consolidatedProducts.values());
@@ -1694,6 +1684,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     
                     script.put("totalDaySales", Formats.CURRENCY.formatValue(totalDaySales));
                     script.put("totalDayPayments", Formats.CURRENCY.formatValue(totalDayPayments));
+                    script.put("initialAmount", Formats.CURRENCY.formatValue(initialAmount));
                     script.put("consolidatedProducts", consolidatedProductList);
                     productosXML = productosText.toString(); // Productos consolidados del día
                     script.put("productosText", productosXML); // Variable de texto simple para productos consolidados
@@ -2074,6 +2065,20 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 }
                 LOGGER.info("Conteo de etiquetas XML - <line>: " + lineCount + ", <text>: " + textCount);
                 
+                // Save output to temp file for debugging
+                try {
+                    String tmpdir = System.getProperty("java.io.tmpdir");
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyyMMdd_HHmmssSSS");
+                    String fname = "ticket_close_debug_" + sdf.format(new java.util.Date()) + ".xml";
+                    java.io.File outFile = new java.io.File(tmpdir, fname);
+                    try (java.io.FileWriter fw = new java.io.FileWriter(outFile)) {
+                        fw.write(ticketOutput);
+                    }
+                    LOGGER.info("Ticket output debug saved to: " + outFile.getAbsolutePath());
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error saving ticket output debug file: " + e.getMessage(), e);
+                }
+
                 m_TTP.printTicket(ticketOutput);
 // JG 16 May 2012 use multicatch
             } catch (ScriptException | TicketPrinterException e) {
@@ -2081,6 +2086,149 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         AppLocal.getIntString("message.cannotprintticket"), e);
                 msg.show(this);
             }
+        }
+    }
+    
+    /**
+     * Genera el reporte del corte del día directamente desde Java, sin usar templates XML
+     * Incluye: turno, usuario, productos vendidos, totales, fondo inicial, entradas, salidas
+     */
+    private void generateDayCloseReportDirect(Date dayDate) {
+        try {
+            LOGGER.info("Generando reporte del corte del día directamente desde Java...");
+            
+            // Obtener todos los turnos del día
+            java.util.List<ShiftData> allShifts = getAllShiftsForDay(dayDate);
+            if (allShifts == null || allShifts.isEmpty()) {
+                LOGGER.warning("No se encontraron turnos para el día");
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                        "No se encontraron turnos para el día seleccionado");
+                msg.show(this);
+                return;
+            }
+            
+            // Calcular totales del día
+            double totalDayInitialAmount = 0.0;
+            double totalDaySales = 0.0;
+            double totalDayPayments = 0.0;
+            double totalDayCashIn = 0.0;
+            double totalDayCashOut = 0.0;
+            
+            // Construir el documento XML directamente
+            StringBuilder xml = new StringBuilder();
+            xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+            xml.append("<output>\n");
+            xml.append("  <ticket>\n");
+            xml.append("    <image>Printer.Ticket.Logo</image>\n");
+            xml.append("    <line></line>\n");
+            xml.append("    <line></line>\n");
+            xml.append("    <line size=\"1\">\n");
+            xml.append("      <text align=\"center\" bold=\"true\" length=\"42\">CORTE DEL DÍA</text>\n");
+            xml.append("    </line>\n");
+            xml.append("    <line></line>\n");
+            
+            // Procesar cada turno
+            for (ShiftData shift : allShifts) {
+                totalDayInitialAmount += shift.getInitialAmount();
+                totalDaySales += shift.getTotalSales();
+                totalDayPayments += shift.getTotalPayments();
+                totalDayCashIn += shift.getCashIn();
+                totalDayCashOut += shift.getCashOut();
+                
+                // Calcular total del turno (fondo inicial + ventas + entradas - salidas)
+                double totalTurno = shift.getInitialAmount() + shift.getTotalSales() + shift.getCashIn() - shift.getCashOut();
+                
+                // Encabezado del turno
+                xml.append("    <line size=\"1\">\n");
+                xml.append("      <text align=\"center\" bold=\"true\" length=\"42\">TURNO ").append(shift.getSequence()).append(" - ").append(StringUtils.encodeXML(shift.getUserName())).append("</text>\n");
+                xml.append("    </line>\n");
+                xml.append("    <line><text>------------------------------------------</text></line>\n");
+                
+                // Productos vendidos del turno
+                xml.append("    <line size=\"1\">\n");
+                xml.append("      <text align=\"left\" bold=\"true\" length=\"42\">Productos Vendidos</text>\n");
+                xml.append("    </line>\n");
+                xml.append("    <line>\n");
+                xml.append("      <text align=\"left\" bold=\"true\" length=\"25\">Producto</text>\n");
+                xml.append("      <text align=\"right\" bold=\"true\" length=\"8\">Cantidad</text>\n");
+                xml.append("      <text align=\"right\" bold=\"true\" length=\"9\">Total</text>\n");
+                xml.append("    </line>\n");
+                xml.append("    <line><text>------------------------------------------</text></line>\n");
+                
+                // Lista de productos
+                if (shift.getProductLines() != null && !shift.getProductLines().isEmpty()) {
+                    for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
+                        String productName = StringUtils.encodeXML(product.printProductName());
+                        if (productName.length() > 25) {
+                            productName = productName.substring(0, 22) + "...";
+                        }
+                        xml.append("    <line>\n");
+                        xml.append("      <text align=\"left\" length=\"25\">").append(productName).append("</text>\n");
+                        xml.append("      <text align=\"right\" length=\"8\">").append(product.printProductUnits()).append("</text>\n");
+                        xml.append("      <text align=\"right\" length=\"9\">").append(product.printProductSubValue()).append("</text>\n");
+                        xml.append("    </line>\n");
+                    }
+                } else {
+                    xml.append("    <line>\n");
+                    xml.append("      <text align=\"left\" length=\"42\">Sin productos vendidos</text>\n");
+                    xml.append("    </line>\n");
+                }
+                
+                xml.append("    <line><text>------------------------------------------</text></line>\n");
+                
+                // Total de ventas del turno
+                xml.append("    <line>\n");
+                xml.append("      <text align=\"left\" length=\"30\" bold=\"true\">Total de Turno:</text>\n");
+                xml.append("      <text align=\"right\" length=\"12\" bold=\"true\">").append(shift.printTotalSales()).append("</text>\n");
+                xml.append("    </line>\n");
+                
+                // Monto inicial del turno
+                xml.append("    <line>\n");
+                xml.append("      <text align=\"left\" length=\"30\" bold=\"true\">Monto Inicial del Turno:</text>\n");
+                xml.append("      <text align=\"right\" length=\"12\" bold=\"true\">").append(shift.printInitialAmount()).append("</text>\n");
+                xml.append("    </line>\n");
+                
+                // Total del turno (monto inicial + ventas)
+                xml.append("    <line>\n");
+                xml.append("      <text align=\"left\" length=\"30\" bold=\"true\">Total del Turno:</text>\n");
+                xml.append("      <text align=\"right\" length=\"12\" bold=\"true\">").append(Formats.CURRENCY.formatValue(totalTurno)).append("</text>\n");
+                xml.append("    </line>\n");
+                xml.append("    <line></line>\n");
+                xml.append("    <line></line>\n");
+            }
+            
+            // Resumen total del día
+            double totalDia = totalDayInitialAmount + totalDaySales + totalDayCashIn - totalDayCashOut;
+            
+            xml.append("    <line><text>==========================================</text></line>\n");
+            xml.append("    <line size=\"1\">\n");
+            xml.append("      <text align=\"center\" bold=\"true\" length=\"42\">TOTAL DEL DÍA</text>\n");
+            xml.append("    </line>\n");
+            xml.append("    <line><text>==========================================</text></line>\n");
+            xml.append("    <line>\n");
+            xml.append("      <text align=\"left\" length=\"30\" bold=\"true\">Total del Día:</text>\n");
+            xml.append("      <text align=\"right\" length=\"12\" bold=\"true\">").append(Formats.CURRENCY.formatValue(totalDia)).append("</text>\n");
+            xml.append("    </line>\n");
+            xml.append("    <line><text>==========================================</text></line>\n");
+            xml.append("    <line></line>\n");
+            xml.append("    <line></line>\n");
+            
+            xml.append("  </ticket>\n");
+            xml.append("</output>\n");
+            
+            String ticketOutput = xml.toString();
+            LOGGER.info("Reporte del corte del día generado - Longitud: " + ticketOutput.length() + " caracteres");
+            LOGGER.info("Total turnos procesados: " + allShifts.size());
+            LOGGER.info("Total del día - Ventas: " + totalDaySales + ", Pagos: " + totalDayPayments);
+            
+            // Imprimir el documento
+            m_TTP.printTicket(ticketOutput);
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error generando reporte del corte del día: " + e.getMessage(), e);
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                    "Error generando reporte del corte del día: " + e.getMessage(), e);
+            msg.show(this);
         }
     }
     
@@ -2093,19 +2241,35 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         public int sequence;
         public Date dateStart;
         public Date dateEnd;
+        private String userName;
         private double totalSales;
         private double totalPayments;
+        private double initialAmount;
+        private double cashIn;
+        private double cashOut;
         public java.util.List<PaymentsModel.PaymentsLine> paymentLines;
         public java.util.List<PaymentsModel.ProductSalesLine> productLines;
         
-        public ShiftData(String money, String host, int sequence, Date dateStart, Date dateEnd) {
+        public ShiftData(String money, String host, int sequence, Date dateStart, Date dateEnd, String userName) {
             this.money = money;
             this.host = host;
             this.sequence = sequence;
             this.dateStart = dateStart;
             this.dateEnd = dateEnd;
+            this.userName = userName != null ? userName : "admin";
+            this.initialAmount = 0.0;
+            this.cashIn = 0.0;
+            this.cashOut = 0.0;
             this.paymentLines = new java.util.ArrayList<>();
             this.productLines = new java.util.ArrayList<>();
+        }
+        
+        public String getUserName() {
+            return userName != null ? userName : "admin";
+        }
+        
+        public String printUserName() {
+            return StringUtils.encodeXML(getUserName());
         }
         
         public String getMoney() { return money; }
@@ -2117,6 +2281,12 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         public void setTotalSales(double total) { this.totalSales = total; }
         public double getTotalPayments() { return totalPayments; }
         public void setTotalPayments(double total) { this.totalPayments = total; }
+        public double getInitialAmount() { return initialAmount; }
+        public void setInitialAmount(double amount) { this.initialAmount = amount; }
+        public double getCashIn() { return cashIn; }
+        public void setCashIn(double amount) { this.cashIn = amount; }
+        public double getCashOut() { return cashOut; }
+        public void setCashOut(double amount) { this.cashOut = amount; }
         public java.util.List<PaymentsModel.PaymentsLine> getPaymentLines() { return paymentLines; }
         public java.util.List<PaymentsModel.ProductSalesLine> getProductLines() { return productLines; }
         
@@ -2134,6 +2304,18 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         
         public String printTotalPayments() {
             return Formats.CURRENCY.formatValue(totalPayments);
+        }
+        
+        public String printInitialAmount() {
+            return Formats.CURRENCY.formatValue(initialAmount);
+        }
+        
+        public String printCashIn() {
+            return Formats.CURRENCY.formatValue(cashIn);
+        }
+        
+        public String printCashOut() {
+            return Formats.CURRENCY.formatValue(cashOut);
         }
     }
     
@@ -2207,12 +2389,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
             java.sql.Timestamp dayEnd = new java.sql.Timestamp(cal.getTimeInMillis());
             
-            // Obtener todos los turnos cerrados del día (compatible con HSQLDB)
-            String sql = "SELECT MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND " +
+            // Obtener todos los turnos cerrados del día (sin usar PERSON que no existe en closedcash)
+            String sql = "SELECT closedcash.MONEY, closedcash.HOST, closedcash.HOSTSEQUENCE, " +
+                        "closedcash.DATESTART, closedcash.DATEEND, closedcash.INITIAL_AMOUNT " +
                         "FROM closedcash " +
-                        "WHERE DATEEND IS NOT NULL " +
-                        "AND DATESTART >= ? AND DATESTART < ? " +
-                        "ORDER BY HOSTSEQUENCE ASC";
+                        "WHERE closedcash.DATEEND IS NOT NULL " +
+                        "AND closedcash.DATESTART >= ? AND closedcash.DATESTART < ? " +
+                        "ORDER BY closedcash.HOSTSEQUENCE ASC";
             
             java.sql.PreparedStatement pstmt = session.getConnection().prepareStatement(sql);
             pstmt.setTimestamp(1, dayStart);
@@ -2229,10 +2412,40 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 int sequence = rs.getInt("HOSTSEQUENCE");
                 Date dateStart = rs.getTimestamp("DATESTART");
                 Date dateEnd = rs.getTimestamp("DATEEND");
+                double initialAmount = rs.getDouble("INITIAL_AMOUNT");
+                if (rs.wasNull()) {
+                    initialAmount = 0.0;
+                }
                 
-                LOGGER.info("Procesando turno #" + sequence + " (MONEY: " + money + ")");
+                // Obtener el usuario del primer ticket del turno
+                String userName = "admin";
+                try {
+                    java.sql.PreparedStatement userStmt = session.getConnection().prepareStatement(
+                        "SELECT people.NAME FROM tickets " +
+                        "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                        "INNER JOIN people ON tickets.PERSON = people.ID " +
+                        "WHERE receipts.MONEY = ? " +
+                        "ORDER BY receipts.DATENEW ASC " +
+                        "LIMIT 1"
+                    );
+                    userStmt.setString(1, money);
+                    java.sql.ResultSet userRs = userStmt.executeQuery();
+                    if (userRs.next()) {
+                        userName = userRs.getString("NAME");
+                        if (userName == null || userName.trim().isEmpty()) {
+                            userName = "admin";
+                        }
+                    }
+                    userRs.close();
+                    userStmt.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error obteniendo usuario del turno: " + e.getMessage(), e);
+                }
                 
-                ShiftData shift = new ShiftData(money, host, sequence, dateStart, dateEnd);
+                LOGGER.info("Procesando turno #" + sequence + " (MONEY: " + money + ", Usuario: " + userName + ", Fondo inicial: " + initialAmount + ")");
+                
+                ShiftData shift = new ShiftData(money, host, sequence, dateStart, dateEnd, userName);
+                shift.setInitialAmount(initialAmount);
                 
                 // Obtener pagos del turno
                 java.util.List<PaymentsModel.PaymentsLine> payments = new StaticSentence(session,
@@ -2255,6 +2468,49 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     LOGGER.info("Turno #" + sequence + ": " + payments.size() + " tipos de pago, Total: " + totalPayments);
                 } else {
                     LOGGER.info("Turno #" + sequence + ": Sin pagos");
+                }
+                
+                // Obtener entradas y salidas del turno
+                try {
+                    // Entradas (cashin)
+                    java.sql.PreparedStatement cashInStmt = session.getConnection().prepareStatement(
+                        "SELECT COALESCE(SUM(payments.TOTAL), 0) AS TOTAL " +
+                        "FROM payments " +
+                        "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashin'"
+                    );
+                    cashInStmt.setString(1, money);
+                    java.sql.ResultSet cashInRs = cashInStmt.executeQuery();
+                    if (cashInRs.next()) {
+                        double cashIn = cashInRs.getDouble("TOTAL");
+                        if (!cashInRs.wasNull()) {
+                            shift.setCashIn(cashIn);
+                        }
+                    }
+                    cashInRs.close();
+                    cashInStmt.close();
+                    
+                    // Salidas (cashout)
+                    java.sql.PreparedStatement cashOutStmt = session.getConnection().prepareStatement(
+                        "SELECT COALESCE(SUM(payments.TOTAL), 0) AS TOTAL " +
+                        "FROM payments " +
+                        "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout'"
+                    );
+                    cashOutStmt.setString(1, money);
+                    java.sql.ResultSet cashOutRs = cashOutStmt.executeQuery();
+                    if (cashOutRs.next()) {
+                        double cashOut = cashOutRs.getDouble("TOTAL");
+                        if (!cashOutRs.wasNull()) {
+                            shift.setCashOut(cashOut);
+                        }
+                    }
+                    cashOutRs.close();
+                    cashOutStmt.close();
+                    
+                    LOGGER.info("Turno #" + sequence + ": Entradas=" + shift.getCashIn() + ", Salidas=" + shift.getCashOut());
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error obteniendo entradas/salidas del turno: " + e.getMessage(), e);
                 }
                 
                 // Obtener productos vendidos del turno
@@ -3312,7 +3568,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 m_PaymentsToClose.setDateEnd(dNow);
 
                 // print report
-                printPayments("Printer.CloseCash", isDayClose);
+                if (isDayClose) {
+                    // Usar el nuevo servicio que genera el documento directamente desde Java
+                    LOGGER.info("Generando reporte del corte del día con servicio nuevo (sin templates)");
+                    generateDayCloseReportDirect(dNow);
+                } else {
+                    // Cierre de turno normal: usar el método tradicional
+                    printPayments("Printer.CloseCash", false);
+                }
 
                 // Si es "corte del día", siempre mostrar el reporte del día completo
                 if (isDayClose) {
@@ -4074,198 +4337,195 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     private void showDayReport(Date closeDate) {
         try {
-            // Crear diálogo para mostrar el reporte
+            LOGGER.info("Generando reporte visual del corte del día directamente desde Java...");
+            
+            // Obtener todos los turnos del día
+            java.util.List<ShiftData> allShifts = getAllShiftsForDay(closeDate);
+            if (allShifts == null || allShifts.isEmpty()) {
+                LOGGER.warning("No se encontraron turnos para el día");
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                    "No se encontraron turnos para el día seleccionado.");
+                msg.show(this);
+                return;
+            }
+            
+            // Calcular totales del día
+            double totalDayInitialAmount = 0.0;
+            double totalDaySales = 0.0;
+            double totalDayPayments = 0.0;
+            double totalDayCashIn = 0.0;
+            double totalDayCashOut = 0.0;
+            
+            // Generar HTML del reporte
+            StringBuilder html = new StringBuilder();
+            html.append("<!DOCTYPE html><html><head>");
+            html.append("<meta charset='UTF-8'>");
+            html.append("<title>Reporte de Caja Cerrada - Día Completo</title>");
+            html.append("<style>");
+            html.append("body { font-family: Arial, sans-serif; margin: 20px; }");
+            html.append("h1 { text-align: center; color: #333; }");
+            html.append("h2 { color: #555; border-bottom: 2px solid #333; padding-bottom: 5px; }");
+            html.append("table { width: 100%; border-collapse: collapse; margin: 10px 0; }");
+            html.append("th { background-color: #333; color: white; padding: 8px; text-align: left; }");
+            html.append("td { padding: 6px; border-bottom: 1px solid #ddd; }");
+            html.append("tr:nth-child(even) { background-color: #f2f2f2; }");
+            html.append(".total { font-weight: bold; font-size: 1.1em; }");
+            html.append(".shift-header { background-color: #4CAF50; color: white; padding: 10px; margin: 15px 0 10px 0; }");
+            html.append(".summary { background-color: #f9f9f9; padding: 15px; margin: 20px 0; border: 2px solid #333; }");
+            html.append("</style>");
+            html.append("</head><body>");
+            
+            html.append("<h1>REPORTE DE CAJA CERRADA - DÍA COMPLETO</h1>");
+            html.append("<p><strong>Fecha:</strong> ").append(Formats.DATE.formatValue(closeDate)).append("</p>");
+            html.append("<p><strong>Generado:</strong> ").append(Formats.TIMESTAMP.formatValue(new Date())).append("</p>");
+            
+            // Procesar cada turno
+            for (ShiftData shift : allShifts) {
+                totalDayInitialAmount += shift.getInitialAmount();
+                totalDaySales += shift.getTotalSales();
+                totalDayPayments += shift.getTotalPayments();
+                totalDayCashIn += shift.getCashIn();
+                totalDayCashOut += shift.getCashOut();
+                
+                // Calcular total del turno
+                double totalTurno = shift.getInitialAmount() + shift.getTotalSales() + shift.getCashIn() - shift.getCashOut();
+                
+                // Encabezado del turno
+                html.append("<div class='shift-header'>");
+                html.append("<h2>TURNO ").append(shift.getSequence()).append(" - ").append(shift.getUserName() != null ? shift.getUserName() : "admin").append("</h2>");
+                html.append("<p><strong>Inicio:</strong> ").append(Formats.TIMESTAMP.formatValue(shift.getDateStart())).append("</p>");
+                html.append("<p><strong>Fin:</strong> ").append(Formats.TIMESTAMP.formatValue(shift.getDateEnd())).append("</p>");
+                html.append("</div>");
+                
+                // Productos vendidos
+                html.append("<h3>Productos Vendidos</h3>");
+                if (shift.getProductLines() != null && !shift.getProductLines().isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Producto</th><th>Cantidad</th><th>Total</th></tr>");
+                    for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
+                        // Calcular el valor total del producto (precio con impuesto * unidades)
+                        double productValue = (product.getProductPrice() * (1.0 + product.getTaxRate())) * product.getProductUnits();
+                        html.append("<tr>");
+                        html.append("<td>").append(escapeHtml(product.getProductName())).append("</td>");
+                        html.append("<td>").append(Formats.DOUBLE.formatValue(product.getProductUnits())).append("</td>");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(productValue)).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p>Sin productos vendidos</p>");
+                }
+                
+                // Resumen del turno
+                html.append("<div class='summary'>");
+                html.append("<h3>Resumen del Turno</h3>");
+                html.append("<table>");
+                html.append("<tr><td><strong>Monto Inicial del Turno:</strong></td><td class='total'>").append(Formats.CURRENCY.formatValue(shift.getInitialAmount())).append("</td></tr>");
+                html.append("<tr><td><strong>Total de Ventas:</strong></td><td>").append(Formats.CURRENCY.formatValue(shift.getTotalSales())).append("</td></tr>");
+                html.append("<tr><td><strong>Entradas:</strong></td><td>").append(Formats.CURRENCY.formatValue(shift.getCashIn())).append("</td></tr>");
+                html.append("<tr><td><strong>Salidas:</strong></td><td>").append(Formats.CURRENCY.formatValue(shift.getCashOut())).append("</td></tr>");
+                html.append("<tr><td><strong>Total del Turno:</strong></td><td class='total'>").append(Formats.CURRENCY.formatValue(totalTurno)).append("</td></tr>");
+                html.append("</table>");
+                html.append("</div>");
+            }
+            
+            // Resumen total del día
+            double totalDia = totalDayInitialAmount + totalDaySales + totalDayCashIn - totalDayCashOut;
+            
+            html.append("<div class='summary'>");
+            html.append("<h2>TOTAL DEL DÍA</h2>");
+            html.append("<table>");
+            html.append("<tr><td><strong>Total Fondo Inicial:</strong></td><td>").append(Formats.CURRENCY.formatValue(totalDayInitialAmount)).append("</td></tr>");
+            html.append("<tr><td><strong>Total Ventas:</strong></td><td>").append(Formats.CURRENCY.formatValue(totalDaySales)).append("</td></tr>");
+            html.append("<tr><td><strong>Total Entradas:</strong></td><td>").append(Formats.CURRENCY.formatValue(totalDayCashIn)).append("</td></tr>");
+            html.append("<tr><td><strong>Total Salidas:</strong></td><td>").append(Formats.CURRENCY.formatValue(totalDayCashOut)).append("</td></tr>");
+            html.append("<tr><td><strong>Total del Día:</strong></td><td class='total'>").append(Formats.CURRENCY.formatValue(totalDia)).append("</td></tr>");
+            html.append("</table>");
+            html.append("</div>");
+            
+            html.append("</body></html>");
+            
+            // Crear diálogo para mostrar el reporte HTML
             JDialog reportDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
                 "Reporte de Caja Cerrada - Día Completo", true);
             reportDialog.setSize(1000, 700);
             reportDialog.setLocationRelativeTo(this);
             
-            // Crear panel con el visor de reportes
+            // Crear panel con el visor HTML
             JPanel panel = new JPanel(new BorderLayout());
-            JRViewer400 reportViewer = new JRViewer400(null);
-            panel.add(reportViewer, BorderLayout.CENTER);
+            JEditorPane htmlViewer = new JEditorPane();
+            htmlViewer.setContentType("text/html");
+            htmlViewer.setEditable(false);
+            htmlViewer.setText(html.toString());
+            JScrollPane scrollPane = new JScrollPane(htmlViewer);
+            panel.add(scrollPane, BorderLayout.CENTER);
             
-            // Panel de botones: Guardar PDF y Cerrar
+            // Panel de botones: Guardar HTML, Imprimir y Cerrar
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            JButton btnSavePDF = new JButton("Guardar PDF");
+            JButton btnSaveHTML = new JButton("Guardar HTML");
+            JButton btnPrint = new JButton("Imprimir");
             JButton btnClose = new JButton("Cerrar");
             
-            // Variable para almacenar el JasperPrint generado
-            final JasperPrint[] jpRef = new JasperPrint[1];
+            final String htmlContent = html.toString(); // Para usar en el listener
             
-            btnSavePDF.addActionListener(e -> {
-                if (jpRef[0] != null) {
-                    try {
-                        // Crear diálogo para elegir ubicación del archivo
-                        JFileChooser fileChooser = new JFileChooser();
-                        fileChooser.setDialogTitle("Guardar reporte como PDF");
-                        fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos PDF (*.pdf)", "pdf"));
+            btnSaveHTML.addActionListener(e -> {
+                try {
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setDialogTitle("Guardar reporte como HTML");
+                    fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos HTML (*.html)", "html"));
+                    
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
+                    String defaultFileName = "Reporte_Caja_Cerrada_" + sdf.format(closeDate) + ".html";
+                    fileChooser.setSelectedFile(new java.io.File(defaultFileName));
+                    
+                    int userSelection = fileChooser.showSaveDialog(reportDialog);
+                    if (userSelection == JFileChooser.APPROVE_OPTION) {
+                        java.io.File fileToSave = fileChooser.getSelectedFile();
+                        String filePath = fileToSave.getAbsolutePath();
                         
-                        // Sugerir nombre de archivo con fecha
-                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-                        String defaultFileName = "Reporte_Caja_Cerrada_" + sdf.format(closeDate) + ".pdf";
-                        fileChooser.setSelectedFile(new java.io.File(defaultFileName));
-                        
-                        int userSelection = fileChooser.showSaveDialog(reportDialog);
-                        if (userSelection == JFileChooser.APPROVE_OPTION) {
-                            java.io.File fileToSave = fileChooser.getSelectedFile();
-                            String filePath = fileToSave.getAbsolutePath();
-                            
-                            // Asegurar extensión .pdf
-                            if (!filePath.toLowerCase().endsWith(".pdf")) {
-                                filePath += ".pdf";
-                            }
-                            
-                            // Exportar a PDF
-                            JasperExportManager.exportReportToPdfFile(jpRef[0], filePath);
-                            
-                            JOptionPane.showMessageDialog(reportDialog,
-                                "Reporte guardado exitosamente en:\n" + filePath,
-                                "Éxito",
-                                JOptionPane.INFORMATION_MESSAGE);
+                        if (!filePath.toLowerCase().endsWith(".html")) {
+                            filePath += ".html";
                         }
-                    } catch (JRException ex) {
-                        LOGGER.log(Level.SEVERE, "Error guardando PDF", ex);
+                        
+                        java.io.FileWriter writer = new java.io.FileWriter(filePath);
+                        writer.write(htmlContent);
+                        writer.close();
+                        
                         JOptionPane.showMessageDialog(reportDialog,
-                            "Error al guardar el PDF: " + ex.getMessage(),
-                            "Error",
-                            JOptionPane.ERROR_MESSAGE);
+                            "Reporte guardado exitosamente en:\n" + filePath,
+                            "Éxito",
+                            JOptionPane.INFORMATION_MESSAGE);
                     }
-                } else {
+                } catch (java.io.IOException ex) {
+                    LOGGER.log(Level.SEVERE, "Error guardando HTML", ex);
                     JOptionPane.showMessageDialog(reportDialog,
-                        "No hay reporte para guardar",
-                        "Advertencia",
-                        JOptionPane.WARNING_MESSAGE);
+                        "Error al guardar el HTML: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            
+            btnPrint.addActionListener(e -> {
+                try {
+                    htmlViewer.print();
+                } catch (java.awt.print.PrinterException ex) {
+                    LOGGER.log(Level.SEVERE, "Error imprimiendo", ex);
+                    JOptionPane.showMessageDialog(reportDialog,
+                        "Error al imprimir: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
                 }
             });
             
             btnClose.addActionListener(e -> reportDialog.dispose());
             
-            buttonPanel.add(btnSavePDF);
+            buttonPanel.add(btnSaveHTML);
+            buttonPanel.add(btnPrint);
             buttonPanel.add(btnClose);
             panel.add(buttonPanel, BorderLayout.SOUTH);
             
             reportDialog.add(panel);
-            
-            // Cargar y mostrar el reporte
-            m_App.waitCursorBegin();
-            
-            try {
-                // Compilar el reporte
-                JasperReport jasperReport = JPanelReport.createJasperReport("/com/openbravo/reports/sales_closedpos");
-                
-                if (jasperReport != null) {
-                    // Crear rango de fechas para el día (inicio y fin del día)
-                    java.util.Calendar cal = java.util.Calendar.getInstance();
-                    cal.setTime(closeDate);
-                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
-                    cal.set(java.util.Calendar.MINUTE, 0);
-                    cal.set(java.util.Calendar.SECOND, 0);
-                    cal.set(java.util.Calendar.MILLISECOND, 0);
-                    java.sql.Timestamp startOfDay = new java.sql.Timestamp(cal.getTimeInMillis());
-                    
-                    cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
-                    java.sql.Timestamp endOfDay = new java.sql.Timestamp(cal.getTimeInMillis());
-                    
-                    // Crear la consulta SQL con filtro directo de fechas (más simple y confiable)
-                    // Incluimos initial_amount para mostrar los montos iniciales
-                    String sentence = "SELECT " + 
-                        "closedcash.HOST, " +
-                        "closedcash.HOSTSEQUENCE, " +
-                        "closedcash.MONEY, " +
-                        "closedcash.DATESTART, " +
-                        "closedcash.DATEEND, " +
-                        "COALESCE(closedcash.initial_amount, 0.0) AS INITIAL_AMOUNT, " +
-                        "COALESCE(payments.PAYMENT, 'Sin ventas') AS PAYMENT, " +
-                        "COALESCE(SUM(payments.TOTAL), 0.0) AS TOTAL " +
-                        "FROM closedcash " +
-                        "LEFT JOIN receipts ON closedcash.MONEY = receipts.MONEY " +
-                        "LEFT JOIN payments ON payments.RECEIPT = receipts.ID " +
-                        "WHERE closedcash.DATEEND IS NOT NULL AND closedcash.DATEEND >= ? AND closedcash.DATEEND < ? " +
-                        "GROUP BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.MONEY, closedcash.DATESTART, closedcash.DATEEND, closedcash.initial_amount, COALESCE(payments.PAYMENT, 'Sin ventas') " +
-                        "ORDER BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.DATEEND DESC";
-                    
-                    // Crear sentence con parámetros directos de fecha
-                    BaseSentence<Object[]> reportSentence = new StaticSentence<Object[], Object[]>(
-                        m_App.getSession(),
-                        sentence,
-                        new SerializerWriteBasic(new Datas[] {Datas.TIMESTAMP, Datas.TIMESTAMP}),
-                        new SerializerReadBasic(new Datas[] {
-                            Datas.STRING, Datas.INT, Datas.STRING, 
-                            Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.DOUBLE, Datas.STRING, Datas.DOUBLE
-                        })
-                    );
-                    
-                    // Crear campos del reporte (incluyendo INITIAL_AMOUNT)
-                    ReportFields reportFields = new ReportFieldsArray(
-                        new String[] {"HOST", "HOSTSEQUENCE", "MONEY", "DATESTART", "DATEEND", "INITIAL_AMOUNT", "PAYMENT", "TOTAL"}
-                    );
-                    
-                    // Crear parámetros de fecha en el formato que espera el reporte para ARG
-                    // El formato es: [COMP_GREATEROREQUALS, startDate, COMP_LESS, endDate]
-                    Object[] dateParams = new Object[] {
-                        QBFCompareEnum.COMP_GREATEROREQUALS,
-                        startOfDay,
-                        QBFCompareEnum.COMP_LESS,
-                        endOfDay
-                    };
-                    
-                    // El parámetro ARG debe ser un array que contiene el array de fechas como primer elemento
-                    // Esto es lo que espera el reporte: ((Object[])$P{ARG})[0])[1] y [3]
-                    Object[] arg = new Object[] { dateParams };
-                    
-                    // Crear fuente de datos con los parámetros de fecha directos
-                    JRDataSourceBasic dataSource = new JRDataSourceBasic(
-                        reportSentence, 
-                        reportFields, 
-                        new Object[] {startOfDay, endOfDay}
-                    );
-                    
-                    // Parámetros del reporte
-                    Map<String, Object> reportParams = new HashMap<>();
-                    reportParams.put("ARG", arg);
-                    
-                    // Cargar bundle en español si existe, sino usar el por defecto
-                    ResourceBundle bundle = null;
-                    try {
-                        // Intentar cargar el bundle en español
-                        bundle = ResourceBundle.getBundle(
-                            "com.openbravo.reports.sales_closedpos_messages_es", 
-                            Locale.getDefault()
-                        );
-                    } catch (MissingResourceException e) {
-                        // Si no existe el bundle en español, usar el por defecto
-                        try {
-                            bundle = ResourceBundle.getBundle(
-                                "com.openbravo.reports.sales_closedpos_messages",
-                                Locale.getDefault()
-                            );
-                        } catch (MissingResourceException ex) {
-                            LOGGER.log(Level.WARNING, "No se pudo cargar el bundle de recursos", ex);
-                        }
-                    }
-                    if (bundle != null) {
-                        reportParams.put("REPORT_RESOURCE_BUNDLE", bundle);
-                    }
-                    
-                    // Generar el reporte
-                    JasperPrint jp = JasperFillManager.fillReport(jasperReport, reportParams, dataSource);
-                    jpRef[0] = jp; // Guardar referencia para el botón de PDF
-                    reportViewer.loadJasperPrint(jp);
-                    
-                    // Mostrar el diálogo
-                    reportDialog.setVisible(true);
-                }
-            } catch (JRException | BasicException e) {
-                LOGGER.log(Level.SEVERE, "Error generando reporte", e);
-                JOptionPane.showMessageDialog(reportDialog,
-                    "Error al generar el reporte: " + e.getMessage(),
-                    "Error",
-                    JOptionPane.ERROR_MESSAGE);
-                reportDialog.dispose();
-            } finally {
-                m_App.waitCursorEnd();
-            }
+            reportDialog.setVisible(true);
             
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error mostrando reporte del día", e);
@@ -4274,6 +4534,20 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 "Error",
                 JOptionPane.ERROR_MESSAGE);
         }
+    }
+    
+    /**
+     * Escapa caracteres HTML para evitar problemas de seguridad y visualización
+     */
+    private String escapeHtml(String text) {
+        if (text == null) {
+            return "";
+        }
+        return text.replace("&", "&amp;")
+                  .replace("<", "&lt;")
+                  .replace(">", "&gt;")
+                  .replace("\"", "&quot;")
+                  .replace("'", "&#39;");
     }
     
 }

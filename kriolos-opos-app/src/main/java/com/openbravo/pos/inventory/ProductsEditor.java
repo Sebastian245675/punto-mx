@@ -32,6 +32,7 @@ import com.openbravo.format.Formats;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.forms.DataLogicSales;
+import com.openbravo.pos.inventory.LocationInfo;
 import com.openbravo.pos.sales.TaxesLogic;
 import com.openbravo.pos.suppliers.DataLogicSuppliers;
 import com.openbravo.pos.suppliers.JDialogNewSupplier;
@@ -53,6 +54,7 @@ import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import javax.swing.table.AbstractTableModel;
@@ -113,6 +115,9 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private DataLogicSuppliers m_dlSuppliers;
 
     private AppView appView;
+    
+    // Guardar el valor inicial del stock cuando se carga el producto
+    private Double initialStockValue = null;
 
     private final SentenceFind loadimage; // JG 3 feb 16 speedup    
 
@@ -265,13 +270,38 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
      */
     @Override
     public void refresh() {
-        // Guardar valores de stock después de guardar el producto
+        // Guardar valores de stock si el usuario los cambió manualmente
         try {
             if (productId != null && appView != null) {
-                saveStockValues();
+                // Primero, guardar el stock si el usuario lo cambió
+                // Solo guardar si hay una diferencia entre el valor actual y el inicial
+                try {
+                    if (m_jStockCurrent != null && m_jStockCurrent.getText() != null && !m_jStockCurrent.getText().trim().isEmpty()) {
+                        Double currentStockInField = Formats.DOUBLE.parseValue(m_jStockCurrent.getText());
+                        // Solo guardar si el usuario realmente cambió el stock (comparar con valor inicial)
+                        if (initialStockValue != null && Math.abs(currentStockInField - initialStockValue) > 0.0001) {
+                            LOGGER.log(Level.FINE, "refresh: Guardando stock porque usuario lo cambió de " + initialStockValue + " a " + currentStockInField);
+                            saveStockValues();
+                        }
+                    }
+                } catch (BasicException e) {
+                    LOGGER.log(Level.WARNING, "Error al verificar stock en refresh", e);
+                }
+                
+                // Luego, recargar el stock desde la base de datos para mostrar el valor actualizado
+                showStockTableAutomatically();
+                
+                // Actualizar el valor inicial después de recargar
+                try {
+                    if (m_jStockCurrent != null && m_jStockCurrent.getText() != null && !m_jStockCurrent.getText().trim().isEmpty()) {
+                        initialStockValue = Formats.DOUBLE.parseValue(m_jStockCurrent.getText());
+                    }
+                } catch (BasicException e) {
+                    initialStockValue = null;
+                }
             }
         } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Error al guardar valores de stock en refresh", e);
+            LOGGER.log(Level.WARNING, "Error al recargar stock en refresh", e);
         }
     }
 
@@ -576,10 +606,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jAccumulatesPoints.setEnabled(true);
         m_jStockCurrent.setEnabled(true);
         m_jStockMinimum.setEnabled(true);
-        // Cargar valores de stock si estamos en la pestaña Stock
-        if (jTabbedPane1.getSelectedIndex() == 1) {
-            showStockTableAutomatically();
-        }
+        // Siempre cargar valores de stock desde la base de datos cuando se abre el editor
+        showStockTableAutomatically();
 
 // Tab Image        
         m_jImage.setEnabled(true);
@@ -749,53 +777,82 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     }
 
     private List<ProductStock> getProductOfName(String pId) {
-
-        List<ProductStock> productStockList = new ArrayList<>();
-        try {
-            productStockList = dlSales.getProductStockList(pId);
-        } catch (BasicException ex) {
-            LOGGER.log(Level.SEVERE, "ProductStock for PID: " + pId, ex);
-        }
-
-        // Filtrar solo los del producto actual
         List<ProductStock> filteredList = new ArrayList<>();
-        for (ProductStock productStock : productStockList) {
-            String productId = productStock.getProductId();
-            if (productId.equals(pId)) {
-                filteredList.add(productStock);
-            }
-        }
         
-        // Si no hay stock en ninguna ubicación, crear una entrada para la ubicación principal
-        if (filteredList.isEmpty() && appView != null) {
+        try {
+            // Obtener la ubicación de inventario actual
+            String inventoryLocation = appView != null ? appView.getInventoryLocation() : "0";
+            if (inventoryLocation == null) {
+                inventoryLocation = "0";
+            }
+            
+            // Consultar directamente el stock actual sin usar MAX() para obtener el valor más reciente
+            double currentStock = dlSales.findProductStock(inventoryLocation, pId, null);
+            LOGGER.log(Level.FINE, "getProductOfName: Stock actual consultado directamente: " + currentStock + " para producto: " + pId + " en ubicación: " + inventoryLocation);
+            
+            // Obtener el nombre de la ubicación
+            String locationName = "General";
             try {
-                String inventoryLocation = appView.getInventoryLocation();
-                if (inventoryLocation != null) {
-                    // Obtener el nombre de la ubicación
-                    List<LocationInfo> locations = dlSales.getLocationsList().list();
-                    String locationName = "General";
-                    for (LocationInfo loc : locations) {
-                        if (loc.getID().equals(inventoryLocation)) {
-                            locationName = loc.getName();
-                            break;
-                        }
+                List<LocationInfo> locations = dlSales.getLocationsList().list();
+                for (LocationInfo loc : locations) {
+                    if (loc.getID().equals(inventoryLocation)) {
+                        locationName = loc.getName();
+                        break;
                     }
-                    
-                    // Crear un ProductStock con cantidad 0 para la ubicación principal
-                    ProductStock defaultStock = new ProductStock(
-                        pId,
-                        locationName,
-                        0.0,  // Cantidad inicial 0
-                        0.0,  // Mínimo
-                        0.0,  // Máximo
-                        0.0,  // Precio compra
-                        0.0,  // Precio venta
-                        new Date()  // Fecha memo
-                    );
-                    filteredList.add(defaultStock);
                 }
             } catch (BasicException ex) {
-                LOGGER.log(Level.WARNING, "Error al obtener ubicación de inventario", ex);
+                LOGGER.log(Level.WARNING, "Error al obtener nombre de ubicación", ex);
+            }
+            
+            // Obtener información adicional del producto (precio, mínimo, máximo)
+            double priceBuy = 0.0;
+            double priceSell = 0.0;
+            double minimum = 0.0;
+            double maximum = 0.0;
+            Date memodate = new Date();
+            
+            try {
+                // Intentar obtener información adicional usando getProductStockList como respaldo
+                List<ProductStock> productStockList = dlSales.getProductStockList(pId);
+                for (ProductStock productStock : productStockList) {
+                    if (productStock.getProductId().equals(pId) && productStock.getLocation().equals(locationName)) {
+                        if (productStock.getPriceBuy() != null) priceBuy = productStock.getPriceBuy();
+                        if (productStock.getPriceSell() != null) priceSell = productStock.getPriceSell();
+                        if (productStock.getMinimum() != null) minimum = productStock.getMinimum();
+                        if (productStock.getMaximum() != null) maximum = productStock.getMaximum();
+                        if (productStock.getMemoDate() != null) memodate = productStock.getMemoDate();
+                        break;
+                    }
+                }
+            } catch (BasicException ex) {
+                LOGGER.log(Level.WARNING, "Error al obtener información adicional del producto", ex);
+            }
+            
+            // Crear ProductStock con el stock actual consultado directamente
+            ProductStock currentStockInfo = new ProductStock(
+                pId,
+                locationName,
+                currentStock,  // Usar el stock consultado directamente
+                minimum,
+                maximum,
+                priceBuy,
+                priceSell,
+                memodate
+            );
+            filteredList.add(currentStockInfo);
+            
+        } catch (BasicException ex) {
+            LOGGER.log(Level.SEVERE, "Error al consultar stock para producto: " + pId, ex);
+            // Si falla, intentar usar el método original como respaldo
+            try {
+                List<ProductStock> productStockList = dlSales.getProductStockList(pId);
+                for (ProductStock productStock : productStockList) {
+                    if (productStock.getProductId().equals(pId)) {
+                        filteredList.add(productStock);
+                    }
+                }
+            } catch (BasicException ex2) {
+                LOGGER.log(Level.SEVERE, "Error al obtener stock usando método original", ex2);
             }
         }
 
@@ -1012,43 +1069,73 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             locationId = appView.getInventoryLocation();
         }
         
-        // Primero asegurar que existe la entrada en stockcurrent con el valor correcto
+        // Obtener el stock actual de la BD antes de actualizar
+        Double currentStockInDB = 0.0;
         try {
-            PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
-                "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
-                new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
-            
-            int rowsAffected = updateStmt.exec(new Object[]{newQuantity, locationId, productId});
-            
-            // Si no se actualizó ninguna fila, crear la entrada
-            if (rowsAffected == 0) {
-                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
-                    "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
-                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
-                insertStmt.exec(new Object[]{locationId, productId, newQuantity});
+            PreparedSentence getCurrentStock = new PreparedSentence(dlSales.getSession(),
+                "SELECT UNITS FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING}, new int[]{0, 1}),
+                SerializerReadDouble.INSTANCE);
+            Double result = (Double) getCurrentStock.find(new Object[]{locationId, productId});
+            if (result != null) {
+                currentStockInDB = result;
             }
         } catch (BasicException e) {
-            // Si falla, intentar insertar
+            // Si no existe, currentStockInDB queda en 0.0
+        }
+        
+        // Calcular la diferencia entre el valor nuevo y el actual en BD
+        double stockDifference = newQuantity - currentStockInDB;
+        
+        // Actualizar o insertar en stockcurrent - AJUSTAR en lugar de sobrescribir para preservar cambios de ventas
+        if (Math.abs(stockDifference) > 0.0001) {
             try {
-                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
-                    "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
-                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
-                insertStmt.exec(new Object[]{locationId, productId, newQuantity});
-            } catch (BasicException ex2) {
-                // Si ya existe, actualizar de nuevo
-                PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
-                    "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
-                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
-                updateStmt.exec(new Object[]{newQuantity, locationId, productId});
+                if (currentStockInDB > 0) {
+                    // Si ya existe stock, ajustar con la diferencia (preserva cambios de ventas)
+                    PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                        "UPDATE stockcurrent SET UNITS = (UNITS + ?) WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+                    
+                    int rowsAffected = updateStmt.exec(new Object[]{stockDifference, locationId, productId});
+                    
+                    // Si no se actualizó ninguna fila, crear la entrada
+                    if (rowsAffected == 0) {
+                        PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                            "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                            new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                        insertStmt.exec(new Object[]{locationId, productId, newQuantity});
+                    }
+                } else {
+                    // Si no existe stock, insertar con el valor nuevo
+                    PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                        "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                    insertStmt.exec(new Object[]{locationId, productId, newQuantity});
+                }
+            } catch (BasicException e) {
+                // Si falla, intentar insertar
+                try {
+                    PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                        "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                    insertStmt.exec(new Object[]{locationId, productId, newQuantity});
+                } catch (BasicException ex2) {
+                    // Si ya existe, ajustar con la diferencia
+                    PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                        "UPDATE stockcurrent SET UNITS = (UNITS + ?) WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+                    updateStmt.exec(new Object[]{stockDifference, locationId, productId});
+                }
             }
         }
+        // Si no hay diferencia, no actualizar el stock (preserva el stock actual, incluyendo descuentos de ventas)
         
         // Obtener usuario y fecha
         String userName = appView.getAppUserView().getUser().getName();
         Date currentDate = DateUtils.getTodayMinutes();
         
         // Determinar el motivo del movimiento
-        Object reasonKey = quantityDifference > 0 
+        Object reasonKey = stockDifference > 0 
             ? MovementReason.IN_MOVEMENT.getKey() 
             : MovementReason.OUT_MOVEMENT.getKey();
         
@@ -1069,7 +1156,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             locationId,
             productId,
             null, // ATTRIBUTESETINSTANCE_ID
-            quantityDifference, // UNITS (diferencia)
+            stockDifference, // UNITS (diferencia)
             0.0, // PRICE
             userName, // AppUser
             null, // SUPPLIER
@@ -1555,50 +1642,104 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             return;
         }
         
-        // Obtener el stock anterior para registrar el movimiento en stockdiary
-        Double oldStock = 0.0;
+        // Obtener el stock actual en la BD
+        Double stockInDB = 0.0;
         try {
-            PreparedSentence getOldStock = new PreparedSentence(dlSales.getSession(),
-                "SELECT UNITS FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
-                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING}, new int[]{0, 1}),
-                SerializerReadDouble.INSTANCE);
-            Double result = (Double) getOldStock.find(new Object[]{locationId, productId});
-            if (result != null) {
-                oldStock = result;
-            }
+            stockInDB = dlSales.findProductStock(locationId, productId, null);
         } catch (BasicException e) {
-            // Si no existe, oldStock queda en 0.0
+            LOGGER.log(Level.WARNING, "Error al obtener stock actual de BD", e);
         }
         
-        // Actualizar o insertar en stockcurrent - guarda el valor que el usuario establece
-        try {
-            PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
-                "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
-                new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
-            
-            int rowsAffected = updateStmt.exec(new Object[]{currentStock, locationId, productId});
-            
-            if (rowsAffected == 0) {
-                // Insertar si no existe
-                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
-                    "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
-                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
-                insertStmt.exec(new Object[]{locationId, productId, currentStock});
-            }
-        } catch (BasicException e) {
-            // Si falla, intentar insertar
+        // Comparar con el valor inicial que se cargó cuando se abrió el editor
+        // Solo actualizar si el usuario realmente cambió el valor manualmente
+        // Si initialStockValue es null, significa que es la primera vez que se carga, usar el valor de BD
+        Double referenceStock = (initialStockValue != null) ? initialStockValue : stockInDB;
+        
+        // Calcular la diferencia entre el valor actual del campo y el valor de referencia
+        double quantityDifference = currentStock - referenceStock;
+        
+        // Calcular la diferencia real que se debe aplicar a la BD
+        // Si el usuario cambió de 50 a 60, y la BD tiene 49 (por una venta), 
+        // debemos ajustar: 60 - 49 = 11, no 60 - 50 = 10
+        double actualDifference = currentStock - stockInDB;
+        
+        LOGGER.log(Level.FINE, "saveStockValues: currentStock=" + currentStock + ", referenceStock=" + referenceStock + ", stockInDB=" + stockInDB + ", initialStockValue=" + initialStockValue + ", quantityDifference=" + quantityDifference + ", actualDifference=" + actualDifference);
+        
+        // Actualizar o insertar en stockcurrent - AJUSTAR en lugar de sobrescribir para preservar cambios de ventas
+        // Solo actualizar si hay una diferencia significativa (el usuario cambió el valor)
+        // Y usar el stock actual de la BD como base, no el valor inicial
+        if (Math.abs(quantityDifference) > 0.0001) {
             try {
-                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
-                    "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
-                    new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
-                insertStmt.exec(new Object[]{locationId, productId, currentStock});
-            } catch (BasicException ex2) {
-                // Si ya existe, actualizar de nuevo
-                PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
-                    "UPDATE stockcurrent SET UNITS = ? WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
-                    new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
-                updateStmt.exec(new Object[]{currentStock, locationId, productId});
+                if (stockInDB != null && stockInDB >= 0) {
+                    // Si ya existe stock, ajustar con la diferencia real respecto a la BD actual
+                    // Esto preserva los cambios de ventas que ocurrieron después de abrir el editor
+                    PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                        "UPDATE stockcurrent SET UNITS = (UNITS + ?) WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+                    
+                    int rowsAffected = updateStmt.exec(new Object[]{actualDifference, locationId, productId});
+                    
+                    if (rowsAffected == 0) {
+                        // Si no se actualizó, insertar con el valor nuevo
+                        PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                            "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                            new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                        insertStmt.exec(new Object[]{locationId, productId, currentStock});
+                    }
+                } else {
+                    // Si no existe stock previo, insertar con el valor nuevo
+                    PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                        "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                    insertStmt.exec(new Object[]{locationId, productId, currentStock});
+                }
+            } catch (BasicException e) {
+                // Si falla, intentar insertar
+                try {
+                    PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                        "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.STRING, Datas.DOUBLE}, new int[]{0, 1, 2}));
+                    insertStmt.exec(new Object[]{locationId, productId, currentStock});
+                } catch (BasicException ex2) {
+                    // Si ya existe, ajustar con la diferencia real
+                    PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
+                        "UPDATE stockcurrent SET UNITS = (UNITS + ?) WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
+                        new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
+                    updateStmt.exec(new Object[]{actualDifference, locationId, productId});
+                }
             }
+        }
+        // Si no hay diferencia, no actualizar el stock (preserva el stock actual, incluyendo descuentos de ventas)
+        
+        // Registrar el movimiento en stockdiary solo si hay diferencia
+        if (Math.abs(actualDifference) > 0.0001) {
+            // Obtener usuario y fecha
+            String userName = appView.getAppUserView().getUser().getName();
+            Date currentDate = DateUtils.getTodayMinutes();
+            
+            // Determinar el motivo del movimiento
+            Object reasonKey = actualDifference > 0 
+                ? MovementReason.IN_MOVEMENT.getKey() 
+                : MovementReason.OUT_MOVEMENT.getKey();
+            
+            // Registrar el movimiento en stockdiary
+            PreparedSentence stockDiaryInsert = new PreparedSentence(dlSales.getSession(),
+                "INSERT INTO stockdiary (ID, DATENEW, REASON, LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS, PRICE, AppUser, SUPPLIER, SUPPLIERDOC) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
+                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.TIMESTAMP, Datas.INT, Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE, Datas.STRING, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
+            
+            stockDiaryInsert.exec(new Object[]{
+                UUID.randomUUID().toString(),
+                currentDate,
+                reasonKey,
+                locationId,
+                productId,
+                null, // ATTRIBUTESETINSTANCE_ID
+                actualDifference, // UNITS (diferencia real)
+                0.0, // PRICE
+                userName, // AppUser
+                null, // SUPPLIER
+                null  // SUPPLIERDOC
+            });
         }
         
         // Actualizar o insertar en stocklevel (mínimo)
@@ -1637,35 +1778,6 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                     new SerializerWriteBasicExt(new Datas[]{Datas.DOUBLE, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2}));
                 updateStmt.exec(new Object[]{minimumStock, locationId, productId});
             }
-        }
-        
-        // Registrar el movimiento en stockdiary si hay diferencia
-        double quantityDifference = currentStock - oldStock;
-        if (Math.abs(quantityDifference) > 0.0001) {
-            String userName = appView.getAppUserView().getUser().getName();
-            Date currentDate = DateUtils.getTodayMinutes();
-            
-            Object reasonKey = quantityDifference > 0 
-                ? MovementReason.IN_MOVEMENT.getKey() 
-                : MovementReason.OUT_MOVEMENT.getKey();
-            
-            PreparedSentence stockDiaryInsert = new PreparedSentence(dlSales.getSession(),
-                "INSERT INTO stockdiary (ID, DATENEW, REASON, LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS, PRICE, AppUser, SUPPLIER, SUPPLIERDOC) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)",
-                new SerializerWriteBasicExt(new Datas[]{Datas.STRING, Datas.TIMESTAMP, Datas.INT, Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE, Datas.DOUBLE, Datas.STRING, Datas.STRING, Datas.STRING}, new int[]{0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10}));
-            
-            stockDiaryInsert.exec(new Object[]{
-                UUID.randomUUID().toString(),
-                currentDate,
-                reasonKey,
-                locationId,
-                productId,
-                null, // ATTRIBUTESETINSTANCE_ID
-                quantityDifference, // UNITS (diferencia)
-                0.0, // PRICE
-                userName, // AppUser
-                null, // SUPPLIER
-                null  // SUPPLIERDOC
-            });
         }
     }
 
@@ -2791,16 +2903,21 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
      */
     private void showStockTableAutomatically() {
         if (productId == null || m_jStockCurrent == null || m_jStockMinimum == null) {
+            LOGGER.log(Level.FINE, "showStockTableAutomatically: productId o campos de stock son null");
             return;
         }
         try {
+            LOGGER.log(Level.FINE, "showStockTableAutomatically: Cargando stock para producto: " + productId);
             List<ProductStock> stockList = getProductOfName(productId);
+            LOGGER.log(Level.FINE, "showStockTableAutomatically: stockList size: " + (stockList != null ? stockList.size() : 0));
+            
             if (stockList != null && !stockList.isEmpty()) {
                 // Obtener la primera entrada (o sumar todas las cantidades)
                 double totalCurrent = 0.0;
                 double totalMinimum = 0.0;
                 
                 for (ProductStock stock : stockList) {
+                    LOGGER.log(Level.FINE, "showStockTableAutomatically: Stock - Location: " + stock.getLocation() + ", Units: " + stock.getUnits());
                     if (stock.getUnits() != null) {
                         totalCurrent += stock.getUnits();
                     }
@@ -2809,20 +2926,53 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                     }
                 }
                 
-                m_jStockCurrent.setText(Formats.DOUBLE.formatValue(totalCurrent));
-                m_jStockMinimum.setText(Formats.DOUBLE.formatValue(totalMinimum));
+                String stockCurrentText = Formats.DOUBLE.formatValue(totalCurrent);
+                String stockMinimumText = Formats.DOUBLE.formatValue(totalMinimum);
+                
+                LOGGER.log(Level.FINE, "showStockTableAutomatically: Total Current: " + totalCurrent + ", Text: " + stockCurrentText);
+                
+                // Guardar el valor inicial del stock (solo la primera vez que se carga)
+                if (initialStockValue == null) {
+                    initialStockValue = totalCurrent;
+                    LOGGER.log(Level.FINE, "showStockTableAutomatically: Guardado valor inicial del stock: " + initialStockValue);
+                }
+                
+                // Forzar actualización del campo de texto
+                SwingUtilities.invokeLater(() -> {
+                    m_jStockCurrent.setText(stockCurrentText);
+                    m_jStockMinimum.setText(stockMinimumText);
+                    m_jStockCurrent.revalidate();
+                    m_jStockCurrent.repaint();
+                    m_jStockMinimum.revalidate();
+                    m_jStockMinimum.repaint();
+                });
             } else {
-                m_jStockCurrent.setText("0");
-                m_jStockMinimum.setText("0");
+                LOGGER.log(Level.FINE, "showStockTableAutomatically: No hay stock, estableciendo a 0");
+                SwingUtilities.invokeLater(() -> {
+                    m_jStockCurrent.setText("0");
+                    m_jStockMinimum.setText("0");
+                    m_jStockCurrent.revalidate();
+                    m_jStockCurrent.repaint();
+                    m_jStockMinimum.revalidate();
+                    m_jStockMinimum.repaint();
+                });
             }
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al cargar stock", e);
             try {
                 if (m_jStockCurrent != null) {
-                    m_jStockCurrent.setText("0");
+                    SwingUtilities.invokeLater(() -> {
+                        m_jStockCurrent.setText("0");
+                        m_jStockCurrent.revalidate();
+                        m_jStockCurrent.repaint();
+                    });
                 }
                 if (m_jStockMinimum != null) {
-                    m_jStockMinimum.setText("0");
+                    SwingUtilities.invokeLater(() -> {
+                        m_jStockMinimum.setText("0");
+                        m_jStockMinimum.revalidate();
+                        m_jStockMinimum.repaint();
+                    });
                 }
             } catch (Exception ex) {
                 // Ignorar errores al establecer valores por defecto

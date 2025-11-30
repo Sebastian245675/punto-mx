@@ -34,7 +34,7 @@
         <line></line>
         #foreach ($shift in $allShifts)
         <line size="1">
-            <text align ="left" bold="true" length="42">TURNO #${shift.sequence}</text>
+            <text align ="center" bold="true" length="42">TURNO ${shift.sequence} - ${shift.printUserName()}</text>
         </line>
         <line>
             <text align ="left" length="20">Inicio:</text>
@@ -46,30 +46,20 @@
         </line>
         <line><text>------------------------------------------</text></line>
         <line>
-           <text align ="left" bold="true" length="30">Pagos del Turno</text>
-           <text align ="right" bold="true" length="12">Monto</text>
+            <text align ="left" length="30" bold="true">Fondo Inicial:</text>
+            <text align ="right" length="12" bold="true">${shift.printInitialAmount()}</text>
+        </line>
+        <line>
+            <text align ="left" length="30" bold="true">Entradas:</text>
+            <text align ="right" length="12" bold="true">${shift.printCashIn()}</text>
+        </line>
+        <line>
+            <text align ="left" length="30" bold="true">Salidas:</text>
+            <text align ="right" length="12" bold="true">${shift.printCashOut()}</text>
         </line>
         <line><text>------------------------------------------</text></line>
-        #if ($shift.paymentLines && !$shift.paymentLines.isEmpty())
-        #foreach ($line in $shift.paymentLines)
-        <line>
-            <text align ="left" length="30">${line.printType()} ${line.printReason()}</text>
-            <text align ="right" length="12">${line.printValue()}</text>
-        </line>
-        #end
-        #else
-        <line>
-            <text align ="left" length="42">Sin pagos en este turno</text>
-        </line>
-        #end
-        <line><text>------------------------------------------</text></line>
-        <line>
-            <text align ="left" length="30" bold="true">Total Pagos Turno:</text>
-            <text align ="right" length="12" bold="true">${shift.printTotalPayments()}</text>
-        </line>
-        <line></line>
         <line size="1">
-           <text align ="left" bold="true" length="42">Productos Vendidos</text>
+            <text align ="left" bold="true" length="42">Productos Vendidos</text>
         </line>
         <line>
            <text align ="left" bold="true" length="25">Producto</text>
@@ -102,16 +92,20 @@
         <!-- RESUMEN TOTAL DEL DÍA -->
         <line><text>==========================================</text></line>
         <line size="1">
-            <text align ="center" bold="true" length="42">RESUMEN TOTAL DEL DÍA</text>
+            <text align ="center" bold="true" length="42">TOTAL DE TODOS LOS TURNOS</text>
         </line>
         <line><text>==========================================</text></line>
         <line>
-            <text align ="left" length="30" bold="true">Total Pagos del Día:</text>
-            <text align ="right" length="12" bold="true">$totalDayPayments</text>
+            <text align ="left" length="30" bold="true">Fondo Inicial:</text>
+            <text align ="right" length="12" bold="true">$initialAmount</text>
         </line>
         <line>
-            <text align ="left" length="30" bold="true">Total Ventas del Día:</text>
+            <text align ="left" length="30" bold="true">Total Ventas:</text>
             <text align ="right" length="12" bold="true">$totalDaySales</text>
+        </line>
+        <line>
+            <text align ="left" length="30" bold="true">Total en Caja:</text>
+            <text align ="right" length="12" bold="true">$totalDayPayments</text>
         </line>
         <line><text>==========================================</text></line>
         <line></line>
@@ -125,10 +119,19 @@
            <text align ="right" bold="true" length="9">Total</text>
         </line>
         <line><text>------------------------------------------</text></line>
-        <!-- PRODUCTOS_PLACEHOLDER -->
+        #if ($consolidatedProducts && !$consolidatedProducts.isEmpty())
+        #foreach ($product in $consolidatedProducts)
+        <line>
+            <text align="left" length="25">$product.printName()</text>
+            <text align="right" length="8">$product.printUnits()</text>
+            <text align="right" length="9">$product.printTotal()</text>
+        </line>
+        #end
+        #else
         <line>
             <text align ="left" length="42">Sin productos vendidos</text>
         </line>
+        #end
         <line><text>------------------------------------------</text></line>
         <line></line>
         #else
@@ -164,10 +167,13 @@
            <text align ="right" bold="true" length="9">Total</text>
         </line>
         <line><text>------------------------------------------</text></line>
-        <!-- PRODUCTOS_TURNO_PLACEHOLDER -->
+        #if ($productosText && !$productosText.isEmpty())
+        $productosText
+        #else
         <line>
             <text align ="left" length="42">Sin productos vendidos en este turno</text>
         </line>
+        #end
         <line><text>------------------------------------------</text></line>
         <line></line>
         <line>

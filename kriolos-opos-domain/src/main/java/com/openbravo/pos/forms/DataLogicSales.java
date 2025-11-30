@@ -1831,13 +1831,13 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                         // Log después de registrar movimiento
                         LOGGER.info("Stock actual DESPUÉS: " + findProductStock(location, l.getProductID(), l.getProductAttSetInstId()));
                         LOGGER.info("=== FIN MOVIMIENTO DE STOCK ===");
-                    }
-                } else {
-                    // Either productID is null or the product is a service; log for diagnostics
-                    if (l.getProductID() == null) {
-                        LOGGER.info("Skipping stock update: Ticket line productID is null. Line: " + l.getTicketLine());
-                    } else if (l.isProductService()) {
-                        LOGGER.info("Skipping stock update: product is marked as SERVICE. Product ID: " + l.getProductID() + ", Name: " + l.getProductName());
+                    } else {
+                        // Either productID is null or the product is a service; log for diagnostics
+                        if (l.getProductID() == null) {
+                            LOGGER.info("Skipping stock update: Ticket line productID is null. Line: " + l.getTicketLine());
+                        } else if (l.isProductService()) {
+                            LOGGER.info("Skipping stock update: product is marked as SERVICE. Product ID: " + l.getProductID() + ", Name: " + l.getProductName());
+                        }
                     }
                 }
 

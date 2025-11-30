@@ -691,9 +691,9 @@ public class FirebaseDownloadManagerREST {
                 
                 // Preparar statements
                 String checkSql = "SELECT ID FROM products WHERE ID = ?";
-                String insertSql = "INSERT INTO products (ID, REFERENCE, CODE, CODETYPE, NAME, PRICEBUY, PRICESELL, CATEGORY, TAXCAT, ATTRIBUTESET_ID, ISCOM, PRINTKB, SENDSTATUS) " +
-                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
-                String updateSql = "UPDATE products SET REFERENCE = ?, CODE = ?, CODETYPE = ?, NAME = ?, PRICEBUY = ?, PRICESELL = ?, CATEGORY = ?, TAXCAT = ?, ATTRIBUTESET_ID = ?, ISCOM = ?, PRINTKB = ?, SENDSTATUS = ? WHERE ID = ?";
+                String insertSql = "INSERT INTO products (ID, REFERENCE, CODE, CODETYPE, NAME, PRICEBUY, PRICESELL, CATEGORY, TAXCAT, ATTRIBUTESET_ID, ISCOM, PRINTKB, SENDSTATUS, ISSERVICE) " +
+                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                String updateSql = "UPDATE products SET REFERENCE = ?, CODE = ?, CODETYPE = ?, NAME = ?, PRICEBUY = ?, PRICESELL = ?, CATEGORY = ?, TAXCAT = ?, ATTRIBUTESET_ID = ?, ISCOM = ?, PRINTKB = ?, SENDSTATUS = ?, ISSERVICE = ? WHERE ID = ?";
                 
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
@@ -717,6 +717,17 @@ public class FirebaseDownloadManagerREST {
                         Boolean escompuesto = (Boolean) producto.get("escompuesto");
                         Boolean imprimirencocina = (Boolean) producto.get("imprimirencocina");
                         Boolean estadoenvio = (Boolean) producto.get("estadoenvio");
+                        // Obtener ISSERVICE desde Supabase (puede venir como esServicio, isservice, o es_servicio)
+                        Boolean esServicio = (Boolean) producto.get("esServicio");
+                        if (esServicio == null) {
+                            esServicio = (Boolean) producto.get("isservice");
+                        }
+                        if (esServicio == null) {
+                            esServicio = (Boolean) producto.get("es_servicio");
+                        }
+                        if (esServicio == null) {
+                            esServicio = false; // Por defecto, no es servicio
+                        }
                         String fechaextraccion = (String) producto.get("fechaextraccion");
                         String tabla = (String) producto.get("tabla");
                         
@@ -747,10 +758,11 @@ public class FirebaseDownloadManagerREST {
                             updateStmt.setBoolean(10, escompuesto != null ? escompuesto : false);
                             updateStmt.setBoolean(11, imprimirencocina != null ? imprimirencocina : false);
                             updateStmt.setBoolean(12, estadoenvio != null ? estadoenvio : false);
-                            updateStmt.setString(13, id);
+                            updateStmt.setBoolean(13, esServicio);
+                            updateStmt.setString(14, id);
                             updateStmt.executeUpdate();
                             actualizados++;
-                            LOGGER.fine("Producto actualizado: " + id + " - " + nombre);
+                            LOGGER.fine("Producto actualizado: " + id + " - " + nombre + " (ISSERVICE: " + esServicio + ")");
                         } else {
                             // Insertar nuevo producto
                             insertStmt.setString(1, id);
@@ -767,9 +779,10 @@ public class FirebaseDownloadManagerREST {
                             insertStmt.setBoolean(11, escompuesto != null ? escompuesto : false);
                             insertStmt.setBoolean(12, imprimirencocina != null ? imprimirencocina : false);
                             insertStmt.setBoolean(13, estadoenvio != null ? estadoenvio : false);
+                            insertStmt.setBoolean(14, esServicio);
                             insertStmt.executeUpdate();
                             insertados++;
-                            LOGGER.fine("Producto insertado: " + id + " - " + nombre);
+                            LOGGER.fine("Producto insertado: " + id + " - " + nombre + " (ISSERVICE: " + esServicio + ")");
                         }
                     }
                     catch (Exception e) {
@@ -1151,7 +1164,9 @@ public class FirebaseDownloadManagerREST {
                 checkProductStmt = session.getConnection().prepareStatement(checkProductSql);
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
-                updateStmt = session.getConnection().prepareStatement(updateSql);                for (Map<String, Object> movimiento : inventario) {
+                updateStmt = session.getConnection().prepareStatement(updateSql);
+                
+                for (Map<String, Object> movimiento : inventario) {
                     try {
                         String location = (String) movimiento.get("ubicacion");
                         String product = (String) movimiento.get("productoid");
@@ -1184,21 +1199,20 @@ public class FirebaseDownloadManagerREST {
 
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
+                        Double stockActual = null;
+                        if (existe) {
+                            stockActual = rs.getDouble("UNITS");
+                        }
                         rs.close();
     
                         if (existe) {
-                            // 🔄 Actualizar
-                            updateStmt.setDouble(1, units);
-                            updateStmt.setString(2, location);
-                            updateStmt.setString(3, product);
-                            updateStmt.setString(4, attributeSetInstanceId);
-                            updateStmt.setString(5, attributeSetInstanceId);
-    
-                            updateStmt.executeUpdate();
-                            actualizados++;
-                            LOGGER.fine("Inventario actualizado: " + product + " en " + location);
+                            // ⚠️ NO actualizar si ya existe registro local - preservar cambios locales
+                            // El stock local tiene prioridad sobre el remoto para evitar sobrescribir ventas
+                            LOGGER.fine("Inventario local existe para " + product + " en " + location + 
+                                      " (local: " + stockActual + ", remoto: " + units + ") - NO actualizado para preservar cambios locales");
+                            // No hacer nada - preservar el stock local
                         } else {
-                            // 🆕 Insertar
+                            // 🆕 Insertar solo si no existe
                             insertStmt.setString(1, location);
                             insertStmt.setString(2, product);
                             insertStmt.setString(3, attributeSetInstanceId);
@@ -1206,7 +1220,7 @@ public class FirebaseDownloadManagerREST {
     
                             insertStmt.executeUpdate();
                             insertados++;
-                            LOGGER.fine("Inventario insertado: " + product + " en " + location);
+                            LOGGER.fine("Inventario insertado: " + product + " en " + location + " con " + units + " unidades");
                         }
     
                     } catch (Exception e) {
