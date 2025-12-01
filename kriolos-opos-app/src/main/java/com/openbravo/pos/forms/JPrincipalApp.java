@@ -349,14 +349,24 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jPanelRightSide.setLayout(new java.awt.BorderLayout());
         
         // Sebastian - Crear barra horizontal superior con TODOS los botones del menú (estilo eleventa)
-        javax.swing.JPanel topMenuBar = new javax.swing.JPanel();
-        topMenuBar.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 3, 2)); // Espaciado horizontal reducido para diseño compacto
+        // Panel contenedor principal con BorderLayout para mantener botón cerrar fijo
+        javax.swing.JPanel topMenuBar = new javax.swing.JPanel(new java.awt.BorderLayout(5, 0));
         topMenuBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)); // Reducir padding vertical (2px en lugar de 5px)
         topMenuBar.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
-        // Diseño compacto para que quepan todos los botones en una línea
-        topMenuBar.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
         topMenuBar.setMinimumSize(new java.awt.Dimension(0, 30)); // Altura mínima reducida (25px botón + padding)
         topMenuBar.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura máxima fija para una sola línea
+        
+        // Panel izquierdo con todos los botones del menú
+        javax.swing.JPanel leftMenuPanel = new javax.swing.JPanel();
+        leftMenuPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 3, 2)); // Espaciado horizontal reducido para diseño compacto
+        leftMenuPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
+        leftMenuPanel.setOpaque(false);
+        
+        // Panel derecho con puntos del cliente y botón cerrar
+        javax.swing.JPanel rightPanel = new javax.swing.JPanel();
+        rightPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 3, 2));
+        rightPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
+        rightPanel.setOpaque(false);
         
         // ========== MENU.MAIN - Elementos principales ==========
         // Botón Ventas (Menu.Ticket)
@@ -365,7 +375,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.Ticket"),
             "com.openbravo.pos.sales.JPanelTicketSales"
         );
-        topMenuBar.add(btnVentas);
+        leftMenuPanel.add(btnVentas);
         
         // Botón Pagos de Clientes (Menu.CustomersPayment)
         javax.swing.JButton btnPagosClientes = createMenuButton(
@@ -373,7 +383,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.CustomersPayment"),
             "com.openbravo.pos.customers.CustomersPayment"
         );
-        topMenuBar.add(btnPagosClientes);
+        leftMenuPanel.add(btnPagosClientes);
         
         // Botón Cierre de Caja (Menu.CloseTPV)
         javax.swing.JButton btnCierre = createMenuButton(
@@ -381,7 +391,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.CloseTPV"),
             "com.openbravo.pos.panels.JPanelCloseMoney"
         );
-        topMenuBar.add(btnCierre);
+        leftMenuPanel.add(btnCierre);
         
         // Botón Gestión de Sucursales (Menu.BranchesManagement)
         javax.swing.JButton btnSucursales = createMenuButton(
@@ -389,7 +399,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.BranchesManagement"),
             "com.openbravo.pos.branches.JPanelBranchesManagement"
         );
-        topMenuBar.add(btnSucursales);
+        leftMenuPanel.add(btnSucursales);
         
         // ========== MENU.BACKOFFICE - Submenús ==========
         // Botón Clientes (Menu.Customers - submenu)
@@ -398,7 +408,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.Customers"),
             "com.openbravo.pos.forms.MenuCustomers"
         );
-        topMenuBar.add(btnClientes);
+        leftMenuPanel.add(btnClientes);
         
         // Botón Proveedores (Menu.Suppliers - submenu)
         javax.swing.JButton btnProveedores = createMenuButton(
@@ -406,7 +416,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.Suppliers"),
             "com.openbravo.pos.forms.MenuSuppliers"
         );
-        topMenuBar.add(btnProveedores);
+        leftMenuPanel.add(btnProveedores);
         
         // Botón Gestión de Inventario (Menu.StockManagement - submenu)
         javax.swing.JButton btnInventario = createMenuButton(
@@ -414,7 +424,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.StockManagement"),
             "com.openbravo.pos.forms.MenuStockManagement"
         );
-        topMenuBar.add(btnInventario);
+        leftMenuPanel.add(btnInventario);
         
         // Botón Gestión de Ventas (Menu.SalesManagement - submenu)
         javax.swing.JButton btnVentasManagement = createMenuButton(
@@ -422,7 +432,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.SalesManagement"),
             "com.openbravo.pos.forms.MenuSalesManagement"
         );
-        topMenuBar.add(btnVentasManagement);
+        leftMenuPanel.add(btnVentasManagement);
         
         // Botón Mantenimiento (Menu.Maintenance - submenu)
         javax.swing.JButton btnMantenimiento = createMenuButton(
@@ -430,7 +440,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.Maintenance"),
             "com.openbravo.pos.forms.MenuMaintenance"
         );
-        topMenuBar.add(btnMantenimiento);
+        leftMenuPanel.add(btnMantenimiento);
         
         // Botón Gestión de Presencia (Menu.PresenceManagement - submenu)
         javax.swing.JButton btnPresencia = createMenuButton(
@@ -438,7 +448,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.PresenceManagement"),
             "com.openbravo.pos.forms.MenuEmployees"
         );
-        topMenuBar.add(btnPresencia);
+        leftMenuPanel.add(btnPresencia);
         
         // ========== MENU.UTILITIES ==========
         // Botón Herramientas (Menu.Tools - submenu)
@@ -447,7 +457,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.Tools"),
             "com.openbravo.pos.imports.JPanelCSV"
         );
-        topMenuBar.add(btnHerramientas);
+        leftMenuPanel.add(btnHerramientas);
         
         // ========== MENU.SYSTEM ==========
         // Botón Cambiar Contraseña movido a Configuración > General
@@ -458,7 +468,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.Configuration"),
             "com.openbravo.pos.config.JPanelConfiguration"
         );
-        topMenuBar.add(btnConfig);
+        leftMenuPanel.add(btnConfig);
         
         // Botón Impresora (Menu.Printer)
         javax.swing.JButton btnImpresora = createMenuButton(
@@ -466,9 +476,22 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             AppLocal.getIntString("Menu.Printer"),
             "com.openbravo.pos.panels.JPanelPrinter"
         );
-        topMenuBar.add(btnImpresora);
+        leftMenuPanel.add(btnImpresora);
         
-        // Botón Salir (Menu.Exit)
+        // Sebastian - Label de puntos del cliente (al lado del botón Salir)
+        m_jCustomerPoints = new javax.swing.JLabel();
+        m_jCustomerPoints.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+        m_jCustomerPoints.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        m_jCustomerPoints.setText("");
+        m_jCustomerPoints.setToolTipText("Puntos del cliente");
+        m_jCustomerPoints.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+        m_jCustomerPoints.setOpaque(false); // Sin fondo
+        m_jCustomerPoints.setPreferredSize(new java.awt.Dimension(300, 25));
+        m_jCustomerPoints.setForeground(java.awt.Color.BLACK);
+        m_jCustomerPoints.setVisible(false); // Inicialmente oculto
+        rightPanel.add(m_jCustomerPoints);
+        
+        // Botón Salir (Menu.Exit) - Siempre fijo al final
         javax.swing.JButton btnSalir = new javax.swing.JButton();
         // Icono removido para diseño compacto
         btnSalir.setText(AppLocal.getIntString("Menu.Exit"));
@@ -485,7 +508,11 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 exitToLogin();
             }
         });
-        topMenuBar.add(btnSalir);
+        rightPanel.add(btnSalir);
+        
+        // Agregar paneles al topMenuBar principal
+        topMenuBar.add(leftMenuPanel, java.awt.BorderLayout.WEST);
+        topMenuBar.add(rightPanel, java.awt.BorderLayout.EAST);
         
         // Altura fija para una sola línea con botones compactos
         topMenuBar.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura fija para una línea
@@ -592,6 +619,18 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private javax.swing.JPanel m_jPanelRightSide;
     private javax.swing.JPanel m_jPanelTitle;
     private javax.swing.JLabel m_jTitle;
+    // Sebastian - Label de puntos del cliente en la barra superior
+    private javax.swing.JLabel m_jCustomerPoints;
     // End of variables declaration//GEN-END:variables
+    
+    /**
+     * Sebastian - Método público para actualizar el label de puntos del cliente
+     */
+    public void updateCustomerPointsDisplay(String text, boolean visible) {
+        if (m_jCustomerPoints != null) {
+            m_jCustomerPoints.setText(text);
+            m_jCustomerPoints.setVisible(visible);
+        }
+    }
 
 }

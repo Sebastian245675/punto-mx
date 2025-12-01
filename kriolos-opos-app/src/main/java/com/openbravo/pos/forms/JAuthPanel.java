@@ -113,7 +113,7 @@ public class JAuthPanel extends javax.swing.JPanel {
             }
         });
     }
-    
+
     /**
      * Carga el historial de usuarios desde las preferencias
      */
@@ -263,38 +263,38 @@ public class JAuthPanel extends javax.swing.JPanel {
             txtUsername = editor; // Usar el editor como txtUsername
         } else {
             // Si no hay usuarios recientes, usar campo de texto normal
-            txtUsername = new JTextField(30);
-            txtUsername.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-            txtUsername.setBorder(BorderFactory.createCompoundBorder(
+        txtUsername = new JTextField(30);
+        txtUsername.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+        txtUsername.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                    BorderFactory.createEmptyBorder(12, 15, 12, 15)));
+                BorderFactory.createEmptyBorder(12, 15, 12, 15)));
             txtUsername.setBackground(Color.WHITE);
             txtUsername.setForeground(new Color(17, 24, 39));
             txtUsername.setOpaque(true);
             
-            txtUsername.addFocusListener(new java.awt.event.FocusAdapter() {
-                @Override
-                public void focusGained(java.awt.event.FocusEvent e) {
-                    txtUsername.setBorder(BorderFactory.createCompoundBorder(
+        txtUsername.addFocusListener(new java.awt.event.FocusAdapter() {
+            @Override
+            public void focusGained(java.awt.event.FocusEvent e) {
+                txtUsername.setBorder(BorderFactory.createCompoundBorder(
                             BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-                            BorderFactory.createEmptyBorder(11, 14, 11, 14)));
-                }
-                @Override
-                public void focusLost(java.awt.event.FocusEvent e) {
-                    txtUsername.setBorder(BorderFactory.createCompoundBorder(
+                        BorderFactory.createEmptyBorder(11, 14, 11, 14)));
+            }
+            @Override
+            public void focusLost(java.awt.event.FocusEvent e) {
+                txtUsername.setBorder(BorderFactory.createCompoundBorder(
                             BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                            BorderFactory.createEmptyBorder(12, 15, 12, 15)));
+                        BorderFactory.createEmptyBorder(12, 15, 12, 15)));
+            }
+        });
+
+        txtUsername.addKeyListener(new KeyAdapter() {
+            @Override
+            public void keyPressed(KeyEvent e) {
+                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                    txtPassword.requestFocus();
                 }
-            });
-            
-            txtUsername.addKeyListener(new KeyAdapter() {
-                @Override
-                public void keyPressed(KeyEvent e) {
-                    if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                        txtPassword.requestFocus();
-                    }
-                }
-            });
+            }
+        });
         }
 
         gbc.gridx = 0;
@@ -402,14 +402,16 @@ public class JAuthPanel extends javax.swing.JPanel {
         gbc.insets = new Insets(0, 0, 20, 0);
         loginCard.add(btnLogin, gbc);
 
-        // Link "Olvidé mi contraseña" - Corporativo
-        JButton btnForgotPassword = new JButton("olvidé mi contraseña");
-        btnForgotPassword.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        // Link "Olvidé mi contraseña" - Corporativo y visible
+        JButton btnForgotPassword = new JButton("¿Olvidaste tu contraseña?");
+        btnForgotPassword.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         btnForgotPassword.setForeground(new Color(59, 130, 246)); // Azul corporativo
         btnForgotPassword.setContentAreaFilled(false);
         btnForgotPassword.setBorderPainted(false);
         btnForgotPassword.setFocusPainted(false);
         btnForgotPassword.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnForgotPassword.setOpaque(false);
+        btnForgotPassword.setPreferredSize(new Dimension(0, 30));
         btnForgotPassword.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -422,22 +424,20 @@ public class JAuthPanel extends javax.swing.JPanel {
             @Override
             public void mouseEntered(MouseEvent e) {
                 btnForgotPassword.setForeground(new Color(37, 99, 235));
-                btnForgotPassword.setText("<html><u>olvidé mi contraseña</u></html>");
             }
 
             @Override
             public void mouseExited(MouseEvent e) {
                 btnForgotPassword.setForeground(new Color(59, 130, 246));
-                btnForgotPassword.setText("olvidé mi contraseña");
             }
         });
 
         gbc.gridx = 0;
         gbc.gridy = 6;
-        gbc.fill = GridBagConstraints.NONE;
+        gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.weightx = 1.0;
-        gbc.insets = new Insets(10, 0, 0, 0);
+        gbc.insets = new Insets(15, 0, 0, 0);
         loginCard.add(btnForgotPassword, gbc);
 
         // Agregar la tarjeta al contenedor principal

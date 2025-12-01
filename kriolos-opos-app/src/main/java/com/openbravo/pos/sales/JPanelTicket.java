@@ -112,6 +112,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     protected DataLogicCustomers dlCustomers;
     // Sebastian - Sistema de puntos
     protected PuntosDataLogic puntosDataLogic;
+    
+    // Sebastian - Labels de información estilo Eleventa
+    private javax.swing.JLabel lblTotalValue;
+    private javax.swing.JLabel lblPagoConValue;
+    private javax.swing.JLabel lblCambioValue;
     protected TicketsEditor m_panelticket;
     protected TicketInfo m_oTicket;
     protected String m_oTicketExt;
@@ -581,8 +586,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_jPrice.setFont(new Font("Segoe UI", Font.BOLD, 24));
         }
         if (m_jTotalEuros != null) {
-            m_jTotalEuros.setFont(new Font("Segoe UI", Font.BOLD, 56)); // Total más grande
-            m_jTotalEuros.setForeground(new Color(0, 150, 0)); // Verde para el importe total
+            m_jTotalEuros.setFont(new Font("Arial", Font.BOLD, 64)); // Total estilo Eleventa
+            m_jTotalEuros.setForeground(new Color(0, 153, 204)); // Cyan/Azul como Eleventa
         }
         // if (m_jSubtotalEuros != null) {
         //     m_jSubtotalEuros.setFont(new Font("Segoe UI", Font.PLAIN, 32)); // Ya no se muestra
@@ -807,7 +812,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         if (m_oTicket == null || m_oTicket.getLinesCount() == 0) {
             // m_jSubtotalEuros.setText(null); // Ya no se muestra
             // m_jTaxesEuros.setText(null); // Ya no se muestra
-            m_jTotalEuros.setText(null);
+            m_jTotalEuros.setText("$0.00"); // Mostrar $0.00 en lugar de null
+            if (lblTotalValue != null) lblTotalValue.setText("$0.00");
+            if (lblPagoConValue != null) lblPagoConValue.setText("$0.00");
+            if (lblCambioValue != null) lblCambioValue.setText("$0.00");
             if (m_jProductosVenta != null) {
                 m_jProductosVenta.setText("0 productos en la venta actual.");
             }
@@ -815,6 +823,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // m_jSubtotalEuros.setText(m_oTicket.printSubTotal()); // Ya no se muestra
             // m_jTaxesEuros.setText(m_oTicket.printTax()); // Ya no se muestra
             m_jTotalEuros.setText(m_oTicket.printTotal());
+            
+            // Actualizar labels de información estilo Eleventa
+            if (lblTotalValue != null) {
+                lblTotalValue.setText(m_oTicket.printTotal());
+            }
+            
             if (m_jProductosVenta != null) {
                 int productosCount = m_oTicket.getLinesCount();
                 m_jProductosVenta.setText(productosCount + " producto" + (productosCount != 1 ? "s" : "") + " en la venta actual.");
@@ -2632,6 +2646,40 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
     }
 
+    /**
+     * Sebastian - Método auxiliar para actualizar el label de puntos en JPrincipalApp
+     */
+    private void updatePrincipalAppCustomerPoints(String text, boolean visible) {
+        try {
+            // Intentar acceder a través de m_App si es JRootApp
+            if (m_App instanceof com.openbravo.pos.forms.JRootApp) {
+                try {
+                    java.lang.reflect.Field field = com.openbravo.pos.forms.JRootApp.class.getDeclaredField("m_principalapp");
+                    field.setAccessible(true);
+                    com.openbravo.pos.forms.JPrincipalApp principalApp = (com.openbravo.pos.forms.JPrincipalApp) field.get(m_App);
+                    if (principalApp != null) {
+                        principalApp.updateCustomerPointsDisplay(text, visible);
+                        return;
+                    }
+                } catch (Exception e) {
+                    // Si falla la reflexión, buscar en la jerarquía
+                }
+            }
+            
+            // Buscar JPrincipalApp en la jerarquía de componentes
+            java.awt.Container parent = this.getParent();
+            while (parent != null) {
+                if (parent instanceof com.openbravo.pos.forms.JPrincipalApp) {
+                    ((com.openbravo.pos.forms.JPrincipalApp) parent).updateCustomerPointsDisplay(text, visible);
+                    return;
+                }
+                parent = parent.getParent();
+            }
+        } catch (Exception e) {
+            System.err.println("Error al actualizar puntos en JPrincipalApp: " + e.getMessage());
+        }
+    }
+
     // Sebastian - Método para actualizar información de puntos del cliente
     private void updateCustomerPointsDisplay() {
         System.out.println("🔍 updateCustomerPointsDisplay() called");
@@ -2707,8 +2755,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
                 System.out.println("📝 Texto a mostrar: '" + textoCompleto + "'");
 
-                m_jCustomerPoints.setText(textoCompleto);
-                m_jCustomerPoints.setVisible(true);
+                // Actualizar label en JPrincipalApp (barra superior)
+                updatePrincipalAppCustomerPoints(textoCompleto, true);
 
                 System.out.println("✅ Label actualizado y visible");
 
@@ -2716,13 +2764,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 System.err.println("❌ Error updating customer points display: " + ex.getMessage());
                 ex.printStackTrace();
                 LOGGER.log(System.Logger.Level.WARNING, "Error updating customer points display: ", ex);
-                m_jCustomerPoints.setText(m_oTicket.getCustomer().getName());
-                m_jCustomerPoints.setVisible(true);
+                updatePrincipalAppCustomerPoints(m_oTicket.getCustomer().getName(), true);
             }
         } else {
             System.out.println("🚫 No hay cliente asignado al ticket");
-            m_jCustomerPoints.setText("");
-            m_jCustomerPoints.setVisible(false);
+            updatePrincipalAppCustomerPoints("", false);
             if (m_jProductosVenta != null) {
                 m_jProductosVenta.setText("0 productos en la venta actual.");
             }
@@ -2954,7 +3000,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelMainToolbar.add(m_jPanelScripts, java.awt.BorderLayout.CENTER);
         m_jPanelScripts.getAccessibleContext().setAccessibleDescription("");
 
-        m_jPanelTicket.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 5, 5)); // Sin padding superior para eliminar espacio
+        // Sebastian - Eliminar padding izquierdo para que el contenido esté completamente a la izquierda
+        m_jPanelTicket.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 5, 5));
         m_jPanelTicket.setLayout(new java.awt.BorderLayout());
         m_jPanelTicket.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continúa desde arriba
         m_jPanelTicket.setOpaque(true);
@@ -3117,7 +3164,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelLines.setLayout(new java.awt.BorderLayout());
 
         m_jPanelLinesSum.setLayout(new java.awt.BorderLayout());
-        m_jPanelLinesSum.add(filler2, java.awt.BorderLayout.LINE_START);
+        // Sebastian - Eliminar el filler para que no haya espacio en blanco a la izquierda
+        // m_jPanelLinesSum.add(filler2, java.awt.BorderLayout.LINE_START);
 
         // Sebastian - Configuración del panel de cliente
         javax.swing.JPanel customerPanel = new javax.swing.JPanel();
@@ -3158,51 +3206,129 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jTicketId.setToolTipText("");
         m_jTicketId.setVerticalAlignment(javax.swing.SwingConstants.BOTTOM);
         m_jTicketId.setOpaque(true);
-        m_jTicketId.setPreferredSize(new java.awt.Dimension(300, 40));
-        m_jTicketId.setRequestFocusEnabled(false);
-        m_jTicketId.setVerticalTextPosition(javax.swing.SwingConstants.TOP);
-        m_jPanelLinesSum.add(m_jTicketId, java.awt.BorderLayout.CENTER);
+        // Sebastian - Ocultar m_jTicketId para liberar espacio a la izquierda
+        m_jTicketId.setPreferredSize(new java.awt.Dimension(0, 0));
+        m_jTicketId.setVisible(false);
+        // m_jPanelLinesSum.add(m_jTicketId, java.awt.BorderLayout.CENTER);
 
         // Sebastian - Configuración del label de puntos del cliente
-        m_jCustomerPoints.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N - Más grande para la posición superior
+        m_jCustomerPoints.setFont(new java.awt.Font("Arial", 1, 14)); // Tamaño ajustado
         m_jCustomerPoints.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         m_jCustomerPoints.setText("");
         m_jCustomerPoints.setToolTipText("Puntos del cliente");
         m_jCustomerPoints.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jCustomerPoints.setOpaque(true);
-        m_jCustomerPoints.setPreferredSize(new java.awt.Dimension(320, 35)); // Más ancho y altura ajustada
+        m_jCustomerPoints.setOpaque(false); // Sin fondo
+        m_jCustomerPoints.setPreferredSize(new java.awt.Dimension(300, 28)); // Tamaño ajustado para estar al lado de los botones
         m_jCustomerPoints.setRequestFocusEnabled(false);
         m_jCustomerPoints.setVerticalTextPosition(javax.swing.SwingConstants.CENTER);
-        m_jCustomerPoints.setForeground(new java.awt.Color(0, 80, 0)); // Verde más oscuro
-        m_jCustomerPoints.setBackground(new java.awt.Color(245, 255, 245)); // Fondo verde muy claro
-        m_jCustomerPoints.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(0, 150, 0), 2), // Borde verde
-                javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10) // Padding interno
-        ));
+        m_jCustomerPoints.setForeground(new java.awt.Color(0, 0, 0)); // Texto negro
+        m_jCustomerPoints.setBackground(null); // Sin fondo
+        m_jCustomerPoints.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 10, 0, 10)); // Solo padding, sin borde
         // No añadir aquí, se añadirá al customerPointsPanel más adelante
 
-        // Panel para Total y Botón Pagar al lado
-        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(950, 90)); // Más ancho para incluir botón Asignar Cliente
-        m_jPanelTotals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin margen
-        // Usar BoxLayout horizontal para mejor alineación vertical de los componentes
-        m_jPanelTotals.setLayout(new javax.swing.BoxLayout(m_jPanelTotals, javax.swing.BoxLayout.LINE_AXIS));
+        // Panel para área inferior completa estilo Eleventa
+        // Sebastian - Reducir padding al mínimo para acercarlo a la barra inferior
+        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 120)); // Altura aumentada, ancho completo
+        // Sebastian - Sin padding para acercarlo lo más posible a la barra inferior
+        m_jPanelTotals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        m_jPanelTotals.setBackground(java.awt.Color.WHITE); // Fondo blanco como Eleventa
+        m_jPanelTotals.setOpaque(true);
+        // Sebastian - Usar BorderLayout para que leftPanel esté pegado al borde izquierdo
+        m_jPanelTotals.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps
 
-        // Botón Pagar (verde, destacado) - colocado a la izquierda del Total
-        javax.swing.JPanel payPanel = new javax.swing.JPanel();
-        payPanel.setLayout(new javax.swing.BoxLayout(payPanel, javax.swing.BoxLayout.LINE_AXIS));
-        payPanel.setOpaque(false);
-        payPanel.setAlignmentY(javax.swing.SwingConstants.CENTER); // Alineación vertical centrada
-
+        // === COLUMNA IZQUIERDA: Información y botones ===
+        javax.swing.JPanel leftPanel = new javax.swing.JPanel();
+        leftPanel.setLayout(new javax.swing.BoxLayout(leftPanel, javax.swing.BoxLayout.Y_AXIS));
+        leftPanel.setOpaque(false);
+        // Sebastian - Sin padding ni bordes para que esté completamente a la izquierda
+        leftPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        
+        // Sebastian - Remover "productos de la venta actual" de aquí, se moverá arriba del panel de botones
+        
+        // Panel con Total, Pago Con, Cambio
+        javax.swing.JPanel infoPanel = new javax.swing.JPanel(new java.awt.GridLayout(3, 2, 5, 2));
+        infoPanel.setOpaque(false);
+        infoPanel.setMaximumSize(new java.awt.Dimension(300, 60));
+        infoPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        
+        javax.swing.JLabel lblTotal = new javax.swing.JLabel("Total:");
+        lblTotal.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        infoPanel.add(lblTotal);
+        lblTotalValue = new javax.swing.JLabel("$0.00");
+        lblTotalValue.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        infoPanel.add(lblTotalValue);
+        
+        javax.swing.JLabel lblPagoCon = new javax.swing.JLabel("Pago Con:");
+        lblPagoCon.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        infoPanel.add(lblPagoCon);
+        lblPagoConValue = new javax.swing.JLabel("$0.00");
+        lblPagoConValue.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        infoPanel.add(lblPagoConValue);
+        
+        javax.swing.JLabel lblCambio = new javax.swing.JLabel("Cambio:");
+        lblCambio.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        infoPanel.add(lblCambio);
+        lblCambioValue = new javax.swing.JLabel("$0.00");
+        lblCambioValue.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        infoPanel.add(lblCambioValue);
+        
+        leftPanel.add(infoPanel);
+        leftPanel.add(javax.swing.Box.createVerticalStrut(8));
+        
+        // Panel de botones pequeños (F5 Cambiar, F6 Pendiente, Eliminar)
+        javax.swing.JPanel smallButtonsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
+        smallButtonsPanel.setOpaque(false);
+        smallButtonsPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        
+        javax.swing.JButton btnCambiar = new javax.swing.JButton("F5 - Cambiar");
+        btnCambiar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnCambiar.setPreferredSize(new java.awt.Dimension(100, 28));
+        btnCambiar.setFocusPainted(false);
+        btnCambiar.setBackground(java.awt.Color.WHITE);
+        btnCambiar.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
+        smallButtonsPanel.add(btnCambiar);
+        
+        javax.swing.JButton btnPendiente = new javax.swing.JButton("F6 - Pendiente");
+        btnPendiente.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnPendiente.setPreferredSize(new java.awt.Dimension(110, 28));
+        btnPendiente.setFocusPainted(false);
+        btnPendiente.setBackground(java.awt.Color.WHITE);
+        btnPendiente.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
+        smallButtonsPanel.add(btnPendiente);
+        
+        javax.swing.JButton btnAsignarCliente = new javax.swing.JButton("Asignar Cliente");
+        btnAsignarCliente.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnAsignarCliente.setPreferredSize(new java.awt.Dimension(110, 28));
+        btnAsignarCliente.setFocusPainted(false);
+        btnAsignarCliente.setBackground(java.awt.Color.WHITE);
+        btnAsignarCliente.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
+        btnAsignarCliente.addActionListener(e -> mostrarModalIdCliente());
+        smallButtonsPanel.add(btnAsignarCliente);
+        
+        leftPanel.add(smallButtonsPanel);
+        
+        // === COLUMNA DERECHA: Botón Cobrar + Total + Ventas del día y Devoluciones ===
+        javax.swing.JPanel rightPanel = new javax.swing.JPanel();
+        rightPanel.setLayout(new java.awt.BorderLayout(0, 10)); // 10px de espacio vertical entre elementos
+        rightPanel.setOpaque(false);
+        
+        // === Panel superior: Botón Cobrar y Total (horizontal) ===
+        javax.swing.JPanel topRightPanel = new javax.swing.JPanel();
+        topRightPanel.setLayout(new java.awt.BorderLayout(15, 0)); // 15px de espacio entre botón y total
+        topRightPanel.setOpaque(false);
+        
+        // Botón Cobrar al lado izquierdo del total (más pequeño como en la imagen de Eleventa)
         m_jPayNow = new javax.swing.JButton();
-        m_jPayNow.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N - fuente un poco más grande
-        m_jPayNow.setText(AppLocal.getIntString("button.pay") + " (F5)"); // Texto en una sola línea
+        m_jPayNow.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+        m_jPayNow.setText("F12 - Cobrar");
         m_jPayNow.setFocusPainted(false);
-        m_jPayNow.setPreferredSize(new java.awt.Dimension(180, 45)); // Más ancho (180) y menos alto (45)
-        m_jPayNow.setMinimumSize(new java.awt.Dimension(160, 45));
-        m_jPayNow.setMaximumSize(new java.awt.Dimension(200, 45));
-        m_jPayNow.setBackground(new java.awt.Color(46, 139, 87)); // SeaGreen
+        m_jPayNow.setPreferredSize(new java.awt.Dimension(160, 35)); // Más pequeño: 160px ancho, 35px alto
+        m_jPayNow.setBackground(new java.awt.Color(92, 184, 92)); // Verde más claro
         m_jPayNow.setForeground(java.awt.Color.WHITE);
-        m_jPayNow.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(34, 120, 60), 1, true));
+        m_jPayNow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            new javax.swing.border.LineBorder(new java.awt.Color(76, 174, 76), 1),
+            javax.swing.BorderFactory.createEmptyBorder(5, 15, 5, 15) // Padding reducido
+        ));
         m_jPayNow.setOpaque(true);
 
         // Acción: reutiliza el flujo de cierre/pago de ticket
@@ -3238,77 +3364,61 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 }
             }
         });
-        payPanel.add(m_jPayNow);
-
-        // Usar un panel con BoxLayout horizontal para poner el botón y el total juntos
-        javax.swing.JPanel totalPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        totalPanel.setOpaque(false);
-        totalPanel.setAlignmentY(javax.swing.SwingConstants.CENTER); // Alineación vertical centrada
-        // Limitar el tamaño para evitar que se estire - usar el tamaño del m_jTotalEuros más el label
-        totalPanel.setMaximumSize(new java.awt.Dimension(260, 90)); // Limitar el tamaño máximo al ancho preferido
-        totalPanel.setPreferredSize(new java.awt.Dimension(260, 90)); // Tamaño preferido basado en el contenido
         
-        // Label del Total
-        m_jLblTotalEuros.setFont(new java.awt.Font("Segoe UI", 1, 18)); // Fuente moderna y más grande para el total
-        m_jLblTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jLblTotalEuros.setLabelFor(m_jTotalEuros);
-        m_jLblTotalEuros.setText(AppLocal.getIntString("label.totalcash")); // NOI18N
-        totalPanel.add(m_jLblTotalEuros, java.awt.BorderLayout.NORTH);
-
-        // Valor del Total
-        m_jTotalEuros.setBackground(m_jEditLine.getBackground());
-        m_jTotalEuros.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 56)); // Fuente moderna, bold y números MUY grandes
-        m_jTotalEuros.setForeground(new java.awt.Color(0, 150, 0)); // Verde para el importe total
-        m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        m_jTotalEuros.setLabelFor(m_jTotalEuros);
-        m_jTotalEuros.setToolTipText(bundle.getString("tooltip.saletotal")); // NOI18N
-        m_jTotalEuros.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(153, 153, 153), 3, true));
-        m_jTotalEuros.setMaximumSize(new java.awt.Dimension(260, 70)); // Limitar máximo al tamaño preferido para evitar estiramiento
-        m_jTotalEuros.setMinimumSize(new java.awt.Dimension(220, 70));
-        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(260, 70));
+        // Agregar botón a la IZQUIERDA (WEST) - antes del total
+        topRightPanel.add(m_jPayNow, java.awt.BorderLayout.WEST);
+        
+        // Total sin recuadro, solo el número grande en cyan/azul estilo Eleventa (POSICIÓN ORIGINAL - derecha)
+        m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 72)); // Muy grande como Eleventa
+        m_jTotalEuros.setForeground(new java.awt.Color(91, 192, 222)); // Cyan claro de Eleventa
+        m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        m_jTotalEuros.setText("$0.00");
+        m_jTotalEuros.setBorder(null); // Sin borde
+        m_jTotalEuros.setOpaque(false); // Sin fondo
         m_jTotalEuros.setRequestFocusEnabled(false);
-        // Usar un panel wrapper para evitar que se estire en BorderLayout
-        javax.swing.JPanel totalValueWrapper = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0));
-        totalValueWrapper.setOpaque(false);
-        totalValueWrapper.add(m_jTotalEuros);
-        totalPanel.add(totalValueWrapper, java.awt.BorderLayout.CENTER);
-
-        // Panel que contiene el botón Pagar y el Total juntos
-        javax.swing.JPanel totalsAndPayPanel = new javax.swing.JPanel();
-        totalsAndPayPanel.setLayout(new javax.swing.BoxLayout(totalsAndPayPanel, javax.swing.BoxLayout.LINE_AXIS));
-        totalsAndPayPanel.setOpaque(false);
-        totalsAndPayPanel.setAlignmentY(javax.swing.SwingConstants.CENTER); // Alineación vertical centrada
-        totalsAndPayPanel.add(payPanel); // Botón Pagar a la izquierda
-        totalsAndPayPanel.add(javax.swing.Box.createHorizontalStrut(5)); // Espaciado de 5px
-        totalsAndPayPanel.add(totalPanel); // Total a la derecha (donde estaba)
-
-        // Botón "Asignar Cliente" - Parte inferior izquierda (horizontal, pequeño, alineado)
-        javax.swing.JPanel asignarClientePanel = new javax.swing.JPanel();
-        asignarClientePanel.setLayout(new javax.swing.BoxLayout(asignarClientePanel, javax.swing.BoxLayout.LINE_AXIS));
-        asignarClientePanel.setOpaque(false);
-        asignarClientePanel.setAlignmentY(javax.swing.SwingConstants.CENTER); // Alineación vertical centrada
         
-        javax.swing.JButton btnAsignarCliente = new javax.swing.JButton("Asignar Cliente");
-        btnAsignarCliente.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11)); // Fuente más pequeña
-        btnAsignarCliente.setFocusPainted(false);
-        btnAsignarCliente.setPreferredSize(new java.awt.Dimension(140, 38)); // Botón más pequeño
-        btnAsignarCliente.setMinimumSize(new java.awt.Dimension(120, 35));
-        btnAsignarCliente.setMaximumSize(new java.awt.Dimension(160, 40));
-        btnAsignarCliente.setBackground(java.awt.Color.WHITE); // Blanco
-        btnAsignarCliente.setForeground(java.awt.Color.BLACK); // Texto negro
-        btnAsignarCliente.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1, true)); // Borde gris claro
-        btnAsignarCliente.setOpaque(true);
-        btnAsignarCliente.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER); // Texto centrado
-        // Icono removido según solicitud del usuario
-        btnAsignarCliente.addActionListener(e -> {
-            mostrarModalIdCliente();
+        // Ocultar el label "Total:" porque Eleventa no lo tiene
+        m_jLblTotalEuros.setVisible(false);
+        
+        // Agregar total en su POSICIÓN ORIGINAL (EAST - derecha)
+        topRightPanel.add(m_jTotalEuros, java.awt.BorderLayout.EAST);
+        
+        // Agregar panel superior al rightPanel
+        rightPanel.add(topRightPanel, java.awt.BorderLayout.NORTH);
+        
+        // === Panel inferior: Botón "Ventas del día y Devoluciones" ===
+        javax.swing.JButton btnVentasDelDia = new javax.swing.JButton();
+        btnVentasDelDia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+        btnVentasDelDia.setText("Ventas del día y Devoluciones");
+        btnVentasDelDia.setFocusPainted(false);
+        btnVentasDelDia.setPreferredSize(new java.awt.Dimension(0, 30));
+        btnVentasDelDia.setBackground(java.awt.Color.WHITE);
+        btnVentasDelDia.setForeground(new java.awt.Color(80, 80, 80));
+        btnVentasDelDia.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1));
+        btnVentasDelDia.setOpaque(true);
+        btnVentasDelDia.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        // TODO: Implementar la funcionalidad del botón
+        btnVentasDelDia.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                // Aquí se implementará la funcionalidad de ventas del día y devoluciones
+                javax.swing.JOptionPane.showMessageDialog(null, "Funcionalidad de Ventas del día y Devoluciones - Por implementar");
+            }
         });
-        asignarClientePanel.add(btnAsignarCliente);
         
-        // Añadir en orden: Asignar Cliente, espacio flexible, Pagar y Total
-        m_jPanelTotals.add(asignarClientePanel); // Botón Asignar Cliente en el extremo izquierdo
-        m_jPanelTotals.add(javax.swing.Box.createHorizontalGlue()); // Espacio flexible que empuja el resto a la derecha
-        m_jPanelTotals.add(totalsAndPayPanel); // Pagar y Total a la derecha
+        // Panel contenedor para el botón, alineado a la derecha como en la imagen
+        javax.swing.JPanel bottomRightPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        bottomRightPanel.setOpaque(false);
+        bottomRightPanel.add(btnVentasDelDia);
+        
+        // Agregar panel inferior al rightPanel
+        rightPanel.add(bottomRightPanel, java.awt.BorderLayout.SOUTH);
+
+        // Agregar paneles al m_jPanelTotals usando BorderLayout
+        // leftPanel completamente a la izquierda
+        m_jPanelTotals.add(leftPanel, java.awt.BorderLayout.WEST);
+        
+        // rightPanel (total grande en su posición original + botón cobrar al lado) a la derecha
+        m_jPanelTotals.add(rightPanel, java.awt.BorderLayout.EAST);
 
         // Sebastian - Panel original del botón comentado porque ya está arriba
         /*
@@ -3364,7 +3474,38 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
          * totalsWithPay.add(payPanel, java.awt.BorderLayout.SOUTH);
          */
 
-        m_jPanelLinesSum.add(m_jPanelTotals, java.awt.BorderLayout.LINE_END);
+        // Sebastian - Crear panel para "productos de la venta actual" justo arriba del panel de botones
+        javax.swing.JPanel productosPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        productosPanel.setOpaque(false);
+        productosPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 0, 0, 0)); // Sin padding inferior, el espacio se manejará en el contenedor
+        
+        m_jProductosVenta.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        m_jProductosVenta.setForeground(new java.awt.Color(80, 80, 80));
+        m_jProductosVenta.setText("0 productos en la venta actual.");
+        productosPanel.add(m_jProductosVenta);
+        
+        // Panel contenedor para productos y botones - casi al límite con la barra inferior
+        javax.swing.JPanel bottomContainer = new javax.swing.JPanel();
+        bottomContainer.setLayout(new javax.swing.BoxLayout(bottomContainer, javax.swing.BoxLayout.Y_AXIS));
+        bottomContainer.setOpaque(false);
+        bottomContainer.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
+        bottomContainer.add(productosPanel);
+        // Sebastian - Agregar espacio flexible entre productos y panel de botones para separarlos
+        bottomContainer.add(javax.swing.Box.createVerticalStrut(60)); // 60px de espacio entre productos y botones
+        bottomContainer.add(m_jPanelTotals);
+        
+        // Sebastian - Crear un espacio flexible arriba que empuje el bottomContainer hacia abajo
+        javax.swing.JPanel spacerPanel = new javax.swing.JPanel();
+        spacerPanel.setOpaque(false);
+        spacerPanel.setPreferredSize(new java.awt.Dimension(0, 0)); // Se expandirá para empujar el contenido abajo
+        
+        javax.swing.JPanel bottomWithSpacer = new javax.swing.JPanel(new java.awt.BorderLayout());
+        bottomWithSpacer.setOpaque(false);
+        bottomWithSpacer.add(spacerPanel, java.awt.BorderLayout.CENTER); // Espacio flexible que se expande
+        bottomWithSpacer.add(bottomContainer, java.awt.BorderLayout.SOUTH); // Contenedor con productos y botones abajo
+        
+        // Sebastian - Agregar el contenedor completo en SOUTH para que ocupe todo el ancho y esté casi al límite
+        m_jPanelLinesSum.add(bottomWithSpacer, java.awt.BorderLayout.SOUTH);
 
         m_jPanelLines.add(m_jPanelLinesSum, java.awt.BorderLayout.SOUTH);
 
@@ -3530,7 +3671,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Comentar la adición del panel de entradas para liberar espacio
         // m_jPanelTicket.add(m_jContEntries, java.awt.BorderLayout.LINE_END);
 
-        // Crear panel para la barra de búsqueda en la parte superior
+        // Crear panel para la barra de búsqueda en la parte superior - alineado a la izquierda como Eleventa
         javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5)); // Sin padding vertical para subir el contenido
         searchPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris para la barra de búsqueda
@@ -3538,7 +3679,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // jPanelScanner debe tener fondo gris también
         jPanelScanner.setBackground(new java.awt.Color(220, 220, 220));
         jPanelScanner.setOpaque(true);
-        searchPanel.add(jPanelScanner, java.awt.BorderLayout.CENTER);
+        // Alinear la barra de búsqueda a la izquierda como en Eleventa
+        searchPanel.add(jPanelScanner, java.awt.BorderLayout.LINE_START);
 
         // Sebastian - Crear barra de botones de acción debajo del campo de búsqueda
         javax.swing.JPanel actionButtonsPanel = new javax.swing.JPanel();
@@ -3643,9 +3785,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Botones de la barra lateral movidos aquí
         // (Botón ID Cliente movido a la parte inferior)
 
-        // Sebastian - Ocultar el panel de puntos del cliente para liberar espacio a la izquierda
-        // El usuario quiere usar ese espacio para el campo de productos
-        m_jCustomerPoints.setVisible(false);
+        // Sebastian - El label de puntos del cliente ahora está en JPrincipalApp (barra superior)
+        // Ya no se usa m_jCustomerPoints en este panel
 
         // Crear un panel contenedor para el toolbar y la búsqueda
         javax.swing.JPanel topPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
@@ -3664,15 +3805,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         
         topPanel.add(searchAndActionsPanel, java.awt.BorderLayout.SOUTH);
 
-        // Label para mostrar productos de la venta actual (como eleventa) - en el extremo izquierdo del área gris superior
-        m_jProductosVenta.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
-        m_jProductosVenta.setForeground(java.awt.Color.BLACK);
-        m_jProductosVenta.setText("0 productos en la venta actual.");
-        m_jProductosVenta.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10));
-        javax.swing.JPanel productosPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
-        productosPanel.setOpaque(true);
-        productosPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris para que coincida
-        productosPanel.add(m_jProductosVenta);
+        // Sebastian - Remover productosPanel de arriba, se quedará justo arriba del panel de botones
         
         // Sebastian - Crear un panel contenedor completo que incluya los puntos arriba
         // de todo
@@ -3681,9 +3814,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         completeTopPanel.setOpaque(true);
         completeTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding para subir el contenido
         
-        // Productos en el extremo izquierdo, sin panel de customer points
-        completeTopPanel.add(productosPanel, java.awt.BorderLayout.WEST); // Productos en el extremo izquierdo, ocupando el espacio que antes tenía el panel de admin
-        completeTopPanel.add(topPanel, java.awt.BorderLayout.CENTER);
+        // Panel central con búsqueda y botones (los puntos están dentro de actionButtonsPanel)
+        completeTopPanel.add(topPanel, java.awt.BorderLayout.CENTER); // Panel central con búsqueda y botones
 
         m_jPanelContainer.add(completeTopPanel, java.awt.BorderLayout.NORTH);
         m_jPanelContainer.add(m_jPanelTicket, java.awt.BorderLayout.CENTER);
@@ -4906,53 +5038,228 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     }
 
     /**
-     * Sebastian - Método para mostrar modal de ID cliente
+     * Sebastian - Método para mostrar modal de ID cliente con tabla de clientes y buscador
      */
     private void mostrarModalIdCliente() {
         try {
-            String idCliente = javax.swing.JOptionPane.showInputDialog(
-                    this,
-                    "Ingresa el ID del cliente:",
-                    "ID Cliente",
-                    javax.swing.JOptionPane.QUESTION_MESSAGE);
+            // Crear diálogo
+            javax.swing.JDialog dialog = new javax.swing.JDialog(
+                    (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                    "Seleccionar Cliente",
+                    true);
+            dialog.setSize(700, 500);
+            dialog.setLocationRelativeTo(this);
 
-            if (idCliente != null && !idCliente.trim().isEmpty()) {
-                // Usar el método existente para procesar el ID del cliente
-                m_jCustomerId.setText(idCliente.trim());
+            // Panel principal
+            javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+            mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-                // Buscar el cliente usando la lógica existente
-                String customerId = idCliente.trim();
-                CustomerInfo customer = null;
+            // Panel de búsqueda
+            javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+            javax.swing.JLabel lblSearch = new javax.swing.JLabel("Buscar por Nombre o ID:");
+            javax.swing.JTextField txtSearch = new javax.swing.JTextField(20);
+            txtSearch.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            searchPanel.add(lblSearch);
+            searchPanel.add(txtSearch);
 
-                // Buscar en todos los clientes por searchkey
-                java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
-                for (CustomerInfo c : allCustomers) {
-                    if (customerId.equals(c.getSearchkey())) {
-                        customer = c;
-                        break;
+            // Obtener lista de clientes
+            java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
+            
+            // Modelo de tabla
+            javax.swing.table.DefaultTableModel tableModel = new javax.swing.table.DefaultTableModel(
+                    new Object[]{"ID", "Nombre", "SearchKey"}, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+
+            // Llenar tabla con clientes
+            for (CustomerInfo customer : allCustomers) {
+                tableModel.addRow(new Object[]{
+                    customer.getId(),
+                    customer.getName() != null ? customer.getName() : "",
+                    customer.getSearchkey() != null ? customer.getSearchkey() : ""
+                });
+            }
+
+            // Tabla de clientes
+            javax.swing.JTable table = new javax.swing.JTable(tableModel);
+            table.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            table.setRowHeight(25);
+            table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+            table.getTableHeader().setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            table.getColumnModel().getColumn(0).setPreferredWidth(200);
+            table.getColumnModel().getColumn(1).setPreferredWidth(300);
+            table.getColumnModel().getColumn(2).setPreferredWidth(150);
+
+            // Scroll pane para la tabla
+            javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(table);
+            scrollPane.setPreferredSize(new java.awt.Dimension(680, 350));
+
+            // Filtro de búsqueda - busca por nombre (columna 1) y SearchKey (columna 2)
+            txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
+                @Override
+                public void keyReleased(java.awt.event.KeyEvent e) {
+                    String searchText = txtSearch.getText().trim();
+                    javax.swing.table.TableRowSorter<javax.swing.table.TableModel> currentSorter = 
+                        (javax.swing.table.TableRowSorter<javax.swing.table.TableModel>) table.getRowSorter();
+                    
+                    if (searchText.isEmpty()) {
+                        currentSorter.setRowFilter(null);
+                    } else {
+                        // Crear un filtro que busque en las columnas 1 (Nombre) y 2 (SearchKey)
+                        java.util.List<javax.swing.RowFilter<javax.swing.table.TableModel, Integer>> filters = 
+                            new java.util.ArrayList<>();
+                        
+                        // Filtrar por nombre (columna 1)
+                        filters.add(javax.swing.RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(searchText), 1));
+                        
+                        // Filtrar por SearchKey (columna 2)
+                        filters.add(javax.swing.RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(searchText), 2));
+                        
+                        // Combinar filtros con OR (cualquiera de los dos)
+                        javax.swing.RowFilter<javax.swing.table.TableModel, Integer> combinedFilter = 
+                            javax.swing.RowFilter.orFilter(filters);
+                        
+                        currentSorter.setRowFilter(combinedFilter);
                     }
                 }
+            });
 
-                if (customer != null) {
-                    // Cliente encontrado - ejecutar la lógica completa sin mostrar mensaje
-                    searchCustomerById();
+            // Inicializar sorter
+            javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter = 
+                new javax.swing.table.TableRowSorter<>(tableModel);
+            table.setRowSorter(sorter);
+
+            // Panel de botones
+            javax.swing.JPanel buttonPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
+            javax.swing.JButton btnSelect = new javax.swing.JButton("Seleccionar");
+            javax.swing.JButton btnCancel = new javax.swing.JButton("Cancelar");
+            btnSelect.setPreferredSize(new java.awt.Dimension(100, 30));
+            btnCancel.setPreferredSize(new java.awt.Dimension(100, 30));
+            buttonPanel.add(btnSelect);
+            buttonPanel.add(btnCancel);
+
+            // Acción de selección desde tabla (doble clic)
+            table.addMouseListener(new java.awt.event.MouseAdapter() {
+                @Override
+                public void mouseClicked(java.awt.event.MouseEvent e) {
+                    if (e.getClickCount() == 2) {
+                        int selectedRow = table.getSelectedRow();
+                        if (selectedRow >= 0) {
+                            int modelRow = table.convertRowIndexToModel(selectedRow);
+                            String searchkey = (String) tableModel.getValueAt(modelRow, 2);
+                            if (searchkey != null && !searchkey.trim().isEmpty()) {
+                                asignarClienteDesdeDialogo(searchkey, dialog);
+                            }
+                        }
+                    }
+                }
+            });
+
+            // Acción del botón Seleccionar
+            btnSelect.addActionListener(e -> {
+                int selectedRow = table.getSelectedRow();
+                if (selectedRow >= 0) {
+                    int modelRow = table.convertRowIndexToModel(selectedRow);
+                    String searchkey = (String) tableModel.getValueAt(modelRow, 2);
+                    if (searchkey != null && !searchkey.trim().isEmpty()) {
+                        asignarClienteDesdeDialogo(searchkey, dialog);
+                    } else {
+                        javax.swing.JOptionPane.showMessageDialog(dialog,
+                                "Por favor seleccione un cliente de la tabla.",
+                                "Selección Requerida",
+                                javax.swing.JOptionPane.WARNING_MESSAGE);
+                    }
                 } else {
-                    // Cliente no encontrado
-                    searchCustomerById(); // Esto actualizará el label con "Cliente no encontrado"
-
-                    javax.swing.JOptionPane.showMessageDialog(this,
-                            "❌ Cliente no encontrado\n\nEl ID '" + customerId
-                                    + "' no existe en la base de datos.\nVerifica el ID e inténtalo nuevamente.",
-                            "Cliente No Encontrado",
+                    javax.swing.JOptionPane.showMessageDialog(dialog,
+                            "Por favor seleccione un cliente de la tabla.",
+                            "Selección Requerida",
                             javax.swing.JOptionPane.WARNING_MESSAGE);
+                }
+            });
+
+            // Acción del botón Cancelar
+            btnCancel.addActionListener(e -> dialog.dispose());
+
+            // Acción de Enter en el campo de búsqueda (buscar y seleccionar si hay un solo resultado)
+            txtSearch.addActionListener(e -> {
+                String searchText = txtSearch.getText().trim();
+                if (!searchText.isEmpty() && table.getRowCount() == 1) {
+                    // Si hay un solo resultado después del filtro, seleccionarlo
+                    table.setRowSelectionInterval(0, 0);
+                    int modelRow = table.convertRowIndexToModel(0);
+                    String searchkey = (String) tableModel.getValueAt(modelRow, 2);
+                    if (searchkey != null && !searchkey.trim().isEmpty()) {
+                        asignarClienteDesdeDialogo(searchkey, dialog);
+                    }
+                } else if (!searchText.isEmpty()) {
+                    // Si hay múltiples resultados, solo seleccionar el primero
+                    if (table.getRowCount() > 0) {
+                        table.setRowSelectionInterval(0, 0);
+                    }
+                }
+            });
+
+            // Agregar componentes al panel principal
+            mainPanel.add(searchPanel, java.awt.BorderLayout.NORTH);
+            mainPanel.add(scrollPane, java.awt.BorderLayout.CENTER);
+            mainPanel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
+
+            dialog.add(mainPanel);
+            dialog.setVisible(true);
+
+        } catch (Exception e) {
+            System.err.println("Error al mostrar diálogo de clientes: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Error al cargar clientes: " + e.getMessage(),
+                    "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Método auxiliar para asignar cliente desde el diálogo
+     */
+    private void asignarClienteDesdeDialogo(String searchkey, javax.swing.JDialog dialog) {
+        try {
+            // Cerrar el diálogo
+            dialog.dispose();
+
+            // Usar el método existente para procesar el ID del cliente
+            m_jCustomerId.setText(searchkey.trim());
+
+            // Buscar el cliente usando la lógica existente
+            String customerId = searchkey.trim();
+            CustomerInfo customer = null;
+
+            // Buscar en todos los clientes por searchkey
+            java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
+            for (CustomerInfo c : allCustomers) {
+                if (customerId.equals(c.getSearchkey())) {
+                    customer = c;
+                    break;
                 }
             }
 
+            if (customer != null) {
+                // Cliente encontrado - ejecutar la lógica completa
+                searchCustomerById();
+            } else {
+                // Cliente no encontrado
+                searchCustomerById(); // Esto actualizará el label con "Cliente no encontrado"
+                javax.swing.JOptionPane.showMessageDialog(this,
+                        "❌ Cliente no encontrado\n\nEl ID '" + customerId
+                                + "' no existe en la base de datos.\nVerifica el ID e inténtalo nuevamente.",
+                        "Cliente No Encontrado",
+                        javax.swing.JOptionPane.WARNING_MESSAGE);
+            }
         } catch (Exception e) {
-            System.err.println("Error al configurar ID cliente: " + e.getMessage());
+            System.err.println("Error al asignar cliente: " + e.getMessage());
             e.printStackTrace();
             javax.swing.JOptionPane.showMessageDialog(this,
-                    "Error al buscar cliente: " + e.getMessage(),
+                    "Error al asignar cliente: " + e.getMessage(),
                     "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }

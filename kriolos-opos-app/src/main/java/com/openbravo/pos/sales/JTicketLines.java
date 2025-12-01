@@ -121,8 +121,11 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jTicketTable.setRowHeight(40);
         m_jTicketTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         
-        // Configurar fondo blanco para la tabla de ventas
+        // Configurar colores estilo Eleventa
         m_jTicketTable.setBackground(java.awt.Color.WHITE);
+        m_jTicketTable.setSelectionBackground(new java.awt.Color(91, 192, 222)); // Azul claro de Eleventa
+        m_jTicketTable.setSelectionForeground(java.awt.Color.WHITE); // Texto blanco cuando está seleccionado
+        m_jTicketTable.setGridColor(new java.awt.Color(220, 220, 220)); // Grid gris claro
         m_jScrollTableTicket.getViewport().setBackground(java.awt.Color.WHITE);
         m_jScrollTableTicket.setBackground(java.awt.Color.WHITE);
 
@@ -377,12 +380,16 @@ public class JTicketLines extends javax.swing.JPanel {
                     isSelected, hasFocus, row, column);
             aux.setVerticalAlignment(javax.swing.SwingConstants.TOP);
             aux.setHorizontalAlignment(m_acolumns[column].align);
-            Font fName = aux.getFont();
-            // Usar fuente moderna Segoe UI con tamaño grande para mejor legibilidad
-            aux.setFont(new Font("Segoe UI", Font.PLAIN, 20));
-            // Fondo blanco para las celdas
-            if (!isSelected) {
+            // Usar fuente Arial como Eleventa
+            aux.setFont(new Font("Arial", Font.PLAIN, 14));
+            
+            // Colores estilo Eleventa
+            if (isSelected) {
+                aux.setBackground(new java.awt.Color(91, 192, 222)); // Azul claro de Eleventa
+                aux.setForeground(java.awt.Color.WHITE); // Texto blanco
+            } else {
                 aux.setBackground(java.awt.Color.WHITE);
+                aux.setForeground(java.awt.Color.BLACK);
             }
 
             return aux;
