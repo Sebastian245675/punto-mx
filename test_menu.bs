@@ -1,0 +1,18 @@
+// Prueba simple del menu de sucursales
+System.out.println("=== INICIANDO PRUEBA DE MENÚ ===");
+
+group = menu.addGroup("Menu.Backoffice");
+
+System.out.println("Grupo agregado");
+
+// Test simple submenu sin handler
+submenu = group.addSubmenu("/com/openbravo/images/location.png", "Menu.Branches", null);
+System.out.println("Submenu Menu.Branches agregado con handler null");
+
+submenu.addTitle("Menu.Panel.Branches.Forms");
+System.out.println("Título agregado");
+
+submenu.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesManagement");
+System.out.println("Panel JPanelBranchesManagement agregado");
+
+System.out.println("=== PRUEBA COMPLETADA ===");

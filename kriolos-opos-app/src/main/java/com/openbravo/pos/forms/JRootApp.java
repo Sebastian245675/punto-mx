@@ -919,27 +919,31 @@ public class JRootApp extends JPanel implements AppView {
         statusBarPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0,
                 javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")));
         statusBarPanel.setLayout(new javax.swing.BoxLayout(statusBarPanel, javax.swing.BoxLayout.LINE_AXIS));
+        statusBarPanel.setPreferredSize(new java.awt.Dimension(0, 35)); // Altura más delgada (35px en lugar de ~50px)
+        statusBarPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 35));
 
-        panelTask.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+        panelTask.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 2)); // Menos padding vertical (2px en lugar del default)
 
-        m_jHost.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
+        m_jHost.setFont(new java.awt.Font("Arial", 0, 10)); // NOI18N - Fuente más pequeña
         m_jHost.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/display.png"))); // NOI18N
         m_jHost.setText("*Hostname");
-        m_jHost.setMaximumSize(new java.awt.Dimension(200, 32));
-        m_jHost.setMinimumSize(new java.awt.Dimension(200, 32));
-        m_jHost.setPreferredSize(new java.awt.Dimension(200, 32));
+        m_jHost.setMaximumSize(new java.awt.Dimension(200, 25)); // Altura reducida
+        m_jHost.setMinimumSize(new java.awt.Dimension(200, 25));
+        m_jHost.setPreferredSize(new java.awt.Dimension(200, 25)); // Altura reducida
         panelTask.add(m_jHost);
 
         statusBarPanel.add(panelTask);
 
-        jPanel3.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
+        jPanel3.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 5, 2)); // Menos padding vertical (2px en lugar del default)
 
-        m_jClose.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        m_jClose.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N - Fuente más pequeña
         m_jClose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/exit.png"))); // NOI18N
         m_jClose.setText(AppLocal.getIntString("button.exit")); // NOI18N
         m_jClose.setFocusPainted(false);
         m_jClose.setFocusable(false);
-        m_jClose.setPreferredSize(new java.awt.Dimension(100, 50));
+        m_jClose.setPreferredSize(new java.awt.Dimension(90, 30)); // Más pequeño y más delgado
+        m_jClose.setMinimumSize(new java.awt.Dimension(80, 30));
+        m_jClose.setMaximumSize(new java.awt.Dimension(100, 30));
         m_jClose.setRequestFocusEnabled(false);
         m_jClose.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {

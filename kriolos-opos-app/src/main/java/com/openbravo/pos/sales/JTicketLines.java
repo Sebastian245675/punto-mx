@@ -120,6 +120,11 @@ public class JTicketLines extends javax.swing.JPanel {
 
         m_jTicketTable.setRowHeight(40);
         m_jTicketTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+        
+        // Configurar fondo blanco para la tabla de ventas
+        m_jTicketTable.setBackground(java.awt.Color.WHITE);
+        m_jScrollTableTicket.getViewport().setBackground(java.awt.Color.WHITE);
+        m_jScrollTableTicket.setBackground(java.awt.Color.WHITE);
 
         m_jTableModel.clear();
         
@@ -375,6 +380,10 @@ public class JTicketLines extends javax.swing.JPanel {
             Font fName = aux.getFont();
             // Usar fuente moderna Segoe UI con tamaño grande para mejor legibilidad
             aux.setFont(new Font("Segoe UI", Font.PLAIN, 20));
+            // Fondo blanco para las celdas
+            if (!isSelected) {
+                aux.setBackground(java.awt.Color.WHITE);
+            }
 
             return aux;
         }
@@ -580,6 +589,10 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jTicketTable.setIntercellSpacing(new java.awt.Dimension(0, 1));
         m_jTicketTable.setRequestFocusEnabled(false);
         m_jTicketTable.setShowVerticalLines(false);
+        // Configurar fondo blanco para la tabla
+        m_jTicketTable.setBackground(java.awt.Color.WHITE);
+        m_jScrollTableTicket.getViewport().setBackground(java.awt.Color.WHITE);
+        m_jScrollTableTicket.setBackground(java.awt.Color.WHITE);
         m_jScrollTableTicket.setViewportView(m_jTicketTable);
 
         add(m_jScrollTableTicket, java.awt.BorderLayout.CENTER);

@@ -97,6 +97,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         //MAIN 
         m_jPanelTitle.setVisible(false);
+        m_jPanelTitle.setPreferredSize(new java.awt.Dimension(0, 0)); // Sin tamaño cuando está oculto
+        m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
         addView(new JPanel(), "<NULL>");
         showView("<NULL>");
 
@@ -216,9 +218,13 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     String sTitle = viewPanel.getTitle();
                     if (sTitle != null && !sTitle.isBlank()) {
                         m_jPanelTitle.setVisible(true);
+                        m_jPanelTitle.setPreferredSize(null); // Restaurar tamaño normal
+                        m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE)); // Restaurar tamaño máximo
                         m_jTitle.setText(sTitle);
                     } else {
                         m_jPanelTitle.setVisible(false);
+                        m_jPanelTitle.setPreferredSize(new java.awt.Dimension(0, 0)); // Sin tamaño cuando está oculto
+                        m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
                         m_jTitle.setText("");
                     }
                 } else {
@@ -344,14 +350,13 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         
         // Sebastian - Crear barra horizontal superior con TODOS los botones del menú (estilo eleventa)
         javax.swing.JPanel topMenuBar = new javax.swing.JPanel();
-        topMenuBar.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 5));
-        topMenuBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
-        topMenuBar.setBackground(new java.awt.Color(240, 240, 240));
-        // Asegurar que el panel pueda expandirse verticalmente para mostrar múltiples filas
+        topMenuBar.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 3, 2)); // Espaciado horizontal reducido para diseño compacto
+        topMenuBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)); // Reducir padding vertical (2px en lugar de 5px)
+        topMenuBar.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
+        // Diseño compacto para que quepan todos los botones en una línea
         topMenuBar.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
-        // Forzar que el panel calcule su tamaño preferido basado en el contenido
-        topMenuBar.setMinimumSize(new java.awt.Dimension(0, 50)); // Mínimo para una fila
-        topMenuBar.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE)); // Permitir expansión vertical
+        topMenuBar.setMinimumSize(new java.awt.Dimension(0, 30)); // Altura mínima reducida (25px botón + padding)
+        topMenuBar.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura máxima fija para una sola línea
         
         // ========== MENU.MAIN - Elementos principales ==========
         // Botón Ventas (Menu.Ticket)
@@ -447,9 +452,16 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         // ========== MENU.SYSTEM ==========
         // Botón Cambiar Contraseña (Menu.ChangePassword)
         javax.swing.JButton btnCambiarPassword = new javax.swing.JButton();
-        btnCambiarPassword.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/password.png")));
+        // Icono removido para diseño compacto
         btnCambiarPassword.setText(AppLocal.getIntString("Menu.ChangePassword"));
-        btnCambiarPassword.setPreferredSize(new java.awt.Dimension(150, 40));
+        btnCambiarPassword.setPreferredSize(new java.awt.Dimension(70, 25));
+        btnCambiarPassword.setMinimumSize(new java.awt.Dimension(60, 25));
+        btnCambiarPassword.setMaximumSize(new java.awt.Dimension(90, 25));
+        btnCambiarPassword.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
+        btnCambiarPassword.setBackground(java.awt.Color.WHITE);
+        btnCambiarPassword.setForeground(java.awt.Color.BLACK);
+        btnCambiarPassword.setOpaque(true);
+        btnCambiarPassword.setFocusPainted(false);
         btnCambiarPassword.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 try {
@@ -485,9 +497,16 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         
         // Botón Salir (Menu.Exit)
         javax.swing.JButton btnSalir = new javax.swing.JButton();
-        btnSalir.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/logout.png")));
+        // Icono removido para diseño compacto
         btnSalir.setText(AppLocal.getIntString("Menu.Exit"));
-        btnSalir.setPreferredSize(new java.awt.Dimension(100, 40));
+        btnSalir.setPreferredSize(new java.awt.Dimension(70, 25));
+        btnSalir.setMinimumSize(new java.awt.Dimension(60, 25));
+        btnSalir.setMaximumSize(new java.awt.Dimension(90, 25));
+        btnSalir.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
+        btnSalir.setBackground(java.awt.Color.WHITE);
+        btnSalir.setForeground(java.awt.Color.BLACK);
+        btnSalir.setOpaque(true);
+        btnSalir.setFocusPainted(false);
         btnSalir.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 exitToLogin();
@@ -495,40 +514,35 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         });
         topMenuBar.add(btnSalir);
         
-        // Forzar el cálculo del tamaño preferido después de agregar todos los botones
-        // Calcular manualmente la altura necesaria para múltiples filas
-        // Cada botón tiene 40px de altura + 5px de padding superior + 5px de padding inferior = 50px por fila
-        // Asumir que se necesitan al menos 2 filas (más seguro)
-        int buttonHeight = 50; // Altura por fila (botón + padding)
-        int rowsNeeded = 2; // Mínimo 2 filas para asegurar que se vean todos los botones
-        int calculatedHeight = rowsNeeded * buttonHeight;
-        topMenuBar.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, calculatedHeight));
-        topMenuBar.setMinimumSize(new java.awt.Dimension(0, calculatedHeight));
+        // Altura fija para una sola línea con botones compactos
+        topMenuBar.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura fija para una línea
 
         m_jPanelTitle.setLayout(new java.awt.BorderLayout());
+        m_jPanelTitle.setBorder(null); // Sin borde para eliminar espacio
+        m_jPanelTitle.setPreferredSize(new java.awt.Dimension(0, 0)); // Sin tamaño cuando está oculto
+        m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
 
         m_jTitle.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
         m_jTitle.setForeground(new java.awt.Color(0, 168, 223));
-        m_jTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, java.awt.Color.darkGray), javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)));
-        m_jTitle.setMaximumSize(new java.awt.Dimension(100, 35));
-        m_jTitle.setMinimumSize(new java.awt.Dimension(30, 25));
-        m_jTitle.setPreferredSize(new java.awt.Dimension(100, 35));
+        m_jTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, java.awt.Color.darkGray), javax.swing.BorderFactory.createEmptyBorder(2, 10, 2, 10))); // Reducir padding vertical (2px en lugar de 10px)
+        m_jTitle.setMaximumSize(new java.awt.Dimension(100, 28)); // Reducir altura máxima aún más
+        m_jTitle.setMinimumSize(new java.awt.Dimension(30, 24));
+        m_jTitle.setPreferredSize(new java.awt.Dimension(100, 28)); // Reducir altura preferida (28px)
         m_jPanelTitle.add(m_jTitle, java.awt.BorderLayout.NORTH);
         
         // Sebastian - Agregar barra de menú horizontal arriba del título (con múltiples filas automáticas)
         // Usar BoxLayout vertical para permitir que el panel de botones se expanda correctamente
         javax.swing.JPanel topContainer = new javax.swing.JPanel();
         topContainer.setLayout(new javax.swing.BoxLayout(topContainer, javax.swing.BoxLayout.Y_AXIS));
+        topContainer.setBorder(null); // Sin borde
         topMenuBar.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
         topContainer.add(topMenuBar);
-        topContainer.add(m_jPanelTitle);
+        m_jPanelTitle.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
+        topContainer.add(m_jPanelTitle); // Sin espacio entre barra y título
         // Asegurar que el contenedor respete el tamaño preferido del panel de botones
         topContainer.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
-        // Forzar el cálculo del tamaño preferido del contenedor
-        topContainer.validate();
-        java.awt.Dimension containerPreferredSize = topContainer.getPreferredSize();
-        topContainer.setPreferredSize(containerPreferredSize);
-        topContainer.setMinimumSize(containerPreferredSize);
+        // No forzar tamaño preferido para evitar espacio cuando m_jPanelTitle está oculto
+        // El tamaño se calculará automáticamente basado en los componentes visibles
 
         m_jPanelRightSide.add(topContainer, java.awt.BorderLayout.NORTH);
 
@@ -550,14 +564,18 @@ public class JPrincipalApp extends JPanel implements AppUserView {
      */
     private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass) {
         javax.swing.JButton button = new javax.swing.JButton();
-        try {
-            button.setIcon(new javax.swing.ImageIcon(getClass().getResource(iconPath)));
-        } catch (Exception e) {
-            // Si no se encuentra el icono, continuar sin él
-            LOGGER.log(Level.WARNING, "Icono no encontrado: " + iconPath);
-        }
+        // Iconos removidos para diseño compacto como eleventa
         button.setText(text);
-        button.setPreferredSize(new java.awt.Dimension(140, 40));
+        // Tamaño reducido para que quepan todos en una línea
+        button.setPreferredSize(new java.awt.Dimension(70, 25));
+        button.setMinimumSize(new java.awt.Dimension(60, 25));
+        button.setMaximumSize(new java.awt.Dimension(90, 25));
+        button.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
+        // Botones blancos con texto negro
+        button.setBackground(java.awt.Color.WHITE);
+        button.setForeground(java.awt.Color.BLACK);
+        button.setOpaque(true);
+        button.setFocusPainted(false);
         button.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 showTask(taskClass);

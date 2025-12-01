@@ -1,0 +1,1 @@
+export JAVA_HOME="C:/Program Files/Java/jdk-25" && ./mvnw.cmd clean install -DskipTests && ./mvnw.cmd exec:java -pl kriolos-opos-app "-Dexec.mainClass=com.openbravo.pos.forms.StartPOS"

@@ -70,7 +70,7 @@ public abstract class JEditorAbstract extends javax.swing.JPanel implements Edit
         transCharInternal(c);
         reprintText();
         firePropertyChange("Edition", null, null);
-    }
+    }ad
 
     @Override
     public void addEditorKeys(EditorKeys ed) {
