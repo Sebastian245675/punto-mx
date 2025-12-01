@@ -662,7 +662,7 @@
             <column name="category" value="001"/>
             <column name="custcategory" value="NULL"/>
             <column name="parentid" value="NULL"/>
-            <column name="rate" valueNumeric="0.15"/>
+            <column name="rate" valueNumeric="0"/>
             <column name="ratecascade" valueBoolean="FALSE"/>
             <column name="rateorder" value="NULL"/>
         </insert>

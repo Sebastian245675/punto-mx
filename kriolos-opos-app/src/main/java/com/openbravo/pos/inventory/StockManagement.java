@@ -76,7 +76,8 @@ public class StockManagement extends JPanel implements JPanelView {
     private final DataLogicSuppliers m_dlSuppliers;
     private final TicketParser m_TTP;
 
-    private final CatalogSelector m_cat;
+    // Catálogo deshabilitado - ya no se usa
+    // private final CatalogSelector m_cat;
     private final ComboBoxValModel m_ReasonModel;
 
     private final SentenceList<LocationInfo> m_sentlocations;
@@ -96,6 +97,9 @@ public class StockManagement extends JPanel implements JPanelView {
 
     private List<ProductStock> productStockList;
     private ProductStockTableModel stockModel;
+    
+    private List<com.openbravo.pos.inventory.LowStockProduct> lowStockProducts;
+    private LowStockProductTableModel lowStockModel;
 
     private final static int NUMBERZERO = 0;
     private final static int NUMBERVALID = 1;
@@ -167,9 +171,10 @@ public class StockManagement extends JPanel implements JPanelView {
         m_sentsuppliers = m_dlSuppliers.getSupplierList();
         m_SuppliersModel = new ComboBoxValModel();
 
-        m_cat = new JCatalog(m_dlSales);
-        m_cat.addActionListener(new CatalogListener());
-        catcontainer.add(m_cat.getComponent(), BorderLayout.CENTER);
+        // Catálogo deshabilitado - ya no se usa
+        // m_cat = new JCatalog(m_dlSales);
+        // m_cat.addActionListener(new CatalogListener());
+        // catcontainer.add(m_cat.getComponent(), BorderLayout.CENTER);
 
         m_invlines = new JInventoryLines();
         jPanel5.add(m_invlines, BorderLayout.CENTER);
@@ -202,7 +207,8 @@ public class StockManagement extends JPanel implements JPanelView {
      */
     @Override
     public void activate() throws BasicException {
-        m_cat.loadCatalog();
+        // Catálogo deshabilitado
+        // m_cat.loadCatalog();
 
         java.util.List<LocationInfo> l = m_sentlocations.list();
         m_LocationsModel = new ComboBoxValModel<LocationInfo>(l);
@@ -213,6 +219,9 @@ public class StockManagement extends JPanel implements JPanelView {
         java.util.List sl = m_sentsuppliers.list();
         m_SuppliersModel = new ComboBoxValModel(sl);
         m_jSupplier.setModel(m_SuppliersModel);
+
+        // Cargar productos con stock bajo
+        loadLowStockProducts();
 
         // Asegurar que el teclado esté oculto
         // jNumberKeys.setVisible(false); // ELIMINADO - TECLADO NUMERICO
@@ -797,6 +806,9 @@ public class StockManagement extends JPanel implements JPanelView {
             }
 
             stateToInsert();
+            
+            // Recargar productos bajos después de guardar
+            loadLowStockProducts();
         } catch (BasicException eData) {
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
                     AppLocal.getIntString("message.cannotsaveinventorydata"), eData);
@@ -1024,6 +1036,8 @@ public class StockManagement extends JPanel implements JPanelView {
 
     }
 
+    // Catálogo deshabilitado - ya no se usa
+    /*
     private class CatalogListener implements ActionListener {
 
         @Override
@@ -1039,6 +1053,7 @@ public class StockManagement extends JPanel implements JPanelView {
             }
         }
     }
+    */
 
     private void removeInvLine(int index) {
 
@@ -1131,6 +1146,9 @@ public class StockManagement extends JPanel implements JPanelView {
         webLblQty = new javax.swing.JLabel();
         webLblValue = new javax.swing.JLabel();
         catcontainer = new javax.swing.JPanel();
+        jScrollPaneLowStock = new javax.swing.JScrollPane();
+        jTableLowStock = new javax.swing.JTable();
+        jLabelLowStock = new javax.swing.JLabel();
 
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         setMinimumSize(new java.awt.Dimension(550, 250));
@@ -1457,12 +1475,59 @@ public class StockManagement extends JPanel implements JPanelView {
 
         add(jPanel8, java.awt.BorderLayout.PAGE_START);
 
+        // Panel para productos bajos - PRINCIPAL
+        jLabelLowStock.setFont(new java.awt.Font("Arial", 1, 16)); // NOI18N
+        jLabelLowStock.setText("PRODUCTOS BAJOS - Requieren Reposición");
+        jLabelLowStock.setPreferredSize(new java.awt.Dimension(400, 30));
+        jLabelLowStock.setForeground(new java.awt.Color(200, 0, 0)); // Rojo para destacar
+        
+        jTableLowStock.setFont(new java.awt.Font("Arial", 0, 13)); // NOI18N
+        jTableLowStock.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {
+            },
+            new String [] {
+                "Producto", "Código", "Ubicación", "Actual", "Mínimo", "Máximo"
+            }
+        ));
+        jTableLowStock.setRowHeight(25);
+        jTableLowStock.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        jTableLowStock.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                jTableLowStockMouseClicked(evt);
+            }
+        });
+        jScrollPaneLowStock.setViewportView(jTableLowStock);
+        
+        // Panel contenedor para productos bajos - OCUPA LA MAYOR PARTE
+        javax.swing.JPanel lowStockPanel = new javax.swing.JPanel();
+        lowStockPanel.setLayout(new java.awt.BorderLayout());
+        lowStockPanel.setBorder(javax.swing.BorderFactory.createTitledBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 0, 0), 2),
+            "Productos con Stock Bajo (Actual < Mínimo)",
+            javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION,
+            javax.swing.border.TitledBorder.DEFAULT_POSITION,
+            new java.awt.Font("Arial", 1, 14),
+            new java.awt.Color(200, 0, 0)
+        ));
+        lowStockPanel.add(jLabelLowStock, java.awt.BorderLayout.NORTH);
+        lowStockPanel.add(jScrollPaneLowStock, java.awt.BorderLayout.CENTER);
+        lowStockPanel.setPreferredSize(new java.awt.Dimension(0, 400));
+        
+        // Ocultar el catálogo de categorías para dar más espacio
+        catcontainer.setVisible(false);
+        catcontainer.setPreferredSize(new java.awt.Dimension(0, 0));
+        catcontainer.setMinimumSize(new java.awt.Dimension(0, 0));
+        catcontainer.setMaximumSize(new java.awt.Dimension(0, 0));
+        
+        // Panel principal - productos bajos ocupan todo el espacio
+        javax.swing.JPanel mainPanel = new javax.swing.JPanel();
+        mainPanel.setLayout(new java.awt.BorderLayout());
+        mainPanel.add(lowStockPanel, java.awt.BorderLayout.CENTER);
+        
         catcontainer.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        catcontainer.setMinimumSize(new java.awt.Dimension(0, 250));
-        catcontainer.setPreferredSize(new java.awt.Dimension(0, 250));
         catcontainer.setRequestFocusEnabled(false);
         catcontainer.setLayout(new java.awt.BorderLayout());
-        add(catcontainer, java.awt.BorderLayout.CENTER);
+        add(mainPanel, java.awt.BorderLayout.CENTER);
         catcontainer.getAccessibleContext().setAccessibleParent(jPanel8);
         
         // Ocultar el teclado numérico al final de la inicialización
@@ -1648,6 +1713,172 @@ public class StockManagement extends JPanel implements JPanelView {
         // TODO add your handling code here:
     }//GEN-LAST:event_m_jLocationActionPerformed
 
+    private void jTableLowStockMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_jTableLowStockMouseClicked
+        if (evt.getClickCount() == 2) {
+            int row = jTableLowStock.getSelectedRow();
+            if (row >= 0 && lowStockModel != null) {
+                com.openbravo.pos.inventory.LowStockProduct lowStockProduct = lowStockModel.getLowStockProduct(row);
+                if (lowStockProduct != null) {
+                    selectProduct(lowStockProduct.getProductId());
+                }
+            }
+        }
+    }//GEN-LAST:event_jTableLowStockMouseClicked
+
+    /**
+     * Carga los productos con stock bajo
+     */
+    private void loadLowStockProducts() {
+        try {
+            lowStockProducts = m_dlSales.getLowStockProducts();
+            lowStockModel = new LowStockProductTableModel(lowStockProducts);
+            jTableLowStock.setModel(lowStockModel);
+            
+            // Configurar anchos de columna
+            if (lowStockModel.getRowCount() > 0) {
+                jTableLowStock.getColumnModel().getColumn(0).setPreferredWidth(250); // Producto
+                jTableLowStock.getColumnModel().getColumn(1).setPreferredWidth(120); // Código
+                jTableLowStock.getColumnModel().getColumn(2).setPreferredWidth(150); // Ubicación
+                jTableLowStock.getColumnModel().getColumn(3).setPreferredWidth(100);  // Actual
+                jTableLowStock.getColumnModel().getColumn(4).setPreferredWidth(100);  // Mínimo
+                jTableLowStock.getColumnModel().getColumn(5).setPreferredWidth(100);  // Máximo
+                
+                // Alinear columnas numéricas a la derecha
+                javax.swing.table.DefaultTableCellRenderer rightRenderer = new javax.swing.table.DefaultTableCellRenderer();
+                rightRenderer.setHorizontalAlignment(javax.swing.JLabel.RIGHT);
+                
+                for (int i = 3; i <= 5; i++) {
+                    jTableLowStock.getColumnModel().getColumn(i).setCellRenderer(rightRenderer);
+                }
+                
+                // Resaltar productos con stock bajo - renderizado mejorado
+                jTableLowStock.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+                    @Override
+                    public java.awt.Component getTableCellRendererComponent(
+                            javax.swing.JTable table, Object value, boolean isSelected,
+                            boolean hasFocus, int row, int column) {
+                        java.awt.Component c = super.getTableCellRendererComponent(
+                                table, value, isSelected, hasFocus, row, column);
+                        
+                        if (!isSelected && lowStockModel != null && row < lowStockModel.getRowCount()) {
+                            com.openbravo.pos.inventory.LowStockProduct product = lowStockModel.getLowStockProduct(row);
+                            if (product != null) {
+                                Double units = product.getUnits();
+                                Double minimum = product.getMinimum();
+                                
+                                // Resaltar en rojo si está muy bajo
+                                if (units != null && minimum != null && units < minimum) {
+                                    if (row % 2 == 0) {
+                                        c.setBackground(new java.awt.Color(255, 230, 230)); // Rojo claro
+                                    } else {
+                                        c.setBackground(new java.awt.Color(255, 240, 240)); // Rojo muy claro
+                                    }
+                                    if (column == 3) { // Columna de Actual
+                                        c.setForeground(new java.awt.Color(200, 0, 0)); // Rojo oscuro para el número
+                                    }
+                                } else {
+                                    // Amarillo si alcanzó el mínimo
+                                    if (row % 2 == 0) {
+                                        c.setBackground(new java.awt.Color(255, 255, 230)); // Amarillo claro
+                                    } else {
+                                        c.setBackground(new java.awt.Color(255, 255, 240)); // Amarillo muy claro
+                                    }
+                                }
+                            }
+                        }
+                        
+                        return c;
+                    }
+                });
+            } else {
+                // Si no hay productos bajos, mostrar mensaje
+                javax.swing.table.DefaultTableModel emptyModel = new javax.swing.table.DefaultTableModel(
+                    new Object[][]{{"No hay productos con stock bajo", "", "", "", "", ""}},
+                    new String[]{"Producto", "Código", "Ubicación", "Actual", "Mínimo", "Máximo"}
+                );
+                jTableLowStock.setModel(emptyModel);
+            }
+        } catch (BasicException e) {
+            Logger.getLogger(StockManagement.class.getName()).log(Level.SEVERE, "Error al cargar productos con stock bajo", e);
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    "Error al cargar productos con stock bajo", e);
+            msg.show(this);
+        }
+    }
+
+    /**
+     * Modelo de tabla para productos con stock bajo
+     */
+    class LowStockProductTableModel extends AbstractTableModel {
+
+        private static final long serialVersionUID = 1L;
+
+        private List<com.openbravo.pos.inventory.LowStockProduct> lowStockList;
+        private String[] columnNames = {
+            "Producto", "Código", "Ubicación", "Actual", "Mínimo", "Máximo"
+        };
+
+        public LowStockProductTableModel(List<com.openbravo.pos.inventory.LowStockProduct> list) {
+            lowStockList = list != null ? list : new ArrayList<>();
+        }
+
+        @Override
+        public int getColumnCount() {
+            return 6;
+        }
+
+        @Override
+        public int getRowCount() {
+            return lowStockList.size();
+        }
+
+        @Override
+        public Object getValueAt(int row, int column) {
+            if (row >= lowStockList.size()) {
+                return "";
+            }
+            
+            com.openbravo.pos.inventory.LowStockProduct product = lowStockList.get(row);
+
+            switch (column) {
+                case 0:
+                    return product.getProductName();
+                case 1:
+                    return product.getProductCode();
+                case 2:
+                    return product.getLocationName();
+                case 3:
+                    return product.getUnits() != null ? product.getUnits() : 0.0;
+                case 4:
+                    return product.getMinimum() != null ? product.getMinimum() : 0.0;
+                case 5:
+                    return product.getMaximum() != null ? product.getMaximum() : 0.0;
+                default:
+                    return "";
+            }
+        }
+
+        @Override
+        public String getColumnName(int col) {
+            return columnNames[col];
+        }
+
+        @Override
+        public Class<?> getColumnClass(int column) {
+            if (column >= 3) {
+                return Double.class;
+            }
+            return String.class;
+        }
+
+        public com.openbravo.pos.inventory.LowStockProduct getLowStockProduct(int row) {
+            if (row >= 0 && row < lowStockList.size()) {
+                return lowStockList.get(row);
+            }
+            return null;
+        }
+    }
+
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel catcontainer;
@@ -1656,13 +1887,16 @@ public class StockManagement extends JPanel implements JPanelView {
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
+    private javax.swing.JLabel jLabelLowStock;
     private com.openbravo.beans.JNumberKeys jNumberKeys;
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
     private javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel8;
     private javax.swing.JScrollPane jScrollPane2;
+    private javax.swing.JScrollPane jScrollPaneLowStock;
     private javax.swing.JTable jTableProductStock;
+    private javax.swing.JTable jTableLowStock;
     private javax.swing.JTextField jTextField1;
     private javax.swing.JLabel lbTotalValue;
     private javax.swing.JLabel lblTotalQtyValue;

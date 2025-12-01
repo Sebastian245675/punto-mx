@@ -21,6 +21,9 @@ import com.openbravo.pos.core.spi.gui.DefaultLafProvider;
 import com.openbravo.pos.core.spi.gui.FlatlafProvider;
 import com.openbravo.pos.forms.AppConfig;
 import com.openbravo.pos.forms.AppLocal;
+import com.openbravo.pos.forms.AppUser;
+import com.openbravo.pos.forms.DataLogicSystem;
+import com.openbravo.beans.JPasswordDialog;
 import java.awt.Component;
 import javax.swing.LookAndFeel;
 import javax.swing.SwingUtilities;
@@ -46,9 +49,16 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
     private static final Logger LOGGER = Logger.getLogger(JPanelConfigGeneral.class.getName());
 
     private final DirtyManager dirty = new DirtyManager();
+    private com.openbravo.pos.forms.AppView m_App; // Para acceder a AppView y cambiar contraseña
 
     /** Creates new form JPanelConfigGeneral */
     public JPanelConfigGeneral() {
+        this(null);
+    }
+    
+    /** Creates new form JPanelConfigGeneral with AppView */
+    public JPanelConfigGeneral(com.openbravo.pos.forms.AppView app) {
+        m_App = app;
 
         initComponents();
 
@@ -237,6 +247,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         jbtnHTML = new javax.swing.JButton();
         jbtnClearHTML = new javax.swing.JButton();
         previewButton = new javax.swing.JButton();
+        jLabelPassword = new javax.swing.JLabel();
+        jbtnChangePassword = new javax.swing.JButton();
 
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         setOpaque(false);
@@ -443,6 +455,20 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
             }
         });
 
+        jLabelPassword.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelPassword.setText(AppLocal.getIntString("Menu.ChangePassword")); // NOI18N
+        jLabelPassword.setPreferredSize(new java.awt.Dimension(150, 30));
+
+        jbtnChangePassword.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jbtnChangePassword.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/password.png"))); // NOI18N
+        jbtnChangePassword.setText(AppLocal.getIntString("Menu.ChangePassword")); // NOI18N
+        jbtnChangePassword.setPreferredSize(new java.awt.Dimension(200, 35));
+        jbtnChangePassword.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jbtnChangePasswordActionPerformed(evt);
+            }
+        });
+
         javax.swing.GroupLayout jPanel11Layout = new javax.swing.GroupLayout(jPanel11);
         jPanel11.setLayout(jPanel11Layout);
         jPanel11Layout.setHorizontalGroup(
@@ -501,7 +527,11 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                     .addGroup(jPanel11Layout.createSequentialGroup()
                         .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jcboTicketsBag, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jcboTicketsBag, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel11Layout.createSequentialGroup()
+                        .addComponent(jLabelPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jbtnChangePassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel11Layout.setVerticalGroup(
@@ -551,6 +581,10 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                         .addComponent(jbtnHTML, javax.swing.GroupLayout.PREFERRED_SIZE, 33, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(18, 18, 18)
                 .addComponent(jchkHideInfo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(jLabelPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jbtnChangePassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addContainerGap())
         );
 
@@ -622,6 +656,38 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         changeLAF();
     }//GEN-LAST:event_previewButtonActionPerformed
 
+    private void jbtnChangePasswordActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnChangePasswordActionPerformed
+        if (m_App == null) {
+            JOptionPane.showMessageDialog(this,
+                    AppLocal.getIntString("message.cannotchangepassword"),
+                    AppLocal.getIntString("message.title"),
+                    JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+        
+        try {
+            AppUser m_appuser = m_App.getAppUserView().getUser();
+            DataLogicSystem m_dlSystem = 
+                (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
+            
+            String sNewPassword = JPasswordDialog.changePassword(this, m_appuser.getPassword());
+            if (sNewPassword != null) {
+                m_dlSystem.execChangePassword(new Object[]{sNewPassword, m_appuser.getId()});
+                m_appuser.setPassword(sNewPassword);
+                JOptionPane.showMessageDialog(this,
+                        "Contraseña cambiada exitosamente",
+                        AppLocal.getIntString("message.title"),
+                        JOptionPane.INFORMATION_MESSAGE);
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al cambiar contraseña", e);
+            JOptionPane.showMessageDialog(this,
+                    AppLocal.getIntString("message.cannotchangepassword"),
+                    AppLocal.getIntString("message.title"),
+                    JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_jbtnChangePasswordActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel18;
@@ -630,11 +696,13 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
     private javax.swing.JLabel jLabel3;
     private javax.swing.JLabel jLabel4;
     private javax.swing.JLabel jLabel6;
+    private javax.swing.JLabel jLabelPassword;
     private javax.swing.JLabel jLblURL;
     private javax.swing.JPanel jPanel11;
     private javax.swing.JButton jbtnClearHTML;
     private javax.swing.JButton jbtnHTML;
     private javax.swing.JButton jbtnLogo;
+    private javax.swing.JButton jbtnChangePassword;
     private javax.swing.JButton jbtnText;
     private javax.swing.JButton jbtnTextClear;
     private javax.swing.JComboBox jcboLAF;

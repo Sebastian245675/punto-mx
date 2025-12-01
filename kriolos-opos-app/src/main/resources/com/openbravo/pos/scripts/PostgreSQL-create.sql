@@ -239,7 +239,7 @@ CREATE TABLE taxes (
 );
 CREATE UNIQUE INDEX TAXES_NAME_INX ON taxes(name);
 INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('000', 'Tax Exempt', '000', NULL, NULL, 0, false, NULL);
-INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('001', 'Tax Standard', '001', NULL, NULL, 0.10, false, NULL);
+INSERT INTO TAXES(id, name, category, custcategory, parentid, rate, ratecascade, rateorder) VALUES ('001', 'Tax Standard', '001', NULL, NULL, 0, false, NULL);
 
 /* Header line. Object: vouchers. Script date: 08/05/2016 18:00:00. */
 CREATE TABLE attribute (

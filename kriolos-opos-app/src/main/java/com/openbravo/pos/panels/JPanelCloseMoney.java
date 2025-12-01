@@ -2606,13 +2606,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     private void createModernLayout() {
         setLayout(new BorderLayout());
-        setBackground(Color.WHITE);
+        setBackground(new Color(235, 235, 235)); // Fondo gris claro general
         
         // Panel principal con scroll
         JPanel mainPanel = new JPanel();
         mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBackground(Color.WHITE);
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
+        mainPanel.setBackground(new Color(235, 235, 235)); // Fondo gris claro
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0)); // Sin padding superior
         
         // Título y botones de acción
         JPanel headerPanel = createHeaderPanel();
@@ -2651,7 +2651,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         // Scroll pane para el contenido
         JScrollPane scrollPane = new JScrollPane(mainPanel);
         scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(Color.WHITE);
+        scrollPane.getViewport().setBackground(new Color(235, 235, 235)); // Fondo gris claro
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         
@@ -2662,64 +2662,68 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Crea el panel de encabezado con título y botones
      */
     private JPanel createHeaderPanel() {
+        // Panel con fondo verde/gris azulado (estilo Eleventa)
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        panel.setBackground(new Color(95, 135, 145)); // Verde/gris azulado como Eleventa
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
         
-        // Panel izquierdo con título y botones de acción
-        JPanel leftPanel = new JPanel();
-        leftPanel.setLayout(new BoxLayout(leftPanel, BoxLayout.Y_AXIS));
-        leftPanel.setBackground(Color.WHITE);
+        // Título "CORTE" en la parte superior izquierda
+        JLabel titleLabel = new JLabel("CORTE");
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 20));
+        titleLabel.setForeground(Color.WHITE);
+        panel.add(titleLabel, BorderLayout.WEST);
         
-        // Título con diseño más moderno
-        JLabel titleLabel = new JLabel("CORTE DE CAJA");
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 32));
-        titleLabel.setForeground(new Color(30, 30, 30));
-        leftPanel.add(titleLabel);
-        leftPanel.add(Box.createVerticalStrut(10));
-        
-        // Botones de acción
+        // Botones de acción en la parte superior (estilo Eleventa)
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
-        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBackground(new Color(95, 135, 145));
         
-        // Botón Hacer corte de cajero con diseño mejorado
-        JButton btnCashier = new JButton("Hacer corte de cajero");
-        btnCashier.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnCashier.setPreferredSize(new Dimension(200, 45));
-        styleButton(btnCashier, new Color(33, 150, 243));
+        // Botón "Hacer corte de cajero" (estilo Eleventa - simple)
+        JButton btnCashier = new JButton("🧾 Hacer corte de cajero");
+        btnCashier.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnCashier.setPreferredSize(new Dimension(180, 35));
+        btnCashier.setBackground(new Color(220, 220, 220));
+        btnCashier.setForeground(new Color(50, 50, 50));
+        btnCashier.setFocusPainted(false);
+        btnCashier.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(180, 180, 180), 1),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        btnCashier.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnCashier.addActionListener(e -> {
-            LOGGER.info("Botón 'Hacer corte de cajero' presionado desde diseño moderno");
-            // Llamar directamente al método en lugar de doClick() para asegurar que se ejecute
+            LOGGER.info("Botón 'Hacer corte de cajero' presionado");
             m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnCashier, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
         });
         buttonPanel.add(btnCashier);
         
-        // Botón Hacer corte del día con diseño mejorado
-        JButton btnDay = new JButton("Hacer corte del día");
-        btnDay.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnDay.setPreferredSize(new Dimension(200, 45));
-        styleButton(btnDay, new Color(76, 175, 80));
+        // Botón "Hacer corte del día" (estilo Eleventa - simple)
+        JButton btnDay = new JButton("📅 Hacer corte del día");
+        btnDay.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnDay.setPreferredSize(new Dimension(180, 35));
+        btnDay.setBackground(new Color(220, 220, 220));
+        btnDay.setForeground(new Color(50, 50, 50));
+        btnDay.setFocusPainted(false);
+        btnDay.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(180, 180, 180), 1),
+            BorderFactory.createEmptyBorder(5, 10, 5, 10)
+        ));
+        btnDay.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnDay.addActionListener(e -> {
             LOGGER.info("Botón 'Hacer corte del día' presionado");
-            // Por ahora, hacer lo mismo que el corte de cajero hasta que se implemente la funcionalidad completa
             int respuesta = JOptionPane.showConfirmDialog(
                 this,
-                "El corte del día cerrará todas las cajas activas del día.\n\n" +
-                "¿Desea continuar con el corte del día?",
+                "El corte del día cerrará todas las cajas activas del día.\n\n¿Desea continuar?",
                 "Corte del Día",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE
             );
             
             if (respuesta == JOptionPane.YES_OPTION) {
-                // Por ahora, hacer el mismo proceso que el corte de cajero
                 m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnDay, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
             }
         });
         buttonPanel.add(btnDay);
         
-        leftPanel.add(buttonPanel);
-        panel.add(leftPanel, BorderLayout.WEST);
+        panel.add(buttonPanel, BorderLayout.CENTER);
         
         return panel;
     }
@@ -2728,15 +2732,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Crea el panel con información del turno
      */
     private JPanel createShiftInfoPanel() {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0));
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.setBackground(new Color(235, 235, 235));
+        panel.setBorder(BorderFactory.createEmptyBorder(15, 20, 10, 20));
         
         m_jShiftInfoLabel = new JLabel();
-        m_jShiftInfoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        m_jShiftInfoLabel.setForeground(new Color(107, 114, 128));
-        panel.add(m_jShiftInfoLabel);
+        m_jShiftInfoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        m_jShiftInfoLabel.setForeground(new Color(90, 90, 90));
+        panel.add(m_jShiftInfoLabel, BorderLayout.WEST);
         
         return panel;
     }
@@ -2745,24 +2748,26 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Crea las tarjetas de métricas (Ventas Totales y Ganancia)
      */
     private JPanel createMetricsCards() {
-        JPanel panel = new JPanel(new GridLayout(1, 2, 15, 0));
-        panel.setBackground(Color.WHITE);
+        JPanel panel = new JPanel(new GridLayout(1, 2, 10, 0));
+        panel.setBackground(new Color(235, 235, 235));
+        panel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
         
-        // Tarjeta Ventas Totales con icono
-        JPanel salesCard = createMetricCard("Ventas Totales", "$0.00", new Color(33, 150, 243), "💰");
+        // Tarjeta Ventas Totales - estilo Eleventa simple
+        JPanel salesCard = createMetricCard("💰 Ventas Totales", "$0.00", new Color(59, 130, 246));
         panel.add(salesCard);
         
-        // Tarjeta Ganancia con icono
-        JPanel profitCard = createMetricCard("Ganancia", "$0.00", new Color(76, 175, 80), "📊");
+        // Tarjeta Ganancia - estilo Eleventa simple (fondo blanco destacado)
+        JPanel profitCard = createMetricCard("📊 Ganancia", "$0.00", new Color(76, 175, 80));
+        profitCard.setBackground(Color.WHITE); // Ganancia tiene fondo blanco en Eleventa
         panel.add(profitCard);
         
         return panel;
     }
     
     /**
-     * Crea una tarjeta de métrica con diseño moderno mejorado
+     * Crea una tarjeta de métrica estilo Eleventa (simple y corporativo)
      */
-    private JPanel createMetricCard(String title, String value, Color color, String icon) {
+    private JPanel createMetricCard(String title, String value, Color color) {
         // Panel principal con sombra simulada
         JPanel card = new JPanel(new BorderLayout()) {
             @Override
@@ -2805,17 +2810,19 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         contentPanel.setLayout(new BoxLayout(contentPanel, BoxLayout.Y_AXIS));
         contentPanel.setOpaque(false);
         
-        // Icono y título con mejor espaciado
-        JLabel titleLabel = new JLabel(icon + "  " + title);
-        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 16));
-        titleLabel.setForeground(new Color(75, 85, 99));
+        // Título simple (estilo Eleventa)
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        titleLabel.setForeground(new Color(90, 90, 90));
+        titleLabel.setAlignmentX(Component.LEFT_ALIGNMENT);
         contentPanel.add(titleLabel);
-        contentPanel.add(Box.createVerticalStrut(20));
+        contentPanel.add(Box.createVerticalStrut(10));
         
-        // Valor (almacenar referencia para actualizar) - NÚMERO AÚN MÁS GRANDE
+        // Valor grande (estilo Eleventa)
         JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 42)); // Aumentado de 36 a 42
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
         valueLabel.setForeground(color);
+        valueLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
         contentPanel.add(valueLabel);
         
         if (title.contains("Ventas Totales")) {
@@ -2824,31 +2831,29 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             m_jProfitLabel = valueLabel;
         }
         
-        card.add(contentPanel, BorderLayout.CENTER);
+        card.add(contentPanel, BorderLayout.WEST);
         
         return card;
     }
     
     /**
-     * Crea la sección de Dinero en Caja con mejor diseño
+     * Crea la sección de Dinero en Caja estilo Eleventa
      */
     private JPanel createCashSection() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
-        // Borde con color azul
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-            "💰 Dinero en Caja",
-            javax.swing.border.TitledBorder.LEFT,
-            javax.swing.border.TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 18),
-            new Color(59, 130, 246)
-        ));
+        panel.setBackground(new Color(245, 245, 245)); // Fondo gris claro
         panel.setBorder(BorderFactory.createCompoundBorder(
-            panel.getBorder(),
-            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+            BorderFactory.createEmptyBorder(0, 20, 0, 20),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
         ));
+        
+        // Título de sección (estilo Eleventa)
+        JLabel sectionTitle = new JLabel("📊 Dinero en Caja");
+        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sectionTitle.setForeground(new Color(60, 60, 60));
+        panel.add(sectionTitle);
+        panel.add(Box.createVerticalStrut(15));
         
         // Fondo de caja - guardar referencia para actualizar
         m_jInitialAmountLabel = addCashLine(panel, "Fondo de caja", "$0.00", false, false);
@@ -2863,25 +2868,32 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         // Devoluciones en efectivo
         addCashLine(panel, "Devoluciones en efectivo", "-$0.00", false, false);
         
-        // Separador
-        panel.add(Box.createVerticalStrut(10));
-        JSeparator separator = new JSeparator();
-        separator.setForeground(new Color(229, 231, 235));
-        panel.add(separator);
-        panel.add(Box.createVerticalStrut(10));
+        // Separador simple
+        panel.add(Box.createVerticalStrut(5));
+        JSeparator separatorCash = new JSeparator();
+        separatorCash.setForeground(new Color(200, 200, 200));
+        panel.add(separatorCash);
+        panel.add(Box.createVerticalStrut(5));
         
-        // Total - con número más grande y color destacado
+        // Separador simple
+        panel.add(Box.createVerticalStrut(5));
+        JSeparator separator = new JSeparator();
+        separator.setForeground(new Color(200, 200, 200));
+        panel.add(separator);
+        panel.add(Box.createVerticalStrut(5));
+        
+        // Total - estilo Eleventa
         JPanel totalPanel = new JPanel(new BorderLayout());
-        totalPanel.setBackground(new Color(249, 250, 251));
-        totalPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        totalPanel.setBackground(new Color(245, 245, 245));
+        totalPanel.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
         JLabel totalLabel = new JLabel("Total");
-        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
-        totalLabel.setForeground(new Color(30, 30, 30));
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        totalLabel.setForeground(new Color(50, 50, 50));
         totalPanel.add(totalLabel, BorderLayout.WEST);
         
         m_jCashTotalLabel = new JLabel("$0.00");
-        m_jCashTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 28)); // Aumentado de 18 a 28
-        m_jCashTotalLabel.setForeground(new Color(33, 150, 243)); // Azul destacado
+        m_jCashTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        m_jCashTotalLabel.setForeground(new Color(50, 50, 50));
         totalPanel.add(m_jCashTotalLabel, BorderLayout.EAST);
         panel.add(totalPanel);
         
@@ -2894,27 +2906,27 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     private JLabel addCashLine(JPanel panel, String label, String value, boolean positive, boolean isGreen) {
         JPanel linePanel = new JPanel(new BorderLayout());
-        linePanel.setBackground(Color.WHITE);
-        linePanel.setBorder(BorderFactory.createEmptyBorder(8, 0, 8, 0));
+        linePanel.setBackground(new Color(245, 245, 245));
+        linePanel.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
         
         JLabel labelComp = new JLabel(label);
-        labelComp.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        labelComp.setForeground(new Color(50, 50, 50));
+        labelComp.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        labelComp.setForeground(new Color(90, 90, 90));
         linePanel.add(labelComp, BorderLayout.WEST);
         
         JLabel valueComp = new JLabel(value);
-        valueComp.setFont(new Font("Segoe UI", Font.BOLD, 18)); // Aumentado de 14 a 18
+        valueComp.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         if (isGreen) {
-            valueComp.setForeground(new Color(34, 197, 94)); // Verde para positivos
+            valueComp.setForeground(new Color(0, 150, 0)); // Verde Eleventa
         } else if (positive) {
-            valueComp.setForeground(new Color(34, 197, 94)); // Verde
+            valueComp.setForeground(new Color(0, 150, 0)); // Verde
         } else {
-            valueComp.setForeground(new Color(239, 68, 68)); // Rojo para negativos
+            valueComp.setForeground(new Color(200, 0, 0)); // Rojo Eleventa
         }
         linePanel.add(valueComp, BorderLayout.EAST);
         
         panel.add(linePanel);
-        return valueComp; // Retornar el label para poder actualizarlo
+        return valueComp;
     }
     
     /**
@@ -2923,20 +2935,18 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private JPanel createSalesTypeSection() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
-        // Borde con color verde
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(76, 175, 80), 2),
-            "🛒 Ventas",
-            javax.swing.border.TitledBorder.LEFT,
-            javax.swing.border.TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 18),
-            new Color(76, 175, 80)
-        ));
+        panel.setBackground(new Color(245, 245, 245));
         panel.setBorder(BorderFactory.createCompoundBorder(
-            panel.getBorder(),
-            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+            BorderFactory.createEmptyBorder(0, 20, 0, 20),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
         ));
+        
+        // Título de sección (estilo Eleventa)
+        JLabel sectionTitle = new JLabel("🛒 Ventas");
+        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sectionTitle.setForeground(new Color(60, 60, 60));
+        panel.add(sectionTitle);
+        panel.add(Box.createVerticalStrut(15));
         
         addCashLine(panel, "En Efectivo", "+$0.00", true, true);
         addCashLine(panel, "Con Tarjeta de Crédito", "+$0.00", true, true);
@@ -2974,20 +2984,18 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private JPanel createCashIncomeSection() {
         JPanel panel = new JPanel();
         panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
-        panel.setBackground(Color.WHITE);
-        // Borde con color amarillo/naranja
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(new Color(234, 179, 8), 2),
-            "💵 Ingresos de contado",
-            javax.swing.border.TitledBorder.LEFT,
-            javax.swing.border.TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 18),
-            new Color(234, 179, 8)
-        ));
+        panel.setBackground(new Color(245, 245, 245));
         panel.setBorder(BorderFactory.createCompoundBorder(
-            panel.getBorder(),
-            BorderFactory.createEmptyBorder(20, 20, 20, 20)
+            BorderFactory.createEmptyBorder(0, 20, 0, 20),
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
         ));
+        
+        // Título de sección (estilo Eleventa - opcional, puede omitirse)
+        JLabel sectionTitle = new JLabel("💵 Ingresos de contado");
+        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sectionTitle.setForeground(new Color(60, 60, 60));
+        panel.add(sectionTitle);
+        panel.add(Box.createVerticalStrut(15));
         
         addCashLine(panel, "Ventas en Efectivo", "+$0.00", true, true);
         
@@ -3019,23 +3027,24 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Crea el panel inferior con listas
      */
     private JPanel createBottomPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 3, 15, 0));
-        panel.setBackground(Color.WHITE);
+        JPanel panel = new JPanel(new GridLayout(1, 3, 10, 0));
+        panel.setBackground(new Color(235, 235, 235));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 0, 20));
         
         // Lista de Entradas de efectivo
         m_inflowsListModel = new DefaultListModel<>();
         JPanel inflowsPanel = createListPanel("⬇️ Entradas de efectivo", m_inflowsListModel);
         panel.add(inflowsPanel);
         
-        // Lista de Ventas por Departamento
-        m_deptSalesListModel = new DefaultListModel<>();
-        JPanel deptPanel = createListPanel("📦 Ventas por Departamento", m_deptSalesListModel);
-        panel.add(deptPanel);
-        
         // Lista de Salidas de Efectivo
         m_outflowsListModel = new DefaultListModel<>();
         JPanel outflowsPanel = createListPanel("⬆️ Salidas de Efectivo", m_outflowsListModel);
         panel.add(outflowsPanel);
+        
+        // Lista de Ventas por Departamento
+        m_deptSalesListModel = new DefaultListModel<>();
+        JPanel deptPanel = createListPanel("📦 Ventas por Departamento", m_deptSalesListModel);
+        panel.add(deptPanel);
         
         return panel;
     }
@@ -3045,41 +3054,28 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     private JPanel createListPanel(String title, DefaultListModel<String> listModel) {
         JPanel panel = new JPanel(new BorderLayout());
-        panel.setBackground(Color.WHITE);
+        panel.setBackground(new Color(245, 245, 245));
+        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        // Determinar color según el tipo de lista
-        Color borderColor = new Color(107, 114, 128); // Gris por defecto
-        if (title.contains("Entradas")) {
-            borderColor = new Color(34, 197, 94); // Verde para entradas
-        } else if (title.contains("Salidas")) {
-            borderColor = new Color(239, 68, 68); // Rojo para salidas
-        } else if (title.contains("Departamento")) {
-            borderColor = new Color(147, 51, 234); // Púrpura para departamentos
-        }
+        // Título simple (estilo Eleventa)
+        JLabel titleLabel = new JLabel(title);
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        titleLabel.setForeground(new Color(60, 60, 60));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        panel.add(titleLabel, BorderLayout.NORTH);
         
-        panel.setBorder(BorderFactory.createTitledBorder(
-            BorderFactory.createLineBorder(borderColor, 2),
-            title,
-            javax.swing.border.TitledBorder.LEFT,
-            javax.swing.border.TitledBorder.TOP,
-            new Font("Segoe UI", Font.BOLD, 16),
-            borderColor
-        ));
-        panel.setBorder(BorderFactory.createCompoundBorder(
-            panel.getBorder(),
-            BorderFactory.createEmptyBorder(15, 15, 15, 15)
-        ));
-        
+        // Lista simple
         JList<String> list = new JList<>(listModel);
         list.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         list.setBackground(Color.WHITE);
-        list.setForeground(new Color(50, 50, 50));
-        list.setSelectionBackground(new Color(239, 246, 255));
-        list.setSelectionForeground(new Color(30, 64, 175));
+        list.setForeground(new Color(70, 70, 70));
+        list.setSelectionBackground(new Color(220, 220, 220));
+        list.setSelectionForeground(new Color(50, 50, 50));
+        list.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200), 1));
         
         JScrollPane scrollPane = new JScrollPane(list);
         scrollPane.setBorder(null);
-        scrollPane.setPreferredSize(new Dimension(200, 150));
+        scrollPane.setPreferredSize(new Dimension(250, 150));
         panel.add(scrollPane, BorderLayout.CENTER);
         
         return panel;

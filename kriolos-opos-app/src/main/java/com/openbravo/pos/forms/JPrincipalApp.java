@@ -450,34 +450,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         topMenuBar.add(btnHerramientas);
         
         // ========== MENU.SYSTEM ==========
-        // Botón Cambiar Contraseña (Menu.ChangePassword)
-        javax.swing.JButton btnCambiarPassword = new javax.swing.JButton();
-        // Icono removido para diseño compacto
-        btnCambiarPassword.setText(AppLocal.getIntString("Menu.ChangePassword"));
-        btnCambiarPassword.setPreferredSize(new java.awt.Dimension(70, 25));
-        btnCambiarPassword.setMinimumSize(new java.awt.Dimension(60, 25));
-        btnCambiarPassword.setMaximumSize(new java.awt.Dimension(90, 25));
-        btnCambiarPassword.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
-        btnCambiarPassword.setBackground(java.awt.Color.WHITE);
-        btnCambiarPassword.setForeground(java.awt.Color.BLACK);
-        btnCambiarPassword.setOpaque(true);
-        btnCambiarPassword.setFocusPainted(false);
-        btnCambiarPassword.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                try {
-                    String sNewPassword = com.openbravo.beans.JPasswordDialog.changePassword(JPrincipalApp.this, m_appuser.getPassword());
-                    if (sNewPassword != null) {
-                        m_dlSystem.execChangePassword(new Object[]{sNewPassword, m_appuser.getId()});
-                        m_appuser.setPassword(sNewPassword);
-                    }
-                } catch (Exception e) {
-                    JMessageDialog.showMessage(JPrincipalApp.this,
-                            new MessageInf(MessageInf.SGN_WARNING,
-                                    AppLocal.getIntString("message.cannotchangepassword")));
-                }
-            }
-        });
-        topMenuBar.add(btnCambiarPassword);
+        // Botón Cambiar Contraseña movido a Configuración > General
         
         // Botón Configuración (Menu.Configuration)
         javax.swing.JButton btnConfig = createMenuButton(

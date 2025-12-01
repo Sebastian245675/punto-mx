@@ -2796,8 +2796,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         setLayout(new java.awt.CardLayout());
 
         m_jPanelContainer.setLayout(new java.awt.BorderLayout());
+        m_jPanelContainer.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris para el contenedor
+        m_jPanelContainer.setOpaque(true);
 
         m_jPanelMainToolbar.setLayout(new java.awt.BorderLayout());
+        m_jPanelMainToolbar.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris para el toolbar
+        m_jPanelMainToolbar.setOpaque(true);
 
         m_jPanelBag.setAutoscrolls(true);
         m_jPanelBag.setMaximumSize(new java.awt.Dimension(300, 100)); // Sebastian - Permitir que el panel sea visible
@@ -3529,10 +3533,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Crear panel para la barra de búsqueda en la parte superior
         javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5)); // Sin padding vertical para subir el contenido
-        searchPanel.setBackground(java.awt.Color.WHITE); // Fondo blanco para la barra de búsqueda
+        searchPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris para la barra de búsqueda
         searchPanel.setOpaque(true);
-        // jPanelScanner debe tener fondo blanco también
-        jPanelScanner.setBackground(java.awt.Color.WHITE);
+        // jPanelScanner debe tener fondo gris también
+        jPanelScanner.setBackground(new java.awt.Color(220, 220, 220));
         jPanelScanner.setOpaque(true);
         searchPanel.add(jPanelScanner, java.awt.BorderLayout.CENTER);
 

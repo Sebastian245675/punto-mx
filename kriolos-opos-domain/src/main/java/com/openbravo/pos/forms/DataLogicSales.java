@@ -1020,6 +1020,39 @@ public class DataLogicSales extends BeanFactoryDataSingle {
     }
 
     /**
+     * Gets all products with low stock (units <= minimum)
+     * 
+     * @return List of products with low stock
+     * @throws BasicException
+     */
+    @SuppressWarnings("unchecked")
+    public final List<com.openbravo.pos.inventory.LowStockProduct> getLowStockProducts() throws BasicException {
+        return new StaticSentence(s,
+                "SELECT "
+                + "products.id AS productId, "
+                + "products.name AS productName, "
+                + "products.code AS productCode, "
+                + "locations.id AS location, "
+                + "locations.name AS locationName, "
+                + "COALESCE(stockcurrent.units, 0) AS units, "
+                + "COALESCE(stocklevel.stocksecurity, 0) AS minimum, "
+                + "COALESCE(stocklevel.stockmaximum, 0) AS maximum, "
+                + "ROUND(COALESCE(products.pricebuy, 0), 2) AS priceBuy, "
+                + "ROUND(COALESCE(products.pricesell, 0), 2) AS priceSell "
+                + "FROM products "
+                + "INNER JOIN stockcurrent ON products.id = stockcurrent.product "
+                + "INNER JOIN stocklevel ON products.id = stocklevel.product "
+                + "AND stockcurrent.location = stocklevel.location "
+                + "INNER JOIN locations ON stockcurrent.location = locations.id "
+                + "WHERE products.isservice = false "
+                + "AND stocklevel.stocksecurity > 0 "
+                + "AND stockcurrent.units <= stocklevel.stocksecurity "
+                + "ORDER BY (stockcurrent.units - stocklevel.stocksecurity) ASC, products.name, locations.name",
+                null,
+                com.openbravo.pos.inventory.LowStockProduct.getSerializerRead()).list();
+    }
+
+    /**
      * JG Sept 2017
      *
      * @return

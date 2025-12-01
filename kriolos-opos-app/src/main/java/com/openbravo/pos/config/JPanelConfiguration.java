@@ -71,7 +71,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelFirebase.add(panel.getConfigComponent());
 
-        panel = new JPanelConfigGeneral();
+        panel = new JPanelConfigGeneral(oApp);
         m_panelconfig.add(panel);
         jPanelGeneral.add(panel.getConfigComponent());
 
@@ -160,7 +160,9 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         m_panelconfig.add(panel);
         jPanelFirebase.add(panel.getConfigComponent());
 
-        panel = new JPanelConfigGeneral();
+        // Nota: JPanelConfigGeneral necesita AppView para cambiar contraseña
+        // En este constructor no tenemos AppView, así que se pasa null
+        panel = new JPanelConfigGeneral(null);
         m_panelconfig.add(panel);
         jPanelGeneral.add(panel.getConfigComponent());
 
