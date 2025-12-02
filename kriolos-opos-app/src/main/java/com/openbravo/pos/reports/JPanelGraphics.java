@@ -5,6 +5,8 @@ import com.openbravo.data.loader.Session;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.forms.JPanelView;
+import com.openbravo.pos.forms.BeanFactoryApp;
+import com.openbravo.pos.forms.BeanFactoryException;
 import com.openbravo.format.Formats;
 import org.jfree.chart.*;
 import org.jfree.chart.plot.*;
@@ -31,7 +33,7 @@ import java.util.logging.Logger;
  * Panel de Gráficos - Estilo Eleventa
  * Muestra gráficos de ventas por departamento, forma de pago, y periodos
  */
-public class JPanelGraphics extends JPanel implements JPanelView {
+public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp {
     
     private static final Logger LOGGER = Logger.getLogger(JPanelGraphics.class.getName());
     
@@ -39,12 +41,20 @@ public class JPanelGraphics extends JPanel implements JPanelView {
     private Session session;
     
     // Componentes UI
-    private JTabbedPane tabbedPane;
+    private ChartPanel chartPanelSalesProfit; // Gráfico principal de Ventas y Ganancias
     private ChartPanel chartPanelDepartment;
-    private ChartPanel chartPanelPayment;
+    private ChartPanel chartPanelPayment; // Gráfico de barras: Ventas por forma de pago
     private JTable tableDepartment;
+    private JTable tableDepartmentProfit; // Tabla de ganancias por departamento
+    private JTable tableSalesByMonth;
     private JLabel lblTotalSales;
+    
+    // Labels para métricas de ventas
+    private JLabel lblSalesTotal;
     private JLabel lblTotalProfit;
+    private JLabel lblNumberOfSales;
+    private JLabel lblAverageSale;
+    private JLabel lblProfitMargin;
     
     // Datos actuales
     private java.util.Date dateStart;
@@ -82,15 +92,20 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         initComponents();
     }
     
-    public void init(AppView app) {
+    @Override
+    public void init(AppView app) throws BeanFactoryException {
         m_App = app;
         session = m_App.getSession();
         activeCashIndex = m_App.getActiveCashIndex();
         
-        // Cargar datos iniciales después de que los componentes estén listos
-        SwingUtilities.invokeLater(() -> {
-            loadCurrentMonthData();
-        });
+        LOGGER.info("JPanelGraphics.init() llamado. CashIndex: " + activeCashIndex);
+        
+        // Los datos se cargarán cuando se active el panel
+    }
+    
+    @Override
+    public Object getBean() {
+        return this;
     }
     
     private void initComponents() {
@@ -98,37 +113,65 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         setBackground(Color.WHITE);
         
-        // Panel superior con título
-        JPanel headerPanel = new JPanel(new BorderLayout());
+        // Panel superior con título y botones de periodo
+        JPanel headerPanel = new JPanel(new BorderLayout(10, 0));
         headerPanel.setBackground(Color.WHITE);
-        headerPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        headerPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
         JLabel titleLabel = new JLabel("Resumen de Ventas");
         titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 24));
         titleLabel.setForeground(new Color(60, 60, 60));
         headerPanel.add(titleLabel, BorderLayout.WEST);
         
-        add(headerPanel, BorderLayout.NORTH);
+        // Panel de botones para seleccionar periodo (Día, Semana, Mes, Año)
+        JPanel periodButtonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 5, 0));
+        periodButtonsPanel.setBackground(Color.WHITE);
+        periodButtonsPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
         
-        // Crear un solo panel de gráficos compartido que se actualiza
-        JPanel mainChartsPanel = createMainChartsPanel();
+        // Crear botones para cada periodo
+        JButton[] periodButtons = new JButton[4];
+        String[] periodNames = {"Día Actual", "Semana Actual", "Mes Actual", "Año Actual"};
         
-        // TabbedPane para diferentes periodos
-        tabbedPane = new JTabbedPane();
-        tabbedPane.setFont(new Font("Segoe UI", Font.PLAIN, 13));
-        
-        // Todas las pestañas muestran el mismo panel (se actualiza al cambiar de pestaña)
-        for (int i = 0; i < 5; i++) {
-            tabbedPane.addTab(getTabName(i), mainChartsPanel);
+        for (int i = 0; i < 4; i++) {
+            final int periodIndex = i;
+            periodButtons[i] = new JButton(periodNames[i]);
+            periodButtons[i].setFont(new Font("Segoe UI", Font.BOLD, 12));
+            periodButtons[i].setPreferredSize(new Dimension(120, 35));
+            periodButtons[i].setBackground(new Color(70, 130, 180));
+            periodButtons[i].setForeground(Color.WHITE);
+            periodButtons[i].setFocusPainted(false);
+            periodButtons[i].setBorderPainted(true);
+            
+            // Estilo del botón seleccionado
+            if (i == 0) {
+                periodButtons[i].setBackground(new Color(50, 100, 150));
+            }
+            
+            periodButtons[i].addActionListener(e -> {
+                // Resetear todos los botones
+                for (JButton btn : periodButtons) {
+                    btn.setBackground(new Color(70, 130, 180));
+                }
+                // Resaltar el botón seleccionado
+                periodButtons[periodIndex].setBackground(new Color(50, 100, 150));
+                
+                // Cargar datos del periodo seleccionado
+                loadDataForPeriod(periodIndex);
+            });
+            
+            periodButtonsPanel.add(periodButtons[i]);
         }
         
-        // Listener para cargar datos al cambiar de pestaña
-        tabbedPane.addChangeListener(e -> {
-            int selectedIndex = tabbedPane.getSelectedIndex();
-            loadDataForPeriod(selectedIndex);
-        });
+        headerPanel.add(periodButtonsPanel, BorderLayout.EAST);
+        add(headerPanel, BorderLayout.NORTH);
         
-        add(tabbedPane, BorderLayout.CENTER);
+        // Crear el panel de gráficos principal con scroll
+        JPanel mainChartsPanel = createMainChartsPanel();
+        JScrollPane scrollPane = new JScrollPane(mainChartsPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        add(scrollPane, BorderLayout.CENTER);
     }
     
     private JPanel createMainChartsPanel() {
@@ -136,51 +179,144 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         mainPanel.setBackground(Color.WHITE);
         mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         
-        // Panel superior con resumen y gráficos circulares/barras
-        JPanel topPanel = new JPanel(new GridLayout(1, 2, 10, 0));
+        // Panel superior con gráfico de ventas/ganancias a la izquierda y otros gráficos
+        JPanel topPanel = new JPanel(new BorderLayout(15, 0));
         topPanel.setBackground(Color.WHITE);
         
-        // Gráfico circular: Ganancia por Departamento
+        // Panel superior: Solo gráfico principal de Ventas y Ganancias
+        JPanel topHorizontalPanel = new JPanel(new BorderLayout());
+        topHorizontalPanel.setBackground(Color.WHITE);
+        
+        // GRÁFICO PRINCIPAL: Ventas y Ganancias
+        chartPanelSalesProfit = new ChartPanel(createEmptySalesProfitBarChart());
+        chartPanelSalesProfit.setPreferredSize(new Dimension(550, 280));
+        chartPanelSalesProfit.setMinimumSize(new Dimension(500, 260));
+        chartPanelSalesProfit.setMaximumSize(new Dimension(600, 300));
+        chartPanelSalesProfit.setBackground(Color.WHITE);
+        chartPanelSalesProfit.setDomainZoomable(false);
+        chartPanelSalesProfit.setRangeZoomable(false);
+        chartPanelSalesProfit.setMouseWheelEnabled(false);
+        JPanel salesProfitPanel = createChartPanel("", chartPanelSalesProfit); // Sin título
+        salesProfitPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        topHorizontalPanel.add(salesProfitPanel, BorderLayout.CENTER);
+        
+        // Panel central con gráfico principal y métricas
+        JPanel centerPanel = new JPanel(new BorderLayout(0, 10));
+        centerPanel.setBackground(Color.WHITE);
+        centerPanel.add(topHorizontalPanel, BorderLayout.NORTH);
+        
+        // Panel de métricas debajo de los gráficos
+        JPanel metricsPanel = createSalesMetricsPanel();
+        centerPanel.add(metricsPanel, BorderLayout.CENTER);
+        
+        mainPanel.add(centerPanel, BorderLayout.NORTH);
+        
+        // Separador visual
+        JSeparator separator = new JSeparator();
+        separator.setForeground(new Color(200, 200, 200));
+        separator.setPreferredSize(new Dimension(0, 2));
+        mainPanel.add(separator, BorderLayout.CENTER);
+        
+        // Panel inferior con dos columnas: Ventas por Mes | Ventas por Departamento + Ganancias
+        JPanel bottomPanel = new JPanel(new GridLayout(1, 2, 15, 0));
+        bottomPanel.setBackground(Color.WHITE);
+        bottomPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Tabla izquierda: Ventas por Mes (con gráfico de torta)
+        JPanel monthTablePanel = new JPanel(new BorderLayout(10, 10));
+        monthTablePanel.setBackground(Color.WHITE);
+        
+        JLabel monthTableTitle = new JLabel("Ventas por mes");
+        monthTableTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        monthTableTitle.setForeground(new Color(70, 130, 180));
+        monthTablePanel.add(monthTableTitle, BorderLayout.NORTH);
+        
+        // Panel que contiene tabla y gráfico lado a lado
+        JPanel monthContentPanel = new JPanel(new BorderLayout(10, 0));
+        monthContentPanel.setBackground(Color.WHITE);
+        
+        // Tabla a la izquierda
+        tableSalesByMonth = createSalesByMonthTable();
+        JScrollPane monthScrollPane = new JScrollPane(tableSalesByMonth);
+        monthScrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        monthContentPanel.add(monthScrollPane, BorderLayout.CENTER);
+        
+        // Gráfico circular (Torta) pequeño a la derecha de la tabla - sin fondo, solo la rueda
         chartPanelDepartment = new ChartPanel(createEmptyPieChart());
-        chartPanelDepartment.setPreferredSize(new Dimension(400, 300));
-        chartPanelDepartment.setMinimumSize(new Dimension(300, 250));
-        chartPanelDepartment.setBackground(Color.WHITE);
+        chartPanelDepartment.setPreferredSize(new Dimension(180, 180));
+        chartPanelDepartment.setMinimumSize(new Dimension(160, 160));
+        chartPanelDepartment.setMaximumSize(new Dimension(200, 200));
+        chartPanelDepartment.setOpaque(false); // Sin fondo
+        chartPanelDepartment.setBackground(new Color(0, 0, 0, 0)); // Fondo transparente
         chartPanelDepartment.setDomainZoomable(false);
         chartPanelDepartment.setRangeZoomable(false);
-        JPanel deptPanel = createChartPanel("Ganancia por Departamento", chartPanelDepartment);
-        topPanel.add(deptPanel);
+        chartPanelDepartment.setMouseWheelEnabled(false);
+        chartPanelDepartment.setBorder(null); // Sin borde
         
-        // Gráfico de barras: Ventas por forma de pago
+        // Panel para el gráfico sin bordes ni fondo
+        JPanel chartWrapper = new JPanel(new BorderLayout());
+        chartWrapper.setOpaque(false);
+        chartWrapper.setBorder(null);
+        chartWrapper.add(chartPanelDepartment, BorderLayout.CENTER);
+        monthContentPanel.add(chartWrapper, BorderLayout.EAST);
+        
+        monthTablePanel.add(monthContentPanel, BorderLayout.CENTER);
+        
+        // Gráfico de barras: Ventas por forma de pago (debajo de la tabla de meses)
         chartPanelPayment = new ChartPanel(createEmptyBarChart());
-        chartPanelPayment.setPreferredSize(new Dimension(400, 300));
-        chartPanelPayment.setMinimumSize(new Dimension(300, 250));
+        chartPanelPayment.setPreferredSize(new Dimension(0, 200));
+        chartPanelPayment.setMinimumSize(new Dimension(0, 180));
+        chartPanelPayment.setMaximumSize(new Dimension(Integer.MAX_VALUE, 220));
         chartPanelPayment.setBackground(Color.WHITE);
         chartPanelPayment.setDomainZoomable(false);
         chartPanelPayment.setRangeZoomable(false);
-        JPanel paymentPanel = createChartPanel("Ventas por forma de pago", chartPanelPayment);
-        topPanel.add(paymentPanel);
+        chartPanelPayment.setMouseWheelEnabled(false);
+        JPanel paymentChartPanel = new JPanel(new BorderLayout());
+        paymentChartPanel.setBackground(Color.WHITE);
+        paymentChartPanel.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+        ));
+        paymentChartPanel.add(chartPanelPayment, BorderLayout.CENTER);
+        monthTablePanel.add(paymentChartPanel, BorderLayout.SOUTH);
         
-        mainPanel.add(topPanel, BorderLayout.CENTER);
+        // Panel derecho: Ventas por Departamento + Ganancias por Departamento
+        JPanel deptMainPanel = new JPanel(new BorderLayout(0, 10));
+        deptMainPanel.setBackground(Color.WHITE);
         
-        // Panel inferior con tabla de ventas por departamento
-        JPanel bottomPanel = new JPanel(new BorderLayout(10, 10));
-        bottomPanel.setBackground(Color.WHITE);
-        bottomPanel.setBorder(BorderFactory.createEmptyBorder(10, 0, 0, 0));
+        // Tabla superior: Ventas por Departamento
+        JPanel deptTablePanel = new JPanel(new BorderLayout(10, 10));
+        deptTablePanel.setBackground(Color.WHITE);
         
-        JLabel tableTitle = new JLabel("Ventas por Departamento");
-        tableTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
-        tableTitle.setForeground(new Color(70, 130, 180));
-        bottomPanel.add(tableTitle, BorderLayout.NORTH);
+        JLabel deptTableTitle = new JLabel("Ventas por Departamento");
+        deptTableTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        deptTableTitle.setForeground(new Color(70, 130, 180));
+        deptTablePanel.add(deptTableTitle, BorderLayout.NORTH);
         
-        // Tabla de departamentos
         tableDepartment = createDepartmentTable();
-        JScrollPane scrollPane = new JScrollPane(tableDepartment);
-        scrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
-        bottomPanel.add(scrollPane, BorderLayout.CENTER);
+        JScrollPane deptScrollPane = new JScrollPane(tableDepartment);
+        deptScrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        deptTablePanel.add(deptScrollPane, BorderLayout.CENTER);
         
-        // Panel de resumen con totales
-        JPanel summaryPanel = createSummaryPanel();
-        bottomPanel.add(summaryPanel, BorderLayout.SOUTH);
+        // Tabla inferior: Ganancias por Departamento
+        JPanel deptProfitTablePanel = new JPanel(new BorderLayout(10, 10));
+        deptProfitTablePanel.setBackground(Color.WHITE);
+        
+        JLabel deptProfitTableTitle = new JLabel("Ganancias por Departamento");
+        deptProfitTableTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        deptProfitTableTitle.setForeground(new Color(70, 130, 180));
+        deptProfitTablePanel.add(deptProfitTableTitle, BorderLayout.NORTH);
+        
+        tableDepartmentProfit = createDepartmentProfitTable();
+        JScrollPane deptProfitScrollPane = new JScrollPane(tableDepartmentProfit);
+        deptProfitScrollPane.setBorder(BorderFactory.createLineBorder(new Color(200, 200, 200)));
+        deptProfitTablePanel.add(deptProfitScrollPane, BorderLayout.CENTER);
+        
+        deptMainPanel.add(deptTablePanel, BorderLayout.NORTH);
+        deptMainPanel.add(deptProfitTablePanel, BorderLayout.CENTER);
+        
+        bottomPanel.add(monthTablePanel);
+        bottomPanel.add(deptMainPanel);
         
         mainPanel.add(bottomPanel, BorderLayout.SOUTH);
         
@@ -191,13 +327,14 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(Color.WHITE);
         panel.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(220, 220, 220)),
-            BorderFactory.createEmptyBorder(10, 10, 10, 10)
+            BorderFactory.createLineBorder(new Color(200, 200, 200), 2),
+            BorderFactory.createEmptyBorder(15, 15, 15, 15)
         ));
         
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        titleLabel.setForeground(new Color(70, 130, 180));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        titleLabel.setForeground(new Color(50, 100, 150));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         panel.add(titleLabel, BorderLayout.NORTH);
         panel.add(chartPanel, BorderLayout.CENTER);
         
@@ -207,23 +344,175 @@ public class JPanelGraphics extends JPanel implements JPanelView {
     @SuppressWarnings({"unchecked", "rawtypes"})
     private JFreeChart createEmptyPieChart() {
         DefaultPieDataset dataset = new DefaultPieDataset();
-        JFreeChart chart = ChartFactory.createPieChart(null, dataset, true, true, false);
-        chart.setBackgroundPaint(Color.WHITE);
+        // No agregar ningún valor, dejar el dataset vacío
+        JFreeChart chart = ChartFactory.createPieChart(null, dataset, false, false, false); // Sin leyenda, sin tooltips, sin URLs
+        chart.setBackgroundPaint(new Color(0, 0, 0, 0)); // Fondo transparente
         PiePlot plot = (PiePlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
-        plot.setOutlineVisible(false);
+        plot.setBackgroundPaint(new Color(0, 0, 0, 0)); // Fondo transparente
+        plot.setOutlineVisible(false); // Sin borde exterior
+        plot.setLabelGenerator(null); // Sin etiquetas
+        plot.setShadowPaint(new Color(0, 0, 0, 0)); // Sin sombra
+        plot.setInteriorGap(0.05); // Pequeño espacio interior
         return chart;
     }
     
     private JFreeChart createEmptyBarChart() {
         DefaultCategoryDataset dataset = new DefaultCategoryDataset();
-        JFreeChart chart = ChartFactory.createBarChart(null, "Forma de pago", "Ventas", 
+        // Agregar un valor temporal para que el gráfico se vea
+        dataset.addValue(1.0, "Esperando datos...", "Esperando datos...");
+        JFreeChart chart = ChartFactory.createBarChart(null, "Forma de pago", "Ventas ($)", 
             dataset, PlotOrientation.HORIZONTAL, false, true, false);
         chart.setBackgroundPaint(Color.WHITE);
         CategoryPlot plot = (CategoryPlot) chart.getPlot();
         plot.setBackgroundPaint(Color.WHITE);
         plot.setOutlineVisible(false);
+        plot.getDomainAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
+        plot.getRangeAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
         return chart;
+    }
+    
+    private JFreeChart createEmptySalesProfitBarChart() {
+        DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+        // Agregar valores temporales para que el gráfico se vea
+        dataset.addValue(0.0, "Ventas", "Esperando datos...");
+        dataset.addValue(0.0, "Ganancia", "Esperando datos...");
+        JFreeChart chart = ChartFactory.createBarChart(null, "", "Ventas", 
+            dataset, PlotOrientation.VERTICAL, true, true, false);
+        chart.setBackgroundPaint(Color.WHITE);
+        CategoryPlot plot = (CategoryPlot) chart.getPlot();
+        plot.setBackgroundPaint(Color.WHITE);
+        plot.setOutlineVisible(false);
+        plot.getDomainAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
+        plot.getRangeAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
+        plot.getDomainAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 10));
+        plot.getRangeAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 10));
+        return chart;
+    }
+    
+    private void updateSalesProfitBarChart(double totalSales, double totalProfit) {
+        if (chartPanelSalesProfit == null) {
+            LOGGER.warning("chartPanelSalesProfit es null, no se puede actualizar el gráfico");
+            return;
+        }
+        
+        try {
+            // Cargar datos agrupados por mes
+            List<MonthData> monthData = loadSalesProfitByMonth();
+            
+            DefaultCategoryDataset dataset = new DefaultCategoryDataset();
+            
+            // Si hay datos por mes, mostrarlos; si no, mostrar totales
+            if (monthData != null && !monthData.isEmpty()) {
+                for (MonthData month : monthData) {
+                    dataset.addValue(month.sales, "Ventas", month.monthName);
+                    dataset.addValue(month.profit, "Ganancia", month.monthName);
+                }
+            } else {
+                // Fallback: mostrar totales
+                dataset.addValue(totalSales, "Ventas", "Total");
+                dataset.addValue(totalProfit, "Ganancia", "Total");
+            }
+            
+            JFreeChart chart = ChartFactory.createBarChart(null, "", "Ventas", 
+                dataset, PlotOrientation.VERTICAL, true, true, false);
+            chart.setBackgroundPaint(Color.WHITE);
+            
+            CategoryPlot plot = (CategoryPlot) chart.getPlot();
+            plot.setBackgroundPaint(Color.WHITE);
+            plot.setOutlineVisible(false);
+            plot.setRangeGridlinePaint(new Color(200, 200, 200));
+            
+            // Tamaño de fuente más pequeño para gráfico compacto
+            plot.getDomainAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
+            plot.getRangeAxis().setLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
+            plot.getDomainAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 10));
+            plot.getRangeAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 10));
+            
+            // Colores similares a la imagen: Azul más oscuro para Ventas, Azul claro para Ganancia
+            plot.getRenderer().setSeriesPaint(0, new Color(70, 130, 180));   // Azul para Ventas
+            plot.getRenderer().setSeriesPaint(1, new Color(173, 216, 230));  // Azul claro para Ganancia
+            
+            chartPanelSalesProfit.setChart(chart);
+            chartPanelSalesProfit.repaint();
+            LOGGER.info("Gráfico de Ventas y Ganancias actualizado - Ventas: " + totalSales + ", Ganancias: " + totalProfit);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error actualizando gráfico de ventas y ganancias", e);
+        }
+    }
+    
+    // Clase para almacenar datos por mes
+    private static class MonthData {
+        public String monthName;
+        public double sales;
+        public double profit;
+        
+        public MonthData(String monthName, double sales, double profit) {
+            this.monthName = monthName;
+            this.sales = sales;
+            this.profit = profit;
+        }
+    }
+    
+    private List<MonthData> loadSalesProfitByMonth() throws SQLException {
+        List<MonthData> monthData = new ArrayList<>();
+        
+        if (session == null || activeCashIndex == null) {
+            return monthData;
+        }
+        
+        try {
+            // Consulta SQL para agrupar por mes (compatible con HSQLDB)
+            StringBuilder sqlBuilder = new StringBuilder();
+            sqlBuilder.append("SELECT ");
+            sqlBuilder.append("MONTH(receipts.DATENEW) as MONTH_NUM, ");
+            sqlBuilder.append("SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE) * ticketlines.UNITS) as TOTAL_SALES, ");
+            sqlBuilder.append("SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) as TOTAL_PROFIT ");
+            sqlBuilder.append("FROM ticketlines ");
+            sqlBuilder.append("INNER JOIN tickets ON ticketlines.TICKET = tickets.ID ");
+            sqlBuilder.append("INNER JOIN receipts ON tickets.ID = receipts.ID ");
+            sqlBuilder.append("INNER JOIN products ON ticketlines.PRODUCT = products.ID ");
+            sqlBuilder.append("INNER JOIN taxes ON ticketlines.TAXID = taxes.ID ");
+            sqlBuilder.append("WHERE receipts.MONEY = ? ");
+            
+            if (dateStart != null) {
+                sqlBuilder.append("AND receipts.DATENEW >= ? ");
+            }
+            if (dateEnd != null) {
+                sqlBuilder.append("AND receipts.DATENEW <= ? ");
+            }
+            
+            sqlBuilder.append("GROUP BY MONTH(receipts.DATENEW) ");
+            sqlBuilder.append("ORDER BY MONTH(receipts.DATENEW)");
+            
+            PreparedStatement stmt = session.getConnection().prepareStatement(sqlBuilder.toString());
+            int paramIndex = 1;
+            stmt.setString(paramIndex++, activeCashIndex);
+            if (dateStart != null) {
+                stmt.setTimestamp(paramIndex++, new Timestamp(dateStart.getTime()));
+            }
+            if (dateEnd != null) {
+                stmt.setTimestamp(paramIndex++, new Timestamp(dateEnd.getTime()));
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            String[] monthNames = {"", "Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"};
+            while (rs.next()) {
+                int monthNum = rs.getInt("MONTH_NUM");
+                double sales = rs.getDouble("TOTAL_SALES");
+                double profit = rs.getDouble("TOTAL_PROFIT");
+                
+                if (sales > 0 || profit > 0) {
+                    String monthName = (monthNum >= 1 && monthNum <= 12) ? monthNames[monthNum] : "N/A";
+                    monthData.add(new MonthData(monthName, sales, profit));
+                }
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Error cargando datos por mes", e);
+        }
+        
+        return monthData;
     }
     
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -235,12 +524,8 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         
         if (departments == null || departments.isEmpty()) {
             LOGGER.info("No hay datos de departamentos para mostrar");
-            // Mostrar gráfico vacío con mensaje
-            DefaultPieDataset dataset = new DefaultPieDataset();
-            dataset.setValue("Sin datos", 1.0);
-            JFreeChart chart = ChartFactory.createPieChart(null, dataset, true, true, false);
-            chart.setBackgroundPaint(Color.WHITE);
-            chartPanelDepartment.setChart(chart);
+            // Ocultar el gráfico completamente cuando no hay datos
+            chartPanelDepartment.setVisible(false);
             return;
         }
         
@@ -253,13 +538,14 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         int count = 0;
         double othersProfit = 0.0;
         Color[] colors = {
+            new Color(70, 130, 180),   // Azul acero
+            new Color(60, 179, 113),   // Verde mar
+            new Color(255, 140, 0),    // Naranja oscuro
+            new Color(220, 20, 60),    // Rojo carmesí (pero solo si hay múltiples segmentos)
+            new Color(138, 43, 226),   // Violeta azul
+            new Color(255, 215, 0),    // Oro
             new Color(102, 204, 204),  // Turquesa claro
-            new Color(51, 153, 204),   // Azul medio
-            new Color(0, 102, 153),    // Azul oscuro
-            new Color(102, 178, 204),  // Azul claro
-            new Color(153, 204, 204),  // Turquesa muy claro
-            new Color(102, 153, 153),  // Verde azulado
-            new Color(102, 178, 178)   // Turquesa medio
+            new Color(51, 153, 204)    // Azul medio
         };
         
         for (DepartmentData dept : departments) {
@@ -278,22 +564,33 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         
         if (dataset.getItemCount() == 0) {
             LOGGER.info("No hay datos con ganancia positiva para mostrar");
-            dataset.setValue("Sin ganancias", 1.0);
+            // Ocultar el gráfico completamente cuando no hay datos
+            chartPanelDepartment.setVisible(false);
+            return;
         }
         
-        JFreeChart chart = ChartFactory.createPieChart(null, dataset, true, true, false);
-        chart.setBackgroundPaint(Color.WHITE);
-        PiePlot plot = (PiePlot) chart.getPlot();
-        plot.setBackgroundPaint(Color.WHITE);
-        plot.setOutlineVisible(false);
-        plot.setLabelBackgroundPaint(new Color(240, 240, 240));
-        plot.setLabelFont(new Font("Segoe UI", Font.PLAIN, 11));
+        // Mostrar el gráfico cuando hay datos
+        chartPanelDepartment.setVisible(true);
         
-        // Aplicar colores
+        JFreeChart chart = ChartFactory.createPieChart(null, dataset, false, false, false); // Sin leyenda, sin tooltips, sin URLs
+        chart.setBackgroundPaint(new Color(0, 0, 0, 0)); // Fondo transparente
+        PiePlot plot = (PiePlot) chart.getPlot();
+        plot.setBackgroundPaint(new Color(0, 0, 0, 0)); // Fondo transparente
+        plot.setOutlineVisible(false); // Sin borde exterior
+        plot.setLabelGenerator(null); // Sin etiquetas
+        plot.setShadowPaint(new Color(0, 0, 0, 0)); // Sin sombra
+        plot.setInteriorGap(0.05); // Pequeño espacio interior para mejor visualización
+        
+        // Aplicar colores variados
         int colorIndex = 0;
         for (Object key : dataset.getKeys()) {
             if (colorIndex < colors.length) {
                 plot.setSectionPaint((Comparable) key, colors[colorIndex]);
+            } else {
+                // Si hay más elementos que colores, generar colores alternativos
+                float hue = (colorIndex * 0.1f) % 1.0f;
+                Color newColor = Color.getHSBColor(hue, 0.6f, 0.9f);
+                plot.setSectionPaint((Comparable) key, newColor);
             }
             colorIndex++;
         }
@@ -334,20 +631,76 @@ public class JPanelGraphics extends JPanel implements JPanelView {
             LOGGER.info("No hay pagos con monto positivo para mostrar");
         }
         
-        JFreeChart chart = ChartFactory.createBarChart(null, "Forma de pago", "Ventas", 
+        JFreeChart chart = ChartFactory.createBarChart(null, "Forma de pago", "Ventas ($)", 
             dataset, PlotOrientation.HORIZONTAL, false, true, false);
         chart.setBackgroundPaint(Color.WHITE);
         CategoryPlot plot = (CategoryPlot) chart.getPlot();
         plot.setBackgroundPaint(Color.WHITE);
         plot.setOutlineVisible(false);
         plot.setRangeGridlinePaint(new Color(200, 200, 200));
+        
+        // Mejorar la apariencia del gráfico
+        plot.getDomainAxis().setLabelFont(new Font("Segoe UI", Font.BOLD, 13));
+        plot.getRangeAxis().setLabelFont(new Font("Segoe UI", Font.BOLD, 13));
+        plot.getDomainAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
+        plot.getRangeAxis().setTickLabelFont(new Font("Segoe UI", Font.PLAIN, 12));
+        
         if (dataset.getRowCount() > 0) {
-            plot.getRenderer().setSeriesPaint(0, new Color(70, 130, 180));
+            // Colores para las barras
+            Color[] barColors = {
+                new Color(70, 130, 180),   // Azul acero
+                new Color(60, 179, 113),   // Verde mar
+                new Color(255, 140, 0),    // Naranja oscuro
+                new Color(220, 20, 60),    // Rojo carmesí
+                new Color(138, 43, 226),   // Violeta azul
+                new Color(255, 215, 0)     // Oro
+            };
+            int colorIndex = 0;
+            for (int i = 0; i < dataset.getRowCount(); i++) {
+                if (colorIndex < barColors.length) {
+                    plot.getRenderer().setSeriesPaint(i, barColors[colorIndex % barColors.length]);
+                }
+                colorIndex++;
+            }
         }
         
         chartPanelPayment.setChart(chart);
         chartPanelPayment.repaint();
         LOGGER.info("Gráfico de barras actualizado con " + dataset.getRowCount() + " formas de pago");
+    }
+    
+    private JTable createSalesByMonthTable() {
+        String[] columns = {"Mes", "Monto"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        
+        JTable table = new JTable(model);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        table.setRowHeight(30);
+        table.setShowGrid(true);
+        table.setGridColor(new Color(230, 230, 230));
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        table.getTableHeader().setBackground(new Color(70, 130, 180));
+        table.getTableHeader().setForeground(Color.WHITE);
+        
+        return table;
+    }
+    
+    private void updateSalesByMonthTable(List<MonthData> monthData) {
+        DefaultTableModel model = (DefaultTableModel) tableSalesByMonth.getModel();
+        model.setRowCount(0);
+        
+        if (monthData != null && !monthData.isEmpty()) {
+            for (MonthData month : monthData) {
+                String monthName = month.monthName;
+                String amount = Formats.CURRENCY.formatValue(month.sales);
+                model.addRow(new Object[]{monthName, amount});
+            }
+        }
     }
     
     private JTable createDepartmentTable() {
@@ -369,6 +722,45 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         table.getTableHeader().setForeground(Color.WHITE);
         
         return table;
+    }
+    
+    private JTable createDepartmentProfitTable() {
+        String[] columns = {"Departamento", "Ganancia"};
+        DefaultTableModel model = new DefaultTableModel(columns, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+        
+        JTable table = new JTable(model);
+        table.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        table.setRowHeight(30);
+        table.setShowGrid(true);
+        table.setGridColor(new Color(230, 230, 230));
+        table.getTableHeader().setFont(new Font("Segoe UI", Font.BOLD, 13));
+        table.getTableHeader().setBackground(new Color(70, 130, 180));
+        table.getTableHeader().setForeground(Color.WHITE);
+        
+        return table;
+    }
+    
+    private void updateDepartmentProfitTable(List<DepartmentData> departments) {
+        DefaultTableModel model = (DefaultTableModel) tableDepartmentProfit.getModel();
+        model.setRowCount(0);
+        
+        if (departments != null && !departments.isEmpty()) {
+            // Ordenar por ganancia descendente
+            List<DepartmentData> sortedDepts = new ArrayList<>(departments);
+            sortedDepts.sort((a, b) -> Double.compare(b.profit, a.profit));
+            
+            for (DepartmentData dept : sortedDepts) {
+                if (dept.profit > 0) {
+                    String profit = Formats.CURRENCY.formatValue(dept.profit);
+                    model.addRow(new Object[]{dept.name, profit});
+                }
+            }
+        }
     }
     
     private void updateDepartmentTable(List<DepartmentData> departments) {
@@ -434,19 +826,92 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         return panel;
     }
     
+    private JPanel createSalesMetricsPanel() {
+        // Panel principal con dos filas
+        JPanel mainPanel = new JPanel(new BorderLayout(0, 10));
+        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        // Primera fila: Ventas Totales | Ganancia
+        JPanel firstRow = new JPanel(new GridLayout(1, 2, 10, 0));
+        firstRow.setBackground(Color.WHITE);
+        
+        // Métrica 1: Ventas Totales
+        JPanel salesTotalPanel = createMetricCell("Ventas Totales");
+        lblSalesTotal = new JLabel("$0.00");
+        lblSalesTotal.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblSalesTotal.setForeground(new Color(50, 50, 50));
+        salesTotalPanel.add(lblSalesTotal, BorderLayout.CENTER);
+        firstRow.add(salesTotalPanel);
+        
+        // Métrica 2: Ganancia
+        JPanel profitPanel = createMetricCell("Ganancia");
+        lblTotalProfit = new JLabel("$0.00");
+        lblTotalProfit.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblTotalProfit.setForeground(new Color(50, 50, 50));
+        profitPanel.add(lblTotalProfit, BorderLayout.CENTER);
+        firstRow.add(profitPanel);
+        
+        // Segunda fila: Número de Ventas | Venta Promedio | Margen de utilidad promedio
+        JPanel secondRow = new JPanel(new GridLayout(1, 3, 10, 0));
+        secondRow.setBackground(Color.WHITE);
+        
+        // Métrica 3: Número de Ventas
+        JPanel numberSalesPanel = createMetricCell("Número de Ventas");
+        lblNumberOfSales = new JLabel("0");
+        lblNumberOfSales.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblNumberOfSales.setForeground(new Color(50, 50, 50));
+        numberSalesPanel.add(lblNumberOfSales, BorderLayout.CENTER);
+        secondRow.add(numberSalesPanel);
+        
+        // Métrica 4: Venta Promedio
+        JPanel averageSalePanel = createMetricCell("Venta Promedio");
+        lblAverageSale = new JLabel("$0.00");
+        lblAverageSale.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblAverageSale.setForeground(new Color(50, 50, 50));
+        averageSalePanel.add(lblAverageSale, BorderLayout.CENTER);
+        secondRow.add(averageSalePanel);
+        
+        // Métrica 5: Margen de utilidad promedio
+        JPanel profitMarginPanel = createMetricCell("Margen de utilidad promedio");
+        lblProfitMargin = new JLabel("0.00%");
+        lblProfitMargin.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblProfitMargin.setForeground(new Color(50, 50, 50));
+        profitMarginPanel.add(lblProfitMargin, BorderLayout.CENTER);
+        secondRow.add(profitMarginPanel);
+        
+        mainPanel.add(firstRow, BorderLayout.NORTH);
+        mainPanel.add(secondRow, BorderLayout.SOUTH);
+        
+        return mainPanel;
+    }
+    
+    private JPanel createMetricCell(String labelText) {
+        JPanel panel = new JPanel(new BorderLayout(0, 5));
+        panel.setBackground(Color.WHITE);
+        panel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+        
+        JLabel label = new JLabel(labelText);
+        label.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        label.setForeground(new Color(100, 100, 100));
+        panel.add(label, BorderLayout.NORTH);
+        
+        return panel;
+    }
+    
     private String getTabName(int index) {
         switch (index) {
-            case 0: return "Semana Actual";
-            case 1: return "Mes Actual";
-            case 2: return "Mes Anterior";
-            case 3: return "Año actual";
-            case 4: return "Periodo...";
-            default: return "Periodo";
+            case 0: return "📅 Día Actual";
+            case 1: return "📅 Semana Actual";
+            case 2: return "📅 Mes Actual";
+            case 3: return "📅 Año Actual";
+            case 4: return "📅 Periodo...";
+            default: return "📅 Periodo";
         }
     }
     
     private void loadCurrentMonthData() {
-        loadDataForPeriod(1); // Mes Actual
+        loadDataForPeriod(0); // Día Actual por defecto
     }
     
     private void loadDataForPeriod(int periodIndex) {
@@ -459,38 +924,45 @@ public class JPanelGraphics extends JPanel implements JPanelView {
                 java.util.Date endDate = new java.util.Date();
                 
                 switch (periodIndex) {
-                    case 0: // Semana Actual - desde inicio de caja o última semana
-                        if (cashStartDate != null && cashStartDate.after(getWeekStart())) {
+                    case 0: // Día Actual - desde inicio del día de hoy o desde apertura de caja
+                        Calendar todayCal = Calendar.getInstance();
+                        todayCal.set(Calendar.HOUR_OF_DAY, 0);
+                        todayCal.set(Calendar.MINUTE, 0);
+                        todayCal.set(Calendar.SECOND, 0);
+                        todayCal.set(Calendar.MILLISECOND, 0);
+                        java.util.Date todayStart = todayCal.getTime();
+                        
+                        if (cashStartDate != null && cashStartDate.after(todayStart)) {
+                            dateStart = cashStartDate; // Si la caja se abrió hoy, desde la apertura
+                        } else {
+                            dateStart = todayStart; // Desde inicio del día
+                        }
+                        dateEnd = endDate; // Hasta ahora
+                        break;
+                    case 1: // Semana Actual - desde inicio de caja o lunes de esta semana
+                        java.util.Date weekStart = getWeekStart();
+                        if (cashStartDate != null && cashStartDate.after(weekStart)) {
                             dateStart = cashStartDate;
                         } else {
-                            dateStart = getWeekStart();
+                            dateStart = weekStart;
                         }
                         dateEnd = endDate;
                         break;
-                    case 1: // Mes Actual - TODAS las ventas de la caja activa (sin filtro de fecha)
-                        // Para ver TODAS las ventas, no usar filtro de fecha
-                        dateStart = cashStartDate; // Solo desde que se abrió la caja
-                        dateEnd = endDate;
-                        break;
-                    case 2: // Mes Anterior
-                        cal.add(Calendar.MONTH, -1);
-                        cal.set(Calendar.DAY_OF_MONTH, 1);
-                        cal.set(Calendar.HOUR_OF_DAY, 0);
-                        cal.set(Calendar.MINUTE, 0);
-                        cal.set(Calendar.SECOND, 0);
-                        dateStart = cal.getTime();
-                        cal.add(Calendar.MONTH, 1);
-                        cal.add(Calendar.DAY_OF_MONTH, -1);
-                        cal.set(Calendar.HOUR_OF_DAY, 23);
-                        cal.set(Calendar.MINUTE, 59);
-                        cal.set(Calendar.SECOND, 59);
-                        dateEnd = cal.getTime();
-                        break;
-                    case 3: // Año actual - desde inicio de caja o inicio del año
-                        if (cashStartDate != null && cashStartDate.after(getYearStart())) {
+                    case 2: // Mes Actual - desde inicio de mes o desde apertura de caja
+                        java.util.Date monthStart = getMonthStart();
+                        if (cashStartDate != null && cashStartDate.after(monthStart)) {
                             dateStart = cashStartDate;
                         } else {
-                            dateStart = getYearStart();
+                            dateStart = monthStart;
+                        }
+                        dateEnd = endDate;
+                        break;
+                    case 3: // Año Actual - desde inicio de año o desde apertura de caja
+                        java.util.Date yearStart = getYearStart();
+                        if (cashStartDate != null && cashStartDate.after(yearStart)) {
+                            dateStart = cashStartDate;
+                        } else {
+                            dateStart = yearStart;
                         }
                         dateEnd = endDate;
                         break;
@@ -571,26 +1043,96 @@ public class JPanelGraphics extends JPanel implements JPanelView {
         loadDataForPeriod(1); // Por ahora carga mes actual
     }
     
+    private int loadNumberOfSales() {
+        int count = 0;
+        try {
+            if (session == null || activeCashIndex == null) {
+                return 0;
+            }
+            
+            StringBuilder sqlBuilder = new StringBuilder();
+            sqlBuilder.append("SELECT COUNT(DISTINCT receipts.ID) as TOTAL_COUNT ");
+            sqlBuilder.append("FROM receipts ");
+            sqlBuilder.append("INNER JOIN tickets ON receipts.ID = tickets.ID ");
+            sqlBuilder.append("WHERE receipts.MONEY = ? ");
+            
+            if (dateStart != null) {
+                sqlBuilder.append("AND receipts.DATENEW >= ? ");
+            }
+            if (dateEnd != null) {
+                sqlBuilder.append("AND receipts.DATENEW <= ? ");
+            }
+            
+            PreparedStatement stmt = session.getConnection().prepareStatement(sqlBuilder.toString());
+            int paramIndex = 1;
+            stmt.setString(paramIndex++, activeCashIndex);
+            if (dateStart != null) {
+                stmt.setTimestamp(paramIndex++, new Timestamp(dateStart.getTime()));
+            }
+            if (dateEnd != null) {
+                stmt.setTimestamp(paramIndex++, new Timestamp(dateEnd.getTime()));
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                count = rs.getInt("TOTAL_COUNT");
+            }
+            rs.close();
+            stmt.close();
+            
+            LOGGER.info("Número de ventas encontradas: " + count);
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Error obteniendo número de ventas", e);
+        }
+        
+        return count;
+    }
+    
     private void loadDataFromDatabase() throws BasicException {
         if (session == null || activeCashIndex == null) {
             LOGGER.warning("Session o activeCashIndex es null. Session: " + (session != null) + ", CashIndex: " + activeCashIndex);
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(this, 
+                    "Error: No se pudo obtener la sesión o la caja activa. Por favor, verifica que haya una caja abierta.",
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            });
             return;
         }
         
-        LOGGER.info("Cargando datos desde base de datos. CashIndex: " + activeCashIndex);
+        LOGGER.info("═══════════════════════════════════════════════");
+        LOGGER.info("Cargando datos desde base de datos.");
+        LOGGER.info("CashIndex: " + activeCashIndex);
+        LOGGER.info("Fecha inicio: " + (dateStart != null ? dateStart : "NULL"));
+        LOGGER.info("Fecha fin: " + (dateEnd != null ? dateEnd : "NULL"));
         
         try {
+            // 0. Verificar si hay recepciones (receipts) en la base de datos
+            verifyReceiptsExist();
+            
             // 1. Obtener ventas por departamento con ganancias
             List<DepartmentData> departments = loadDepartmentData();
             LOGGER.info("Departamentos cargados: " + (departments != null ? departments.size() : 0));
+            if (departments != null && !departments.isEmpty()) {
+                for (DepartmentData dept : departments) {
+                    LOGGER.info("  - " + dept.name + ": Ventas=" + dept.sales + ", Ganancia=" + dept.profit);
+                }
+            } else {
+                LOGGER.warning("⚠️ No se encontraron departamentos con ventas en el periodo seleccionado");
+            }
             
             // 2. Obtener ventas por forma de pago
             List<PaymentData> payments = loadPaymentData();
             LOGGER.info("Formas de pago cargadas: " + (payments != null ? payments.size() : 0));
             
-            // 3. Calcular totales
+            // 3. Obtener número de ventas y ventas por mes
+            int numberOfSales = loadNumberOfSales();
+            List<MonthData> monthData = loadSalesProfitByMonth();
+            
+            // 4. Calcular totales
             final List<DepartmentData> finalDepartments = departments != null ? departments : new ArrayList<>();
             final List<PaymentData> finalPayments = payments != null ? payments : new ArrayList<>();
+            final List<MonthData> finalMonthData = monthData != null ? monthData : new ArrayList<>();
             
             double totalSalesCalc = 0.0;
             double totalProfitCalc = 0.0;
@@ -600,32 +1142,110 @@ public class JPanelGraphics extends JPanel implements JPanelView {
             }
             final double totalSales = totalSalesCalc;
             final double totalProfit = totalProfitCalc;
-            LOGGER.info("Totales calculados - Ventas: " + totalSales + ", Ganancia: " + totalProfit);
+            final int finalNumberOfSales = numberOfSales;
+            final double averageSale = (numberOfSales > 0) ? (totalSales / numberOfSales) : 0.0;
             
-            // 4. Actualizar UI en el hilo de eventos
+            LOGGER.info("Totales calculados - Ventas: " + totalSales + ", Ganancia: " + totalProfit + ", Número de ventas: " + numberOfSales);
+            LOGGER.info("═══════════════════════════════════════════════");
+            
+            // 5. Actualizar UI en el hilo de eventos
             SwingUtilities.invokeLater(() -> {
+                // PRIMERO: Actualizar el gráfico principal de Ventas y Ganancias
+                updateSalesProfitBarChart(totalSales, totalProfit);
+                // Luego los otros gráficos
                 updatePieChart(finalDepartments);
                 updateBarChart(finalPayments);
                 updateDepartmentTable(finalDepartments);
-                if (lblTotalSales != null) {
-                    lblTotalSales.setText(Formats.CURRENCY.formatValue(totalSales));
+                updateDepartmentProfitTable(finalDepartments);
+                updateSalesByMonthTable(finalMonthData);
+                
+                // Actualizar métricas de ventas
+                if (lblSalesTotal != null) {
+                    lblSalesTotal.setText(Formats.CURRENCY.formatValue(totalSales));
                 }
                 if (lblTotalProfit != null) {
                     lblTotalProfit.setText(Formats.CURRENCY.formatValue(totalProfit));
                 }
+                if (lblNumberOfSales != null) {
+                    lblNumberOfSales.setText(String.valueOf(finalNumberOfSales));
+                }
+                if (lblAverageSale != null) {
+                    lblAverageSale.setText(Formats.CURRENCY.formatValue(averageSale));
+                }
+                if (lblProfitMargin != null) {
+                    double profitMargin = (totalSales > 0) ? ((totalProfit / totalSales) * 100.0) : 0.0;
+                    lblProfitMargin.setText(String.format("%.2f%%", profitMargin));
+                }
+                
                 // Forzar repaint
+                if (chartPanelSalesProfit != null) {
+                    chartPanelSalesProfit.repaint();
+                }
                 if (chartPanelDepartment != null) {
                     chartPanelDepartment.repaint();
-                }
-                if (chartPanelPayment != null) {
-                    chartPanelPayment.repaint();
                 }
                 repaint();
             });
             
         } catch (SQLException e) {
             LOGGER.log(Level.SEVERE, "Error SQL cargando datos", e);
+            e.printStackTrace();
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(this, 
+                    "Error al cargar datos: " + e.getMessage(),
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+            });
             throw new BasicException(e);
+        }
+    }
+    
+    private void verifyReceiptsExist() {
+        try {
+            StringBuilder sqlBuilder = new StringBuilder();
+            sqlBuilder.append("SELECT COUNT(*) as TOTAL_RECEIPTS, ");
+            sqlBuilder.append("MIN(receipts.DATENEW) as MIN_DATE, ");
+            sqlBuilder.append("MAX(receipts.DATENEW) as MAX_DATE ");
+            sqlBuilder.append("FROM receipts ");
+            sqlBuilder.append("WHERE receipts.MONEY = ? ");
+            
+            if (dateStart != null) {
+                sqlBuilder.append("AND receipts.DATENEW >= ? ");
+            }
+            if (dateEnd != null) {
+                sqlBuilder.append("AND receipts.DATENEW <= ? ");
+            }
+            
+            PreparedStatement stmt = session.getConnection().prepareStatement(sqlBuilder.toString());
+            int paramIndex = 1;
+            stmt.setString(paramIndex++, activeCashIndex);
+            if (dateStart != null) {
+                stmt.setTimestamp(paramIndex++, new Timestamp(dateStart.getTime()));
+            }
+            if (dateEnd != null) {
+                stmt.setTimestamp(paramIndex++, new Timestamp(dateEnd.getTime()));
+            }
+            
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                int totalReceipts = rs.getInt("TOTAL_RECEIPTS");
+                Timestamp minDate = rs.getTimestamp("MIN_DATE");
+                Timestamp maxDate = rs.getTimestamp("MAX_DATE");
+                LOGGER.info("📊 Verificación: Total de recepciones encontradas: " + totalReceipts);
+                if (minDate != null) {
+                    LOGGER.info("  - Primera recepción: " + minDate);
+                }
+                if (maxDate != null) {
+                    LOGGER.info("  - Última recepción: " + maxDate);
+                }
+                if (totalReceipts == 0) {
+                    LOGGER.warning("⚠️ No se encontraron recepciones en la base de datos para el periodo seleccionado");
+                }
+            }
+            rs.close();
+            stmt.close();
+        } catch (SQLException e) {
+            LOGGER.log(Level.WARNING, "Error verificando recepciones", e);
         }
     }
     
@@ -813,19 +1433,61 @@ public class JPanelGraphics extends JPanel implements JPanelView {
     
     @Override
     public void activate() throws BasicException {
+        // Asegurar que m_App esté inicializado
+        if (m_App == null) {
+            LOGGER.severe("m_App es null, no se puede activar el panel de gráficos");
+            return;
+        }
+        
         // Asegurar que session y activeCashIndex estén disponibles
-        if (session == null && m_App != null) {
+        if (session == null) {
             session = m_App.getSession();
         }
-        if (activeCashIndex == null && m_App != null) {
+        
+        // Intentar obtener activeCashIndex varias veces si es null
+        if (activeCashIndex == null) {
             activeCashIndex = m_App.getActiveCashIndex();
         }
         
-        LOGGER.info("Panel de gráficos activado. CashIndex: " + activeCashIndex);
+        // Si aún es null, intentar de nuevo con un pequeño delay
+        if (activeCashIndex == null) {
+            SwingUtilities.invokeLater(() -> {
+                try {
+                    Thread.sleep(500); // Esperar 500ms
+                    if (m_App != null) {
+                        activeCashIndex = m_App.getActiveCashIndex();
+                        LOGGER.info("Reintentando obtener activeCashIndex después de delay: " + activeCashIndex);
+                        if (activeCashIndex != null) {
+                            loadDataForPeriod(0); // Cargar datos del día actual
+                        }
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error obteniendo activeCashIndex después de delay", e);
+                }
+            });
+        }
         
-        // Recargar datos del periodo actual
-        int currentTab = tabbedPane != null ? tabbedPane.getSelectedIndex() : 1;
-        loadDataForPeriod(currentTab);
+        LOGGER.info("Panel de gráficos activado. CashIndex: " + activeCashIndex + ", Session: " + (session != null));
+        
+        if (activeCashIndex == null) {
+            LOGGER.warning("⚠️ activeCashIndex es null - los datos no se cargarán. Verifica que haya una caja abierta.");
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(this, 
+                    "Advertencia: No hay una caja activa abierta. Por favor, abre una caja primero para ver los gráficos.",
+                    "Caja no activa", 
+                    JOptionPane.WARNING_MESSAGE);
+            });
+            return;
+        }
+        
+        // Cargar datos del día actual por defecto
+        SwingUtilities.invokeLater(() -> {
+            try {
+                loadDataForPeriod(0); // Día Actual
+            } catch (Exception e) {
+                LOGGER.log(Level.SEVERE, "Error recargando datos al activar panel", e);
+            }
+        });
     }
     
     @Override
