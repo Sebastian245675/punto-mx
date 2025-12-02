@@ -135,7 +135,7 @@ public class JAuthPanel extends javax.swing.JPanel {
             LOGGER.log(Level.WARNING, "Error al cargar usuarios recientes", e);
         }
     }
-    
+
     /**
      * Guarda un usuario en el historial
      */
@@ -143,18 +143,18 @@ public class JAuthPanel extends javax.swing.JPanel {
         if (username == null || username.trim().isEmpty()) {
             return;
         }
-        
+
         try {
             // Remover si ya existe
             recentUsers.remove(username.trim());
             // Agregar al inicio
             recentUsers.add(0, username.trim());
-            
+
             // Limitar a 10 usuarios
             if (recentUsers.size() > 10) {
                 recentUsers = recentUsers.subList(0, 10);
             }
-            
+
             // Guardar en preferencias
             try {
                 com.openbravo.pos.forms.AppConfig config = com.openbravo.pos.forms.AppConfig.getInstance();
@@ -220,12 +220,12 @@ public class JAuthPanel extends javax.swing.JPanel {
             usernameCombo.setBackground(Color.WHITE);
             usernameCombo.setForeground(new Color(17, 24, 39));
             usernameCombo.setOpaque(true);
-            
+
             // Agregar usuarios recientes
             for (String user : recentUsers) {
                 usernameCombo.addItem(user);
             }
-            
+
             // Configurar el editor para que funcione como campo de texto
             javax.swing.JTextField editor = (javax.swing.JTextField) usernameCombo.getEditor().getEditorComponent();
             editor.setBorder(BorderFactory.createCompoundBorder(
@@ -234,7 +234,7 @@ public class JAuthPanel extends javax.swing.JPanel {
             editor.setBackground(Color.WHITE);
             editor.setForeground(new Color(17, 24, 39));
             editor.setOpaque(true);
-            
+
             // Efecto de foco simple
             editor.addFocusListener(new java.awt.event.FocusAdapter() {
                 @Override
@@ -243,6 +243,7 @@ public class JAuthPanel extends javax.swing.JPanel {
                             BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
                             BorderFactory.createEmptyBorder(11, 14, 11, 14)));
                 }
+
                 @Override
                 public void focusLost(java.awt.event.FocusEvent e) {
                     editor.setBorder(BorderFactory.createCompoundBorder(
@@ -250,7 +251,7 @@ public class JAuthPanel extends javax.swing.JPanel {
                             BorderFactory.createEmptyBorder(12, 15, 12, 15)));
                 }
             });
-            
+
             editor.addKeyListener(new KeyAdapter() {
                 @Override
                 public void keyPressed(KeyEvent e) {
@@ -259,42 +260,43 @@ public class JAuthPanel extends javax.swing.JPanel {
                     }
                 }
             });
-            
+
             txtUsername = editor; // Usar el editor como txtUsername
         } else {
             // Si no hay usuarios recientes, usar campo de texto normal
-        txtUsername = new JTextField(30);
-        txtUsername.setFont(new Font("Segoe UI", Font.PLAIN, 15));
-        txtUsername.setBorder(BorderFactory.createCompoundBorder(
+            txtUsername = new JTextField(30);
+            txtUsername.setFont(new Font("Segoe UI", Font.PLAIN, 15));
+            txtUsername.setBorder(BorderFactory.createCompoundBorder(
                     BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                BorderFactory.createEmptyBorder(12, 15, 12, 15)));
+                    BorderFactory.createEmptyBorder(12, 15, 12, 15)));
             txtUsername.setBackground(Color.WHITE);
             txtUsername.setForeground(new Color(17, 24, 39));
             txtUsername.setOpaque(true);
-            
-        txtUsername.addFocusListener(new java.awt.event.FocusAdapter() {
-            @Override
-            public void focusGained(java.awt.event.FocusEvent e) {
-                txtUsername.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-                        BorderFactory.createEmptyBorder(11, 14, 11, 14)));
-            }
-            @Override
-            public void focusLost(java.awt.event.FocusEvent e) {
-                txtUsername.setBorder(BorderFactory.createCompoundBorder(
-                            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                        BorderFactory.createEmptyBorder(12, 15, 12, 15)));
-            }
-        });
 
-        txtUsername.addKeyListener(new KeyAdapter() {
-            @Override
-            public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    txtPassword.requestFocus();
+            txtUsername.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusGained(java.awt.event.FocusEvent e) {
+                    txtUsername.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
+                            BorderFactory.createEmptyBorder(11, 14, 11, 14)));
                 }
-            }
-        });
+
+                @Override
+                public void focusLost(java.awt.event.FocusEvent e) {
+                    txtUsername.setBorder(BorderFactory.createCompoundBorder(
+                            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                            BorderFactory.createEmptyBorder(12, 15, 12, 15)));
+                }
+            });
+
+            txtUsername.addKeyListener(new KeyAdapter() {
+                @Override
+                public void keyPressed(KeyEvent e) {
+                    if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+                        txtPassword.requestFocus();
+                    }
+                }
+            });
         }
 
         gbc.gridx = 0;
@@ -337,6 +339,7 @@ public class JAuthPanel extends javax.swing.JPanel {
                         BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
                         BorderFactory.createEmptyBorder(11, 14, 11, 14)));
             }
+
             @Override
             public void focusLost(java.awt.event.FocusEvent e) {
                 txtPassword.setBorder(BorderFactory.createCompoundBorder(

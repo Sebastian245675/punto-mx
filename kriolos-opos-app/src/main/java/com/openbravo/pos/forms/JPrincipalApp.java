@@ -57,33 +57,36 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_appuser = appuser;
 
         m_dlSystem = (DataLogicSystem) m_appview.getBean("com.openbravo.pos.forms.DataLogicSystem");
-        
-        // IMPORTANTE: Inicializar roles predeterminados ANTES de cargar permisos del usuario
+
+        // IMPORTANTE: Inicializar roles predeterminados ANTES de cargar permisos del
+        // usuario
         try {
             System.out.println("=== INICIALIZANDO ROLES AL INICIO DE LA APP ===");
-            com.openbravo.pos.admin.DataLogicAdmin dlAdmin = 
-                (com.openbravo.pos.admin.DataLogicAdmin) m_appview.getBean("com.openbravo.pos.admin.DataLogicAdmin");
+            com.openbravo.pos.admin.DataLogicAdmin dlAdmin = (com.openbravo.pos.admin.DataLogicAdmin) m_appview
+                    .getBean("com.openbravo.pos.admin.DataLogicAdmin");
             com.openbravo.pos.admin.DefaultRolesInitializer.initializeDefaultRoles(dlAdmin.getSession());
             System.out.println("=== ROLES INICIALIZADOS CORRECTAMENTE ===");
         } catch (Exception ex) {
             System.err.println("ERROR al inicializar roles: " + ex.getMessage());
             ex.printStackTrace();
         }
-        
+
         AppUserPermissionsLoader aupLoader = new AppUserPermissionsLoader(m_dlSystem);
-        
+
         // Convertir ID de rol a nombre de rol para compatibilidad
         String roleName = mapRoleIdToName(m_appuser.getRole());
-        System.out.println("Usuario: " + m_appuser.getName() + " | Rol ID: " + m_appuser.getRole() + " | Rol Nombre: " + roleName);
-        
+        System.out.println(
+                "Usuario: " + m_appuser.getName() + " | Rol ID: " + m_appuser.getRole() + " | Rol Nombre: " + roleName);
+
         Set<String> userPermissions = aupLoader.getPermissionsForRole(roleName);
-        
-        // Sebastian - TEMPORAL: Agregar permiso de gráficos manualmente hasta que se arregle el BLOB
+
+        // Sebastian - TEMPORAL: Agregar permiso de gráficos manualmente hasta que se
+        // arregle el BLOB
         if ("ADMIN".equals(roleName) || "1".equals(m_appuser.getRole())) {
             userPermissions.add("com.openbravo.pos.reports.JPanelGraphics");
             System.out.println("✓ Permiso de Gráficos agregado manualmente al admin");
         }
-        
+
         m_appuser.fillPermissions(userPermissions);
 
         initComponents();
@@ -94,7 +97,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_principalnotificator.setText(m_appuser.getName());
         m_principalnotificator.setIcon(m_appuser.getIcon());
 
-        //MENU SIDE
+        // MENU SIDE
         colapseHPanel.add(Box.createVerticalStrut(50), 0);
         m_jPanelMenu.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
         rMenu = new JRootMenu(this, this);
@@ -102,7 +105,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         setMenuIcon();
         assignMenuButtonIcon();
 
-        //MAIN 
+        // MAIN
         m_jPanelTitle.setVisible(false);
         m_jPanelTitle.setPreferredSize(new java.awt.Dimension(0, 0)); // Sin tamaño cuando está oculto
         m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
@@ -159,6 +162,42 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
     @Override
     public void exitToLogin() {
+        // Sebastian - Verificar si hay turno abierto
+        if (m_appview.getActiveCashDateEnd() == null && m_appview.getActiveCashIndex() != null) {
+            int opcion = JOptionPane.showOptionDialog(
+                    this,
+                    "Tienes un turno abierto.\n¿Deseas cerrar el turno antes de salir?",
+                    "Cerrar Sesión",
+                    JOptionPane.YES_NO_CANCEL_OPTION,
+                    JOptionPane.QUESTION_MESSAGE,
+                    null,
+                    new Object[] { "Cerrar Turno", "Solo Salir", "Cancelar" },
+                    "Cerrar Turno");
+
+            if (opcion == 0) { // Cerrar Turno
+                java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
+                java.awt.Frame parentFrame = null;
+                if (parentWindow instanceof java.awt.Frame) {
+                    parentFrame = (java.awt.Frame) parentWindow;
+                } else if (parentWindow instanceof java.awt.Dialog) {
+                    parentFrame = (java.awt.Frame) ((java.awt.Dialog) parentWindow).getParent();
+                }
+
+                JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_appview);
+                dialog.setVisible(true);
+
+                if (dialog.isClosed() && dialog.shouldCloseShift()) {
+                    m_appview.closeAppView();
+                }
+                return;
+
+            } else if (opcion == 1) { // Solo Salir
+                m_appview.closeAppView();
+            }
+            // Cancelar -> No hacer nada
+            return;
+        }
+
         m_appview.closeAppView();
     }
 
@@ -206,7 +245,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 if (!rMenu.getViewManager().checkIfLastView(viewPanel)) {
 
                     if (rMenu.getViewManager().getLastView() != null) {
-                        LOGGER.info("Call 'deactivate' on class: " + rMenu.getViewManager().getLastView().getClass().getName());
+                        LOGGER.info("Call 'deactivate' on class: "
+                                + rMenu.getViewManager().getLastView().getClass().getName());
                         rMenu.getViewManager().getLastView().deactivate();
                     }
 
@@ -226,12 +266,15 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     if (sTitle != null && !sTitle.isBlank()) {
                         m_jPanelTitle.setVisible(true);
                         m_jPanelTitle.setPreferredSize(null); // Restaurar tamaño normal
-                        m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE)); // Restaurar tamaño máximo
+                        m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, Integer.MAX_VALUE)); // Restaurar
+                                                                                                                    // tamaño
+                                                                                                                    // máximo
                         m_jTitle.setText(sTitle);
                     } else {
                         m_jPanelTitle.setVisible(false);
                         m_jPanelTitle.setPreferredSize(new java.awt.Dimension(0, 0)); // Sin tamaño cuando está oculto
-                        m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
+                        m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando
+                                                                                                    // está oculto
                         m_jTitle.setText("");
                     }
                 } else {
@@ -242,7 +285,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 LOGGER.log(Level.INFO, "NO PERMISSION on call class: : " + sTaskClass);
                 JMessageDialog.showMessage(this,
                         new MessageInf(MessageInf.SGN_WARNING,
-                                AppLocal.getIntString("message.notpermissions"), "<html>"+sTaskClass));
+                                AppLocal.getIntString("message.notpermissions"), "<html>" + sTaskClass));
             }
             m_appview.waitCursorEnd();
         } catch (Exception e) {
@@ -288,7 +331,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         m_jPanelLefSide = new javax.swing.JPanel();
@@ -332,19 +376,19 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         javax.swing.GroupLayout colapseHPanelLayout = new javax.swing.GroupLayout(colapseHPanel);
         colapseHPanel.setLayout(colapseHPanelLayout);
         colapseHPanelLayout.setHorizontalGroup(
-            colapseHPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, colapseHPanelLayout.createSequentialGroup()
-                .addGap(0, 0, 0)
-                .addComponent(colapseButton, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap())
-        );
+                colapseHPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, colapseHPanelLayout
+                                .createSequentialGroup()
+                                .addGap(0, 0, 0)
+                                .addComponent(colapseButton, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addContainerGap()));
         colapseHPanelLayout.setVerticalGroup(
-            colapseHPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(colapseHPanelLayout.createSequentialGroup()
-                .addContainerGap(88, Short.MAX_VALUE)
-                .addComponent(colapseButton, javax.swing.GroupLayout.DEFAULT_SIZE, 33, Short.MAX_VALUE)
-                .addContainerGap(188, Short.MAX_VALUE))
-        );
+                colapseHPanelLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(colapseHPanelLayout.createSequentialGroup()
+                                .addContainerGap(88, Short.MAX_VALUE)
+                                .addComponent(colapseButton, javax.swing.GroupLayout.DEFAULT_SIZE, 33, Short.MAX_VALUE)
+                                .addContainerGap(188, Short.MAX_VALUE)));
 
         m_jPanelLefSide.add(colapseHPanel, java.awt.BorderLayout.LINE_END);
 
@@ -354,141 +398,134 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         m_jPanelRightSide.setPreferredSize(new java.awt.Dimension(200, 40));
         m_jPanelRightSide.setLayout(new java.awt.BorderLayout());
-        
-        // Sebastian - Crear barra horizontal superior con TODOS los botones del menú (estilo eleventa)
+
+        // Sebastian - Crear barra horizontal superior con TODOS los botones del menú
+        // (estilo eleventa)
         // Panel contenedor principal con BorderLayout para mantener botón cerrar fijo
         javax.swing.JPanel topMenuBar = new javax.swing.JPanel(new java.awt.BorderLayout(5, 0));
-        topMenuBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)); // Reducir padding vertical (2px en lugar de 5px)
+        topMenuBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)); // Reducir padding vertical (2px
+                                                                                       // en lugar de 5px)
         topMenuBar.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
         topMenuBar.setMinimumSize(new java.awt.Dimension(0, 30)); // Altura mínima reducida (25px botón + padding)
-        topMenuBar.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura máxima fija para una sola línea
-        
+        topMenuBar.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura máxima fija para una sola
+                                                                                  // línea
+
         // Panel izquierdo con todos los botones del menú
         javax.swing.JPanel leftMenuPanel = new javax.swing.JPanel();
-        leftMenuPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 3, 2)); // Espaciado horizontal reducido para diseño compacto
+        leftMenuPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 3, 2)); // Espaciado horizontal
+                                                                                          // reducido para diseño
+                                                                                          // compacto
         leftMenuPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
         leftMenuPanel.setOpaque(false);
-        
+
         // Panel derecho con puntos del cliente y botón cerrar
         javax.swing.JPanel rightPanel = new javax.swing.JPanel();
         rightPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 3, 2));
         rightPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
         rightPanel.setOpaque(false);
-        
+
         // ========== MENU.MAIN - Elementos principales ==========
         // Botón Ventas (Menu.Ticket)
         javax.swing.JButton btnVentas = createMenuButton(
-            "/com/openbravo/images/sale.png",
-            AppLocal.getIntString("Menu.Ticket"),
-            "com.openbravo.pos.sales.JPanelTicketSales"
-        );
+                "/com/openbravo/images/sale.png",
+                AppLocal.getIntString("Menu.Ticket"),
+                "com.openbravo.pos.sales.JPanelTicketSales");
         leftMenuPanel.add(btnVentas);
-        
+
         // Botón Pagos de Clientes (Menu.CustomersPayment)
         javax.swing.JButton btnPagosClientes = createMenuButton(
-            "/com/openbravo/images/customerpay.png",
-            AppLocal.getIntString("Menu.CustomersPayment"),
-            "com.openbravo.pos.customers.CustomersPayment"
-        );
+                "/com/openbravo/images/customerpay.png",
+                AppLocal.getIntString("Menu.CustomersPayment"),
+                "com.openbravo.pos.customers.CustomersPayment");
         leftMenuPanel.add(btnPagosClientes);
-        
+
         // Botón Cierre de Caja (Menu.CloseTPV)
         javax.swing.JButton btnCierre = createMenuButton(
-            "/com/openbravo/images/calculator.png",
-            AppLocal.getIntString("Menu.CloseTPV"),
-            "com.openbravo.pos.panels.JPanelCloseMoney"
-        );
+                "/com/openbravo/images/calculator.png",
+                AppLocal.getIntString("Menu.CloseTPV"),
+                "com.openbravo.pos.panels.JPanelCloseMoney");
         leftMenuPanel.add(btnCierre);
-        
+
         // Botón Gestión de Sucursales (Menu.BranchesManagement)
         javax.swing.JButton btnSucursales = createMenuButton(
-            "/com/openbravo/images/user.png",
-            AppLocal.getIntString("Menu.BranchesManagement"),
-            "com.openbravo.pos.branches.JPanelBranchesManagement"
-        );
+                "/com/openbravo/images/user.png",
+                AppLocal.getIntString("Menu.BranchesManagement"),
+                "com.openbravo.pos.branches.JPanelBranchesManagement");
         leftMenuPanel.add(btnSucursales);
-        
+
         // ========== MENU.BACKOFFICE - Submenús ==========
         // Botón Clientes (Menu.Customers - submenu)
         javax.swing.JButton btnClientes = createMenuButton(
-            "/com/openbravo/images/customer.png",
-            AppLocal.getIntString("Menu.Customers"),
-            "com.openbravo.pos.forms.MenuCustomers"
-        );
+                "/com/openbravo/images/customer.png",
+                AppLocal.getIntString("Menu.Customers"),
+                "com.openbravo.pos.forms.MenuCustomers");
         leftMenuPanel.add(btnClientes);
-        
+
         // Botón Proveedores (Menu.Suppliers - submenu)
         javax.swing.JButton btnProveedores = createMenuButton(
-            "/com/openbravo/images/stockmaint.png",
-            AppLocal.getIntString("Menu.Suppliers"),
-            "com.openbravo.pos.forms.MenuSuppliers"
-        );
+                "/com/openbravo/images/stockmaint.png",
+                AppLocal.getIntString("Menu.Suppliers"),
+                "com.openbravo.pos.forms.MenuSuppliers");
         leftMenuPanel.add(btnProveedores);
-        
+
         // Botón Gestión de Inventario (Menu.StockManagement - submenu)
         javax.swing.JButton btnInventario = createMenuButton(
-            "/com/openbravo/images/products.png",
-            AppLocal.getIntString("Menu.StockManagement"),
-            "com.openbravo.pos.forms.MenuStockManagement"
-        );
+                "/com/openbravo/images/products.png",
+                AppLocal.getIntString("Menu.StockManagement"),
+                "com.openbravo.pos.forms.MenuStockManagement");
         leftMenuPanel.add(btnInventario);
-        
+
         // Botón Gestión de Ventas (Menu.SalesManagement - submenu)
         javax.swing.JButton btnVentasManagement = createMenuButton(
-            "/com/openbravo/images/sales.png",
-            AppLocal.getIntString("Menu.SalesManagement"),
-            "com.openbravo.pos.forms.MenuSalesManagement"
-        );
+                "/com/openbravo/images/sales.png",
+                AppLocal.getIntString("Menu.SalesManagement"),
+                "com.openbravo.pos.forms.MenuSalesManagement");
         leftMenuPanel.add(btnVentasManagement);
-        
+
         // Botón Mantenimiento (Menu.Maintenance - submenu)
         javax.swing.JButton btnMantenimiento = createMenuButton(
-            "/com/openbravo/images/maintain.png",
-            AppLocal.getIntString("Menu.Maintenance"),
-            "com.openbravo.pos.forms.MenuMaintenance"
-        );
+                "/com/openbravo/images/maintain.png",
+                AppLocal.getIntString("Menu.Maintenance"),
+                "com.openbravo.pos.forms.MenuMaintenance");
         leftMenuPanel.add(btnMantenimiento);
-        
+
         // Botón Gestión de Presencia (Menu.PresenceManagement - submenu)
         javax.swing.JButton btnPresencia = createMenuButton(
-            "/com/openbravo/images/users.png",
-            AppLocal.getIntString("Menu.PresenceManagement"),
-            "com.openbravo.pos.forms.MenuEmployees"
-        );
+                "/com/openbravo/images/users.png",
+                AppLocal.getIntString("Menu.PresenceManagement"),
+                "com.openbravo.pos.forms.MenuEmployees");
         leftMenuPanel.add(btnPresencia);
-        
+
         // ========== MENU.UTILITIES ==========
         // Botón Herramientas (Menu.Tools - submenu)
         javax.swing.JButton btnHerramientas = createMenuButton(
-            "/com/openbravo/images/utilities.png",
-            AppLocal.getIntString("Menu.Tools"),
-            "com.openbravo.pos.imports.JPanelCSV"
-        );
+                "/com/openbravo/images/utilities.png",
+                AppLocal.getIntString("Menu.Tools"),
+                "com.openbravo.pos.imports.JPanelCSV");
         leftMenuPanel.add(btnHerramientas);
-        
+
         // ========== MENU.SYSTEM ==========
         // Botón Cambiar Contraseña movido a Configuración > General
-        
+
         // Botón Configuración (Menu.Configuration)
         javax.swing.JButton btnConfig = createMenuButton(
-            "/com/openbravo/images/configuration.png",
-            AppLocal.getIntString("Menu.Configuration"),
-            "com.openbravo.pos.config.JPanelConfiguration"
-        );
+                "/com/openbravo/images/configuration.png",
+                AppLocal.getIntString("Menu.Configuration"),
+                "com.openbravo.pos.config.JPanelConfiguration");
         leftMenuPanel.add(btnConfig);
-        
+
         // Botón Impresora (Menu.Printer)
         javax.swing.JButton btnImpresora = createMenuButton(
-            "/com/openbravo/images/printer.png",
-            AppLocal.getIntString("Menu.Printer"),
-            "com.openbravo.pos.panels.JPanelPrinter"
-        );
+                "/com/openbravo/images/printer.png",
+                AppLocal.getIntString("Menu.Printer"),
+                "com.openbravo.pos.panels.JPanelPrinter");
         leftMenuPanel.add(btnImpresora);
-        
+
         // Botón Reportes (Menu.Reports) - Con icono como en la imagen
         javax.swing.JButton btnReportes = new javax.swing.JButton();
         try {
-            javax.swing.ImageIcon iconReportes = new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reports.png"));
+            javax.swing.ImageIcon iconReportes = new javax.swing.ImageIcon(
+                    getClass().getResource("/com/openbravo/images/reports.png"));
             btnReportes.setIcon(iconReportes);
         } catch (Exception e) {
             // Si no existe el icono, continuar sin él
@@ -510,7 +547,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             }
         });
         leftMenuPanel.add(btnReportes);
-        
+
         // Sebastian - Label de puntos del cliente (al lado del botón Salir)
         m_jCustomerPoints = new javax.swing.JLabel();
         m_jCustomerPoints.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
@@ -523,7 +560,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jCustomerPoints.setForeground(java.awt.Color.BLACK);
         m_jCustomerPoints.setVisible(false); // Inicialmente oculto
         rightPanel.add(m_jCustomerPoints);
-        
+
         // Botón Salir (Menu.Exit) - Siempre fijo al final
         javax.swing.JButton btnSalir = new javax.swing.JButton();
         // Icono removido para diseño compacto
@@ -542,11 +579,11 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             }
         });
         rightPanel.add(btnSalir);
-        
+
         // Agregar paneles al topMenuBar principal
         topMenuBar.add(leftMenuPanel, java.awt.BorderLayout.WEST);
         topMenuBar.add(rightPanel, java.awt.BorderLayout.EAST);
-        
+
         // Altura fija para una sola línea con botones compactos
         topMenuBar.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura fija para una línea
 
@@ -557,14 +594,19 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         m_jTitle.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
         m_jTitle.setForeground(new java.awt.Color(0, 168, 223));
-        m_jTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, java.awt.Color.darkGray), javax.swing.BorderFactory.createEmptyBorder(2, 10, 2, 10))); // Reducir padding vertical (2px en lugar de 10px)
+        m_jTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, java.awt.Color.darkGray),
+                javax.swing.BorderFactory.createEmptyBorder(2, 10, 2, 10))); // Reducir padding vertical (2px en lugar
+                                                                             // de 10px)
         m_jTitle.setMaximumSize(new java.awt.Dimension(100, 28)); // Reducir altura máxima aún más
         m_jTitle.setMinimumSize(new java.awt.Dimension(30, 24));
         m_jTitle.setPreferredSize(new java.awt.Dimension(100, 28)); // Reducir altura preferida (28px)
         m_jPanelTitle.add(m_jTitle, java.awt.BorderLayout.NORTH);
-        
-        // Sebastian - Agregar barra de menú horizontal arriba del título (con múltiples filas automáticas)
-        // Usar BoxLayout vertical para permitir que el panel de botones se expanda correctamente
+
+        // Sebastian - Agregar barra de menú horizontal arriba del título (con múltiples
+        // filas automáticas)
+        // Usar BoxLayout vertical para permitir que el panel de botones se expanda
+        // correctamente
         javax.swing.JPanel topContainer = new javax.swing.JPanel();
         topContainer.setLayout(new javax.swing.BoxLayout(topContainer, javax.swing.BoxLayout.Y_AXIS));
         topContainer.setBorder(null); // Sin borde
@@ -574,7 +616,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         topContainer.add(m_jPanelTitle); // Sin espacio entre barra y título
         // Asegurar que el contenedor respete el tamaño preferido del panel de botones
         topContainer.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
-        // No forzar tamaño preferido para evitar espacio cuando m_jPanelTitle está oculto
+        // No forzar tamaño preferido para evitar espacio cuando m_jPanelTitle está
+        // oculto
         // El tamaño se calculará automáticamente basado en los componentes visibles
 
         m_jPanelRightSide.add(topContainer, java.awt.BorderLayout.NORTH);
@@ -586,11 +629,11 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         add(m_jPanelRightSide, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void colapseButtonActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_colapseButtonActionPerformed
+    private void colapseButtonActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_colapseButtonActionPerformed
 
-    setMenuVisible(!m_jPanelMenu.isVisible());
+        setMenuVisible(!m_jPanelMenu.isVisible());
 
-}//GEN-LAST:event_colapseButtonActionPerformed
+    }// GEN-LAST:event_colapseButtonActionPerformed
 
     /**
      * Método helper para crear botones del menú de forma consistente
@@ -618,17 +661,18 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     }
 
     /**
-     * Convierte el ID del rol (0, 1, 2, 3...) al nombre del rol (ADMIN, MANAGER, Employee)
+     * Convierte el ID del rol (0, 1, 2, 3...) al nombre del rol (ADMIN, MANAGER,
+     * Employee)
      * para compatibilidad con el sistema de permisos
      */
     private String mapRoleIdToName(String roleId) {
         if (roleId == null || roleId.trim().isEmpty()) {
             return "Employee"; // Por defecto
         }
-        
+
         switch (roleId.trim()) {
             case "0":
-            case "1":  // rol = 1 son admins según la tabla usuarios
+            case "1": // rol = 1 son admins según la tabla usuarios
                 return "ADMIN";
             case "2":
                 return "MANAGER";
@@ -636,7 +680,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 return "Employee";
             default:
                 // Si ya es un nombre de rol, devolverlo tal cual
-                if (roleId.equalsIgnoreCase("ADMIN") || roleId.equalsIgnoreCase("MANAGER") || roleId.equalsIgnoreCase("Employee")) {
+                if (roleId.equalsIgnoreCase("ADMIN") || roleId.equalsIgnoreCase("MANAGER")
+                        || roleId.equalsIgnoreCase("Employee")) {
                     return roleId.substring(0, 1).toUpperCase() + roleId.substring(1).toLowerCase();
                 }
                 return roleId; // Rol personalizado
@@ -655,7 +700,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     // Sebastian - Label de puntos del cliente en la barra superior
     private javax.swing.JLabel m_jCustomerPoints;
     // End of variables declaration//GEN-END:variables
-    
+
     /**
      * Sebastian - Método público para actualizar el label de puntos del cliente
      */

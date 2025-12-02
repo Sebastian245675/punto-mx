@@ -27,7 +27,7 @@ import javax.swing.Icon;
  * @author poolborges (update: 2025-10-01)
  */
 public class AppUser {
-    
+
     private final String id;
     private final String username;
     private final String card;
@@ -44,8 +44,7 @@ public class AppUser {
         this.card = card;
         this.role = role;
         this.icon = icon;
-        
-        
+
         // DEFAULT Permissions for all users
         permissions.add("com.openbravo.pos.forms.JPanelMenu");
         permissions.add("Menu.Exit");
