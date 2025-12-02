@@ -479,7 +479,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         }
         
         try {
-            // Actualizar información del turno
+            // Actualizar HTML si existe el viewer
+            if (m_htmlViewer != null) {
+                String htmlContent = generateHTMLContent();
+                m_htmlViewer.setText(htmlContent);
+            }
+            
+            // Mantener compatibilidad con componentes Swing antiguos si existen
             if (m_jShiftInfoLabel != null) {
                 String userName = m_PaymentsToClose.getUser();
                 String dateStart = m_PaymentsToClose.printDateStart();
@@ -1584,14 +1590,68 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     double totalDayPayments = 0.0;
                     java.util.Map<String, ConsolidatedProduct> consolidatedProducts = new java.util.HashMap<>();
 
-                    // Consolidar productos directamente desde los turnos obtenidos
-                    if (allShifts != null) {
+                    // Consolidar productos por DEPARTAMENTO (categoría) en lugar de por producto individual
+                    // Primero, obtener las ventas agrupadas por categoría directamente desde la base de datos
+                    java.util.Map<String, ConsolidatedProduct> categoryConsolidatedProducts = new java.util.HashMap<>();
+                    
+                    if (allShifts != null && !allShifts.isEmpty()) {
+                        try {
+                            Session session = m_App.getSession();
+                            // Obtener todas las MONEY de los turnos del día
+                            java.util.List<String> moneyList = new java.util.ArrayList<>();
                         for (ShiftData shift : allShifts) {
-                            totalDaySales += shift.getTotalSales();
-                            totalDayPayments += shift.getTotalPayments();
-                            LOGGER.info("Procesando productos del turno #" + shift.getSequence() + " - Total productos: " + shift.getProductLines().size());
+                                if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                                    moneyList.add(shift.getMoney());
+                                }
+                            }
                             
-                            // Consolidar productos de este turno
+                            if (!moneyList.isEmpty()) {
+                                // Consulta SQL para obtener ventas agrupadas por categoría (departamento)
+                                // Para cada MONEY, obtener las ventas por categoría
+                                for (String money : moneyList) {
+                                    java.util.List<CategorySalesData> categorySales = new StaticSentence(session,
+                                        "SELECT COALESCE(categories.NAME, 'Sin Departamento') as CATEGORY_NAME, " +
+                                        "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
+                                        "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE) * ticketlines.UNITS) as TOTAL_VALUE " +
+                                        "FROM ticketlines " +
+                                        "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                                        "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                                        "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                                        "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
+                                        "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                                        "WHERE receipts.MONEY = ? " +
+                                        "GROUP BY COALESCE(categories.NAME, 'Sin Departamento')",
+                                        SerializerWriteString.INSTANCE,
+                                        new SerializerReadClass(CategorySalesData.class))
+                                        .list(money);
+                                    
+                                    if (categorySales != null) {
+                                        for (CategorySalesData catSale : categorySales) {
+                                            String categoryName = catSale.getCategoryName();
+                                            if (categoryName == null || categoryName.trim().isEmpty()) {
+                                                categoryName = "Sin Departamento";
+                                            }
+                                            
+                                            ConsolidatedProduct consolidated = categoryConsolidatedProducts.get(categoryName);
+                                            if (consolidated == null) {
+                                                consolidated = new ConsolidatedProduct(categoryName);
+                                                categoryConsolidatedProducts.put(categoryName, consolidated);
+                                            }
+                                            
+                                            double units = catSale.getTotalUnits() != null ? catSale.getTotalUnits() : 0.0;
+                                            double totalValue = catSale.getTotalValue() != null ? catSale.getTotalValue() : 0.0;
+                                            
+                                            consolidated.addUnits(units);
+                                            consolidated.addTotal(totalValue);
+                                            LOGGER.info("Consolidated category from MONEY " + money + ": " + categoryName + " - Units: " + units + " - Value: " + totalValue);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (Exception e) {
+                            LOGGER.log(Level.WARNING, "Error consolidando por categoría, usando método anterior: " + e.getMessage(), e);
+                            // Fallback: consolidar por producto si falla la consulta por categoría
+                            for (ShiftData shift : allShifts) {
                             for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
                                 String productName = product.getProductName();
                                 if (productName == null || productName.trim().isEmpty()) continue;
@@ -1609,8 +1669,22 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                                 
                                 consolidated.addUnits(units);
                                 consolidated.addTotal(totalValue);
-                                LOGGER.info("Consolidated product from shift #" + shift.getSequence() + ": " + productName + " - Units: " + units + " - Value: " + totalValue);
+                                }
                             }
+                        }
+                        
+                        // Calcular totales del día
+                        for (ShiftData shift : allShifts) {
+                            totalDaySales += shift.getTotalSales();
+                            totalDayPayments += shift.getTotalPayments();
+                        }
+                        
+                        // Usar productos consolidados por categoría si están disponibles
+                        if (!categoryConsolidatedProducts.isEmpty()) {
+                            consolidatedProducts = categoryConsolidatedProducts;
+                            LOGGER.info("Usando consolidación por DEPARTAMENTO: " + consolidatedProducts.size() + " departamentos");
+                        } else {
+                            LOGGER.info("Usando consolidación por PRODUCTO (fallback): " + consolidatedProducts.size() + " productos");
                         }
                     }
                     
@@ -1641,7 +1715,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         }
                     } else {
                         productosText.append("<line>\n");
-                        productosText.append("    <text align=\"left\" length=\"42\">Sin productos vendidos</text>\n");
+                        productosText.append("    <text align=\"left\" length=\"42\">Sin ventas por departamento</text>\n");
                         productosText.append("</line>\n");
                     }
                     
@@ -1828,10 +1902,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                                 try {
                                     StringBuilder appendSection = new StringBuilder();
                                     appendSection.append("\n<line size=\"1\">\n");
-                                    appendSection.append("    <text align =\"center\" bold=\"true\" length=\"42\">PRODUCTOS VENDIDOS DEL DÍA</text>\n");
+                                    appendSection.append("    <text align =\"center\" bold=\"true\" length=\"42\">VENTAS POR DEPARTAMENTO</text>\n");
                                     appendSection.append("</line>\n");
                                     appendSection.append("<line>\n");
-                                    appendSection.append("   <text align =\"left\" bold=\"true\" length=\"25\">Producto</text>\n");
+                                    appendSection.append("   <text align =\"left\" bold=\"true\" length=\"25\">Departamento</text>\n");
                                     appendSection.append("   <text align =\"right\" bold=\"true\" length=\"8\">Cantidad</text>\n");
                                     appendSection.append("   <text align =\"right\" bold=\"true\" length=\"9\">Total</text>\n");
                                     appendSection.append("</line>\n");
@@ -2114,6 +2188,69 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             double totalDayCashIn = 0.0;
             double totalDayCashOut = 0.0;
             
+            // Consolidar productos por DEPARTAMENTO para todo el día
+            java.util.Map<String, ConsolidatedProduct> dayCategoryConsolidated = new java.util.HashMap<>();
+            
+            try {
+                Session session = m_App.getSession();
+                // Obtener todas las MONEY de los turnos del día
+                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                for (ShiftData shift : allShifts) {
+                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                        moneyList.add(shift.getMoney());
+                    }
+                    totalDayInitialAmount += shift.getInitialAmount();
+                    totalDaySales += shift.getTotalSales();
+                    totalDayPayments += shift.getTotalPayments();
+                    totalDayCashIn += shift.getCashIn();
+                    totalDayCashOut += shift.getCashOut();
+                }
+                
+                // Obtener ventas agrupadas por departamento para todos los turnos del día
+                if (!moneyList.isEmpty()) {
+                    for (String money : moneyList) {
+                        java.util.List<CategorySalesData> categorySales = new StaticSentence(session,
+                            "SELECT COALESCE(categories.NAME, 'Sin Departamento') as CATEGORY_NAME, " +
+                            "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
+                            "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE) * ticketlines.UNITS) as TOTAL_VALUE " +
+                            "FROM ticketlines " +
+                            "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                            "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                            "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                            "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
+                            "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                            "WHERE receipts.MONEY = ? " +
+                            "GROUP BY COALESCE(categories.NAME, 'Sin Departamento')",
+                            SerializerWriteString.INSTANCE,
+                            new SerializerReadClass(CategorySalesData.class))
+                            .list(money);
+                        
+                        if (categorySales != null) {
+                            for (CategorySalesData catSale : categorySales) {
+                                String categoryName = catSale.getCategoryName();
+                                if (categoryName == null || categoryName.trim().isEmpty()) {
+                                    categoryName = "Sin Departamento";
+                                }
+                                
+                                ConsolidatedProduct consolidated = dayCategoryConsolidated.get(categoryName);
+                                if (consolidated == null) {
+                                    consolidated = new ConsolidatedProduct(categoryName);
+                                    dayCategoryConsolidated.put(categoryName, consolidated);
+                                }
+                                
+                                double units = catSale.getTotalUnits() != null ? catSale.getTotalUnits() : 0.0;
+                                double totalValue = catSale.getTotalValue() != null ? catSale.getTotalValue() : 0.0;
+                                
+                                consolidated.addUnits(units);
+                                consolidated.addTotal(totalValue);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error consolidando por departamento en generateDayCloseReportDirect: " + e.getMessage(), e);
+            }
+            
             // Construir el documento XML directamente
             StringBuilder xml = new StringBuilder();
             xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
@@ -2127,74 +2264,73 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             xml.append("    </line>\n");
             xml.append("    <line></line>\n");
             
-            // Procesar cada turno
+            // Mostrar información de turnos
             for (ShiftData shift : allShifts) {
-                totalDayInitialAmount += shift.getInitialAmount();
-                totalDaySales += shift.getTotalSales();
-                totalDayPayments += shift.getTotalPayments();
-                totalDayCashIn += shift.getCashIn();
-                totalDayCashOut += shift.getCashOut();
-                
-                // Calcular total del turno (fondo inicial + ventas + entradas - salidas)
-                double totalTurno = shift.getInitialAmount() + shift.getTotalSales() + shift.getCashIn() - shift.getCashOut();
-                
-                // Encabezado del turno
                 xml.append("    <line size=\"1\">\n");
                 xml.append("      <text align=\"center\" bold=\"true\" length=\"42\">TURNO ").append(shift.getSequence()).append(" - ").append(StringUtils.encodeXML(shift.getUserName())).append("</text>\n");
                 xml.append("    </line>\n");
-                xml.append("    <line><text>------------------------------------------</text></line>\n");
-                
-                // Productos vendidos del turno
-                xml.append("    <line size=\"1\">\n");
-                xml.append("      <text align=\"left\" bold=\"true\" length=\"42\">Productos Vendidos</text>\n");
+                xml.append("    <line>\n");
+                xml.append("      <text align=\"left\" length=\"42\">Inicio: ").append(shift.printDateStart()).append("</text>\n");
                 xml.append("    </line>\n");
                 xml.append("    <line>\n");
-                xml.append("      <text align=\"left\" bold=\"true\" length=\"25\">Producto</text>\n");
-                xml.append("      <text align=\"right\" bold=\"true\" length=\"8\">Cantidad</text>\n");
-                xml.append("      <text align=\"right\" bold=\"true\" length=\"9\">Total</text>\n");
+                xml.append("      <text align=\"left\" length=\"42\">Fin: ").append(shift.printDateEnd()).append("</text>\n");
                 xml.append("    </line>\n");
                 xml.append("    <line><text>------------------------------------------</text></line>\n");
+            }
+            
+            // Mostrar VENTAS POR DEPARTAMENTO del día completo (consolidadas de todos los turnos)
+            xml.append("    <line size=\"1\">\n");
+            xml.append("      <text align=\"center\" bold=\"true\" length=\"42\">VENTAS POR DEPARTAMENTO</text>\n");
+            xml.append("    </line>\n");
+            xml.append("    <line>\n");
+            xml.append("      <text align=\"left\" bold=\"true\" length=\"25\">Departamento</text>\n");
+            xml.append("      <text align=\"right\" bold=\"true\" length=\"8\">Cantidad</text>\n");
+            xml.append("      <text align=\"right\" bold=\"true\" length=\"9\">Total</text>\n");
+            xml.append("    </line>\n");
+            xml.append("    <line><text>------------------------------------------</text></line>\n");
+            
+            // Lista de departamentos consolidados
+            if (!dayCategoryConsolidated.isEmpty()) {
+                // Ordenar por nombre de departamento
+                java.util.List<ConsolidatedProduct> sortedCategories = new java.util.ArrayList<>(dayCategoryConsolidated.values());
+                java.util.Collections.sort(sortedCategories, (a, b) -> a.getName().compareTo(b.getName()));
                 
-                // Lista de productos
-                if (shift.getProductLines() != null && !shift.getProductLines().isEmpty()) {
-                    for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
-                        String productName = StringUtils.encodeXML(product.printProductName());
-                        if (productName.length() > 25) {
-                            productName = productName.substring(0, 22) + "...";
-                        }
-                        xml.append("    <line>\n");
-                        xml.append("      <text align=\"left\" length=\"25\">").append(productName).append("</text>\n");
-                        xml.append("      <text align=\"right\" length=\"8\">").append(product.printProductUnits()).append("</text>\n");
-                        xml.append("      <text align=\"right\" length=\"9\">").append(product.printProductSubValue()).append("</text>\n");
-                        xml.append("    </line>\n");
+                for (ConsolidatedProduct category : sortedCategories) {
+                    String categoryName = StringUtils.encodeXML(category.getName());
+                    if (categoryName.length() > 25) {
+                        categoryName = categoryName.substring(0, 22) + "...";
                     }
-                } else {
                     xml.append("    <line>\n");
-                    xml.append("      <text align=\"left\" length=\"42\">Sin productos vendidos</text>\n");
+                    xml.append("      <text align=\"left\" length=\"25\">").append(categoryName).append("</text>\n");
+                    xml.append("      <text align=\"right\" length=\"8\">").append(category.printUnits()).append("</text>\n");
+                    xml.append("      <text align=\"right\" length=\"9\">").append(category.printTotal()).append("</text>\n");
                     xml.append("    </line>\n");
                 }
+            } else {
+                xml.append("    <line>\n");
+                xml.append("      <text align=\"left\" length=\"42\">Sin ventas por departamento</text>\n");
+                xml.append("    </line>\n");
+            }
+            
+            xml.append("    <line><text>------------------------------------------</text></line>\n");
+            
+            // Mostrar totales por turno
+            for (ShiftData shift : allShifts) {
+                // Calcular total del turno (fondo inicial + ventas + entradas - salidas)
+                double totalTurno = shift.getInitialAmount() + shift.getTotalSales() + shift.getCashIn() - shift.getCashOut();
                 
-                xml.append("    <line><text>------------------------------------------</text></line>\n");
-                
-                // Total de ventas del turno
+                xml.append("    <line size=\"1\">\n");
+                xml.append("      <text align=\"left\" bold=\"true\" length=\"42\">TURNO ").append(shift.getSequence()).append(" - Total Ventas:</text>\n");
+                xml.append("    </line>\n");
                 xml.append("    <line>\n");
                 xml.append("      <text align=\"left\" length=\"30\" bold=\"true\">Total de Turno:</text>\n");
                 xml.append("      <text align=\"right\" length=\"12\" bold=\"true\">").append(shift.printTotalSales()).append("</text>\n");
                 xml.append("    </line>\n");
-                
-                // Monto inicial del turno
                 xml.append("    <line>\n");
-                xml.append("      <text align=\"left\" length=\"30\" bold=\"true\">Monto Inicial del Turno:</text>\n");
+                xml.append("      <text align=\"left\" length=\"30\" bold=\"true\">Monto Inicial:</text>\n");
                 xml.append("      <text align=\"right\" length=\"12\" bold=\"true\">").append(shift.printInitialAmount()).append("</text>\n");
                 xml.append("    </line>\n");
-                
-                // Total del turno (monto inicial + ventas)
-                xml.append("    <line>\n");
-                xml.append("      <text align=\"left\" length=\"30\" bold=\"true\">Total del Turno:</text>\n");
-                xml.append("      <text align=\"right\" length=\"12\" bold=\"true\">").append(Formats.CURRENCY.formatValue(totalTurno)).append("</text>\n");
-                xml.append("    </line>\n");
-                xml.append("    <line></line>\n");
-                xml.append("    <line></line>\n");
+                xml.append("    <line><text>------------------------------------------</text></line>\n");
             }
             
             // Resumen total del día
@@ -2316,6 +2452,34 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         
         public String printCashOut() {
             return Formats.CURRENCY.formatValue(cashOut);
+        }
+    }
+    
+    /**
+     * Clase auxiliar para leer datos de ventas por categoría desde la base de datos
+     */
+    public static class CategorySalesData implements com.openbravo.data.loader.SerializableRead {
+        private String categoryName;
+        private Double totalUnits;
+        private Double totalValue;
+        
+        @Override
+        public void readValues(com.openbravo.data.loader.DataRead dr) throws com.openbravo.basic.BasicException {
+            categoryName = dr.getString(1);
+            totalUnits = dr.getDouble(2);
+            totalValue = dr.getDouble(3);
+        }
+        
+        public String getCategoryName() {
+            return categoryName;
+        }
+        
+        public Double getTotalUnits() {
+            return totalUnits;
+        }
+        
+        public Double getTotalValue() {
+            return totalValue;
         }
     }
     
@@ -2602,60 +2766,554 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private DefaultListModel<String> m_deptSalesListModel;
     
     /**
-     * Crea el diseño moderno basado en la imagen de referencia
+     * Crea el diseño moderno basado en la imagen de referencia usando HTML/CSS
      */
     private void createModernLayout() {
         setLayout(new BorderLayout());
-        setBackground(new Color(235, 235, 235)); // Fondo gris claro general
+        setBackground(Color.WHITE);
         
-        // Panel principal con scroll
-        JPanel mainPanel = new JPanel();
-        mainPanel.setLayout(new BoxLayout(mainPanel, BoxLayout.Y_AXIS));
-        mainPanel.setBackground(new Color(235, 235, 235)); // Fondo gris claro
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(0, 0, 20, 0)); // Sin padding superior
+        // Panel principal con HTML
+        JPanel mainPanel = new JPanel(new BorderLayout());
+        mainPanel.setBackground(Color.WHITE);
         
-        // Título y botones de acción
-        JPanel headerPanel = createHeaderPanel();
-        mainPanel.add(headerPanel);
-        mainPanel.add(Box.createVerticalStrut(15));
+        // Editor HTML para mostrar el contenido
+        JEditorPane htmlViewer = new JEditorPane();
+        htmlViewer.setContentType("text/html");
+        htmlViewer.setEditable(false);
+        htmlViewer.setBackground(Color.WHITE);
         
-        // Información del turno
-        JPanel shiftInfoPanel = createShiftInfoPanel();
-        mainPanel.add(shiftInfoPanel);
-        mainPanel.add(Box.createVerticalStrut(20));
+        // Generar HTML inicial
+        String htmlContent = generateHTMLContent();
+        htmlViewer.setText(htmlContent);
         
-        // Tarjetas de Ventas Totales y Ganancia
-        JPanel metricsPanel = createMetricsCards();
-        mainPanel.add(metricsPanel);
-        mainPanel.add(Box.createVerticalStrut(20));
+        // Guardar referencia para actualizar después
+        m_htmlViewer = htmlViewer;
         
-        // Sección Dinero en Caja
-        JPanel cashPanel = createCashSection();
-        mainPanel.add(cashPanel);
-        mainPanel.add(Box.createVerticalStrut(20));
-        
-        // Sección Ventas por tipo
-        JPanel salesTypePanel = createSalesTypeSection();
-        mainPanel.add(salesTypePanel);
-        mainPanel.add(Box.createVerticalStrut(20));
-        
-        // Sección Ingresos de contado
-        JPanel cashIncomePanel = createCashIncomeSection();
-        mainPanel.add(cashIncomePanel);
-        mainPanel.add(Box.createVerticalStrut(20));
-        
-        // Panel inferior con listas
-        JPanel bottomPanel = createBottomPanel();
-        mainPanel.add(bottomPanel);
-        
-        // Scroll pane para el contenido
-        JScrollPane scrollPane = new JScrollPane(mainPanel);
+        // Scroll pane
+        JScrollPane scrollPane = new JScrollPane(htmlViewer);
         scrollPane.setBorder(null);
-        scrollPane.getViewport().setBackground(new Color(235, 235, 235)); // Fondo gris claro
+        scrollPane.getViewport().setBackground(Color.WHITE);
         scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
         
-        add(scrollPane, BorderLayout.CENTER);
+        mainPanel.add(scrollPane, BorderLayout.CENTER);
+        
+        // Panel de botones en la parte superior
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 10));
+        buttonPanel.setBackground(Color.WHITE);
+        buttonPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        
+        // Botón Imprimir
+        JButton btnPrint = new JButton("Imprimir");
+        btnPrint.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnPrint.setPreferredSize(new Dimension(100, 30));
+        btnPrint.addActionListener(e -> {
+            try {
+                htmlViewer.print();
+            } catch (Exception ex) {
+                LOGGER.log(Level.SEVERE, "Error imprimiendo", ex);
+            }
+        });
+        buttonPanel.add(btnPrint);
+        
+        // Botón Cerrar turno
+        JButton btnCloseShift = new JButton("Cerrar turno...");
+        btnCloseShift.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        btnCloseShift.setPreferredSize(new Dimension(120, 30));
+        btnCloseShift.addActionListener(e -> {
+            m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnCloseShift, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
+        });
+        buttonPanel.add(btnCloseShift);
+        
+        // Botones de corte
+        JButton btnCashier = new JButton("🧾 Hacer corte de cajero");
+        btnCashier.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnCashier.setPreferredSize(new Dimension(200, 45));
+        btnCashier.setForeground(Color.WHITE);
+        btnCashier.setBackground(new Color(59, 130, 246));
+        btnCashier.setFocusPainted(false);
+        btnCashier.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(37, 99, 235), 2),
+            BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
+        btnCashier.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCashier.addActionListener(e -> {
+            m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnCashier, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
+        });
+        buttonPanel.add(btnCashier);
+        
+        JButton btnDay = new JButton("📅 Hacer corte del día");
+        btnDay.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnDay.setPreferredSize(new Dimension(200, 45));
+        btnDay.setForeground(Color.WHITE);
+        btnDay.setBackground(new Color(168, 85, 247));
+        btnDay.setFocusPainted(false);
+        btnDay.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(147, 51, 234), 2),
+            BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
+        btnDay.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnDay.addActionListener(e -> {
+            int respuesta = JOptionPane.showConfirmDialog(
+                this,
+                "El corte del día cerrará todas las cajas activas del día.\n\n¿Desea continuar?",
+                "Corte del Día",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+            );
+            if (respuesta == JOptionPane.YES_OPTION) {
+                m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnDay, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
+            }
+        });
+        buttonPanel.add(btnDay);
+        
+        mainPanel.add(buttonPanel, BorderLayout.NORTH);
+        
+        add(mainPanel, BorderLayout.CENTER);
+    }
+    
+    private JEditorPane m_htmlViewer;
+    
+    /**
+     * Genera el contenido HTML completo con el diseño exacto de la imagen
+     */
+    private String generateHTMLContent() {
+        if (m_PaymentsToClose == null) {
+            return "<html><body><p>Cargando datos...</p></body></html>";
+        }
+        
+        try {
+            // Obtener todos los datos necesarios
+            String userName = m_PaymentsToClose.getUser() != null ? m_PaymentsToClose.getUser() : "Usuario";
+            String dateStart = m_PaymentsToClose.printDateStart();
+            String dateEnd = m_PaymentsToClose.printDateEnd();
+            
+            // Formatear rango de fechas exactamente como Eleventa
+            String timeRange = "";
+            if (dateStart != null && !dateStart.isEmpty()) {
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss");
+                    SimpleDateFormat timeFormatFull = new SimpleDateFormat("h:mm:ss a");
+                    Date startDate = sdf.parse(dateStart);
+                    String startTime = timeFormatFull.format(startDate).toLowerCase();
+                    if (dateEnd != null && !dateEnd.isEmpty()) {
+                        Date endDate = sdf.parse(dateEnd);
+                        String endTime = timeFormatFull.format(endDate).toLowerCase();
+                        timeRange = String.format("%s a las %s", startTime, endTime);
+                    } else {
+                        timeRange = startTime;
+                    }
+                } catch (ParseException e) {
+                    // Intentar otro formato
+                    try {
+                        SimpleDateFormat sdf2 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+                        SimpleDateFormat timeFormatFull = new SimpleDateFormat("h:mm:ss a");
+                        Date startDate = sdf2.parse(dateStart);
+                        String startTime = timeFormatFull.format(startDate).toLowerCase();
+                        if (dateEnd != null && !dateEnd.isEmpty()) {
+                            Date endDate = sdf2.parse(dateEnd);
+                            String endTime = timeFormatFull.format(endDate).toLowerCase();
+                            timeRange = String.format("%s a las %s", startTime, endTime);
+                        } else {
+                            timeRange = startTime;
+                        }
+                    } catch (ParseException e2) {
+                        timeRange = dateStart;
+                    }
+                }
+            }
+            
+            // Obtener ventas totales
+            double totalSales = 0.0;
+            try {
+                String salesTotalStr = m_PaymentsToClose.printSalesTotal();
+                if (salesTotalStr != null && !salesTotalStr.isEmpty()) {
+                    totalSales = Formats.CURRENCY.parseValue(salesTotalStr);
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error parseando ventas totales", e);
+            }
+            
+            // Calcular ganancia
+            double profit = 0.0;
+            try {
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Session session = m_App.getSession();
+                Connection conn = session.getConnection();
+                
+                String profitSql = "SELECT SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) " +
+                                  "FROM ticketlines " +
+                                  "INNER JOIN receipts ON ticketlines.TICKET = receipts.ID " +
+                                  "LEFT JOIN products ON ticketlines.PRODUCT = products.ID " +
+                                  "WHERE receipts.MONEY = ? AND ticketlines.PRODUCT IS NOT NULL";
+                
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(profitSql);
+                pstmt.setString(1, activeCashIndex);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    double dbProfit = rs.getDouble(1);
+                    if (!rs.wasNull()) {
+                        profit = dbProfit;
+                    }
+                }
+                rs.close();
+                pstmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error calculando ganancia", e);
+            }
+            
+            // Obtener fondo inicial
+            double initialAmount = 0.0;
+            try {
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Session session = m_App.getSession();
+                Connection conn = session.getConnection();
+                
+                String sql = "SELECT INITIAL_AMOUNT FROM CLOSEDCASH WHERE MONEY = ? AND DATEEND IS NULL";
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+                pstmt.setString(1, activeCashIndex);
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    double dbAmount = rs.getDouble("INITIAL_AMOUNT");
+                    if (!rs.wasNull()) {
+                        initialAmount = dbAmount;
+                    }
+                }
+                rs.close();
+                pstmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo fondo inicial", e);
+                if (m_PaymentsToClose.getInitialAmount() != null) {
+                    initialAmount = m_PaymentsToClose.getInitialAmount();
+                }
+            }
+            
+            // Obtener ventas en efectivo
+            double cashSales = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
+            
+            // Obtener abonos en efectivo (pagos de créditos en efectivo)
+            double creditPaymentsCash = 0.0;
+            try {
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Session session = m_App.getSession();
+                Connection conn = session.getConnection();
+                Date abonoDateStart = m_PaymentsToClose.getDateStart();
+                
+                String sql = "SELECT COALESCE(SUM(payments.TOTAL), 0) " +
+                             "FROM receipts " +
+                             "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                             "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'debt' " +
+                             "AND receipts.DATENEW >= ?";
+                
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+                pstmt.setString(1, activeCashIndex);
+                pstmt.setTimestamp(2, new java.sql.Timestamp(abonoDateStart.getTime()));
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    creditPaymentsCash = rs.getDouble(1);
+                }
+                rs.close();
+                pstmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo abonos", e);
+            }
+            
+            // Obtener entradas y salidas
+            double cashIn = 0.0;
+            double cashOut = 0.0;
+            java.util.List<String> inflowsList = new java.util.ArrayList<>();
+            java.util.List<String> outflowsList = new java.util.ArrayList<>();
+            
+            try {
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Session session = m_App.getSession();
+                Connection conn = session.getConnection();
+                Date shiftDateStart = m_PaymentsToClose.getDateStart();
+                SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
+                
+                // Entradas
+                String sqlIn = "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
+                              "FROM receipts " +
+                              "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                              "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashin' " +
+                              "AND receipts.DATENEW >= ? " +
+                              "ORDER BY receipts.DATENEW DESC";
+                
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sqlIn);
+                pstmt.setString(1, activeCashIndex);
+                pstmt.setTimestamp(2, new java.sql.Timestamp(shiftDateStart.getTime()));
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    Date dateNew = rs.getTimestamp("DATENEW");
+                    double total = rs.getDouble("TOTAL");
+                    String notes = rs.getString("NOTES");
+                    cashIn += total;
+                    String timeStr = timeFormat.format(dateNew).toLowerCase();
+                    String item;
+                    if (notes != null && !notes.isEmpty() && !notes.trim().isEmpty()) {
+                        // Si hay notas, usar el formato con las notas
+                        item = String.format("%s %s: %s", timeStr, escapeHtml(notes), Formats.CURRENCY.formatValue(total));
+                    } else {
+                        // Si no hay notas, usar "Entrada De Dinero"
+                        item = String.format("%s Entrada De Dinero: %s", timeStr, Formats.CURRENCY.formatValue(total));
+                    }
+                    inflowsList.add(item);
+                }
+                rs.close();
+                pstmt.close();
+                
+                // Salidas
+                String sqlOut = "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
+                               "FROM receipts " +
+                               "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                               "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' " +
+                               "AND receipts.DATENEW >= ? " +
+                               "ORDER BY receipts.DATENEW DESC";
+                
+                pstmt = conn.prepareStatement(sqlOut);
+                pstmt.setString(1, activeCashIndex);
+                pstmt.setTimestamp(2, new java.sql.Timestamp(shiftDateStart.getTime()));
+                rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    Date dateNew = rs.getTimestamp("DATENEW");
+                    double total = Math.abs(rs.getDouble("TOTAL"));
+                    String notes = rs.getString("NOTES");
+                    cashOut += total;
+                    String timeStr = timeFormat.format(dateNew).toLowerCase();
+                    String noteText = notes != null && !notes.isEmpty() ? escapeHtml(notes) : "Efectivo";
+                    String item = String.format("%s %s: %s", 
+                        timeStr, noteText, Formats.CURRENCY.formatValue(total));
+                    outflowsList.add(item);
+                }
+                rs.close();
+                pstmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo entradas/salidas", e);
+            }
+            
+            // Calcular total de dinero en caja
+            double cashTotal = initialAmount + cashSales + creditPaymentsCash + cashIn - cashOut;
+            
+            // Obtener ventas por tipo de pago
+            double cardSales = 0.0;
+            double creditSales = 0.0;
+            double voucherSales = 0.0;
+            double returns = 0.0;
+            
+            if (m_PaymentsToClose.getPaymentLines() != null) {
+                for (PaymentsModel.PaymentsLine pl : m_PaymentsToClose.getPaymentLines()) {
+                    String paymentType = pl.getType();
+                    double value = pl.getValue() != null ? pl.getValue() : 0.0;
+                    if ("cash".equals(paymentType)) {
+                        // Ya lo tenemos en cashSales
+                    } else if ("card".equals(paymentType) || "magcard".equals(paymentType)) {
+                        cardSales += value;
+                    } else if ("debt".equals(paymentType)) {
+                        creditSales += value;
+                    } else if ("voucher".equals(paymentType)) {
+                        voucherSales += value;
+                    }
+                }
+            }
+            
+            // Obtener ventas por departamento
+            java.util.List<String> deptSalesList = new java.util.ArrayList<>();
+            try {
+                java.util.List categorySales = m_PaymentsToClose.getCategorySalesLines();
+                if (categorySales != null) {
+                    for (Object obj : categorySales) {
+                        PaymentsModel.CategorySalesLine category = (PaymentsModel.CategorySalesLine) obj;
+                        String deptName = category.printCategoryName();
+                        String totalStr = category.printCategorySum();
+                        deptSalesList.add(String.format("%s: %s", deptName, totalStr));
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo ventas por departamento", e);
+            }
+            
+            // Obtener pagos de créditos
+            java.util.List<String> creditPaymentsList = new java.util.ArrayList<>();
+            try {
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Session session = m_App.getSession();
+                Connection conn = session.getConnection();
+                Date creditDateStart = m_PaymentsToClose.getDateStart();
+                SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a");
+                
+                String sql = "SELECT receipts.DATENEW, payments.TOTAL, customers.NAME as CUSTOMER_NAME " +
+                             "FROM receipts " +
+                             "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                             "LEFT JOIN tickets ON receipts.ID = tickets.ID " +
+                             "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
+                             "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'debt' " +
+                             "AND receipts.DATENEW >= ? " +
+                             "ORDER BY receipts.DATENEW DESC";
+                
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+                pstmt.setString(1, activeCashIndex);
+                pstmt.setTimestamp(2, new java.sql.Timestamp(creditDateStart.getTime()));
+                ResultSet rs = pstmt.executeQuery();
+                while (rs.next()) {
+                    Date dateNew = rs.getTimestamp("DATENEW");
+                    double total = rs.getDouble("TOTAL");
+                    String customer = rs.getString("CUSTOMER_NAME");
+                    String timeStr = timeFormat.format(dateNew).toLowerCase();
+                    String item = String.format("%s De %s: %s", 
+                        timeStr,
+                        customer != null && !customer.isEmpty() ? escapeHtml(customer) : "Cliente",
+                        Formats.CURRENCY.formatValue(total));
+                    creditPaymentsList.add(item);
+                }
+                rs.close();
+                pstmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo pagos de créditos", e);
+            }
+            
+            // Generar HTML con diseño exacto de Eleventa
+            StringBuilder html = new StringBuilder();
+            html.append("<!DOCTYPE html><html><head>");
+            html.append("<meta charset='UTF-8'>");
+            html.append("<style>");
+            html.append("* { margin: 0; padding: 0; box-sizing: border-box; }");
+            html.append("body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background: #f8f9fa; padding: 0; margin: 0; }");
+            html.append(".container { max-width: 100%; margin: 0; background: white; padding: 0; }");
+            html.append(".header { background: white; padding: 20px 24px; border-bottom: 1px solid #e9ecef; }");
+            html.append(".header h1 { font-size: 20px; font-weight: 600; color: #212529; margin: 0 0 4px 0; line-height: 1.2; }");
+            html.append(".header .subtitle { font-size: 13px; color: #6c757d; margin: 0; }");
+            html.append(".metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; padding: 20px 24px; background: white; border-bottom: 1px solid #e9ecef; }");
+            html.append(".metric-card { background: #f8f9fa; padding: 16px; border-radius: 4px; border: 1px solid #e9ecef; }");
+            html.append(".metric-label { font-size: 12px; color: #6c757d; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 500; }");
+            html.append(".metric-value { font-size: 24px; font-weight: 700; color: #212529; line-height: 1.2; }");
+            html.append(".section { background: white; padding: 20px 24px; border-bottom: 1px solid #e9ecef; }");
+            html.append(".section-title { font-size: 14px; font-weight: 600; color: #212529; margin-bottom: 16px; text-transform: uppercase; letter-spacing: 0.5px; }");
+            html.append(".section-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f3f5; }");
+            html.append(".section-row:last-of-type { border-bottom: 2px solid #dee2e6; margin-bottom: 0; }");
+            html.append(".section-label { font-size: 14px; color: #495057; flex: 1; }");
+            html.append(".section-value { font-size: 14px; font-weight: 500; color: #212529; text-align: right; }");
+            html.append(".section-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 0 0; margin-top: 8px; font-weight: 600; font-size: 15px; color: #212529; }");
+            html.append(".positive { color: #28a745 !important; }");
+            html.append(".negative { color: #dc3545 !important; }");
+            html.append(".list-section { background: white; padding: 20px 24px; border-bottom: 1px solid #e9ecef; }");
+            html.append(".list-title { font-size: 14px; font-weight: 600; color: #212529; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }");
+            html.append(".list-item { padding: 8px 0; font-size: 13px; color: #495057; line-height: 1.5; border-bottom: 1px solid #f1f3f5; }");
+            html.append(".list-item:last-child { border-bottom: none; }");
+            html.append(".empty-message { padding: 8px 0; font-size: 13px; color: #adb5bd; font-style: italic; }");
+            html.append("</style>");
+            html.append("</head><body>");
+            html.append("<div class='container'>");
+            
+            // Encabezado
+            html.append("<div class='header'>");
+            html.append("<h1>Corte de ").append(escapeHtml(userName)).append("</h1>");
+            html.append("<div class='subtitle'>").append(timeRange).append("</div>");
+            html.append("</div>");
+            
+            // Métricas principales
+            html.append("<div class='metrics'>");
+            html.append("<div class='metric-card'>");
+            html.append("<div class='metric-label'>Ventas Totales</div>");
+            html.append("<div class='metric-value'>").append(Formats.CURRENCY.formatValue(totalSales)).append("</div>");
+            html.append("</div>");
+            html.append("<div class='metric-card' style='background: white; border: 1px solid #dee2e6;'>");
+            html.append("<div class='metric-label'>Ganancia</div>");
+            html.append("<div class='metric-value'>").append(Formats.CURRENCY.formatValue(profit)).append("</div>");
+            html.append("</div>");
+            html.append("</div>");
+            
+            // Dinero en Caja
+            html.append("<div class='section'>");
+            html.append("<div class='section-title'>Dinero en Caja</div>");
+            html.append("<div class='section-row'><span class='section-label'>Fondo de caja</span><span class='section-value'>").append(Formats.CURRENCY.formatValue(initialAmount)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>Ventas en Efectivo</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(cashSales)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>Abonos en efectivo</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(creditPaymentsCash)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>Entradas</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(cashIn)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>Salidas</span><span class='section-value negative'>-").append(Formats.CURRENCY.formatValue(cashOut)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>Devoluciones en efectivo</span><span class='section-value negative'>-").append(Formats.CURRENCY.formatValue(returns)).append("</span></div>");
+            html.append("<div class='section-total'><span>Total</span><span>").append(Formats.CURRENCY.formatValue(cashTotal)).append("</span></div>");
+            html.append("</div>");
+            
+            // Ventas
+            html.append("<div class='section'>");
+            html.append("<div class='section-title'>Ventas</div>");
+            html.append("<div class='section-row'><span class='section-label'>En Efectivo</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(cashSales)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>Con Tarjeta de Crédito</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(cardSales)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>A Crédito</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(creditSales)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>Con Vales de Despensa</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(voucherSales)).append("</span></div>");
+            html.append("<div class='section-row'><span class='section-label'>Devoluciones de Ventas</span><span class='section-value negative'>-").append(Formats.CURRENCY.formatValue(returns)).append("</span></div>");
+            html.append("<div class='section-total'><span>Total</span><span>").append(Formats.CURRENCY.formatValue(totalSales)).append("</span></div>");
+            html.append("</div>");
+            
+            // Entradas de efectivo
+            html.append("<div class='list-section'>");
+            html.append("<div class='list-title'>Entradas de efectivo</div>");
+            if (inflowsList.isEmpty()) {
+                html.append("<div class='empty-message'>- No hubo entradas -</div>");
+            } else {
+                for (String item : inflowsList) {
+                    html.append("<div class='list-item'>").append(item).append("</div>");
+                }
+            }
+            html.append("</div>");
+            
+            // Salidas de Efectivo
+            html.append("<div class='list-section'>");
+            html.append("<div class='list-title'>Salidas de Efectivo</div>");
+            if (outflowsList.isEmpty()) {
+                html.append("<div class='empty-message'>- No hubo salidas -</div>");
+            } else {
+                for (String item : outflowsList) {
+                    html.append("<div class='list-item'>").append(item).append("</div>");
+                }
+            }
+            html.append("</div>");
+            
+            // Ventas por Departamento
+            html.append("<div class='list-section'>");
+            html.append("<div class='list-title'>Ventas por Departamento</div>");
+            if (deptSalesList.isEmpty()) {
+                html.append("<div class='empty-message'>- Sin ventas por departamento -</div>");
+            } else {
+                for (String item : deptSalesList) {
+                    html.append("<div class='list-item'>").append(item).append("</div>");
+                }
+            }
+            html.append("</div>");
+            
+            // Pagos de Créditos
+            html.append("<div class='list-section'>");
+            html.append("<div class='list-title'>Pagos de Créditos</div>");
+            if (creditPaymentsList.isEmpty()) {
+                html.append("<div class='empty-message'>- No se recibieron pagos de créditos -</div>");
+            } else {
+                for (String item : creditPaymentsList) {
+                    html.append("<div class='list-item'>").append(item).append("</div>");
+                }
+            }
+            html.append("</div>");
+            
+            html.append("</div>"); // container
+            html.append("</body></html>");
+            
+            return html.toString();
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error generando HTML", e);
+            return "<html><body><p>Error cargando datos: " + escapeHtml(e.getMessage()) + "</p></body></html>";
+        }
+    }
+    
+    /**
+     * Escapa HTML para prevenir XSS
+     */
+    private String escapeHtml(String str) {
+        if (str == null) return "";
+        return str.replace("&", "&amp;")
+                  .replace("<", "&lt;")
+                  .replace(">", "&gt;")
+                  .replace("\"", "&quot;")
+                  .replace("'", "&#39;");
     }
     
     /**
@@ -2677,36 +3335,100 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
         buttonPanel.setBackground(new Color(95, 135, 145));
         
-        // Botón "Hacer corte de cajero" (estilo Eleventa - simple)
+        // Botón "Hacer corte de cajero" (estilo premium con gradiente azul)
         JButton btnCashier = new JButton("🧾 Hacer corte de cajero");
-        btnCashier.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnCashier.setPreferredSize(new Dimension(180, 35));
-        btnCashier.setBackground(new Color(220, 220, 220));
-        btnCashier.setForeground(new Color(50, 50, 50));
+        btnCashier.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnCashier.setPreferredSize(new Dimension(200, 45));
+        btnCashier.setForeground(Color.WHITE);
         btnCashier.setFocusPainted(false);
-        btnCashier.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(180, 180, 180), 1),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
         btnCashier.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnCashier.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(37, 99, 235), 2),
+            BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
+        btnCashier.setContentAreaFilled(false);
+        btnCashier.setOpaque(true);
+        
+        // Gradiente azul para corte de cajero
+        btnCashier.setBackground(new Color(59, 130, 246)); // Azul vibrante
+        
+        // Efecto hover con gradiente más oscuro
+        btnCashier.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnCashier.setBackground(new Color(37, 99, 235)); // Azul más oscuro
+                btnCashier.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(29, 78, 216), 2),
+                    BorderFactory.createEmptyBorder(10, 20, 10, 20)
+                ));
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnCashier.setBackground(new Color(59, 130, 246));
+                btnCashier.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(37, 99, 235), 2),
+                    BorderFactory.createEmptyBorder(10, 20, 10, 20)
+                ));
+            }
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+                btnCashier.setBackground(new Color(29, 78, 216)); // Azul más oscuro al presionar
+            }
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                btnCashier.setBackground(new Color(37, 99, 235));
+            }
+        });
         btnCashier.addActionListener(e -> {
             LOGGER.info("Botón 'Hacer corte de cajero' presionado");
             m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnCashier, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
         });
         buttonPanel.add(btnCashier);
         
-        // Botón "Hacer corte del día" (estilo Eleventa - simple)
+        // Botón "Hacer corte del día" (estilo premium con gradiente púrpura)
         JButton btnDay = new JButton("📅 Hacer corte del día");
-        btnDay.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        btnDay.setPreferredSize(new Dimension(180, 35));
-        btnDay.setBackground(new Color(220, 220, 220));
-        btnDay.setForeground(new Color(50, 50, 50));
+        btnDay.setFont(new Font("Segoe UI", Font.BOLD, 13));
+        btnDay.setPreferredSize(new Dimension(200, 45));
+        btnDay.setForeground(Color.WHITE);
         btnDay.setFocusPainted(false);
-        btnDay.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(180, 180, 180), 1),
-            BorderFactory.createEmptyBorder(5, 10, 5, 10)
-        ));
         btnDay.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnDay.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(147, 51, 234), 2),
+            BorderFactory.createEmptyBorder(10, 20, 10, 20)
+        ));
+        btnDay.setContentAreaFilled(false);
+        btnDay.setOpaque(true);
+        
+        // Gradiente púrpura para corte del día
+        btnDay.setBackground(new Color(168, 85, 247)); // Púrpura vibrante
+        
+        // Efecto hover con gradiente más oscuro
+        btnDay.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btnDay.setBackground(new Color(147, 51, 234)); // Púrpura más oscuro
+                btnDay.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(126, 34, 206), 2),
+                    BorderFactory.createEmptyBorder(10, 20, 10, 20)
+                ));
+            }
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btnDay.setBackground(new Color(168, 85, 247));
+                btnDay.setBorder(BorderFactory.createCompoundBorder(
+                    BorderFactory.createLineBorder(new Color(147, 51, 234), 2),
+                    BorderFactory.createEmptyBorder(10, 20, 10, 20)
+                ));
+            }
+            @Override
+            public void mousePressed(java.awt.event.MouseEvent evt) {
+                btnDay.setBackground(new Color(126, 34, 206)); // Púrpura más oscuro al presionar
+            }
+            @Override
+            public void mouseReleased(java.awt.event.MouseEvent evt) {
+                btnDay.setBackground(new Color(147, 51, 234));
+            }
+        });
         btnDay.addActionListener(e -> {
             LOGGER.info("Botón 'Hacer corte del día' presionado");
             int respuesta = JOptionPane.showConfirmDialog(
@@ -2734,10 +3456,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private JPanel createShiftInfoPanel() {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(235, 235, 235));
-        panel.setBorder(BorderFactory.createEmptyBorder(15, 20, 10, 20));
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
         
         m_jShiftInfoLabel = new JLabel();
-        m_jShiftInfoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 13));
+        m_jShiftInfoLabel.setFont(new Font("Segoe UI", Font.PLAIN, 12));
         m_jShiftInfoLabel.setForeground(new Color(90, 90, 90));
         panel.add(m_jShiftInfoLabel, BorderLayout.WEST);
         
@@ -2748,7 +3470,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Crea las tarjetas de métricas (Ventas Totales y Ganancia)
      */
     private JPanel createMetricsCards() {
-        JPanel panel = new JPanel(new GridLayout(1, 2, 10, 0));
+        JPanel panel = new JPanel(new GridLayout(1, 2, 8, 0));
         panel.setBackground(new Color(235, 235, 235));
         panel.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
         
@@ -2802,7 +3524,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         card.setOpaque(false);
         card.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createLineBorder(new Color(color.getRed(), color.getGreen(), color.getBlue(), 30), 1),
-            BorderFactory.createEmptyBorder(30, 30, 30, 30)
+            BorderFactory.createEmptyBorder(15, 20, 15, 20)
         ));
         
         // Panel principal con icono y título
@@ -2820,7 +3542,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         
         // Valor grande (estilo Eleventa)
         JLabel valueLabel = new JLabel(value);
-        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 28));
+        valueLabel.setFont(new Font("Segoe UI", Font.BOLD, 22));
         valueLabel.setForeground(color);
         valueLabel.setAlignmentX(Component.RIGHT_ALIGNMENT);
         contentPanel.add(valueLabel);
@@ -2845,15 +3567,15 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         panel.setBackground(new Color(245, 245, 245)); // Fondo gris claro
         panel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createEmptyBorder(0, 20, 0, 20),
-            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
         ));
         
         // Título de sección (estilo Eleventa)
         JLabel sectionTitle = new JLabel("📊 Dinero en Caja");
-        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
         sectionTitle.setForeground(new Color(60, 60, 60));
         panel.add(sectionTitle);
-        panel.add(Box.createVerticalStrut(15));
+        panel.add(Box.createVerticalStrut(8));
         
         // Fondo de caja - guardar referencia para actualizar
         m_jInitialAmountLabel = addCashLine(panel, "Fondo de caja", "$0.00", false, false);
@@ -2885,14 +3607,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         // Total - estilo Eleventa
         JPanel totalPanel = new JPanel(new BorderLayout());
         totalPanel.setBackground(new Color(245, 245, 245));
-        totalPanel.setBorder(BorderFactory.createEmptyBorder(8, 20, 8, 20));
+        totalPanel.setBorder(BorderFactory.createEmptyBorder(6, 15, 6, 15));
         JLabel totalLabel = new JLabel("Total");
-        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
         totalLabel.setForeground(new Color(50, 50, 50));
         totalPanel.add(totalLabel, BorderLayout.WEST);
         
         m_jCashTotalLabel = new JLabel("$0.00");
-        m_jCashTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        m_jCashTotalLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         m_jCashTotalLabel.setForeground(new Color(50, 50, 50));
         totalPanel.add(m_jCashTotalLabel, BorderLayout.EAST);
         panel.add(totalPanel);
@@ -2907,7 +3629,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private JLabel addCashLine(JPanel panel, String label, String value, boolean positive, boolean isGreen) {
         JPanel linePanel = new JPanel(new BorderLayout());
         linePanel.setBackground(new Color(245, 245, 245));
-        linePanel.setBorder(BorderFactory.createEmptyBorder(6, 20, 6, 20));
+        linePanel.setBorder(BorderFactory.createEmptyBorder(4, 15, 4, 15));
         
         JLabel labelComp = new JLabel(label);
         labelComp.setFont(new Font("Segoe UI", Font.PLAIN, 13));
@@ -2938,15 +3660,15 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         panel.setBackground(new Color(245, 245, 245));
         panel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createEmptyBorder(0, 20, 0, 20),
-            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
         ));
         
         // Título de sección (estilo Eleventa)
         JLabel sectionTitle = new JLabel("🛒 Ventas");
-        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
         sectionTitle.setForeground(new Color(60, 60, 60));
         panel.add(sectionTitle);
-        panel.add(Box.createVerticalStrut(15));
+        panel.add(Box.createVerticalStrut(8));
         
         addCashLine(panel, "En Efectivo", "+$0.00", true, true);
         addCashLine(panel, "Con Tarjeta de Crédito", "+$0.00", true, true);
@@ -2987,35 +3709,35 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         panel.setBackground(new Color(245, 245, 245));
         panel.setBorder(BorderFactory.createCompoundBorder(
             BorderFactory.createEmptyBorder(0, 20, 0, 20),
-            BorderFactory.createEmptyBorder(15, 20, 15, 20)
+            BorderFactory.createEmptyBorder(10, 15, 10, 15)
         ));
         
         // Título de sección (estilo Eleventa - opcional, puede omitirse)
         JLabel sectionTitle = new JLabel("💵 Ingresos de contado");
-        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 16));
+        sectionTitle.setFont(new Font("Segoe UI", Font.BOLD, 14));
         sectionTitle.setForeground(new Color(60, 60, 60));
         panel.add(sectionTitle);
-        panel.add(Box.createVerticalStrut(15));
+        panel.add(Box.createVerticalStrut(8));
         
         addCashLine(panel, "Ventas en Efectivo", "+$0.00", true, true);
         
         // Separador y total
-        panel.add(Box.createVerticalStrut(10));
+        panel.add(Box.createVerticalStrut(6));
         JSeparator separator = new JSeparator();
         separator.setForeground(new Color(229, 231, 235));
         panel.add(separator);
-        panel.add(Box.createVerticalStrut(10));
+        panel.add(Box.createVerticalStrut(6));
         
         JPanel totalPanel = new JPanel(new BorderLayout());
         totalPanel.setBackground(new Color(249, 250, 251));
-        totalPanel.setBorder(BorderFactory.createEmptyBorder(12, 12, 12, 12));
+        totalPanel.setBorder(BorderFactory.createEmptyBorder(8, 12, 8, 12));
         JLabel totalLabel = new JLabel("Total");
-        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 18));
+        totalLabel.setFont(new Font("Segoe UI", Font.BOLD, 15));
         totalLabel.setForeground(new Color(30, 30, 30));
         totalPanel.add(totalLabel, BorderLayout.WEST);
         
         JLabel totalValue = new JLabel("$0.00");
-        totalValue.setFont(new Font("Segoe UI", Font.BOLD, 24)); // Aumentado de 18 a 24
+        totalValue.setFont(new Font("Segoe UI", Font.BOLD, 18));
         totalValue.setForeground(new Color(76, 175, 80)); // Verde destacado
         totalPanel.add(totalValue, BorderLayout.EAST);
         panel.add(totalPanel);
@@ -3027,9 +3749,9 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Crea el panel inferior con listas
      */
     private JPanel createBottomPanel() {
-        JPanel panel = new JPanel(new GridLayout(1, 3, 10, 0));
+        JPanel panel = new JPanel(new GridLayout(1, 3, 8, 0));
         panel.setBackground(new Color(235, 235, 235));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 20, 0, 20));
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 20, 0, 20));
         
         // Lista de Entradas de efectivo
         m_inflowsListModel = new DefaultListModel<>();
@@ -3055,13 +3777,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private JPanel createListPanel(String title, DefaultListModel<String> listModel) {
         JPanel panel = new JPanel(new BorderLayout());
         panel.setBackground(new Color(245, 245, 245));
-        panel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        panel.setBorder(BorderFactory.createEmptyBorder(8, 8, 8, 8));
         
         // Título simple (estilo Eleventa)
         JLabel titleLabel = new JLabel(title);
-        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        titleLabel.setFont(new Font("Segoe UI", Font.BOLD, 13));
         titleLabel.setForeground(new Color(60, 60, 60));
-        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 6, 0));
         panel.add(titleLabel, BorderLayout.NORTH);
         
         // Lista simple
@@ -3592,6 +4314,11 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             AppLocal.getIntString("message.closecashok"), 
                             AppLocal.getIntString("message.title"), 
                             JOptionPane.INFORMATION_MESSAGE);
+                    
+                    // Mostrar reporte del turno actual
+                    SwingUtilities.invokeLater(() -> {
+                        showShiftReport();
+                    });
                 }
             } catch (BasicException e) {
                 LOGGER.log(Level.SEVERE, "Error al crear nueva caja o imprimir reporte.", e);
@@ -4358,22 +5085,38 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append("<meta charset='UTF-8'>");
             html.append("<title>Reporte de Caja Cerrada - Día Completo</title>");
             html.append("<style>");
-            html.append("body { font-family: Arial, sans-serif; margin: 20px; }");
-            html.append("h1 { text-align: center; color: #333; }");
-            html.append("h2 { color: #555; border-bottom: 2px solid #333; padding-bottom: 5px; }");
-            html.append("table { width: 100%; border-collapse: collapse; margin: 10px 0; }");
-            html.append("th { background-color: #333; color: white; padding: 8px; text-align: left; }");
-            html.append("td { padding: 6px; border-bottom: 1px solid #ddd; }");
-            html.append("tr:nth-child(even) { background-color: #f2f2f2; }");
-            html.append(".total { font-weight: bold; font-size: 1.1em; }");
-            html.append(".shift-header { background-color: #4CAF50; color: white; padding: 10px; margin: 15px 0 10px 0; }");
-            html.append(".summary { background-color: #f9f9f9; padding: 15px; margin: 20px 0; border: 2px solid #333; }");
+            html.append("* { margin: 0; padding: 0; box-sizing: border-box; }");
+            html.append("body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }");
+            html.append(".container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 30px; }");
+            html.append("h1 { text-align: center; color: #2c3e50; font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }");
+            html.append(".header-info { text-align: center; color: #7f8c8d; margin-bottom: 30px; font-size: 1.1em; }");
+            html.append("h2 { color: #2c3e50; border-left: 5px solid #3498db; padding-left: 15px; margin: 25px 0 15px 0; font-size: 1.8em; }");
+            html.append("h3 { color: #34495e; margin: 20px 0 10px 0; font-size: 1.4em; }");
+            html.append("table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 15px 0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }");
+            html.append("th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 12px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.9em; letter-spacing: 0.5px; }");
+            html.append("td { padding: 12px; border-bottom: 1px solid #ecf0f1; background-color: white; }");
+            html.append("tr:last-child td { border-bottom: none; }");
+            html.append("tr:nth-child(even) td { background-color: #f8f9fa; }");
+            html.append("tr:hover td { background-color: #e8f4f8; transition: background-color 0.3s ease; }");
+            html.append(".total { font-weight: bold; font-size: 1.2em; color: #2c3e50; background-color: #ecf0f1 !important; }");
+            html.append(".shift-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; margin: 25px 0 20px 0; border-radius: 10px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }");
+            html.append(".shift-header h2 { color: white; border: none; padding: 0; margin: 0 0 10px 0; }");
+            html.append(".shift-header p { margin: 5px 0; font-size: 1em; }");
+            html.append(".summary { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); padding: 25px; margin: 25px 0; border-radius: 12px; border: 1px solid #e1e8ed; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }");
+            html.append(".summary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }");
+            html.append(".summary h2 { border-left-color: #3498db; }");
+            html.append("p { margin: 10px 0; line-height: 1.6; color: #555; }");
+            html.append("em { color: #95a5a6; font-style: italic; }");
+            html.append("@media print { body { background: white; } .container { box-shadow: none; } }");
             html.append("</style>");
             html.append("</head><body>");
+            html.append("<div class='container'>");
             
-            html.append("<h1>REPORTE DE CAJA CERRADA - DÍA COMPLETO</h1>");
-            html.append("<p><strong>Fecha:</strong> ").append(Formats.DATE.formatValue(closeDate)).append("</p>");
-            html.append("<p><strong>Generado:</strong> ").append(Formats.TIMESTAMP.formatValue(new Date())).append("</p>");
+            html.append("<h1>📊 REPORTE DE CAJA CERRADA</h1>");
+            html.append("<div class='header-info'>");
+            html.append("<p><strong>📅 Fecha:</strong> ").append(Formats.DATE.formatValue(closeDate)).append("</p>");
+            html.append("<p><strong>🕐 Generado:</strong> ").append(Formats.TIMESTAMP.formatValue(new Date())).append("</p>");
+            html.append("</div>");
             
             // Procesar cada turno
             for (ShiftData shift : allShifts) {
@@ -4393,52 +5136,503 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 html.append("<p><strong>Fin:</strong> ").append(Formats.TIMESTAMP.formatValue(shift.getDateEnd())).append("</p>");
                 html.append("</div>");
                 
-                // Productos vendidos
-                html.append("<h3>Productos Vendidos</h3>");
-                if (shift.getProductLines() != null && !shift.getProductLines().isEmpty()) {
-                    html.append("<table>");
-                    html.append("<tr><th>Producto</th><th>Cantidad</th><th>Total</th></tr>");
-                    for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
-                        // Calcular el valor total del producto (precio con impuesto * unidades)
-                        double productValue = (product.getProductPrice() * (1.0 + product.getTaxRate())) * product.getProductUnits();
-                        html.append("<tr>");
-                        html.append("<td>").append(escapeHtml(product.getProductName())).append("</td>");
-                        html.append("<td>").append(Formats.DOUBLE.formatValue(product.getProductUnits())).append("</td>");
-                        html.append("<td>").append(Formats.CURRENCY.formatValue(productValue)).append("</td>");
-                        html.append("</tr>");
-                    }
-                    html.append("</table>");
-                } else {
-                    html.append("<p>Sin productos vendidos</p>");
-                }
-                
                 // Resumen del turno
                 html.append("<div class='summary'>");
-                html.append("<h3>Resumen del Turno</h3>");
+                html.append("<h3>📊 Resumen del Turno</h3>");
                 html.append("<table>");
-                html.append("<tr><td><strong>Monto Inicial del Turno:</strong></td><td class='total'>").append(Formats.CURRENCY.formatValue(shift.getInitialAmount())).append("</td></tr>");
-                html.append("<tr><td><strong>Total de Ventas:</strong></td><td>").append(Formats.CURRENCY.formatValue(shift.getTotalSales())).append("</td></tr>");
-                html.append("<tr><td><strong>Entradas:</strong></td><td>").append(Formats.CURRENCY.formatValue(shift.getCashIn())).append("</td></tr>");
-                html.append("<tr><td><strong>Salidas:</strong></td><td>").append(Formats.CURRENCY.formatValue(shift.getCashOut())).append("</td></tr>");
-                html.append("<tr><td><strong>Total del Turno:</strong></td><td class='total'>").append(Formats.CURRENCY.formatValue(totalTurno)).append("</td></tr>");
+                html.append("<tr style='background-color: #f8f9fa;'><td style='padding: 12px;'><strong>Monto Inicial del Turno:</strong></td><td style='padding: 12px; font-size: 1.1em; color: #27ae60;'><strong>").append(Formats.CURRENCY.formatValue(shift.getInitialAmount())).append("</strong></td></tr>");
+                html.append("<tr><td style='padding: 12px;'><strong>Total de Ventas:</strong></td><td style='padding: 12px; font-size: 1.1em; color: #2c3e50;'>").append(Formats.CURRENCY.formatValue(shift.getTotalSales())).append("</td></tr>");
+                html.append("<tr style='background-color: #f8f9fa;'><td style='padding: 12px;'><strong>Entradas:</strong></td><td style='padding: 12px; font-size: 1.1em; color: #27ae60;'>").append(Formats.CURRENCY.formatValue(shift.getCashIn())).append("</td></tr>");
+                html.append("<tr><td style='padding: 12px;'><strong>Salidas:</strong></td><td style='padding: 12px; font-size: 1.1em; color: #e74c3c;'>").append(Formats.CURRENCY.formatValue(shift.getCashOut())).append("</td></tr>");
+                html.append("<tr style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-top: 2px solid #667eea;'><td style='padding: 15px; color: white; font-size: 1.2em;'><strong>TOTAL DEL TURNO:</strong></td><td style='padding: 15px; color: white; font-size: 1.3em; font-weight: bold;'>").append(Formats.CURRENCY.formatValue(totalTurno)).append("</td></tr>");
                 html.append("</table>");
                 html.append("</div>");
             }
             
+            // VENTAS CONSOLIDADAS POR DEPARTAMENTO
+            html.append("<div class='summary'>");
+            html.append("<h2>🏢 VENTAS POR DEPARTAMENTO</h2>");
+            
+            // Consolidar ventas por departamento de todos los turnos
+            java.util.Map<String, ConsolidatedProduct> categoryConsolidated = new java.util.HashMap<>();
+            try {
+                Session session = m_App.getSession();
+                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                for (ShiftData shift : allShifts) {
+                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                        moneyList.add(shift.getMoney());
+                    }
+                }
+                
+                if (!moneyList.isEmpty()) {
+                    for (String money : moneyList) {
+                        java.util.List<CategorySalesData> categorySales = new StaticSentence(session,
+                            "SELECT COALESCE(categories.NAME, 'Sin Departamento') as CATEGORY_NAME, " +
+                            "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
+                            "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE) * ticketlines.UNITS) as TOTAL_VALUE " +
+                            "FROM ticketlines " +
+                            "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                            "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                            "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                            "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
+                            "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                            "WHERE receipts.MONEY = ? " +
+                            "GROUP BY COALESCE(categories.NAME, 'Sin Departamento')",
+                            SerializerWriteString.INSTANCE,
+                            new SerializerReadClass(CategorySalesData.class))
+                            .list(money);
+                        
+                        if (categorySales != null) {
+                            for (CategorySalesData catSale : categorySales) {
+                                String categoryName = catSale.getCategoryName();
+                                if (categoryName == null || categoryName.trim().isEmpty()) {
+                                    categoryName = "Sin Departamento";
+                                }
+                                
+                                ConsolidatedProduct consolidated = categoryConsolidated.get(categoryName);
+                                if (consolidated == null) {
+                                    consolidated = new ConsolidatedProduct(categoryName);
+                                    categoryConsolidated.put(categoryName, consolidated);
+                                }
+                                
+                                double units = catSale.getTotalUnits() != null ? catSale.getTotalUnits() : 0.0;
+                                double totalValue = catSale.getTotalValue() != null ? catSale.getTotalValue() : 0.0;
+                                
+                                consolidated.addUnits(units);
+                                consolidated.addTotal(totalValue);
+                            }
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error consolidando por departamento en showDayReport: " + e.getMessage(), e);
+            }
+            
+            if (!categoryConsolidated.isEmpty()) {
+                // Ordenar por nombre de departamento
+                java.util.List<ConsolidatedProduct> sortedCategories = new java.util.ArrayList<>(categoryConsolidated.values());
+                java.util.Collections.sort(sortedCategories, (a, b) -> a.getName().compareTo(b.getName()));
+                
+                html.append("<table>");
+                html.append("<tr><th>Departamento</th><th>Cantidad</th><th>Total</th></tr>");
+                for (ConsolidatedProduct category : sortedCategories) {
+                    html.append("<tr>");
+                    html.append("<td>").append(escapeHtml(category.getName())).append("</td>");
+                    html.append("<td>").append(Formats.DOUBLE.formatValue(category.getTotalUnits())).append("</td>");
+                    html.append("<td>").append(Formats.CURRENCY.formatValue(category.getTotalValue())).append("</td>");
+                    html.append("</tr>");
+                }
+                html.append("</table>");
+            } else {
+                html.append("<p>Sin ventas por departamento</p>");
+            }
+            html.append("</div>");
+            
+            // SALIDAS DE EFECTIVO (DETALLADAS)
+            html.append("<div class='summary'>");
+            html.append("<h2>💸 Salidas de Efectivo</h2>");
+            try {
+                Session session = m_App.getSession();
+                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                for (ShiftData shift : allShifts) {
+                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                        moneyList.add(shift.getMoney());
+                    }
+                }
+                
+                java.util.List<java.util.Map<String, Object>> outflows = new java.util.ArrayList<>();
+                if (!moneyList.isEmpty()) {
+                    for (String money : moneyList) {
+                        java.sql.PreparedStatement cashOutStmt = session.getConnection().prepareStatement(
+                            "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
+                            "FROM receipts " +
+                            "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                            "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' " +
+                            "ORDER BY receipts.DATENEW DESC"
+                        );
+                        cashOutStmt.setString(1, money);
+                        java.sql.ResultSet cashOutRs = cashOutStmt.executeQuery();
+                        while (cashOutRs.next()) {
+                            java.util.Map<String, Object> outflow = new java.util.HashMap<>();
+                            outflow.put("date", cashOutRs.getTimestamp("DATENEW"));
+                            outflow.put("total", cashOutRs.getDouble("TOTAL"));
+                            outflow.put("notes", cashOutRs.getString("NOTES"));
+                            outflows.add(outflow);
+                        }
+                        cashOutRs.close();
+                        cashOutStmt.close();
+                    }
+                }
+                
+                if (!outflows.isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Fecha/Hora</th><th>Monto</th><th>Notas</th></tr>");
+                    for (java.util.Map<String, Object> outflow : outflows) {
+                        html.append("<tr>");
+                        html.append("<td>").append(Formats.TIMESTAMP.formatValue((Date)outflow.get("date"))).append("</td>");
+                        Object totalObj = outflow.get("total");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(totalObj != null ? (Double)totalObj : 0.0)).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)outflow.get("notes"))).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No hubo Salidas en Efectivo -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo salidas de efectivo: " + e.getMessage(), e);
+                html.append("<p><em>- No hubo Salidas en Efectivo -</em></p>");
+            }
+            html.append("</div>");
+            
+            // PAGOS DE CRÉDITOS
+            html.append("<div class='summary'>");
+            html.append("<h2>💳 Pagos de Créditos</h2>");
+            try {
+                Session session = m_App.getSession();
+                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                for (ShiftData shift : allShifts) {
+                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                        moneyList.add(shift.getMoney());
+                    }
+                }
+                
+                java.util.List<java.util.Map<String, Object>> creditPayments = new java.util.ArrayList<>();
+                if (!moneyList.isEmpty()) {
+                    for (String money : moneyList) {
+                        java.sql.PreparedStatement creditStmt = session.getConnection().prepareStatement(
+                            "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES, customers.NAME as CUSTOMER_NAME " +
+                            "FROM receipts " +
+                            "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                            "LEFT JOIN tickets ON receipts.ID = tickets.ID " +
+                            "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
+                            "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'debt' " +
+                            "ORDER BY receipts.DATENEW DESC"
+                        );
+                        creditStmt.setString(1, money);
+                        java.sql.ResultSet creditRs = creditStmt.executeQuery();
+                        while (creditRs.next()) {
+                            java.util.Map<String, Object> payment = new java.util.HashMap<>();
+                            payment.put("date", creditRs.getTimestamp("DATENEW"));
+                            payment.put("total", creditRs.getDouble("TOTAL"));
+                            payment.put("notes", creditRs.getString("NOTES"));
+                            payment.put("customer", creditRs.getString("CUSTOMER_NAME"));
+                            creditPayments.add(payment);
+                        }
+                        creditRs.close();
+                        creditStmt.close();
+                    }
+                }
+                
+                if (!creditPayments.isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Fecha/Hora</th><th>Cliente</th><th>Monto</th><th>Notas</th></tr>");
+                    for (java.util.Map<String, Object> payment : creditPayments) {
+                        html.append("<tr>");
+                        html.append("<td>").append(Formats.TIMESTAMP.formatValue((Date)payment.get("date"))).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)payment.get("customer"))).append("</td>");
+                        Object totalObj = payment.get("total");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(totalObj != null ? (Double)totalObj : 0.0)).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)payment.get("notes"))).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No se recibieron pagos de créditos -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo pagos de créditos: " + e.getMessage(), e);
+                html.append("<p><em>- No se recibieron pagos de créditos -</em></p>");
+            }
+            html.append("</div>");
+            
+            // CLIENTES CON MÁS VENTAS
+            html.append("<div class='summary'>");
+            html.append("<h2>👥 Clientes con más ventas</h2>");
+            try {
+                Session session = m_App.getSession();
+                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                for (ShiftData shift : allShifts) {
+                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                        moneyList.add(shift.getMoney());
+                    }
+                }
+                
+                java.util.List<java.util.Map<String, Object>> topCustomersSales = new java.util.ArrayList<>();
+                if (!moneyList.isEmpty()) {
+                    String moneyPlaceholders = java.util.Collections.nCopies(moneyList.size(), "?").stream().collect(java.util.stream.Collectors.joining(","));
+                    java.sql.PreparedStatement customerStmt = session.getConnection().prepareStatement(
+                        "SELECT customers.NAME, SUM(receipts.TOTAL) as TOTAL_SALES, COUNT(receipts.ID) as COUNT_TICKETS " +
+                        "FROM receipts " +
+                        "INNER JOIN tickets ON receipts.ID = tickets.ID " +
+                        "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
+                        "WHERE receipts.MONEY IN (" + moneyPlaceholders + ") " +
+                        "AND customers.ID IS NOT NULL " +
+                        "GROUP BY customers.ID, customers.NAME " +
+                        "ORDER BY TOTAL_SALES DESC " +
+                        "LIMIT 10"
+                    );
+                    for (int i = 0; i < moneyList.size(); i++) {
+                        customerStmt.setString(i + 1, moneyList.get(i));
+                    }
+                    java.sql.ResultSet customerRs = customerStmt.executeQuery();
+                    while (customerRs.next()) {
+                        java.util.Map<String, Object> customer = new java.util.HashMap<>();
+                        customer.put("name", customerRs.getString("NAME"));
+                        customer.put("total", customerRs.getDouble("TOTAL_SALES"));
+                        customer.put("count", customerRs.getInt("COUNT_TICKETS"));
+                        topCustomersSales.add(customer);
+                    }
+                    customerRs.close();
+                    customerStmt.close();
+                }
+                
+                if (!topCustomersSales.isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Cliente</th><th>Total Ventas</th><th># Tickets</th></tr>");
+                    for (java.util.Map<String, Object> customer : topCustomersSales) {
+                        html.append("<tr>");
+                        html.append("<td>").append(escapeHtml((String)customer.get("name"))).append("</td>");
+                        Object totalObj = customer.get("total");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(totalObj != null ? (Double)totalObj : 0.0)).append("</td>");
+                        html.append("<td>").append(customer.get("count")).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No hubo ventas -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo clientes con más ventas: " + e.getMessage(), e);
+                html.append("<p><em>- No hubo ventas -</em></p>");
+            }
+            html.append("</div>");
+            
+            // CLIENTES CON MÁS GANANCIA
+            html.append("<div class='summary'>");
+            html.append("<h2>💰 Clientes con más ganancia</h2>");
+            try {
+                Session session = m_App.getSession();
+                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                for (ShiftData shift : allShifts) {
+                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                        moneyList.add(shift.getMoney());
+                    }
+                }
+                
+                java.util.List<java.util.Map<String, Object>> topCustomersProfit = new java.util.ArrayList<>();
+                if (!moneyList.isEmpty()) {
+                    String moneyPlaceholders = java.util.Collections.nCopies(moneyList.size(), "?").stream().collect(java.util.stream.Collectors.joining(","));
+                    java.sql.PreparedStatement profitStmt = session.getConnection().prepareStatement(
+                        "SELECT customers.NAME, " +
+                        "SUM((ticketlines.PRICE - products.PRICEBUY) * ticketlines.UNITS) as TOTAL_PROFIT, " +
+                        "SUM(receipts.TOTAL) as TOTAL_SALES " +
+                        "FROM receipts " +
+                        "INNER JOIN tickets ON receipts.ID = tickets.ID " +
+                        "INNER JOIN ticketlines ON tickets.ID = ticketlines.TICKET " +
+                        "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                        "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
+                        "WHERE receipts.MONEY IN (" + moneyPlaceholders + ") " +
+                        "AND customers.ID IS NOT NULL " +
+                        "GROUP BY customers.ID, customers.NAME " +
+                        "ORDER BY TOTAL_PROFIT DESC " +
+                        "LIMIT 10"
+                    );
+                    for (int i = 0; i < moneyList.size(); i++) {
+                        profitStmt.setString(i + 1, moneyList.get(i));
+                    }
+                    java.sql.ResultSet profitRs = profitStmt.executeQuery();
+                    while (profitRs.next()) {
+                        java.util.Map<String, Object> customer = new java.util.HashMap<>();
+                        customer.put("name", profitRs.getString("NAME"));
+                        customer.put("profit", profitRs.getDouble("TOTAL_PROFIT"));
+                        customer.put("sales", profitRs.getDouble("TOTAL_SALES"));
+                        topCustomersProfit.add(customer);
+                    }
+                    profitRs.close();
+                    profitStmt.close();
+                }
+                
+                if (!topCustomersProfit.isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Cliente</th><th>Ganancia</th><th>Total Ventas</th></tr>");
+                    for (java.util.Map<String, Object> customer : topCustomersProfit) {
+                        html.append("<tr>");
+                        html.append("<td>").append(escapeHtml((String)customer.get("name"))).append("</td>");
+                        Object profitObj = customer.get("profit");
+                        Object salesObj = customer.get("sales");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(profitObj != null ? (Double)profitObj : 0.0)).append("</td>");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(salesObj != null ? (Double)salesObj : 0.0)).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No hubo ventas -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo clientes con más ganancia: " + e.getMessage(), e);
+                html.append("<p><em>- No hubo ventas -</em></p>");
+            }
+            html.append("</div>");
+            
+            // IMPUESTOS (ANÁLISIS DE IMPUESTOS)
+            html.append("<div class='summary'>");
+            html.append("<h2>📋 Análisis de Impuestos</h2>");
+            try {
+                Session session = m_App.getSession();
+                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                for (ShiftData shift : allShifts) {
+                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                        moneyList.add(shift.getMoney());
+                    }
+                }
+                
+                java.util.List<java.util.Map<String, Object>> taxes = new java.util.ArrayList<>();
+                if (!moneyList.isEmpty()) {
+                    String moneyPlaceholders = java.util.Collections.nCopies(moneyList.size(), "?").stream().collect(java.util.stream.Collectors.joining(","));
+                    java.sql.PreparedStatement taxStmt = session.getConnection().prepareStatement(
+                        "SELECT taxcategories.NAME, SUM(taxlines.AMOUNT) as TOTAL_TAX, SUM(taxlines.BASE) as TOTAL_BASE " +
+                        "FROM receipts " +
+                        "INNER JOIN taxlines ON receipts.ID = taxlines.RECEIPT " +
+                        "INNER JOIN taxes ON taxlines.TAXID = taxes.ID " +
+                        "INNER JOIN taxcategories ON taxes.CATEGORY = taxcategories.ID " +
+                        "WHERE receipts.MONEY IN (" + moneyPlaceholders + ") " +
+                        "GROUP BY taxcategories.NAME " +
+                        "ORDER BY TOTAL_TAX DESC"
+                    );
+                    for (int i = 0; i < moneyList.size(); i++) {
+                        taxStmt.setString(i + 1, moneyList.get(i));
+                    }
+                    java.sql.ResultSet taxRs = taxStmt.executeQuery();
+                    while (taxRs.next()) {
+                        java.util.Map<String, Object> tax = new java.util.HashMap<>();
+                        tax.put("name", taxRs.getString("NAME"));
+                        tax.put("amount", taxRs.getDouble("TOTAL_TAX"));
+                        tax.put("base", taxRs.getDouble("TOTAL_BASE"));
+                        taxes.add(tax);
+                    }
+                    taxRs.close();
+                    taxStmt.close();
+                }
+                
+                if (!taxes.isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Categoría de Impuesto</th><th>Base</th><th>Monto</th></tr>");
+                    double totalTaxAmount = 0.0;
+                    double totalTaxBase = 0.0;
+                    for (java.util.Map<String, Object> tax : taxes) {
+                        html.append("<tr>");
+                        html.append("<td>").append(escapeHtml((String)tax.get("name"))).append("</td>");
+                        Object baseObj = tax.get("base");
+                        Object amountObj = tax.get("amount");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(baseObj != null ? (Double)baseObj : 0.0)).append("</td>");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(amountObj != null ? (Double)amountObj : 0.0)).append("</td>");
+                        html.append("</tr>");
+                        totalTaxAmount += (Double)tax.get("amount");
+                        totalTaxBase += (Double)tax.get("base");
+                    }
+                    html.append("<tr class='total'><td><strong>TOTAL</strong></td><td><strong>").append(Formats.CURRENCY.formatValue(totalTaxBase)).append("</strong></td><td><strong>").append(Formats.CURRENCY.formatValue(totalTaxAmount)).append("</strong></td></tr>");
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No hay impuestos registrados -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo análisis de impuestos: " + e.getMessage(), e);
+                html.append("<p><em>- No hay impuestos registrados -</em></p>");
+            }
+            html.append("</div>");
+            
+            // DEVOLUCIONES (PRODUCTOS ELIMINADOS/VOIDS)
+            html.append("<div class='summary'>");
+            html.append("<h2>↩️ Devoluciones</h2>");
+            try {
+                Session session = m_App.getSession();
+                java.util.List<String> moneyList = new java.util.ArrayList<>();
+                for (ShiftData shift : allShifts) {
+                    if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                        moneyList.add(shift.getMoney());
+                    }
+                }
+                
+                java.util.List<java.util.Map<String, Object>> returns = new java.util.ArrayList<>();
+                if (!moneyList.isEmpty()) {
+                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                    cal.setTime(closeDate);
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    cal.set(java.util.Calendar.MINUTE, 0);
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    java.sql.Timestamp dayStart = new java.sql.Timestamp(cal.getTimeInMillis());
+                    
+                    cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
+                    java.sql.Timestamp dayEnd = new java.sql.Timestamp(cal.getTimeInMillis());
+                    
+                    java.sql.PreparedStatement returnStmt = session.getConnection().prepareStatement(
+                        "SELECT lineremoved.REMOVEDDATE, lineremoved.NAME, lineremoved.UNITS, " +
+                        "lineremoved.PRICE, people.NAME as USER_NAME, tickets.ID as TICKET_ID " +
+                        "FROM lineremoved " +
+                        "LEFT JOIN people ON lineremoved.NAME = people.NAME " +
+                        "LEFT JOIN tickets ON lineremoved.NAME = tickets.ID " +
+                        "WHERE lineremoved.REMOVEDDATE >= ? AND lineremoved.REMOVEDDATE < ? " +
+                        "ORDER BY lineremoved.REMOVEDDATE DESC"
+                    );
+                    returnStmt.setTimestamp(1, dayStart);
+                    returnStmt.setTimestamp(2, dayEnd);
+                    java.sql.ResultSet returnRs = returnStmt.executeQuery();
+                    while (returnRs.next()) {
+                        java.util.Map<String, Object> ret = new java.util.HashMap<>();
+                        ret.put("date", returnRs.getTimestamp("REMOVEDDATE"));
+                        ret.put("product", returnRs.getString("NAME"));
+                        ret.put("units", returnRs.getDouble("UNITS"));
+                        ret.put("price", returnRs.getDouble("PRICE"));
+                        ret.put("user", returnRs.getString("USER_NAME"));
+                        ret.put("ticket", returnRs.getString("TICKET_ID"));
+                        returns.add(ret);
+                    }
+                    returnRs.close();
+                    returnStmt.close();
+                }
+                
+                if (!returns.isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Fecha/Hora</th><th>Producto</th><th>Cantidad</th><th>Precio</th><th>Usuario</th><th>Ticket</th></tr>");
+                    for (java.util.Map<String, Object> ret : returns) {
+                        html.append("<tr>");
+                        html.append("<td>").append(Formats.TIMESTAMP.formatValue((Date)ret.get("date"))).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)ret.get("product"))).append("</td>");
+                        Object unitsObj = ret.get("units");
+                        Object priceObj = ret.get("price");
+                        html.append("<td>").append(Formats.DOUBLE.formatValue(unitsObj != null ? (Double)unitsObj : 0.0)).append("</td>");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(priceObj != null ? (Double)priceObj : 0.0)).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)ret.get("user"))).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)ret.get("ticket"))).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No hubo devoluciones -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo devoluciones: " + e.getMessage(), e);
+                html.append("<p><em>- No hubo devoluciones -</em></p>");
+            }
+            html.append("</div>");
+            
             // Resumen total del día
             double totalDia = totalDayInitialAmount + totalDaySales + totalDayCashIn - totalDayCashOut;
             
-            html.append("<div class='summary'>");
-            html.append("<h2>TOTAL DEL DÍA</h2>");
-            html.append("<table>");
-            html.append("<tr><td><strong>Total Fondo Inicial:</strong></td><td>").append(Formats.CURRENCY.formatValue(totalDayInitialAmount)).append("</td></tr>");
-            html.append("<tr><td><strong>Total Ventas:</strong></td><td>").append(Formats.CURRENCY.formatValue(totalDaySales)).append("</td></tr>");
-            html.append("<tr><td><strong>Total Entradas:</strong></td><td>").append(Formats.CURRENCY.formatValue(totalDayCashIn)).append("</td></tr>");
-            html.append("<tr><td><strong>Total Salidas:</strong></td><td>").append(Formats.CURRENCY.formatValue(totalDayCashOut)).append("</td></tr>");
-            html.append("<tr><td><strong>Total del Día:</strong></td><td class='total'>").append(Formats.CURRENCY.formatValue(totalDia)).append("</td></tr>");
+            html.append("<div class='summary' style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; border: none;'>");
+            html.append("<h2 style='color: white; border-left-color: white;'>🎯 TOTAL DEL DÍA</h2>");
+            html.append("<table style='background: rgba(255,255,255,0.1);'>");
+            html.append("<tr style='background: rgba(255,255,255,0.2);'><td style='color: white; padding: 15px;'><strong>Total Fondo Inicial:</strong></td><td style='color: white; padding: 15px; font-size: 1.1em;'>").append(Formats.CURRENCY.formatValue(totalDayInitialAmount)).append("</td></tr>");
+            html.append("<tr><td style='color: white; padding: 15px;'><strong>Total Ventas:</strong></td><td style='color: white; padding: 15px; font-size: 1.1em;'>").append(Formats.CURRENCY.formatValue(totalDaySales)).append("</td></tr>");
+            html.append("<tr style='background: rgba(255,255,255,0.2);'><td style='color: white; padding: 15px;'><strong>Total Entradas:</strong></td><td style='color: white; padding: 15px; font-size: 1.1em;'>").append(Formats.CURRENCY.formatValue(totalDayCashIn)).append("</td></tr>");
+            html.append("<tr><td style='color: white; padding: 15px;'><strong>Total Salidas:</strong></td><td style='color: white; padding: 15px; font-size: 1.1em;'>").append(Formats.CURRENCY.formatValue(totalDayCashOut)).append("</td></tr>");
+            html.append("<tr style='background: rgba(255,255,255,0.3); border-top: 2px solid white;'><td style='color: white; padding: 20px; font-size: 1.3em;'><strong>TOTAL DEL DÍA:</strong></td><td style='color: white; padding: 20px; font-size: 1.5em; font-weight: bold;'>").append(Formats.CURRENCY.formatValue(totalDia)).append("</td></tr>");
             html.append("</table>");
             html.append("</div>");
             
+            html.append("</div>"); // Cerrar container
             html.append("</body></html>");
             
             // Crear diálogo para mostrar el reporte HTML
@@ -4533,17 +5727,488 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     }
     
     /**
-     * Escapa caracteres HTML para evitar problemas de seguridad y visualización
+     * Muestra el reporte del turno actual (cierre de cajero)
      */
-    private String escapeHtml(String text) {
-        if (text == null) {
-            return "";
+    private void showShiftReport() {
+        try {
+            if (m_PaymentsToClose == null) {
+                LOGGER.warning("No hay datos de turno para mostrar");
+                return;
+            }
+            
+            LOGGER.info("Generando reporte visual del turno actual...");
+            
+            Date shiftDate = m_PaymentsToClose.getDateEnd() != null ? m_PaymentsToClose.getDateEnd() : new Date();
+            
+            // Generar HTML del reporte
+            StringBuilder html = new StringBuilder();
+            html.append("<!DOCTYPE html><html><head>");
+            html.append("<meta charset='UTF-8'>");
+            html.append("<title>Reporte de Caja Cerrada - Turno Actual</title>");
+            html.append("<style>");
+            html.append("* { margin: 0; padding: 0; box-sizing: border-box; }");
+            html.append("body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%); min-height: 100vh; }");
+            html.append(".container { max-width: 1200px; margin: 0 auto; background: white; border-radius: 15px; box-shadow: 0 10px 40px rgba(0,0,0,0.1); padding: 30px; }");
+            html.append("h1 { text-align: center; color: #2c3e50; font-size: 2.5em; margin-bottom: 10px; text-shadow: 2px 2px 4px rgba(0,0,0,0.1); }");
+            html.append(".header-info { text-align: center; color: #7f8c8d; margin-bottom: 30px; font-size: 1.1em; }");
+            html.append("h2 { color: #2c3e50; border-left: 5px solid #3498db; padding-left: 15px; margin: 25px 0 15px 0; font-size: 1.8em; }");
+            html.append("h3 { color: #34495e; margin: 20px 0 10px 0; font-size: 1.4em; }");
+            html.append("table { width: 100%; border-collapse: separate; border-spacing: 0; margin: 15px 0; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 10px rgba(0,0,0,0.08); }");
+            html.append("th { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 15px 12px; text-align: left; font-weight: 600; text-transform: uppercase; font-size: 0.9em; letter-spacing: 0.5px; }");
+            html.append("td { padding: 12px; border-bottom: 1px solid #ecf0f1; background-color: white; }");
+            html.append("tr:last-child td { border-bottom: none; }");
+            html.append("tr:nth-child(even) td { background-color: #f8f9fa; }");
+            html.append("tr:hover td { background-color: #e8f4f8; transition: background-color 0.3s ease; }");
+            html.append(".total { font-weight: bold; font-size: 1.2em; color: #2c3e50; background-color: #ecf0f1 !important; }");
+            html.append(".shift-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; margin: 25px 0 20px 0; border-radius: 10px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }");
+            html.append(".shift-header h2 { color: white; border: none; padding: 0; margin: 0 0 10px 0; }");
+            html.append(".shift-header p { margin: 5px 0; font-size: 1em; }");
+            html.append(".summary { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); padding: 25px; margin: 25px 0; border-radius: 12px; border: 1px solid #e1e8ed; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }");
+            html.append(".summary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }");
+            html.append(".summary h2 { border-left-color: #3498db; }");
+            html.append("p { margin: 10px 0; line-height: 1.6; color: #555; }");
+            html.append("em { color: #95a5a6; font-style: italic; }");
+            html.append("@media print { body { background: white; } .container { box-shadow: none; } }");
+            html.append("</style>");
+            html.append("</head><body>");
+            html.append("<div class='container'>");
+            
+            html.append("<h1>📊 REPORTE DE CAJA CERRADA</h1>");
+            html.append("<div class='header-info'>");
+            html.append("<p><strong>📅 Fecha:</strong> ").append(Formats.DATE.formatValue(shiftDate)).append("</p>");
+            html.append("<p><strong>🕐 Generado:</strong> ").append(Formats.TIMESTAMP.formatValue(new Date())).append("</p>");
+            html.append("</div>");
+            
+            // Encabezado del turno
+            html.append("<div class='shift-header'>");
+            html.append("<h2>TURNO ").append(m_PaymentsToClose.printSequence()).append(" - ").append(m_PaymentsToClose.printUser()).append("</h2>");
+            html.append("<p><strong>Inicio:</strong> ").append(m_PaymentsToClose.printDateStart()).append("</p>");
+            html.append("<p><strong>Fin:</strong> ").append(m_PaymentsToClose.printDateEnd()).append("</p>");
+            html.append("</div>");
+            
+            // Resumen del turno
+            double initialAmount = m_PaymentsToClose.getInitialAmount() != null ? m_PaymentsToClose.getInitialAmount() : 0.0;
+            // Calcular total de ventas desde base + impuestos
+            double salesBase = 0.0;
+            double salesTaxes = 0.0;
+            try {
+                // Obtener valores desde la base de datos directamente
+                Session session = m_App.getSession();
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Date dateStart = m_PaymentsToClose.getDateStart();
+                
+                if (dateStart != null) {
+                    java.sql.PreparedStatement salesStmt = session.getConnection().prepareStatement(
+                        "SELECT COALESCE(SUM(receipts.TOTAL), 0) AS TOTAL " +
+                        "FROM receipts " +
+                        "WHERE receipts.MONEY = ? AND receipts.DATENEW >= ?"
+                    );
+                    salesStmt.setString(1, activeCashIndex);
+                    salesStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    java.sql.ResultSet salesRs = salesStmt.executeQuery();
+                    if (salesRs.next()) {
+                        salesBase = salesRs.getDouble("TOTAL");
+                    }
+                    salesRs.close();
+                    salesStmt.close();
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo total de ventas: " + e.getMessage(), e);
+            }
+            double totalSales = salesBase;
+            double cashIn = 0.0;
+            double cashOut = 0.0;
+            
+            // Obtener entradas y salidas del turno actual
+            try {
+                Session session = m_App.getSession();
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Date dateStart = m_PaymentsToClose.getDateStart();
+                
+                if (dateStart != null) {
+                    // Entradas (cashin)
+                    java.sql.PreparedStatement cashInStmt = session.getConnection().prepareStatement(
+                        "SELECT COALESCE(SUM(payments.TOTAL), 0) AS TOTAL " +
+                        "FROM payments " +
+                        "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashin' AND receipts.DATENEW >= ?"
+                    );
+                    cashInStmt.setString(1, activeCashIndex);
+                    cashInStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    java.sql.ResultSet cashInRs = cashInStmt.executeQuery();
+                    if (cashInRs.next()) {
+                        cashIn = cashInRs.getDouble("TOTAL");
+                    }
+                    cashInRs.close();
+                    cashInStmt.close();
+                    
+                    // Salidas (cashout)
+                    java.sql.PreparedStatement cashOutStmt = session.getConnection().prepareStatement(
+                        "SELECT COALESCE(SUM(ABS(payments.TOTAL)), 0) AS TOTAL " +
+                        "FROM payments " +
+                        "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' AND receipts.DATENEW >= ?"
+                    );
+                    cashOutStmt.setString(1, activeCashIndex);
+                    cashOutStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    java.sql.ResultSet cashOutRs = cashOutStmt.executeQuery();
+                    if (cashOutRs.next()) {
+                        cashOut = cashOutRs.getDouble("TOTAL");
+                    }
+                    cashOutRs.close();
+                    cashOutStmt.close();
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo entradas/salidas del turno: " + e.getMessage(), e);
+            }
+            
+            double totalTurno = initialAmount + totalSales + cashIn - cashOut;
+            
+            html.append("<div class='summary'>");
+            html.append("<h3>📊 Resumen del Turno</h3>");
+            html.append("<table>");
+            html.append("<tr style='background-color: #f8f9fa;'><td style='padding: 12px;'><strong>Monto Inicial del Turno:</strong></td><td style='padding: 12px; font-size: 1.1em; color: #27ae60;'><strong>").append(Formats.CURRENCY.formatValue(initialAmount)).append("</strong></td></tr>");
+            html.append("<tr><td style='padding: 12px;'><strong>Total de Ventas:</strong></td><td style='padding: 12px; font-size: 1.1em; color: #2c3e50;'>").append(Formats.CURRENCY.formatValue(totalSales)).append("</td></tr>");
+            html.append("<tr style='background-color: #f8f9fa;'><td style='padding: 12px;'><strong>Entradas:</strong></td><td style='padding: 12px; font-size: 1.1em; color: #27ae60;'>").append(Formats.CURRENCY.formatValue(cashIn)).append("</td></tr>");
+            html.append("<tr><td style='padding: 12px;'><strong>Salidas:</strong></td><td style='padding: 12px; font-size: 1.1em; color: #e74c3c;'>").append(Formats.CURRENCY.formatValue(cashOut)).append("</td></tr>");
+            html.append("<tr style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-top: 2px solid #667eea;'><td style='padding: 15px; color: white; font-size: 1.2em;'><strong>TOTAL DEL TURNO:</strong></td><td style='padding: 15px; color: white; font-size: 1.3em; font-weight: bold;'>").append(Formats.CURRENCY.formatValue(totalTurno)).append("</td></tr>");
+            html.append("</table>");
+            html.append("</div>");
+            
+            // VENTAS POR DEPARTAMENTO DEL TURNO
+            html.append("<div class='summary'>");
+            html.append("<h2>🏢 VENTAS POR DEPARTAMENTO</h2>");
+            
+            try {
+                Session session = m_App.getSession();
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Date dateStart = m_PaymentsToClose.getDateStart();
+                
+                java.util.Map<String, ConsolidatedProduct> categoryConsolidated = new java.util.HashMap<>();
+                
+                if (dateStart != null) {
+                    java.sql.PreparedStatement categoryStmt = session.getConnection().prepareStatement(
+                        "SELECT COALESCE(categories.NAME, 'Sin Departamento') as CATEGORY_NAME, " +
+                        "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
+                        "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE) * ticketlines.UNITS) as TOTAL_VALUE " +
+                        "FROM ticketlines " +
+                        "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                        "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                        "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                        "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
+                        "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                        "WHERE receipts.MONEY = ? AND receipts.DATENEW >= ? " +
+                        "GROUP BY COALESCE(categories.NAME, 'Sin Departamento')"
+                    );
+                    categoryStmt.setString(1, activeCashIndex);
+                    categoryStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    java.sql.ResultSet categoryRs = categoryStmt.executeQuery();
+                    
+                    while (categoryRs.next()) {
+                        String categoryName = categoryRs.getString("CATEGORY_NAME");
+                        if (categoryName == null || categoryName.trim().isEmpty()) {
+                            categoryName = "Sin Departamento";
+                        }
+                        
+                        ConsolidatedProduct consolidated = categoryConsolidated.get(categoryName);
+                        if (consolidated == null) {
+                            consolidated = new ConsolidatedProduct(categoryName);
+                            categoryConsolidated.put(categoryName, consolidated);
+                        }
+                        
+                        double units = categoryRs.getDouble("TOTAL_UNITS");
+                        double totalValue = categoryRs.getDouble("TOTAL_VALUE");
+                        
+                        consolidated.addUnits(units);
+                        consolidated.addTotal(totalValue);
+                    }
+                    categoryRs.close();
+                    categoryStmt.close();
+                }
+                
+                if (!categoryConsolidated.isEmpty()) {
+                    java.util.List<ConsolidatedProduct> sortedCategories = new java.util.ArrayList<>(categoryConsolidated.values());
+                    java.util.Collections.sort(sortedCategories, (a, b) -> a.getName().compareTo(b.getName()));
+                    
+                    html.append("<table>");
+                    html.append("<tr><th>Departamento</th><th>Cantidad</th><th>Total</th></tr>");
+                    for (ConsolidatedProduct category : sortedCategories) {
+                        html.append("<tr>");
+                        html.append("<td>").append(escapeHtml(category.getName())).append("</td>");
+                        html.append("<td>").append(Formats.DOUBLE.formatValue(category.getTotalUnits())).append("</td>");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(category.getTotalValue())).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- Sin ventas por departamento -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error consolidando por departamento en showShiftReport: " + e.getMessage(), e);
+                html.append("<p><em>- Sin ventas por departamento -</em></p>");
+            }
+            html.append("</div>");
+            
+            // SALIDAS DE EFECTIVO
+            html.append("<div class='summary'>");
+            html.append("<h2>💸 Salidas de Efectivo</h2>");
+            try {
+                Session session = m_App.getSession();
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Date dateStart = m_PaymentsToClose.getDateStart();
+                
+                java.util.List<java.util.Map<String, Object>> outflows = new java.util.ArrayList<>();
+                if (dateStart != null) {
+                    java.sql.PreparedStatement cashOutStmt = session.getConnection().prepareStatement(
+                        "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
+                        "FROM receipts " +
+                        "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' AND receipts.DATENEW >= ? " +
+                        "ORDER BY receipts.DATENEW DESC"
+                    );
+                    cashOutStmt.setString(1, activeCashIndex);
+                    cashOutStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    java.sql.ResultSet cashOutRs = cashOutStmt.executeQuery();
+                    while (cashOutRs.next()) {
+                        java.util.Map<String, Object> outflow = new java.util.HashMap<>();
+                        outflow.put("date", cashOutRs.getTimestamp("DATENEW"));
+                        outflow.put("total", cashOutRs.getDouble("TOTAL"));
+                        outflow.put("notes", cashOutRs.getString("NOTES"));
+                        outflows.add(outflow);
+                    }
+                    cashOutRs.close();
+                    cashOutStmt.close();
+                }
+                
+                if (!outflows.isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Fecha/Hora</th><th>Monto</th><th>Notas</th></tr>");
+                    for (java.util.Map<String, Object> outflow : outflows) {
+                        html.append("<tr>");
+                        html.append("<td>").append(Formats.TIMESTAMP.formatValue((Date)outflow.get("date"))).append("</td>");
+                        Object totalObj = outflow.get("total");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(totalObj != null ? (Double)totalObj : 0.0)).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)outflow.get("notes"))).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No hubo Salidas en Efectivo -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo salidas de efectivo: " + e.getMessage(), e);
+                html.append("<p><em>- No hubo Salidas en Efectivo -</em></p>");
+            }
+            html.append("</div>");
+            
+            // PAGOS DE CRÉDITOS
+            html.append("<div class='summary'>");
+            html.append("<h2>💳 Pagos de Créditos</h2>");
+            try {
+                Session session = m_App.getSession();
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Date dateStart = m_PaymentsToClose.getDateStart();
+                
+                java.util.List<java.util.Map<String, Object>> creditPayments = new java.util.ArrayList<>();
+                if (dateStart != null) {
+                    java.sql.PreparedStatement creditStmt = session.getConnection().prepareStatement(
+                        "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES, customers.NAME as CUSTOMER_NAME " +
+                        "FROM receipts " +
+                        "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                        "LEFT JOIN tickets ON receipts.ID = tickets.ID " +
+                        "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
+                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'debt' AND receipts.DATENEW >= ? " +
+                        "ORDER BY receipts.DATENEW DESC"
+                    );
+                    creditStmt.setString(1, activeCashIndex);
+                    creditStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    java.sql.ResultSet creditRs = creditStmt.executeQuery();
+                    while (creditRs.next()) {
+                        java.util.Map<String, Object> payment = new java.util.HashMap<>();
+                        payment.put("date", creditRs.getTimestamp("DATENEW"));
+                        payment.put("total", creditRs.getDouble("TOTAL"));
+                        payment.put("notes", creditRs.getString("NOTES"));
+                        payment.put("customer", creditRs.getString("CUSTOMER_NAME"));
+                        creditPayments.add(payment);
+                    }
+                    creditRs.close();
+                    creditStmt.close();
+                }
+                
+                if (!creditPayments.isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Fecha/Hora</th><th>Cliente</th><th>Monto</th><th>Notas</th></tr>");
+                    for (java.util.Map<String, Object> payment : creditPayments) {
+                        html.append("<tr>");
+                        html.append("<td>").append(Formats.TIMESTAMP.formatValue((Date)payment.get("date"))).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)payment.get("customer"))).append("</td>");
+                        Object totalObj = payment.get("total");
+                        html.append("<td>").append(Formats.CURRENCY.formatValue(totalObj != null ? (Double)totalObj : 0.0)).append("</td>");
+                        html.append("<td>").append(escapeHtml((String)payment.get("notes"))).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No se recibieron pagos de créditos -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo pagos de créditos: " + e.getMessage(), e);
+                html.append("<p><em>- No se recibieron pagos de créditos -</em></p>");
+            }
+            html.append("</div>");
+            
+            // ANÁLISIS DE IMPUESTOS
+            html.append("<div class='summary'>");
+            html.append("<h2>📋 Análisis de Impuestos</h2>");
+            try {
+                if (m_PaymentsToClose.getSaleLines() != null && !m_PaymentsToClose.getSaleLines().isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Categoría de Impuesto</th><th>Base</th><th>Monto</th></tr>");
+                    double totalTaxAmount = 0.0;
+                    double totalTaxBase = 0.0;
+                    for (PaymentsModel.SalesLine taxLine : m_PaymentsToClose.getSaleLines()) {
+                        html.append("<tr>");
+                        html.append("<td>").append(escapeHtml(taxLine.printTaxName())).append("</td>");
+                        html.append("<td>").append(taxLine.printTaxNet()).append("</td>");
+                        html.append("<td>").append(taxLine.printTaxes()).append("</td>");
+                        html.append("</tr>");
+                        // Intentar extraer valores numéricos si es posible
+                        try {
+                            String taxBaseStr = taxLine.printTaxNet().replaceAll("[^0-9.,-]", "").replace(",", "");
+                            String taxAmountStr = taxLine.printTaxes().replaceAll("[^0-9.,-]", "").replace(",", "");
+                            if (!taxBaseStr.isEmpty()) totalTaxBase += Double.parseDouble(taxBaseStr);
+                            if (!taxAmountStr.isEmpty()) totalTaxAmount += Double.parseDouble(taxAmountStr);
+                        } catch (Exception ex) {
+                            // Ignorar si no se puede parsear
+                        }
+                    }
+                    html.append("<tr class='total'><td><strong>TOTAL</strong></td><td><strong>").append(Formats.CURRENCY.formatValue(totalTaxBase)).append("</strong></td><td><strong>").append(Formats.CURRENCY.formatValue(totalTaxAmount)).append("</strong></td></tr>");
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No hay impuestos registrados -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo análisis de impuestos: " + e.getMessage(), e);
+                html.append("<p><em>- No hay impuestos registrados -</em></p>");
+            }
+            html.append("</div>");
+            
+            // DEVOLUCIONES
+            html.append("<div class='summary'>");
+            html.append("<h2>↩️ Devoluciones</h2>");
+            try {
+                if (m_PaymentsToClose.getRemovedProductLines() != null && !m_PaymentsToClose.getRemovedProductLines().isEmpty()) {
+                    html.append("<table>");
+                    html.append("<tr><th>Ticket</th><th>Usuario</th><th>Producto</th><th>Cantidad</th></tr>");
+                    for (PaymentsModel.RemovedProductLines removed : m_PaymentsToClose.getRemovedProductLines()) {
+                        html.append("<tr>");
+                        html.append("<td>").append(escapeHtml(removed.printTicketId())).append("</td>");
+                        html.append("<td>").append(escapeHtml(removed.printWorkerName())).append("</td>");
+                        html.append("<td>").append(escapeHtml(removed.printProductName())).append("</td>");
+                        html.append("<td>").append(removed.printTotalUnits()).append("</td>");
+                        html.append("</tr>");
+                    }
+                    html.append("</table>");
+                } else {
+                    html.append("<p><em>- No hubo devoluciones -</em></p>");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error obteniendo devoluciones: " + e.getMessage(), e);
+                html.append("<p><em>- No hubo devoluciones -</em></p>");
+            }
+            html.append("</div>");
+            
+            html.append("</div>"); // Cerrar container
+            html.append("</body></html>");
+            
+            // Crear diálogo para mostrar el reporte HTML
+            JDialog reportDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
+                "Reporte de Caja Cerrada - Turno Actual", true);
+            reportDialog.setSize(1000, 700);
+            reportDialog.setLocationRelativeTo(this);
+            
+            // Crear panel con el visor HTML
+            JPanel panel = new JPanel(new BorderLayout());
+            JEditorPane htmlViewer = new JEditorPane();
+            htmlViewer.setContentType("text/html");
+            htmlViewer.setEditable(false);
+            htmlViewer.setText(html.toString());
+            JScrollPane scrollPane = new JScrollPane(htmlViewer);
+            panel.add(scrollPane, BorderLayout.CENTER);
+            
+            // Panel de botones: Guardar HTML, Imprimir y Cerrar
+            JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+            JButton btnSaveHTML = new JButton("Guardar HTML");
+            JButton btnPrint = new JButton("Imprimir");
+            JButton btnClose = new JButton("Cerrar");
+            
+            final String htmlContent = html.toString();
+            
+            btnSaveHTML.addActionListener(e -> {
+                try {
+                    JFileChooser fileChooser = new JFileChooser();
+                    fileChooser.setDialogTitle("Guardar reporte como HTML");
+                    fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos HTML (*.html)", "html"));
+                    
+                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd_HHmmss");
+                    String defaultFileName = "Reporte_Turno_" + sdf.format(new Date()) + ".html";
+                    fileChooser.setSelectedFile(new java.io.File(defaultFileName));
+                    
+                    int userSelection = fileChooser.showSaveDialog(reportDialog);
+                    if (userSelection == JFileChooser.APPROVE_OPTION) {
+                        java.io.File fileToSave = fileChooser.getSelectedFile();
+                        String filePath = fileToSave.getAbsolutePath();
+                        
+                        if (!filePath.toLowerCase().endsWith(".html")) {
+                            filePath += ".html";
+                        }
+                        
+                        java.io.FileWriter writer = new java.io.FileWriter(filePath);
+                        writer.write(htmlContent);
+                        writer.close();
+                        
+                        JOptionPane.showMessageDialog(reportDialog,
+                            "Reporte guardado exitosamente en:\n" + filePath,
+                            "Éxito",
+                            JOptionPane.INFORMATION_MESSAGE);
+                    }
+                } catch (java.io.IOException ex) {
+                    LOGGER.log(Level.SEVERE, "Error guardando HTML", ex);
+                    JOptionPane.showMessageDialog(reportDialog,
+                        "Error al guardar el HTML: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            
+            btnPrint.addActionListener(e -> {
+                try {
+                    htmlViewer.print();
+                } catch (java.awt.print.PrinterException ex) {
+                    LOGGER.log(Level.SEVERE, "Error imprimiendo", ex);
+                    JOptionPane.showMessageDialog(reportDialog,
+                        "Error al imprimir: " + ex.getMessage(),
+                        "Error",
+                        JOptionPane.ERROR_MESSAGE);
+                }
+            });
+            
+            btnClose.addActionListener(e -> reportDialog.dispose());
+            
+            buttonPanel.add(btnSaveHTML);
+            buttonPanel.add(btnPrint);
+            buttonPanel.add(btnClose);
+            panel.add(buttonPanel, BorderLayout.SOUTH);
+            
+            reportDialog.add(panel);
+            reportDialog.setVisible(true);
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error generando reporte del turno: " + e.getMessage(), e);
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                "Error generando reporte del turno: " + e.getMessage(), e);
+            msg.show(this);
         }
-        return text.replace("&", "&amp;")
-                  .replace("<", "&lt;")
-                  .replace(">", "&gt;")
-                  .replace("\"", "&quot;")
-                  .replace("'", "&#39;");
     }
     
 }

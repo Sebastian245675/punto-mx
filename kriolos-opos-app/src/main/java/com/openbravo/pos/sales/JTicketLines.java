@@ -102,9 +102,14 @@ public class JTicketLines extends javax.swing.JPanel {
 
         //m_jTicketTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         TableColumnModel jColumns = m_jTicketTable.getColumnModel();
+        TicketCellRenderer defaultRenderer = new TicketCellRenderer(acolumns);
+        
         for (int i = 0; i < acolumns.length; i++) {
             jColumns.getColumn(i).setPreferredWidth(acolumns[i].width);
             jColumns.getColumn(i).setResizable(false);
+            
+            // Configurar renderizador específico para cada columna
+            jColumns.getColumn(i).setCellRenderer(defaultRenderer);
         }
 
         m_jScrollTableTicket.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
@@ -116,7 +121,7 @@ public class JTicketLines extends javax.swing.JPanel {
 
         m_jTicketTable.getTableHeader().setReorderingAllowed(true);
         m_jTicketTable.setAutoCreateRowSorter(true);
-        m_jTicketTable.setDefaultRenderer(Object.class, new TicketCellRenderer(acolumns));
+        m_jTicketTable.setDefaultRenderer(Object.class, defaultRenderer);
 
         m_jTicketTable.setRowHeight(40);
         m_jTicketTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
@@ -126,8 +131,17 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jTicketTable.setSelectionBackground(new java.awt.Color(91, 192, 222)); // Azul claro de Eleventa
         m_jTicketTable.setSelectionForeground(java.awt.Color.WHITE); // Texto blanco cuando está seleccionado
         m_jTicketTable.setGridColor(new java.awt.Color(220, 220, 220)); // Grid gris claro
-        m_jScrollTableTicket.getViewport().setBackground(java.awt.Color.WHITE);
-        m_jScrollTableTicket.setBackground(java.awt.Color.WHITE);
+        
+        // Configurar el fondo del viewport para que las columnas de código de barras y precio se extiendan hasta abajo
+        m_jTicketTable.setFillsViewportHeight(true);
+        m_jTicketTable.setOpaque(true);
+        
+        // Reemplazar el viewport por defecto con uno personalizado que pinte el fondo de las columnas
+        ColumnBackgroundViewport customViewport = new ColumnBackgroundViewport(m_jTicketTable, acolumns, defaultRenderer);
+        customViewport.setBackground(java.awt.Color.WHITE);
+        customViewport.setOpaque(true);
+        customViewport.setView(m_jTicketTable);
+        m_jScrollTableTicket.setViewport(customViewport);
 
         m_jTableModel.clear();
         
@@ -383,16 +397,67 @@ public class JTicketLines extends javax.swing.JPanel {
             // Usar fuente Arial como Eleventa
             aux.setFont(new Font("Arial", Font.PLAIN, 14));
             
+            // Identificar nombre de la columna traducida
+            String columnName = com.openbravo.pos.forms.AppLocal.getIntString(m_acolumns[column].name);
+            String columnKey = m_acolumns[column].name;
+            
+            // Verificar si es columna de código de barras o precio
+            boolean isBarcodeColumn = columnKey != null && (
+                columnKey.contains("barcode") || 
+                columnKey.contains("code") ||
+                columnName.toLowerCase().contains("código de barras") ||
+                columnName.toLowerCase().contains("codigo de barras")
+            );
+            boolean isPriceColumn = columnKey != null && (
+                columnKey.contains("price") ||
+                columnName.toLowerCase().contains("precio")
+            );
+            
+            // Asegurarse de que el componente sea opaco para que se vea el fondo
+            aux.setOpaque(true);
+            
             // Colores estilo Eleventa
             if (isSelected) {
                 aux.setBackground(new java.awt.Color(91, 192, 222)); // Azul claro de Eleventa
                 aux.setForeground(java.awt.Color.WHITE); // Texto blanco
             } else {
-                aux.setBackground(java.awt.Color.WHITE);
-                aux.setForeground(java.awt.Color.BLACK);
+                // Aplicar fondo azul claro a columnas de código de barras y precio (siempre, incluso en celdas vacías)
+                if (isBarcodeColumn || isPriceColumn) {
+                    aux.setBackground(new java.awt.Color(220, 235, 245)); // Azul claro suave
+                    aux.setForeground(java.awt.Color.BLACK);
+                } else {
+                    aux.setBackground(java.awt.Color.WHITE);
+                    aux.setForeground(java.awt.Color.BLACK);
+                }
             }
 
             return aux;
+        }
+        
+        /**
+         * Método para obtener el color de fondo de una columna específica
+         */
+        public java.awt.Color getColumnBackgroundColor(int column) {
+            if (column >= 0 && column < m_acolumns.length) {
+                String columnName = com.openbravo.pos.forms.AppLocal.getIntString(m_acolumns[column].name);
+                String columnKey = m_acolumns[column].name;
+                
+                boolean isBarcodeColumn = columnKey != null && (
+                    columnKey.contains("barcode") || 
+                    columnKey.contains("code") ||
+                    columnName.toLowerCase().contains("código de barras") ||
+                    columnName.toLowerCase().contains("codigo de barras")
+                );
+                boolean isPriceColumn = columnKey != null && (
+                    columnKey.contains("price") ||
+                    columnName.toLowerCase().contains("precio")
+                );
+                
+                if (isBarcodeColumn || isPriceColumn) {
+                    return new java.awt.Color(220, 235, 245);
+                }
+            }
+            return java.awt.Color.WHITE;
         }
     }
 
@@ -610,5 +675,81 @@ public class JTicketLines extends javax.swing.JPanel {
     private javax.swing.JScrollPane m_jScrollTableTicket;
     private javax.swing.JTable m_jTicketTable;
     // End of variables declaration//GEN-END:variables
+
+    /**
+     * Viewport personalizado que pinta el fondo de las columnas de código de barras y precio hasta abajo
+     */
+    private static class ColumnBackgroundViewport extends javax.swing.JViewport {
+        private static final long serialVersionUID = 1L;
+        private final JTable table;
+        private final ColumnTicket[] columns;
+        private final TicketCellRenderer renderer;
+        
+        public ColumnBackgroundViewport(JTable table, ColumnTicket[] columns, TicketCellRenderer renderer) {
+            this.table = table;
+            this.columns = columns;
+            this.renderer = renderer;
+        }
+        
+        @Override
+        public void paint(java.awt.Graphics g) {
+            // Pintar primero el fondo blanco completo
+            g.setColor(java.awt.Color.WHITE);
+            g.fillRect(0, 0, getWidth(), getHeight());
+            
+            // Pintar el fondo azul claro de las columnas de código de barras y precio (siempre, desde arriba hasta abajo)
+            if (table != null && columns != null) {
+                paintColumnBackgrounds(g);
+            }
+            
+            // Luego pintar el contenido normal (tabla) - las celdas mantendrán su color gracias al renderizador
+            super.paint(g);
+        }
+        
+        /**
+         * Pinta el fondo de las columnas de código de barras y precio desde arriba hasta abajo
+         */
+        private void paintColumnBackgrounds(java.awt.Graphics g) {
+            if (table == null || columns == null) return;
+            
+            java.awt.Point viewPosition = getViewPosition();
+            int viewportHeight = getHeight();
+            
+            // Pintar el fondo completo de cada columna desde arriba hasta abajo (incluyendo cuando está vacía)
+            int x = -viewPosition.x;
+            for (int i = 0; i < columns.length && i < table.getColumnCount(); i++) {
+                int columnWidth = table.getColumnModel().getColumn(i).getWidth();
+                
+                // Verificar si es columna de código de barras o precio
+                String columnName = com.openbravo.pos.forms.AppLocal.getIntString(columns[i].name);
+                String columnKey = columns[i].name;
+                
+                boolean isBarcodeColumn = columnKey != null && (
+                    columnKey.contains("barcode") || 
+                    columnKey.contains("code") ||
+                    (columnName != null && columnName.toLowerCase().contains("código de barras")) ||
+                    (columnName != null && columnName.toLowerCase().contains("codigo de barras"))
+                );
+                boolean isPriceColumn = columnKey != null && (
+                    columnKey.contains("price") ||
+                    (columnName != null && columnName.toLowerCase().contains("precio"))
+                );
+                
+                // Pintar el fondo completo de la columna desde arriba hasta abajo (siempre)
+                if (isBarcodeColumn || isPriceColumn) {
+                    g.setColor(new java.awt.Color(220, 235, 245)); // Azul claro suave
+                    int paintX = Math.max(0, x);
+                    int paintWidth = Math.min(columnWidth - (paintX - x), getWidth() - paintX);
+                    if (paintWidth > 0) {
+                        // Pintar desde el inicio del viewport hasta abajo
+                        g.fillRect(paintX, 0, paintWidth, viewportHeight);
+                    }
+                }
+                
+                x += columnWidth;
+            }
+        }
+        
+    }
 
 }

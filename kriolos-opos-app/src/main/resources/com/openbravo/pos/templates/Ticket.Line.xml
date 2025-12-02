@@ -22,6 +22,8 @@
 
 <!-- This sales transaction screen is great for Retailers! -->
 <line>
+    <column name="label.prodbarcode" width="120" align="left" value="${ticketline.printCode()}"/>
+    
     <column name="label.item" width="185" align="left" value="&lt;html&gt;
 	#if ($ticketline.isProductCom()) &lt;i&gt;*&amp;nbsp;&amp;nbsp;
 		${ticketline.printName()}&lt;/i&gt; 
@@ -34,7 +36,6 @@
     <column name="label.units" width="50" align="right" value="x${ticketline.printMultiply()}"/>
     <column name="label.tax" width="50" align="right" value="${ticketline.printTaxRate()}"/>
     <column name="label.value" width="100" align="right" value="${ticketline.printValue()}"/>
-    <column name="label.printto" width="5" align="center" value="${ticketline.printPrinter()}"/>    
 <!--<column name="label.sendorder" width="5" align="left" value="${ticketline.getProperty('printkb','?')}"/> -->
 <!--<column name="label.sendstatus" width="5" align="left" value="${ticketline.getProperty('sendstatus','?')}"/> -->
 </line>

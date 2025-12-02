@@ -60,6 +60,12 @@ import com.openbravo.pos.ticket.TicketLineInfo;
 import com.openbravo.pos.util.InactivityListener;
 import com.openbravo.pos.reports.JRPrinterAWT300;
 import com.openbravo.pos.util.ReportUtils;
+import com.openbravo.beans.JCalendarDialog;
+import com.openbravo.data.loader.QBFCompareEnum;
+import com.openbravo.data.user.ListProviderCreator;
+import com.openbravo.data.user.EditorCreator;
+import com.openbravo.pos.ticket.FindTicketsInfo;
+import java.text.SimpleDateFormat;
 
 import java.awt.*;
 
@@ -579,7 +585,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     private void aplicarFuentesGrandesVentas() {
         if (m_jKeyFactory != null) {
-            m_jKeyFactory.setFont(new Font("Segoe UI", Font.BOLD, 28));
+            m_jKeyFactory.setFont(new Font("Segoe UI", Font.BOLD, 20));
             m_jKeyFactory.setForeground(Color.BLACK); // Números negros
         }
         if (m_jPrice != null) {
@@ -3317,17 +3323,19 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         topRightPanel.setLayout(new java.awt.BorderLayout(15, 0)); // 15px de espacio entre botón y total
         topRightPanel.setOpaque(false);
         
-        // Botón Cobrar al lado izquierdo del total (más pequeño como en la imagen de Eleventa)
+        // Botón Cobrar al lado izquierdo del total (largo de lado, no de altura como en la imagen)
         m_jPayNow = new javax.swing.JButton();
         m_jPayNow.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
         m_jPayNow.setText("F12 - Cobrar");
         m_jPayNow.setFocusPainted(false);
-        m_jPayNow.setPreferredSize(new java.awt.Dimension(160, 35)); // Más pequeño: 160px ancho, 35px alto
+        m_jPayNow.setPreferredSize(new java.awt.Dimension(250, 28)); // Más ancho que alto - largo horizontal
+        m_jPayNow.setMinimumSize(new java.awt.Dimension(250, 28));
+        m_jPayNow.setMaximumSize(new java.awt.Dimension(250, 28));
         m_jPayNow.setBackground(new java.awt.Color(92, 184, 92)); // Verde más claro
         m_jPayNow.setForeground(java.awt.Color.WHITE);
         m_jPayNow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
             new javax.swing.border.LineBorder(new java.awt.Color(76, 174, 76), 1),
-            javax.swing.BorderFactory.createEmptyBorder(5, 15, 5, 15) // Padding reducido
+            javax.swing.BorderFactory.createEmptyBorder(4, 20, 4, 20) // Padding horizontal más grande
         ));
         m_jPayNow.setOpaque(true);
 
@@ -3365,8 +3373,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
         
-        // Agregar botón a la IZQUIERDA (WEST) - antes del total
-        topRightPanel.add(m_jPayNow, java.awt.BorderLayout.WEST);
+        // Panel para el total y el botón "Ventas del día y Devoluciones" (vertical, alineado a la derecha)
+        javax.swing.JPanel totalAndButtonPanel = new javax.swing.JPanel();
+        totalAndButtonPanel.setLayout(new java.awt.BorderLayout(0, 5)); // 5px de espacio vertical entre total y botón
+        totalAndButtonPanel.setOpaque(false);
         
         // Total sin recuadro, solo el número grande en cyan/azul estilo Eleventa (POSICIÓN ORIGINAL - derecha)
         m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 72)); // Muy grande como Eleventa
@@ -3376,42 +3386,57 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jTotalEuros.setBorder(null); // Sin borde
         m_jTotalEuros.setOpaque(false); // Sin fondo
         m_jTotalEuros.setRequestFocusEnabled(false);
+        // Asegurar que el total no ocupe todo el espacio vertical
+        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(400, 80));
         
         // Ocultar el label "Total:" porque Eleventa no lo tiene
         m_jLblTotalEuros.setVisible(false);
         
-        // Agregar total en su POSICIÓN ORIGINAL (EAST - derecha)
-        topRightPanel.add(m_jTotalEuros, java.awt.BorderLayout.EAST);
+        // Panel para el total (para controlar mejor el espacio)
+        javax.swing.JPanel totalPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        totalPanel.setOpaque(false);
+        totalPanel.add(m_jTotalEuros);
         
-        // Agregar panel superior al rightPanel
-        rightPanel.add(topRightPanel, java.awt.BorderLayout.NORTH);
+        // Agregar total al panel (arriba)
+        totalAndButtonPanel.add(totalPanel, java.awt.BorderLayout.NORTH);
         
-        // === Panel inferior: Botón "Ventas del día y Devoluciones" ===
+        // === Botón "Ventas del día y Devoluciones" directamente debajo del total ===
         javax.swing.JButton btnVentasDelDia = new javax.swing.JButton();
-        btnVentasDelDia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+        btnVentasDelDia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
         btnVentasDelDia.setText("Ventas del día y Devoluciones");
         btnVentasDelDia.setFocusPainted(false);
-        btnVentasDelDia.setPreferredSize(new java.awt.Dimension(0, 30));
+        btnVentasDelDia.setPreferredSize(new java.awt.Dimension(220, 28)); // Tamaño reducido
+        btnVentasDelDia.setMinimumSize(new java.awt.Dimension(220, 28));
+        btnVentasDelDia.setMaximumSize(new java.awt.Dimension(220, 28));
         btnVentasDelDia.setBackground(java.awt.Color.WHITE);
         btnVentasDelDia.setForeground(new java.awt.Color(80, 80, 80));
         btnVentasDelDia.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1));
         btnVentasDelDia.setOpaque(true);
         btnVentasDelDia.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-        // TODO: Implementar la funcionalidad del botón
+        // Implementar la funcionalidad del botón
         btnVentasDelDia.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                // Aquí se implementará la funcionalidad de ventas del día y devoluciones
-                javax.swing.JOptionPane.showMessageDialog(null, "Funcionalidad de Ventas del día y Devoluciones - Por implementar");
+                mostrarVentasDelDiaYDevoluciones();
             }
         });
         
         // Panel contenedor para el botón, alineado a la derecha como en la imagen
-        javax.swing.JPanel bottomRightPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
-        bottomRightPanel.setOpaque(false);
-        bottomRightPanel.add(btnVentasDelDia);
+        javax.swing.JPanel btnVentasPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        btnVentasPanel.setOpaque(false);
+        btnVentasPanel.setPreferredSize(new java.awt.Dimension(220, 32)); // Asegurar espacio para el botón
+        btnVentasPanel.add(btnVentasDelDia);
         
-        // Agregar panel inferior al rightPanel
-        rightPanel.add(bottomRightPanel, java.awt.BorderLayout.SOUTH);
+        // Agregar botón al panel (debajo del total)
+        totalAndButtonPanel.add(btnVentasPanel, java.awt.BorderLayout.SOUTH);
+        
+        // Agregar botón Cobrar a la IZQUIERDA (WEST) - antes del panel de total y botón
+        topRightPanel.add(m_jPayNow, java.awt.BorderLayout.WEST);
+        
+        // Agregar panel de total y botón a la derecha (EAST)
+        topRightPanel.add(totalAndButtonPanel, java.awt.BorderLayout.EAST);
+        
+        // Agregar panel superior al rightPanel
+        rightPanel.add(topRightPanel, java.awt.BorderLayout.NORTH);
 
         // Agregar paneles al m_jPanelTotals usando BorderLayout
         // leftPanel completamente a la izquierda
@@ -3568,8 +3593,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - TODO: Investigar de dónde viene el botón '=' azul
 
         jPanelScanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 2, 5)); // Sin padding superior para subir el contenido
-        jPanelScanner.setMaximumSize(new java.awt.Dimension(800, 70)); // Más alto para el campo grande
-        jPanelScanner.setPreferredSize(new java.awt.Dimension(800, 70));
+        jPanelScanner.setMaximumSize(new java.awt.Dimension(800, 55)); // Ajustar altura del panel para fuente más grande
+        jPanelScanner.setPreferredSize(new java.awt.Dimension(800, 55));
 
         m_jPrice.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24)); // Fuente moderna y números grandes
         m_jPrice.setForeground(new java.awt.Color(76, 197, 237));
@@ -3585,7 +3610,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jEnter.setToolTipText(bundle.getString("tooltip.salebarcode")); // NOI18N
         m_jEnter.setFocusPainted(false);
         m_jEnter.setFocusable(false);
-        m_jEnter.setPreferredSize(new java.awt.Dimension(80, 45));
+        m_jEnter.setContentAreaFilled(false); // Quitar el fondo azul del botón
+        m_jEnter.setBorderPainted(false); // Quitar el borde
+        m_jEnter.setOpaque(false); // Hacer transparente
+        m_jEnter.setPreferredSize(new java.awt.Dimension(35, 40)); // Tamaño ajustado para coincidir con la altura del campo
         m_jEnter.setRequestFocusEnabled(false);
         m_jEnter.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -3599,14 +3627,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPor.setRequestFocusEnabled(false);
 
         m_jKeyFactory.setEditable(true);
-        m_jKeyFactory.setFont(new java.awt.Font("Segoe UI", 1, 28)); // Fuente moderna y números grandes
+        m_jKeyFactory.setFont(new java.awt.Font("Segoe UI", 1, 20)); // Fuente más grande para mejor legibilidad
         m_jKeyFactory.setForeground(java.awt.Color.BLACK); // Números negros
         m_jKeyFactory.setBackground(java.awt.Color.WHITE);
         m_jKeyFactory.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        m_jKeyFactory.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237), 2),
-                javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10)));
-        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 50)); // Campo más alto para números grandes
+        m_jKeyFactory.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 5, 4, 10)); // Padding ajustado para fuente más grande
+        m_jKeyFactory.setOpaque(true); // Asegurar que el fondo sea visible
+        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 40)); // Aumentar altura para acomodar fuente más grande
         m_jKeyFactory.setAutoscrolls(false);
         m_jKeyFactory.setCaretColor(new java.awt.Color(76, 197, 237));
         m_jKeyFactory.setRequestFocusEnabled(true);
@@ -3633,34 +3660,48 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jTax.setToolTipText(bundle.getString("tooltip.salestaxswitch")); // NOI18N
         m_jTax.setFocusable(false);
 
+        // Crear un panel contenedor para el campo de búsqueda con icono integrado
+        javax.swing.JPanel searchFieldContainer = new javax.swing.JPanel();
+        searchFieldContainer.setLayout(new java.awt.BorderLayout());
+        searchFieldContainer.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237), 2),
+                javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)));
+        searchFieldContainer.setBackground(java.awt.Color.WHITE);
+        searchFieldContainer.setOpaque(true);
+        searchFieldContainer.setPreferredSize(new java.awt.Dimension(500, 40)); // Aumentar altura para acomodar fuente más grande
+        
+        // Panel para el icono con padding
+        javax.swing.JPanel iconContainer = new javax.swing.JPanel();
+        iconContainer.setLayout(new java.awt.BorderLayout());
+        iconContainer.setOpaque(false);
+        iconContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 0)); // Pequeño padding izquierdo
+        iconContainer.add(m_jEnter, java.awt.BorderLayout.CENTER);
+        
+        // Agregar el icono a la izquierda
+        searchFieldContainer.add(iconContainer, java.awt.BorderLayout.WEST);
+        
+        // Agregar el campo de texto ocupando el resto del espacio
+        searchFieldContainer.add(m_jKeyFactory, java.awt.BorderLayout.CENTER);
+        
         javax.swing.GroupLayout jPanelScannerLayout = new javax.swing.GroupLayout(jPanelScanner);
         jPanelScanner.setLayout(jPanelScannerLayout);
         jPanelScannerLayout.setHorizontalGroup(
                 jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(jPanelScannerLayout.createSequentialGroup()
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE) // Espacio
-                                                                                                        // flexible para
-                                                                                                        // centrar
-                                .addComponent(m_jEnter, javax.swing.GroupLayout.PREFERRED_SIZE, 64,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jKeyFactory, javax.swing.GroupLayout.PREFERRED_SIZE, 500,
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addComponent(searchFieldContainer, javax.swing.GroupLayout.PREFERRED_SIZE, 500,
                                         javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(m_jTax, javax.swing.GroupLayout.PREFERRED_SIZE, 80,
                                         javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(m_jaddtax)
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)) // Espacio
-                                                                                                         // flexible
-                                                                                                         // para centrar
+                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanelScannerLayout.setVerticalGroup(
                 jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                         .addGroup(jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                                .addComponent(m_jEnter, javax.swing.GroupLayout.PREFERRED_SIZE,
-                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(m_jKeyFactory, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                .addComponent(searchFieldContainer, javax.swing.GroupLayout.PREFERRED_SIZE,
                                         javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addComponent(m_jTax, javax.swing.GroupLayout.PREFERRED_SIZE, 30,
                                         javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -5227,39 +5268,411 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Cerrar el diálogo
             dialog.dispose();
 
-            // Usar el método existente para procesar el ID del cliente
+                // Usar el método existente para procesar el ID del cliente
             m_jCustomerId.setText(searchkey.trim());
 
-            // Buscar el cliente usando la lógica existente
+                // Buscar el cliente usando la lógica existente
             String customerId = searchkey.trim();
-            CustomerInfo customer = null;
+                CustomerInfo customer = null;
 
-            // Buscar en todos los clientes por searchkey
-            java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
-            for (CustomerInfo c : allCustomers) {
-                if (customerId.equals(c.getSearchkey())) {
-                    customer = c;
-                    break;
+                // Buscar en todos los clientes por searchkey
+                java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
+                for (CustomerInfo c : allCustomers) {
+                    if (customerId.equals(c.getSearchkey())) {
+                        customer = c;
+                        break;
+                    }
                 }
-            }
 
-            if (customer != null) {
+                if (customer != null) {
                 // Cliente encontrado - ejecutar la lógica completa
-                searchCustomerById();
-            } else {
-                // Cliente no encontrado
-                searchCustomerById(); // Esto actualizará el label con "Cliente no encontrado"
-                javax.swing.JOptionPane.showMessageDialog(this,
-                        "❌ Cliente no encontrado\n\nEl ID '" + customerId
-                                + "' no existe en la base de datos.\nVerifica el ID e inténtalo nuevamente.",
-                        "Cliente No Encontrado",
-                        javax.swing.JOptionPane.WARNING_MESSAGE);
-            }
+                    searchCustomerById();
+                } else {
+                    // Cliente no encontrado
+                    searchCustomerById(); // Esto actualizará el label con "Cliente no encontrado"
+                    javax.swing.JOptionPane.showMessageDialog(this,
+                            "❌ Cliente no encontrado\n\nEl ID '" + customerId
+                                    + "' no existe en la base de datos.\nVerifica el ID e inténtalo nuevamente.",
+                            "Cliente No Encontrado",
+                            javax.swing.JOptionPane.WARNING_MESSAGE);
+                }
         } catch (Exception e) {
             System.err.println("Error al asignar cliente: " + e.getMessage());
             e.printStackTrace();
             javax.swing.JOptionPane.showMessageDialog(this,
                     "Error al asignar cliente: " + e.getMessage(),
+                    "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
+    /**
+     * Sebastian - Muestra el diálogo de Ventas del día y Devoluciones
+     */
+    private void mostrarVentasDelDiaYDevoluciones() {
+        try {
+            // Crear diálogo
+            javax.swing.JDialog dialog = new javax.swing.JDialog(
+                    (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                    "Ventas del día y Devoluciones",
+                    true);
+            dialog.setSize(1200, 700);
+            dialog.setLocationRelativeTo(this);
+
+            // Panel principal con BorderLayout
+            javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
+            mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+
+            // === PANEL IZQUIERDO: Lista de tickets ===
+            javax.swing.JPanel leftPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+            leftPanel.setPreferredSize(new java.awt.Dimension(500, 0));
+
+            // Título "VENTAS DEL DIA"
+            javax.swing.JLabel lblTitulo = new javax.swing.JLabel("VENTAS DEL DIA");
+            lblTitulo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
+            lblTitulo.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
+            leftPanel.add(lblTitulo, java.awt.BorderLayout.NORTH);
+
+            // Panel de búsqueda
+            javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+            javax.swing.JLabel lblSearch = new javax.swing.JLabel("Puedes buscar por folio o nombre del ticket:");
+            lblSearch.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            javax.swing.JTextField txtSearch = new javax.swing.JTextField();
+            txtSearch.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            searchPanel.add(lblSearch, java.awt.BorderLayout.NORTH);
+            searchPanel.add(txtSearch, java.awt.BorderLayout.CENTER);
+            leftPanel.add(searchPanel, java.awt.BorderLayout.NORTH);
+
+            // Tabla de tickets
+            javax.swing.table.DefaultTableModel ticketsTableModel = new javax.swing.table.DefaultTableModel(
+                    new Object[]{"Folio", "Arts", "Hora", "Total"}, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+            javax.swing.JTable ticketsTable = new javax.swing.JTable(ticketsTableModel);
+            ticketsTable.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            ticketsTable.setRowHeight(25);
+            ticketsTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+            ticketsTable.getTableHeader().setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            javax.swing.JScrollPane ticketsScroll = new javax.swing.JScrollPane(ticketsTable);
+            leftPanel.add(ticketsScroll, java.awt.BorderLayout.CENTER);
+
+            // Panel de filtros
+            javax.swing.JPanel filtersPanel = new javax.swing.JPanel();
+            filtersPanel.setLayout(new java.awt.GridBagLayout());
+            java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+            gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+            gbc.anchor = java.awt.GridBagConstraints.WEST;
+
+            // Filtro de fecha
+            gbc.gridx = 0; gbc.gridy = 0;
+            javax.swing.JLabel lblFecha = new javax.swing.JLabel("Del día:");
+            lblFecha.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            filtersPanel.add(lblFecha, gbc);
+            
+            gbc.gridx = 1;
+            SimpleDateFormat dateFormat = new SimpleDateFormat("EEEE, d 'de' MMMM 'de' yyyy", java.util.Locale.forLanguageTag("es-MX"));
+            javax.swing.JLabel lblFechaValor = new javax.swing.JLabel(dateFormat.format(new java.util.Date()));
+            lblFechaValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            filtersPanel.add(lblFechaValor, gbc);
+            
+            gbc.gridx = 2;
+            javax.swing.JButton btnHoy = new javax.swing.JButton("Hoy");
+            btnHoy.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+            btnHoy.setPreferredSize(new java.awt.Dimension(60, 25));
+            filtersPanel.add(btnHoy, gbc);
+
+            // Filtro de cajero
+            gbc.gridx = 0; gbc.gridy = 1;
+            javax.swing.JLabel lblCajero = new javax.swing.JLabel("Cajero:");
+            lblCajero.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            filtersPanel.add(lblCajero, gbc);
+            
+            gbc.gridx = 1; gbc.gridwidth = 2;
+            javax.swing.JLabel lblCajeroValor = new javax.swing.JLabel(m_App.getAppUserView().getUser().getName());
+            lblCajeroValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            filtersPanel.add(lblCajeroValor, gbc);
+
+            // Checkbox Ventas a Credito
+            gbc.gridx = 0; gbc.gridy = 2; gbc.gridwidth = 3;
+            javax.swing.JCheckBox chkVentasCredito = new javax.swing.JCheckBox("Ventas a Credito");
+            chkVentasCredito.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            filtersPanel.add(chkVentasCredito, gbc);
+
+            leftPanel.add(filtersPanel, java.awt.BorderLayout.SOUTH);
+
+            // === PANEL DERECHO: Detalles del ticket ===
+            javax.swing.JPanel rightPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+            rightPanel.setPreferredSize(new java.awt.Dimension(600, 0));
+            rightPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Ticket 3(1)"));
+
+            // Panel de información del ticket
+            javax.swing.JPanel ticketInfoPanel = new javax.swing.JPanel();
+            ticketInfoPanel.setLayout(new java.awt.GridBagLayout());
+            java.awt.GridBagConstraints gbcInfo = new java.awt.GridBagConstraints();
+            gbcInfo.insets = new java.awt.Insets(5, 5, 5, 5);
+            gbcInfo.anchor = java.awt.GridBagConstraints.WEST;
+
+            javax.swing.JLabel lblFolio = new javax.swing.JLabel("Folio:");
+            javax.swing.JLabel lblFolioValor = new javax.swing.JLabel("-");
+            javax.swing.JLabel lblCajeroDet = new javax.swing.JLabel("Cajero:");
+            javax.swing.JLabel lblCajeroDetValor = new javax.swing.JLabel("-");
+            javax.swing.JLabel lblCliente = new javax.swing.JLabel("Cliente:");
+            javax.swing.JLabel lblClienteValor = new javax.swing.JLabel("-");
+            javax.swing.JLabel lblFechaDet = new javax.swing.JLabel("-");
+
+            gbcInfo.gridx = 0; gbcInfo.gridy = 0;
+            ticketInfoPanel.add(lblFolio, gbcInfo);
+            gbcInfo.gridx = 1;
+            ticketInfoPanel.add(lblFolioValor, gbcInfo);
+            gbcInfo.gridx = 0; gbcInfo.gridy = 1;
+            ticketInfoPanel.add(lblCajeroDet, gbcInfo);
+            gbcInfo.gridx = 1;
+            ticketInfoPanel.add(lblCajeroDetValor, gbcInfo);
+            gbcInfo.gridx = 0; gbcInfo.gridy = 2;
+            ticketInfoPanel.add(lblCliente, gbcInfo);
+            gbcInfo.gridx = 1;
+            ticketInfoPanel.add(lblClienteValor, gbcInfo);
+            gbcInfo.gridx = 0; gbcInfo.gridy = 3; gbcInfo.gridwidth = 2;
+            ticketInfoPanel.add(lblFechaDet, gbcInfo);
+
+            rightPanel.add(ticketInfoPanel, java.awt.BorderLayout.NORTH);
+
+            // Tabla de items del ticket
+            javax.swing.table.DefaultTableModel itemsTableModel = new javax.swing.table.DefaultTableModel(
+                    new Object[]{"Cant.", "Descripción", "Importe"}, 0) {
+                @Override
+                public boolean isCellEditable(int row, int column) {
+                    return false;
+                }
+            };
+            javax.swing.JTable itemsTable = new javax.swing.JTable(itemsTableModel);
+            itemsTable.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
+            itemsTable.setRowHeight(25);
+            itemsTable.getTableHeader().setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            javax.swing.JScrollPane itemsScroll = new javax.swing.JScrollPane(itemsTable);
+            rightPanel.add(itemsScroll, java.awt.BorderLayout.CENTER);
+
+            // Panel de totales y botones
+            javax.swing.JPanel totalsPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+            
+            javax.swing.JPanel totalsInfoPanel = new javax.swing.JPanel();
+            totalsInfoPanel.setLayout(new java.awt.GridBagLayout());
+            java.awt.GridBagConstraints gbcTotals = new java.awt.GridBagConstraints();
+            gbcTotals.insets = new java.awt.Insets(5, 5, 5, 5);
+            gbcTotals.anchor = java.awt.GridBagConstraints.WEST;
+
+            javax.swing.JLabel lblTotal = new javax.swing.JLabel("Total:");
+            lblTotal.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            javax.swing.JLabel lblTotalValor = new javax.swing.JLabel("$0.00");
+            lblTotalValor.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+            javax.swing.JLabel lblPagoCon = new javax.swing.JLabel("Pago Con:");
+            javax.swing.JLabel lblPagoConValor = new javax.swing.JLabel("$0.00");
+
+            gbcTotals.gridx = 0; gbcTotals.gridy = 0;
+            totalsInfoPanel.add(lblTotal, gbcTotals);
+            gbcTotals.gridx = 1;
+            totalsInfoPanel.add(lblTotalValor, gbcTotals);
+            gbcTotals.gridx = 0; gbcTotals.gridy = 1;
+            totalsInfoPanel.add(lblPagoCon, gbcTotals);
+            gbcTotals.gridx = 1;
+            totalsInfoPanel.add(lblPagoConValor, gbcTotals);
+
+            totalsPanel.add(totalsInfoPanel, java.awt.BorderLayout.NORTH);
+
+            // Botones de acción
+            javax.swing.JPanel buttonsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 5));
+            javax.swing.JButton btnDevolver = new javax.swing.JButton("Devolver Artículo seleccionado");
+            btnDevolver.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+            btnDevolver.setEnabled(false);
+            javax.swing.JButton btnCancelar = new javax.swing.JButton("Cancelar Venta");
+            btnCancelar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+            btnCancelar.setEnabled(false);
+            javax.swing.JButton btnFacturar = new javax.swing.JButton("Facturar...");
+            btnFacturar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+            btnFacturar.setEnabled(false);
+            javax.swing.JButton btnImprimir = new javax.swing.JButton("Imprimir copia");
+            btnImprimir.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+            btnImprimir.setEnabled(false);
+            
+            buttonsPanel.add(btnDevolver);
+            buttonsPanel.add(btnCancelar);
+            buttonsPanel.add(btnFacturar);
+            buttonsPanel.add(btnImprimir);
+            
+            totalsPanel.add(buttonsPanel, java.awt.BorderLayout.SOUTH);
+            rightPanel.add(totalsPanel, java.awt.BorderLayout.SOUTH);
+
+            // Agregar paneles al panel principal
+            mainPanel.add(leftPanel, java.awt.BorderLayout.WEST);
+            mainPanel.add(rightPanel, java.awt.BorderLayout.CENTER);
+
+            dialog.add(mainPanel);
+
+            // === FUNCIONALIDAD ===
+            // Variable para el checkbox (debe ser final para usar en la clase anónima)
+            final javax.swing.JCheckBox finalChkVentasCredito = chkVentasCredito;
+            
+            // Cargar tickets del día
+            ListProviderCreator<FindTicketsInfo> lpr = new ListProviderCreator<FindTicketsInfo>(dlSales.getTicketsList(), new EditorCreator() {
+                @Override
+                public Object createValue() throws BasicException {
+                    Object[] afilter = new Object[14];
+                    
+                    // Filtrar por fecha del día actual
+                    Calendar today = Calendar.getInstance();
+                    today.set(Calendar.HOUR_OF_DAY, 0);
+                    today.set(Calendar.MINUTE, 0);
+                    today.set(Calendar.SECOND, 0);
+                    today.set(Calendar.MILLISECOND, 0);
+                    Date startDate = today.getTime();
+                    
+                    Calendar tomorrow = Calendar.getInstance();
+                    tomorrow.set(Calendar.HOUR_OF_DAY, 0);
+                    tomorrow.set(Calendar.MINUTE, 0);
+                    tomorrow.set(Calendar.SECOND, 0);
+                    tomorrow.set(Calendar.MILLISECOND, 0);
+                    tomorrow.add(Calendar.DAY_OF_MONTH, 1);
+                    Date endDate = tomorrow.getTime();
+
+                    afilter[0] = QBFCompareEnum.COMP_NONE; // TicketID
+                    afilter[1] = null;
+                    afilter[2] = QBFCompareEnum.COMP_DISTINCT; // TicketType (excluir devoluciones si checkbox no está marcado)
+                    afilter[3] = finalChkVentasCredito.isSelected() ? null : 2;
+                    afilter[4] = QBFCompareEnum.COMP_NONE; // Money
+                    afilter[5] = null;
+                    afilter[6] = QBFCompareEnum.COMP_GREATEROREQUALS; // StartDate
+                    afilter[7] = startDate;
+                    afilter[8] = QBFCompareEnum.COMP_LESS; // EndDate
+                    afilter[9] = endDate;
+                    afilter[10] = QBFCompareEnum.COMP_NONE; // User
+                    afilter[11] = null;
+                    afilter[12] = QBFCompareEnum.COMP_NONE; // Customer
+                    afilter[13] = null;
+                    
+                    return afilter;
+                }
+            });
+
+            // Función para cargar tickets
+            java.util.function.Consumer<Void> cargarTickets = (v) -> {
+                try {
+                    java.util.List<FindTicketsInfo> tickets = lpr.loadData();
+                    ticketsTableModel.setRowCount(0);
+                    
+                    SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a", java.util.Locale.forLanguageTag("es-MX"));
+                    
+                    for (FindTicketsInfo ticket : tickets) {
+                        // Contar artículos del ticket
+                        int articlesCount = 0;
+                        try {
+                            TicketInfo ticketInfo = dlSales.loadTicket(ticket.getTicketType(), ticket.getTicketId());
+                            if (ticketInfo != null) {
+                                articlesCount = ticketInfo.getLinesCount();
+                            }
+                        } catch (Exception e) {
+                            // Si no se puede cargar, usar 0
+                        }
+                        
+                        ticketsTableModel.addRow(new Object[]{
+                            ticket.getTicketId(),
+                            articlesCount,
+                            timeFormat.format(ticket.getDate()),
+                            Formats.CURRENCY.formatValue(ticket.getTotal())
+                        });
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            };
+
+            // Cargar tickets inicialmente
+            cargarTickets.accept(null);
+
+            // Listener para selección de ticket
+            ticketsTable.getSelectionModel().addListSelectionListener(e -> {
+                if (!e.getValueIsAdjusting()) {
+                    int selectedRow = ticketsTable.getSelectedRow();
+                    if (selectedRow >= 0) {
+                        int folio = (Integer) ticketsTableModel.getValueAt(selectedRow, 0);
+                        // Buscar el ticket (puede ser tipo 0 o 1)
+                        TicketInfo ticketInfo = null;
+                        try {
+                            ticketInfo = dlSales.loadTicket(0, folio);
+                        } catch (Exception ex) {
+                            try {
+                                ticketInfo = dlSales.loadTicket(1, folio);
+                            } catch (Exception ex2) {
+                                // No encontrado
+                            }
+                        }
+                        
+                        if (ticketInfo != null) {
+                            // Actualizar información del ticket
+                            lblFolioValor.setText(String.valueOf(ticketInfo.getTicketId()));
+                            lblCajeroDetValor.setText(ticketInfo.getUser() != null ? ticketInfo.getUser().getName() : "-");
+                            lblClienteValor.setText(ticketInfo.getCustomer() != null ? ticketInfo.getCustomer().getName() : "Al contado");
+                            SimpleDateFormat dateTimeFormat = new SimpleDateFormat("dd 'de' MMMM yyyy h:mm a", java.util.Locale.forLanguageTag("es-MX"));
+                            lblFechaDet.setText(dateTimeFormat.format(ticketInfo.getDate()));
+                            
+                            // Actualizar tabla de items
+                            itemsTableModel.setRowCount(0);
+                            for (int i = 0; i < ticketInfo.getLinesCount(); i++) {
+                                TicketLineInfo line = ticketInfo.getLine(i);
+                                itemsTableModel.addRow(new Object[]{
+                                    Formats.DOUBLE.formatValue(line.getMultiply()),
+                                    line.getProductName(),
+                                    Formats.CURRENCY.formatValue(line.getSubValue())
+                                });
+                            }
+                            
+                            // Actualizar totales
+                            lblTotalValor.setText(Formats.CURRENCY.formatValue(ticketInfo.getTotal()));
+                            lblPagoConValor.setText(Formats.CURRENCY.formatValue(ticketInfo.getTotalPaid()));
+                            
+                            // Habilitar botones
+                            btnDevolver.setEnabled(true);
+                            btnCancelar.setEnabled(true);
+                            btnFacturar.setEnabled(true);
+                            btnImprimir.setEnabled(true);
+                        }
+                    }
+                }
+            });
+
+            // Listener para búsqueda
+            txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
+                @Override
+                public void keyReleased(java.awt.event.KeyEvent e) {
+                    String searchText = txtSearch.getText().toLowerCase();
+                    if (searchText.isEmpty()) {
+                        ticketsTable.setRowSorter(null);
+                    } else {
+                        javax.swing.table.TableRowSorter<javax.swing.table.TableModel> sorter = 
+                            new javax.swing.table.TableRowSorter<>(ticketsTableModel);
+                        sorter.setRowFilter(javax.swing.RowFilter.regexFilter("(?i)" + java.util.regex.Pattern.quote(searchText), 0));
+                        ticketsTable.setRowSorter(sorter);
+                    }
+                }
+            });
+
+            // Listener para checkbox
+            chkVentasCredito.addActionListener(e -> cargarTickets.accept(null));
+
+            // Listener para botón Hoy
+            btnHoy.addActionListener(e -> {
+                lblFechaValor.setText(dateFormat.format(new java.util.Date()));
+                cargarTickets.accept(null);
+            });
+
+            dialog.setVisible(true);
+
+        } catch (Exception e) {
+            System.err.println("Error al mostrar ventas del día: " + e.getMessage());
+            e.printStackTrace();
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Error al cargar ventas del día: " + e.getMessage(),
                     "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
         }
     }

@@ -93,5 +93,21 @@ public class FindTicketsInfo implements SerializableRead {
     public int getTicketStatus() {
         return this.ticketstatus;
     }
+    
+    public Date getDate() {
+        return this.date;
+    }
+    
+    public double getTotal() {
+        return this.total;
+    }
+    
+    public String getName() {
+        return this.name;
+    }
+    
+    public String getCustomer() {
+        return this.customer;
+    }
    
 }

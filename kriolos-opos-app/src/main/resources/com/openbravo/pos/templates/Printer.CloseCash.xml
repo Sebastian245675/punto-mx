@@ -58,30 +58,6 @@
             <text align ="right" length="12" bold="true">${shift.printCashOut()}</text>
         </line>
         <line><text>------------------------------------------</text></line>
-        <line size="1">
-            <text align ="left" bold="true" length="42">Productos Vendidos</text>
-        </line>
-        <line>
-           <text align ="left" bold="true" length="25">Producto</text>
-           <text align ="right" bold="true" length="8">Cantidad</text>
-           <text align ="right" bold="true" length="9">Total</text>
-        </line>
-        <line><text>------------------------------------------</text></line>
-        #set ($productList = $shift.getProductLines())
-        #if ($productList && !$productList.isEmpty())
-        #foreach ($product in $productList)
-        <line>
-            <text align ="left" length="25">${product.printProductName()}</text>
-            <text align ="right" length="8">${product.printProductUnits()}</text>
-            <text align ="right" length="9">${product.printProductSubValue()}</text>
-        </line>
-        #end
-        #else
-        <line>
-            <text align ="left" length="42">Sin productos vendidos</text>
-        </line>
-        #end
-        <line><text>------------------------------------------</text></line>
         <line>
             <text align ="left" length="30" bold="true">Total Ventas Turno:</text>
             <text align ="right" length="12" bold="true">${shift.printTotalSales()}</text>
@@ -109,12 +85,12 @@
         </line>
         <line><text>==========================================</text></line>
         <line></line>
-        <!-- LISTA CONSOLIDADA DE PRODUCTOS VENDIDOS DEL DÍA -->
+        <!-- LISTA CONSOLIDADA DE VENTAS POR DEPARTAMENTO DEL DÍA -->
         <line size="1">
-            <text align ="center" bold="true" length="42">PRODUCTOS VENDIDOS DEL DÍA</text>
+            <text align ="center" bold="true" length="42">VENTAS POR DEPARTAMENTO</text>
         </line>
         <line>
-           <text align ="left" bold="true" length="25">Producto</text>
+           <text align ="left" bold="true" length="25">Departamento</text>
            <text align ="right" bold="true" length="8">Cantidad</text>
            <text align ="right" bold="true" length="9">Total</text>
         </line>
@@ -129,7 +105,7 @@
         #end
         #else
         <line>
-            <text align ="left" length="42">Sin productos vendidos</text>
+            <text align ="left" length="42">Sin ventas por departamento</text>
         </line>
         #end
         <line><text>------------------------------------------</text></line>
@@ -157,12 +133,12 @@
             <text align ="right" length="12">${payments.printPayments()}</text>
         </line>
         <line></line>
-        <!-- PRODUCTOS VENDIDOS DEL TURNO -->
+        <!-- VENTAS POR DEPARTAMENTO DEL TURNO -->
         <line size="1">
-            <text align ="left" bold="true" length="42">Productos Vendidos del Turno</text>
+            <text align ="left" bold="true" length="42">Ventas por Departamento del Turno</text>
         </line>
         <line>
-           <text align ="left" bold="true" length="25">Producto</text>
+           <text align ="left" bold="true" length="25">Departamento</text>
            <text align ="right" bold="true" length="8">Cantidad</text>
            <text align ="right" bold="true" length="9">Total</text>
         </line>
@@ -171,7 +147,7 @@
         $productosText
         #else
         <line>
-            <text align ="left" length="42">Sin productos vendidos en este turno</text>
+            <text align ="left" length="42">Sin ventas por departamento</text>
         </line>
         #end
         <line><text>------------------------------------------</text></line>
