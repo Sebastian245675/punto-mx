@@ -2932,16 +2932,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         ));
         btnDay.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btnDay.addActionListener(e -> {
-            int respuesta = JOptionPane.showConfirmDialog(
-                this,
-                "El corte del día cerrará todas las cajas activas del día.\n\n¿Desea continuar?",
-                "Corte del Día",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-            );
-            if (respuesta == JOptionPane.YES_OPTION) {
-                m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnDay, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
-            }
+            // Corte del día: solo mostrar reporte, sin validaciones ni cerrar turno
+            performDayCloseReport();
         });
         rightPanel.add(btnDay);
         
@@ -3278,13 +3270,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append(".section-row { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid #f1f3f5; }");
             html.append(".section-row:last-of-type { border-bottom: 2px solid #dee2e6; margin-bottom: 0; }");
             html.append(".section-label { font-size: 14px; color: #495057; flex: 1; }");
-            html.append(".section-value { font-size: 14px; font-weight: 500; color: #212529; text-align: right; }");
-            html.append(".section-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 0 0; margin-top: 8px; font-weight: 600; font-size: 15px; color: #212529; }");
+            html.append(".section-value { font-size: 18px; font-weight: 600; color: #212529; text-align: right; }");
+            html.append(".section-total { display: flex; justify-content: space-between; align-items: center; padding: 14px 0 0 0; margin-top: 8px; font-weight: 600; font-size: 19px; color: #212529; }");
             html.append(".positive { color: #28a745 !important; }");
             html.append(".negative { color: #dc3545 !important; }");
             html.append(".list-section { background: white; padding: 20px 24px; border-bottom: 1px solid #e9ecef; }");
             html.append(".list-title { font-size: 14px; font-weight: 600; color: #212529; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.5px; }");
-            html.append(".list-item { padding: 8px 0; font-size: 13px; color: #495057; line-height: 1.5; border-bottom: 1px solid #f1f3f5; }");
+            html.append(".list-item { padding: 8px 0; font-size: 16px; color: #495057; line-height: 1.5; border-bottom: 1px solid #f1f3f5; font-weight: 500; }");
             html.append(".list-item:last-child { border-bottom: none; }");
             html.append(".empty-message { padding: 8px 0; font-size: 13px; color: #adb5bd; font-style: italic; }");
             html.append("</style>");
@@ -3464,9 +3456,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 Connection conn = session.getConnection();
                 Date shiftDateStart = m_PaymentsToClose.getDateStart();
                 
-                String sql = "SELECT customers.NAME, SUM(receipts.TOTAL) as TOTAL_SALES, COUNT(receipts.ID) as COUNT_TICKETS " +
+                String sql = "SELECT customers.NAME, SUM(payments.TOTAL) as TOTAL_SALES, COUNT(DISTINCT receipts.ID) as COUNT_TICKETS " +
                              "FROM receipts " +
                              "INNER JOIN tickets ON receipts.ID = tickets.ID " +
+                             "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
                              "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
                              "WHERE receipts.MONEY = ? AND receipts.DATENEW >= ? " +
                              "AND customers.ID IS NOT NULL " +
@@ -3545,7 +3538,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                              "INNER JOIN tickets ON receipts.ID = tickets.ID " +
                              "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cash' " +
                              "AND receipts.DATENEW >= ? " +
-                             "AND (payments.TOTAL < 0 OR receipts.TOTAL < 0) " +
+                             "AND payments.TOTAL < 0 " +
                              "ORDER BY receipts.DATENEW DESC";
                 
                 java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
@@ -3725,17 +3718,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         });
         btnDay.addActionListener(e -> {
             LOGGER.info("Botón 'Hacer corte del día' presionado");
-            int respuesta = JOptionPane.showConfirmDialog(
-                this,
-                "El corte del día cerrará todas las cajas activas del día.\n\n¿Desea continuar?",
-                "Corte del Día",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-            );
-            
-            if (respuesta == JOptionPane.YES_OPTION) {
-                m_jCloseCashActionPerformed(new java.awt.event.ActionEvent(btnDay, java.awt.event.ActionEvent.ACTION_PERFORMED, ""));
-            }
+            // Corte del día: solo mostrar reporte, sin validaciones ni cerrar turno
+            performDayCloseReport();
         });
         buttonPanel.add(btnDay);
         
@@ -4461,26 +4445,38 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             }
         }
         
-        int res = JOptionPane.showConfirmDialog(this, 
-                AppLocal.getIntString("message.wannaclosecash"), 
-                AppLocal.getIntString("message.title"), 
-                JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        // Si es "Corte del día", ya se confirmó antes, saltar esta confirmación
+        int res = JOptionPane.YES_OPTION;
+        if (!isDayClose) {
+            res = JOptionPane.showConfirmDialog(this, 
+                    AppLocal.getIntString("message.wannaclosecash"), 
+                    AppLocal.getIntString("message.title"), 
+                    JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+        }
         
         LOGGER.info("Respuesta del diálogo de confirmación: " + (res == JOptionPane.YES_OPTION ? "SÍ" : "NO"));
         
         if (res == JOptionPane.YES_OPTION) {
             
-            // Validación de dinero físico en caja
-            ValidacionDineroResult validacion = validarDineroFisicoEnCaja();
-            if (!validacion.valido) {
-                // Si la validación falla y el usuario no quiso continuar, no hacer el cierre
-                LOGGER.info("Cierre de caja abortado debido a la validación de dinero físico.");
-                return;
+            // Si es "Corte del día", NO pedir validación de dinero físico ni cerrar turno
+            if (!isDayClose) {
+                // Validación de dinero físico en caja (solo para cierre de turno normal)
+                ValidacionDineroResult validacion = validarDineroFisicoEnCaja();
+                if (!validacion.valido) {
+                    // Si la validación falla y el usuario no quiso continuar, no hacer el cierre
+                    LOGGER.info("Cierre de caja abortado debido a la validación de dinero físico.");
+                    return;
+                }
+                
+                LOGGER.info("Validación de dinero físico completada. Faltante: " + validacion.faltante + ", Sobrante: " + validacion.sobrante);
+                
+                // Los valores de faltante y sobrante ya están guardados en faltanteCierre y sobranteCierre
+            } else {
+                // Para "Corte del día", no validar dinero físico, solo mostrar reporte
+                LOGGER.info("Corte del día: omitiendo validación de dinero físico");
+                faltanteCierre = 0.0;
+                sobranteCierre = 0.0;
             }
-            
-            LOGGER.info("Validación de dinero físico completada. Faltante: " + validacion.faltante + ", Sobrante: " + validacion.sobrante);
-            
-            // Los valores de faltante y sobrante ya están guardados en faltanteCierre y sobranteCierre
 
             String scriptId = "cash.close";
             try {
@@ -4496,6 +4492,20 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
             Date dNow = new Date();
             
+            // Si es "Corte del día", solo mostrar el reporte sin cerrar la caja
+            if (isDayClose) {
+                LOGGER.info("Corte del día: solo generando reporte, NO cerrando caja");
+                // Generar y mostrar el reporte del día sin cerrar la caja
+                generateDayCloseReportDirect(dNow);
+                
+                // Mostrar reporte del día automáticamente
+                SwingUtilities.invokeLater(() -> {
+                    showDayReport(dNow);
+                });
+                return; // Salir sin cerrar la caja
+            }
+            
+            // Para cierre de turno normal, continuar con el proceso completo
             LOGGER.info("Iniciando proceso de cierre de caja. Faltante: " + faltanteCierre + ", Sobrante: " + sobranteCierre);
 
             try {
@@ -4561,6 +4571,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             }
 
             try {
+                // GUARDAR el índice de la caja que se está cerrando ANTES de crear la nueva
+                String closedCashIndexForReport = m_App.getActiveCashIndex();
+                LOGGER.info("Guardando índice de caja cerrada para reporte: " + closedCashIndexForReport);
+                
                 // Creamos una nueva caja con fondo inicial en 0.0
                 m_App.setActiveCash(UUID.randomUUID().toString(), 
                         m_App.getActiveCashSequence() + 1, dNow, null, 0.0);
@@ -4579,41 +4593,20 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 // ponemos la fecha de fin
                 m_PaymentsToClose.setDateEnd(dNow);
 
-                // print report
-                if (isDayClose) {
-                    // Usar el nuevo servicio que genera el documento directamente desde Java
-                    LOGGER.info("Generando reporte del corte del día con servicio nuevo (sin templates)");
-                    generateDayCloseReportDirect(dNow);
-                } else {
-                    // Cierre de turno normal: usar el método tradicional
-                    printPayments("Printer.CloseCash", false);
-                }
-
-                // Si es "corte del día", siempre mostrar el reporte del día completo
-                if (isDayClose) {
-                    LOGGER.info("Mostrando reporte del día completo (corte del día)");
-                    // Mostrar mensaje de éxito y luego el reporte
-                    JOptionPane.showMessageDialog(this, 
-                            AppLocal.getIntString("message.closecashok"), 
-                            AppLocal.getIntString("message.title"), 
-                            JOptionPane.INFORMATION_MESSAGE);
-                    
-                    // Mostrar reporte del día automáticamente
-                    SwingUtilities.invokeLater(() -> {
-                        showDayReport(dNow);
-                    });
-                } else {
-                    // Mostrar mensaje normal si es cierre de turno normal
-                    JOptionPane.showMessageDialog(this, 
-                            AppLocal.getIntString("message.closecashok"), 
-                            AppLocal.getIntString("message.title"), 
-                            JOptionPane.INFORMATION_MESSAGE);
-                    
-                    // Mostrar reporte del turno actual
-                    SwingUtilities.invokeLater(() -> {
-                        showShiftReport();
-                    });
-                }
+                // Cierre de turno normal: usar el método tradicional
+                printPayments("Printer.CloseCash", false);
+                
+                // Mostrar mensaje normal si es cierre de turno normal
+                JOptionPane.showMessageDialog(this, 
+                        AppLocal.getIntString("message.closecashok"), 
+                        AppLocal.getIntString("message.title"), 
+                        JOptionPane.INFORMATION_MESSAGE);
+                
+                // Mostrar reporte del turno actual, pasando el índice de la caja cerrada
+                final String finalClosedCashIndex = closedCashIndexForReport;
+                SwingUtilities.invokeLater(() -> {
+                    showShiftReport(finalClosedCashIndex);
+                });
             } catch (BasicException e) {
                 LOGGER.log(Level.SEVERE, "Error al crear nueva caja o imprimir reporte.", e);
                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE, 
@@ -5352,6 +5345,31 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     /**
      * Muestra el reporte del día con todos los turnos cerrados
      */
+    /**
+     * Método directo para "Corte del día": solo muestra el reporte sin validaciones ni cerrar turno
+     */
+    private void performDayCloseReport() {
+        LOGGER.info("=== INICIO: Corte del día (solo reporte) ===");
+        Date dNow = new Date();
+        
+        try {
+            // Generar el reporte del día
+            generateDayCloseReportDirect(dNow);
+            
+            // Mostrar el reporte automáticamente
+            SwingUtilities.invokeLater(() -> {
+                showDayReport(dNow);
+            });
+            
+            LOGGER.info("=== FIN: Corte del día completado (solo reporte) ===");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al generar reporte del corte del día", e);
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                    "Error al generar el reporte del corte del día", e);
+            msg.show(this);
+        }
+    }
+    
     private void showDayReport(Date closeDate) {
         try {
             LOGGER.info("Generando reporte visual del corte del día directamente desde Java...");
@@ -5394,7 +5412,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append("tr:hover td { background-color: #e8f4f8; transition: background-color 0.3s ease; }");
             html.append(".total { font-weight: bold; font-size: 1.2em; color: #2c3e50; background-color: #ecf0f1 !important; }");
             html.append(".shift-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; margin: 25px 0 20px 0; border-radius: 10px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }");
-            html.append(".shift-header h2 { color: white; border: none; padding: 0; margin: 0 0 10px 0; }");
+            html.append(".shift-header h2 { color: #000000; border: none; padding: 0; margin: 0 0 10px 0; font-weight: bold; }");
             html.append(".shift-header p { margin: 5px 0; font-size: 1em; }");
             html.append(".summary { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); padding: 25px; margin: 25px 0; border-radius: 12px; border: 1px solid #e1e8ed; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }");
             html.append(".summary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }");
@@ -5656,9 +5674,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 if (!moneyList.isEmpty()) {
                     String moneyPlaceholders = java.util.Collections.nCopies(moneyList.size(), "?").stream().collect(java.util.stream.Collectors.joining(","));
                     java.sql.PreparedStatement customerStmt = session.getConnection().prepareStatement(
-                        "SELECT customers.NAME, SUM(receipts.TOTAL) as TOTAL_SALES, COUNT(receipts.ID) as COUNT_TICKETS " +
+                        "SELECT customers.NAME, SUM(payments.TOTAL) as TOTAL_SALES, COUNT(DISTINCT receipts.ID) as COUNT_TICKETS " +
                         "FROM receipts " +
                         "INNER JOIN tickets ON receipts.ID = tickets.ID " +
+                        "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
                         "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
                         "WHERE receipts.MONEY IN (" + moneyPlaceholders + ") " +
                         "AND customers.ID IS NOT NULL " +
@@ -5719,12 +5738,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     String moneyPlaceholders = java.util.Collections.nCopies(moneyList.size(), "?").stream().collect(java.util.stream.Collectors.joining(","));
                     java.sql.PreparedStatement profitStmt = session.getConnection().prepareStatement(
                         "SELECT customers.NAME, " +
-                        "SUM((ticketlines.PRICE - products.PRICEBUY) * ticketlines.UNITS) as TOTAL_PROFIT, " +
-                        "SUM(receipts.TOTAL) as TOTAL_SALES " +
+                        "SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) as TOTAL_PROFIT, " +
+                        "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE) * ticketlines.UNITS) as TOTAL_SALES " +
                         "FROM receipts " +
                         "INNER JOIN tickets ON receipts.ID = tickets.ID " +
                         "INNER JOIN ticketlines ON tickets.ID = ticketlines.TICKET " +
                         "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                        "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
                         "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
                         "WHERE receipts.MONEY IN (" + moneyPlaceholders + ") " +
                         "AND customers.ID IS NOT NULL " +
@@ -6024,6 +6044,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Muestra el reporte del turno actual (cierre de cajero)
      */
     private void showShiftReport() {
+        showShiftReport((String) null);
+    }
+    
+    /**
+     * Muestra el reporte del turno actual (cierre de cajero)
+     * @param providedCashIndex Índice de caja cerrada proporcionado (opcional). Si se proporciona, se usa directamente.
+     */
+    private void showShiftReport(String providedCashIndex) {
         try {
             if (m_PaymentsToClose == null) {
                 LOGGER.warning("No hay datos de turno para mostrar");
@@ -6055,7 +6083,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append("tr:hover td { background-color: #e8f4f8; transition: background-color 0.3s ease; }");
             html.append(".total { font-weight: bold; font-size: 1.2em; color: #2c3e50; background-color: #ecf0f1 !important; }");
             html.append(".shift-header { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; margin: 25px 0 20px 0; border-radius: 10px; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }");
-            html.append(".shift-header h2 { color: white; border: none; padding: 0; margin: 0 0 10px 0; }");
+            html.append(".shift-header h2 { color: #000000; border: none; padding: 0; margin: 0 0 10px 0; font-weight: bold; }");
             html.append(".shift-header p { margin: 5px 0; font-size: 1em; }");
             html.append(".summary { background: linear-gradient(135deg, #ffffff 0%, #f8f9fa 100%); padding: 25px; margin: 25px 0; border-radius: 12px; border: 1px solid #e1e8ed; box-shadow: 0 4px 15px rgba(0,0,0,0.08); transition: transform 0.3s ease, box-shadow 0.3s ease; }");
             html.append(".summary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.12); }");
@@ -6080,55 +6108,239 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append("<p><strong>Fin:</strong> ").append(m_PaymentsToClose.printDateEnd()).append("</p>");
             html.append("</div>");
             
-            // Resumen del turno
-            double initialAmount = m_PaymentsToClose.getInitialAmount() != null ? m_PaymentsToClose.getInitialAmount() : 0.0;
-            // Calcular total de ventas desde base + impuestos
-            double salesBase = 0.0;
-            double salesTaxes = 0.0;
-            try {
-                // Obtener valores desde la base de datos directamente
-                Session session = m_App.getSession();
-                String activeCashIndex = m_App.getActiveCashIndex();
-                Date dateStart = m_PaymentsToClose.getDateStart();
+            // Obtener el índice de la caja (MONEY) del turno
+            String closedCashIndex = providedCashIndex; // Usar el índice proporcionado si existe
+            String userName = m_PaymentsToClose.getUser();
+            Date dateEnd = m_PaymentsToClose.getDateEnd();
+            Date dateStart = m_PaymentsToClose.getDateStart();
+            
+            // Si se proporcionó el índice, usarlo directamente
+            if (closedCashIndex != null) {
+                LOGGER.info("showShiftReport: Usando índice de caja proporcionado: " + closedCashIndex);
+            }
+            // Si el turno está abierto (DATEEND es null) y no se proporcionó índice, usar directamente la caja activa actual
+            else if (dateEnd == null) {
+                closedCashIndex = m_App.getActiveCashIndex();
+                LOGGER.info("showShiftReport: Turno está ABIERTO, usando caja activa directamente: " + closedCashIndex);
+            } else {
+                // Si el turno está cerrado, buscar la caja cerrada
+                try {
+                    Session session = m_App.getSession();
+                    String host = m_App.getProperties().getHost();
+                    int sequence = m_PaymentsToClose.getSequence();
                 
-                if (dateStart != null) {
-                    java.sql.PreparedStatement salesStmt = session.getConnection().prepareStatement(
-                        "SELECT COALESCE(SUM(receipts.TOTAL), 0) AS TOTAL " +
-                        "FROM receipts " +
-                        "WHERE receipts.MONEY = ? AND receipts.DATENEW >= ?"
+                LOGGER.info("showShiftReport: Buscando turno cerrado - Host: " + host + ", Sequence: " + sequence + 
+                           ", Usuario: " + userName + ", Fecha inicio: " + dateStart + ", Fecha fin: " + dateEnd);
+                
+                // Primero intentar buscar usando host, sequence y fechas (más preciso)
+                java.sql.PreparedStatement moneyStmt = session.getConnection().prepareStatement(
+                    "SELECT MONEY FROM closedcash " +
+                    "WHERE HOST = ? AND HOSTSEQUENCE = ? " +
+                    "AND DATESTART = ? " +
+                    (dateEnd != null ? "AND DATEEND = ?" : "AND DATEEND IS NOT NULL")
+                );
+                moneyStmt.setString(1, host);
+                moneyStmt.setInt(2, sequence);
+                moneyStmt.setTimestamp(3, new java.sql.Timestamp(dateStart.getTime()));
+                if (dateEnd != null) {
+                    moneyStmt.setTimestamp(4, new java.sql.Timestamp(dateEnd.getTime()));
+                }
+                java.sql.ResultSet moneyRs = moneyStmt.executeQuery();
+                
+                // Validar que el MONEY encontrado pertenece al usuario correcto
+                while (moneyRs.next()) {
+                    String candidateMoney = moneyRs.getString("MONEY");
+                    // Verificar el usuario del primer ticket de este turno
+                    java.sql.PreparedStatement userCheckStmt = session.getConnection().prepareStatement(
+                        "SELECT people.NAME FROM tickets " +
+                        "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                        "INNER JOIN people ON tickets.PERSON = people.ID " +
+                        "WHERE receipts.MONEY = ? " +
+                        "ORDER BY receipts.DATENEW ASC " +
+                        "LIMIT 1"
                     );
-                    salesStmt.setString(1, activeCashIndex);
-                    salesStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
-                    java.sql.ResultSet salesRs = salesStmt.executeQuery();
-                    if (salesRs.next()) {
-                        salesBase = salesRs.getDouble("TOTAL");
+                    userCheckStmt.setString(1, candidateMoney);
+                    java.sql.ResultSet userCheckRs = userCheckStmt.executeQuery();
+                    if (userCheckRs.next()) {
+                        String ticketUserName = userCheckRs.getString("NAME");
+                        if (userName != null && userName.equals(ticketUserName)) {
+                            closedCashIndex = candidateMoney;
+                            LOGGER.info("showShiftReport: MONEY del turno cerrado encontrado: " + closedCashIndex + 
+                                       " (Usuario validado: " + ticketUserName + ")");
+                            userCheckRs.close();
+                            userCheckStmt.close();
+                            break;
+                        }
                     }
-                    salesRs.close();
-                    salesStmt.close();
+                    userCheckRs.close();
+                    userCheckStmt.close();
+                }
+                moneyRs.close();
+                moneyStmt.close();
+                
+                // Si no encontramos con validación de usuario, usar el primero que coincida con sequence y fechas
+                if (closedCashIndex == null) {
+                    moneyStmt = session.getConnection().prepareStatement(
+                        "SELECT MONEY FROM closedcash " +
+                        "WHERE HOST = ? AND HOSTSEQUENCE = ? " +
+                        "AND DATESTART = ? " +
+                        (dateEnd != null ? "AND DATEEND = ?" : "AND DATEEND IS NOT NULL") +
+                        " LIMIT 1"
+                    );
+                    moneyStmt.setString(1, host);
+                    moneyStmt.setInt(2, sequence);
+                    moneyStmt.setTimestamp(3, new java.sql.Timestamp(dateStart.getTime()));
+                    if (dateEnd != null) {
+                        moneyStmt.setTimestamp(4, new java.sql.Timestamp(dateEnd.getTime()));
+                    }
+                    moneyRs = moneyStmt.executeQuery();
+                    if (moneyRs.next()) {
+                        closedCashIndex = moneyRs.getString("MONEY");
+                        LOGGER.warning("showShiftReport: MONEY encontrado sin validación de usuario: " + closedCashIndex);
+                    }
+                    moneyRs.close();
+                    moneyStmt.close();
+                }
+                
+                if (closedCashIndex == null) {
+                    LOGGER.warning("showShiftReport: No se encontró MONEY para el turno cerrado. Host: " + host + 
+                                  ", Sequence: " + sequence + ", Usuario: " + userName);
                 }
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Error obteniendo total de ventas: " + e.getMessage(), e);
+                LOGGER.log(Level.WARNING, "Error obteniendo MONEY del turno cerrado: " + e.getMessage(), e);
+                e.printStackTrace();
             }
-            double totalSales = salesBase;
+            
+            // Si todavía no encontramos el MONEY, buscar el último turno cerrado del día con este usuario
+            if (closedCashIndex == null && userName != null) {
+                try {
+                    Session session = m_App.getSession();
+                    
+                    // Calcular inicio y fin del día
+                    java.util.Calendar cal = java.util.Calendar.getInstance();
+                    cal.setTime(dateStart);
+                    cal.set(java.util.Calendar.HOUR_OF_DAY, 0);
+                    cal.set(java.util.Calendar.MINUTE, 0);
+                    cal.set(java.util.Calendar.SECOND, 0);
+                    cal.set(java.util.Calendar.MILLISECOND, 0);
+                    java.sql.Timestamp dayStart = new java.sql.Timestamp(cal.getTimeInMillis());
+                    
+                    cal.add(java.util.Calendar.DAY_OF_MONTH, 1);
+                    java.sql.Timestamp dayEnd = new java.sql.Timestamp(cal.getTimeInMillis());
+                    
+                    // Buscar turnos cerrados del día y validar usuario
+                    java.sql.PreparedStatement dayMoneyStmt = session.getConnection().prepareStatement(
+                        "SELECT closedcash.MONEY FROM closedcash " +
+                        "WHERE closedcash.DATEEND IS NOT NULL " +
+                        "AND closedcash.DATESTART >= ? AND closedcash.DATESTART < ? " +
+                        "ORDER BY closedcash.DATEEND DESC"
+                    );
+                    dayMoneyStmt.setTimestamp(1, dayStart);
+                    dayMoneyStmt.setTimestamp(2, dayEnd);
+                    java.sql.ResultSet dayMoneyRs = dayMoneyStmt.executeQuery();
+                    
+                    while (dayMoneyRs.next()) {
+                        String candidateMoney = dayMoneyRs.getString("MONEY");
+                        // Verificar usuario del turno
+                        java.sql.PreparedStatement userCheckStmt = session.getConnection().prepareStatement(
+                            "SELECT people.NAME FROM tickets " +
+                            "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                            "INNER JOIN people ON tickets.PERSON = people.ID " +
+                            "WHERE receipts.MONEY = ? " +
+                            "ORDER BY receipts.DATENEW ASC " +
+                            "LIMIT 1"
+                        );
+                        userCheckStmt.setString(1, candidateMoney);
+                        java.sql.ResultSet userCheckRs = userCheckStmt.executeQuery();
+                        if (userCheckRs.next()) {
+                            String ticketUserName = userCheckRs.getString("NAME");
+                            if (userName.equals(ticketUserName)) {
+                                closedCashIndex = candidateMoney;
+                                LOGGER.info("showShiftReport: MONEY encontrado por usuario y fecha: " + closedCashIndex + 
+                                           " (Usuario: " + ticketUserName + ")");
+                                userCheckRs.close();
+                                userCheckStmt.close();
+                                break;
+                            }
+                        }
+                        userCheckRs.close();
+                        userCheckStmt.close();
+                    }
+                    dayMoneyRs.close();
+                    dayMoneyStmt.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error buscando turno por usuario y fecha: " + e.getMessage(), e);
+                }
+            }
+            }
+            
+            // Si todavía no tenemos el índice de caja, usar la caja activa como último recurso
+            if (closedCashIndex == null) {
+                closedCashIndex = m_App.getActiveCashIndex();
+                LOGGER.warning("showShiftReport: No se encontró caja cerrada, usando caja activa como último recurso: " + closedCashIndex);
+            }
+            
+            // Calcular total de ventas desde base de datos usando el MONEY de la caja
+            double initialAmount = 0.0;
+            double salesBase = 0.0;
+            double totalSales = 0.0;
             double cashIn = 0.0;
             double cashOut = 0.0;
             
-            // Obtener entradas y salidas del turno actual
-            try {
-                Session session = m_App.getSession();
-                String activeCashIndex = m_App.getActiveCashIndex();
-                Date dateStart = m_PaymentsToClose.getDateStart();
-                
-                if (dateStart != null) {
-                    // Entradas (cashin)
+            if (closedCashIndex != null) {
+                LOGGER.info("showShiftReport: Usando índice de caja: " + closedCashIndex + " para calcular resumen");
+                try {
+                    Session session = m_App.getSession();
+                    
+                    // Obtener monto inicial del turno desde la base de datos
+                    java.sql.PreparedStatement initialStmt = session.getConnection().prepareStatement(
+                        "SELECT INITIAL_AMOUNT FROM closedcash WHERE MONEY = ?"
+                    );
+                    initialStmt.setString(1, closedCashIndex);
+                    java.sql.ResultSet initialRs = initialStmt.executeQuery();
+                    if (initialRs.next()) {
+                        double dbInitial = initialRs.getDouble("INITIAL_AMOUNT");
+                        if (!initialRs.wasNull()) {
+                            initialAmount = dbInitial;
+                            LOGGER.info("showShiftReport: Monto inicial obtenido desde BD: " + initialAmount);
+                        } else {
+                            LOGGER.warning("showShiftReport: INITIAL_AMOUNT es NULL en BD para MONEY: " + closedCashIndex);
+                        }
+                    } else {
+                        LOGGER.warning("showShiftReport: No se encontró registro en closedcash para MONEY: " + closedCashIndex);
+                        // Fallback: intentar obtener desde m_PaymentsToClose
+                        if (m_PaymentsToClose.getInitialAmount() != null) {
+                            initialAmount = m_PaymentsToClose.getInitialAmount();
+                            LOGGER.info("showShiftReport: Usando monto inicial desde m_PaymentsToClose: " + initialAmount);
+                        }
+                    }
+                    initialRs.close();
+                    initialStmt.close();
+                    
+                    // Obtener total de ventas del turno cerrado (sumando payments)
+                    java.sql.PreparedStatement salesStmt = session.getConnection().prepareStatement(
+                        "SELECT COALESCE(SUM(payments.TOTAL), 0) AS TOTAL " +
+                        "FROM receipts " +
+                        "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                        "WHERE receipts.MONEY = ?"
+                    );
+                    salesStmt.setString(1, closedCashIndex);
+                    java.sql.ResultSet salesRs = salesStmt.executeQuery();
+                    if (salesRs.next()) {
+                        salesBase = salesRs.getDouble("TOTAL");
+                        totalSales = salesBase;
+                    }
+                    salesRs.close();
+                    salesStmt.close();
+                    
+                    // Obtener entradas (cashin)
                     java.sql.PreparedStatement cashInStmt = session.getConnection().prepareStatement(
                         "SELECT COALESCE(SUM(payments.TOTAL), 0) AS TOTAL " +
                         "FROM payments " +
                         "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
-                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashin' AND receipts.DATENEW >= ?"
+                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashin'"
                     );
-                    cashInStmt.setString(1, activeCashIndex);
-                    cashInStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    cashInStmt.setString(1, closedCashIndex);
                     java.sql.ResultSet cashInRs = cashInStmt.executeQuery();
                     if (cashInRs.next()) {
                         cashIn = cashInRs.getDouble("TOTAL");
@@ -6136,24 +6348,37 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     cashInRs.close();
                     cashInStmt.close();
                     
-                    // Salidas (cashout)
+                    // Obtener salidas (cashout)
                     java.sql.PreparedStatement cashOutStmt = session.getConnection().prepareStatement(
                         "SELECT COALESCE(SUM(ABS(payments.TOTAL)), 0) AS TOTAL " +
                         "FROM payments " +
                         "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
-                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' AND receipts.DATENEW >= ?"
+                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout'"
                     );
-                    cashOutStmt.setString(1, activeCashIndex);
-                    cashOutStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    cashOutStmt.setString(1, closedCashIndex);
                     java.sql.ResultSet cashOutRs = cashOutStmt.executeQuery();
                     if (cashOutRs.next()) {
                         cashOut = cashOutRs.getDouble("TOTAL");
                     }
                     cashOutRs.close();
                     cashOutStmt.close();
+                    
+                    LOGGER.info("showShiftReport: Monto inicial=" + initialAmount + ", Ventas=" + totalSales + ", Entradas=" + cashIn + ", Salidas=" + cashOut);
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error obteniendo datos del turno cerrado: " + e.getMessage(), e);
+                    // Fallback: intentar obtener desde m_PaymentsToClose
+                    if (m_PaymentsToClose.getInitialAmount() != null) {
+                        initialAmount = m_PaymentsToClose.getInitialAmount();
+                        LOGGER.info("showShiftReport: Usando monto inicial desde m_PaymentsToClose (fallback): " + initialAmount);
+                    }
                 }
-            } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Error obteniendo entradas/salidas del turno: " + e.getMessage(), e);
+            } else {
+                LOGGER.warning("showShiftReport: No se pudo obtener el índice de la caja cerrada, los valores estarán en 0");
+                // Fallback: intentar obtener desde m_PaymentsToClose
+                if (m_PaymentsToClose.getInitialAmount() != null) {
+                    initialAmount = m_PaymentsToClose.getInitialAmount();
+                    LOGGER.info("showShiftReport: Usando monto inicial desde m_PaymentsToClose (fallback sin índice): " + initialAmount);
+                }
             }
             
             double totalTurno = initialAmount + totalSales + cashIn - cashOut;
@@ -6175,12 +6400,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             
             try {
                 Session session = m_App.getSession();
-                String activeCashIndex = m_App.getActiveCashIndex();
-                Date dateStart = m_PaymentsToClose.getDateStart();
                 
                 java.util.Map<String, ConsolidatedProduct> categoryConsolidated = new java.util.HashMap<>();
                 
-                if (dateStart != null) {
+                if (closedCashIndex != null) {
                     java.sql.PreparedStatement categoryStmt = session.getConnection().prepareStatement(
                         "SELECT COALESCE(categories.NAME, 'Sin Departamento') as CATEGORY_NAME, " +
                         "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
@@ -6191,11 +6414,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
                         "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
                         "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
-                        "WHERE receipts.MONEY = ? AND receipts.DATENEW >= ? " +
+                        "WHERE receipts.MONEY = ? " +
                         "GROUP BY COALESCE(categories.NAME, 'Sin Departamento')"
                     );
-                    categoryStmt.setString(1, activeCashIndex);
-                    categoryStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
+                    categoryStmt.setString(1, closedCashIndex);
                     java.sql.ResultSet categoryRs = categoryStmt.executeQuery();
                     
                     while (categoryRs.next()) {
@@ -6248,31 +6470,38 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append("<h2>💸 Salidas de Efectivo</h2>");
             try {
                 Session session = m_App.getSession();
-                String activeCashIndex = m_App.getActiveCashIndex();
-                Date dateStart = m_PaymentsToClose.getDateStart();
+                String cashIndex = closedCashIndex != null ? closedCashIndex : m_App.getActiveCashIndex();
                 
                 java.util.List<java.util.Map<String, Object>> outflows = new java.util.ArrayList<>();
-                if (dateStart != null) {
-                    java.sql.PreparedStatement cashOutStmt = session.getConnection().prepareStatement(
-                        "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
-                        "FROM receipts " +
-                        "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
-                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' AND receipts.DATENEW >= ? " +
-                        "ORDER BY receipts.DATENEW DESC"
-                    );
-                    cashOutStmt.setString(1, activeCashIndex);
+                // Si usamos closedCashIndex, no necesitamos filtrar por fecha (toda la caja es del turno)
+                // Si usamos caja activa, sí necesitamos filtrar por fecha de inicio
+                String sqlOutflows = closedCashIndex != null ?
+                    "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
+                    "FROM receipts " +
+                    "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                    "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' " +
+                    "ORDER BY receipts.DATENEW DESC" :
+                    "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES " +
+                    "FROM receipts " +
+                    "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                    "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cashout' AND receipts.DATENEW >= ? " +
+                    "ORDER BY receipts.DATENEW DESC";
+                    
+                java.sql.PreparedStatement cashOutStmt = session.getConnection().prepareStatement(sqlOutflows);
+                cashOutStmt.setString(1, cashIndex);
+                if (closedCashIndex == null && dateStart != null) {
                     cashOutStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
-                    java.sql.ResultSet cashOutRs = cashOutStmt.executeQuery();
-                    while (cashOutRs.next()) {
-                        java.util.Map<String, Object> outflow = new java.util.HashMap<>();
-                        outflow.put("date", cashOutRs.getTimestamp("DATENEW"));
-                        outflow.put("total", cashOutRs.getDouble("TOTAL"));
-                        outflow.put("notes", cashOutRs.getString("NOTES"));
-                        outflows.add(outflow);
-                    }
-                    cashOutRs.close();
-                    cashOutStmt.close();
                 }
+                java.sql.ResultSet cashOutRs = cashOutStmt.executeQuery();
+                while (cashOutRs.next()) {
+                    java.util.Map<String, Object> outflow = new java.util.HashMap<>();
+                    outflow.put("date", cashOutRs.getTimestamp("DATENEW"));
+                    outflow.put("total", cashOutRs.getDouble("TOTAL"));
+                    outflow.put("notes", cashOutRs.getString("NOTES"));
+                    outflows.add(outflow);
+                }
+                cashOutRs.close();
+                cashOutStmt.close();
                 
                 if (!outflows.isEmpty()) {
                     html.append("<table>");
@@ -6300,34 +6529,43 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append("<h2>💳 Pagos de Créditos</h2>");
             try {
                 Session session = m_App.getSession();
-                String activeCashIndex = m_App.getActiveCashIndex();
-                Date dateStart = m_PaymentsToClose.getDateStart();
+                String cashIndex = closedCashIndex != null ? closedCashIndex : m_App.getActiveCashIndex();
                 
                 java.util.List<java.util.Map<String, Object>> creditPayments = new java.util.ArrayList<>();
-                if (dateStart != null) {
-                    java.sql.PreparedStatement creditStmt = session.getConnection().prepareStatement(
-                        "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES, customers.NAME as CUSTOMER_NAME " +
-                        "FROM receipts " +
-                        "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
-                        "LEFT JOIN tickets ON receipts.ID = tickets.ID " +
-                        "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
-                        "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'debt' AND receipts.DATENEW >= ? " +
-                        "ORDER BY receipts.DATENEW DESC"
-                    );
-                    creditStmt.setString(1, activeCashIndex);
+                // Si usamos closedCashIndex, no necesitamos filtrar por fecha (toda la caja es del turno)
+                // Si usamos caja activa, sí necesitamos filtrar por fecha de inicio
+                String sqlCredits = closedCashIndex != null ?
+                    "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES, customers.NAME as CUSTOMER_NAME " +
+                    "FROM receipts " +
+                    "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                    "LEFT JOIN tickets ON receipts.ID = tickets.ID " +
+                    "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
+                    "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'debt' " +
+                    "ORDER BY receipts.DATENEW DESC" :
+                    "SELECT receipts.DATENEW, payments.TOTAL, payments.NOTES, customers.NAME as CUSTOMER_NAME " +
+                    "FROM receipts " +
+                    "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                    "LEFT JOIN tickets ON receipts.ID = tickets.ID " +
+                    "LEFT JOIN customers ON tickets.CUSTOMER = customers.ID " +
+                    "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'debt' AND receipts.DATENEW >= ? " +
+                    "ORDER BY receipts.DATENEW DESC";
+                    
+                java.sql.PreparedStatement creditStmt = session.getConnection().prepareStatement(sqlCredits);
+                creditStmt.setString(1, cashIndex);
+                if (closedCashIndex == null && dateStart != null) {
                     creditStmt.setTimestamp(2, new java.sql.Timestamp(dateStart.getTime()));
-                    java.sql.ResultSet creditRs = creditStmt.executeQuery();
-                    while (creditRs.next()) {
-                        java.util.Map<String, Object> payment = new java.util.HashMap<>();
-                        payment.put("date", creditRs.getTimestamp("DATENEW"));
-                        payment.put("total", creditRs.getDouble("TOTAL"));
-                        payment.put("notes", creditRs.getString("NOTES"));
-                        payment.put("customer", creditRs.getString("CUSTOMER_NAME"));
-                        creditPayments.add(payment);
-                    }
-                    creditRs.close();
-                    creditStmt.close();
                 }
+                java.sql.ResultSet creditRs = creditStmt.executeQuery();
+                while (creditRs.next()) {
+                    java.util.Map<String, Object> payment = new java.util.HashMap<>();
+                    payment.put("date", creditRs.getTimestamp("DATENEW"));
+                    payment.put("total", creditRs.getDouble("TOTAL"));
+                    payment.put("notes", creditRs.getString("NOTES"));
+                    payment.put("customer", creditRs.getString("CUSTOMER_NAME"));
+                    creditPayments.add(payment);
+                }
+                creditRs.close();
+                creditStmt.close();
                 
                 if (!creditPayments.isEmpty()) {
                     html.append("<table>");

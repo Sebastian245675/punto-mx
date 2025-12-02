@@ -529,10 +529,21 @@ public class JRootApp extends JPanel implements AppView {
 
             m_principalapp.activate();
 
+            // Sebastian - Verificar si la caja activa pertenece a otro usuario
+            boolean cashBelongsToOtherUser = checkIfCashBelongsToOtherUser(user);
+            
             // Sebastian - Solo verificar monto inicial si realmente necesita configuración
-            if (needsInitialCashSetup) {
-                LOGGER.log(Level.INFO,
-                        "🔧 Sebastian - Configurando fondo inicial para nueva caja o caja sin fondo configurado");
+            // O si la caja pertenece a otro usuario (necesita nuevo fondo inicial)
+            if (needsInitialCashSetup || cashBelongsToOtherUser) {
+                if (cashBelongsToOtherUser) {
+                    LOGGER.log(Level.INFO,
+                            "🔧 Sebastian - La caja activa pertenece a otro usuario, solicitando nuevo fondo inicial");
+                    // Cerrar el turno del usuario anterior y crear uno nuevo para el usuario actual
+                    createNewCashForUser(user);
+                } else {
+                    LOGGER.log(Level.INFO,
+                            "🔧 Sebastian - Configurando fondo inicial para nueva caja o caja sin fondo configurado");
+                }
                 checkAndSetupInitialCash();
             } else {
                 LOGGER.log(Level.INFO,
@@ -686,7 +697,6 @@ public class JRootApp extends JPanel implements AppView {
 
             // Actualizar en memoria
             setActiveCashInitialAmount(initialAmount);
-            LOGGER.log(Level.INFO, "✅ Sebastian - Monto inicial actualizado en memoria correctamente");
 
             // Sebastian - Marcar que ya no necesita configuración de fondo inicial
             needsInitialCashSetup = false;
@@ -694,6 +704,127 @@ public class JRootApp extends JPanel implements AppView {
             LOGGER.log(Level.INFO, "✅ Sebastian - PROCESO COMPLETO: Monto inicial actualizado: $" + initialAmount);
         } catch (Exception ex) {
             LOGGER.log(Level.WARNING, "❌ Sebastian - Error actualizando monto inicial: " + ex.getMessage(), ex);
+        }
+    }
+
+    /**
+     * Sebastian - Verificar si la caja activa pertenece a otro usuario
+     */
+    private boolean checkIfCashBelongsToOtherUser(AppUser currentUser) {
+        try {
+            String activeCashIndex = getActiveCashIndex();
+            if (activeCashIndex == null) {
+                return false;
+            }
+            
+            // Buscar el primer ticket de la caja activa para verificar el usuario
+            java.sql.Connection con = session.getConnection();
+            java.sql.PreparedStatement userCheckStmt = con.prepareStatement(
+                "SELECT people.NAME FROM tickets " +
+                "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                "INNER JOIN people ON tickets.PERSON = people.ID " +
+                "WHERE receipts.MONEY = ? " +
+                "ORDER BY receipts.DATENEW ASC " +
+                "LIMIT 1"
+            );
+            userCheckStmt.setString(1, activeCashIndex);
+            java.sql.ResultSet userCheckRs = userCheckStmt.executeQuery();
+            
+            if (userCheckRs.next()) {
+                String ticketUserName = userCheckRs.getString("NAME");
+                userCheckRs.close();
+                userCheckStmt.close();
+                
+                if (ticketUserName != null && !ticketUserName.equals(currentUser.getName())) {
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa pertenece a otro usuario. " +
+                               "Usuario del ticket: " + ticketUserName + ", Usuario actual: " + currentUser.getName());
+                    return true;
+                }
+            } else {
+                // Si no hay tickets, verificar si el fondo inicial es 0 (caja nueva)
+                userCheckRs.close();
+                userCheckStmt.close();
+                
+                double initialAmount = getActiveCashInitialAmount();
+                if (initialAmount <= 0.0) {
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets y fondo inicial es 0, " +
+                               "se puede usar para nuevo usuario");
+                    return false; // No pertenece a otro usuario, puede usar esta caja
+                } else {
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets pero tiene fondo inicial, " +
+                               "asumiendo que pertenece a usuario anterior");
+                    return true; // Probablemente pertenece a otro usuario
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error verificando si la caja pertenece a otro usuario: " + e.getMessage(), e);
+            return false; // En caso de error, asumir que no pertenece a otro usuario
+        }
+        return false;
+    }
+
+    /**
+     * Sebastian - Crear nueva caja para el usuario actual
+     */
+    private void createNewCashForUser(AppUser user) {
+        try {
+            String oldCashIndex = getActiveCashIndex();
+            Date oldDateStart = getActiveCashDateStart();
+            int oldSequence = getActiveCashSequence();
+            
+            // Cerrar la caja anterior si tiene tickets
+            try {
+                java.sql.Connection con = session.getConnection();
+                java.sql.PreparedStatement checkTicketsStmt = con.prepareStatement(
+                    "SELECT COUNT(*) FROM receipts WHERE MONEY = ?"
+                );
+                checkTicketsStmt.setString(1, oldCashIndex);
+                java.sql.ResultSet checkTicketsRs = checkTicketsStmt.executeQuery();
+                
+                if (checkTicketsRs.next() && checkTicketsRs.getInt(1) > 0) {
+                    // Tiene tickets, cerrar el turno usando SQL directo
+                    Date now = new Date();
+                    java.sql.PreparedStatement updateStmt = con.prepareStatement(
+                        "UPDATE closedcash SET DATEEND = ?, NOSALES = ? WHERE MONEY = ?"
+                    );
+                    updateStmt.setTimestamp(1, new java.sql.Timestamp(now.getTime()));
+                    updateStmt.setInt(2, 0);
+                    updateStmt.setString(3, oldCashIndex);
+                    updateStmt.executeUpdate();
+                    updateStmt.close();
+                    LOGGER.log(Level.INFO, "🔒 Sebastian - Caja anterior cerrada: " + oldCashIndex);
+                }
+                checkTicketsRs.close();
+                checkTicketsStmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error cerrando caja anterior: " + e.getMessage(), e);
+            }
+            
+            // Crear nueva caja para el usuario actual
+            String newCashIndex = UUID.randomUUID().toString();
+            int newSequence = m_dlSystem.getSequenceCash(appFileProperties.getHost()) + 1;
+            Date now = new Date();
+            
+            // Insertar nueva caja con fondo inicial en 0 (se pedirá después)
+            m_dlSystem.execInsertCash(
+                new Object[] { 
+                    newCashIndex, 
+                    appFileProperties.getHost(),
+                    newSequence,
+                    now,
+                    null,
+                    0.0  // Fondo inicial en 0, se pedirá después
+                }
+            );
+            
+            // Establecer como caja activa
+            setActiveCash(newCashIndex, newSequence, now, null, 0.0);
+            needsInitialCashSetup = true; // Marcar que necesita configuración de fondo
+            
+            LOGGER.log(Level.INFO, "🆕 Sebastian - Nueva caja creada para usuario: " + user.getName() + 
+                       " (MONEY: " + newCashIndex + ", Sequence: " + newSequence + ")");
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error creando nueva caja para usuario: " + e.getMessage(), e);
         }
     }
 

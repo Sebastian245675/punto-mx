@@ -425,128 +425,156 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         rightPanel.setOpaque(false);
 
         // ========== MENU.MAIN - Elementos principales ==========
-        // Botón Ventas (Menu.Ticket)
-        javax.swing.JButton btnVentas = createMenuButton(
-                "/com/openbravo/images/sale.png",
-                AppLocal.getIntString("Menu.Ticket"),
-                "com.openbravo.pos.sales.JPanelTicketSales");
-        leftMenuPanel.add(btnVentas);
+        // Botón Ventas (Menu.Ticket) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.sales.JPanelTicketSales")) {
+            javax.swing.JButton btnVentas = createMenuButton(
+                    "/com/openbravo/images/sale.png",
+                    AppLocal.getIntString("Menu.Ticket"),
+                    "com.openbravo.pos.sales.JPanelTicketSales");
+            leftMenuPanel.add(btnVentas);
+        }
 
-        // Botón Pagos de Clientes (Menu.CustomersPayment)
-        javax.swing.JButton btnPagosClientes = createMenuButton(
-                "/com/openbravo/images/customerpay.png",
-                AppLocal.getIntString("Menu.CustomersPayment"),
-                "com.openbravo.pos.customers.CustomersPayment");
-        leftMenuPanel.add(btnPagosClientes);
+        // Botón Pagos de Clientes (Menu.CustomersPayment) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.customers.CustomersPayment")) {
+            javax.swing.JButton btnPagosClientes = createMenuButton(
+                    "/com/openbravo/images/customerpay.png",
+                    AppLocal.getIntString("Menu.CustomersPayment"),
+                    "com.openbravo.pos.customers.CustomersPayment");
+            leftMenuPanel.add(btnPagosClientes);
+        }
 
-        // Botón Cierre de Caja (Menu.CloseTPV)
-        javax.swing.JButton btnCierre = createMenuButton(
-                "/com/openbravo/images/calculator.png",
-                AppLocal.getIntString("Menu.CloseTPV"),
-                "com.openbravo.pos.panels.JPanelCloseMoney");
-        leftMenuPanel.add(btnCierre);
+        // Botón Cierre de Caja (Menu.CloseTPV) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.panels.JPanelCloseMoney")) {
+            javax.swing.JButton btnCierre = createMenuButton(
+                    "/com/openbravo/images/calculator.png",
+                    AppLocal.getIntString("Menu.CloseTPV"),
+                    "com.openbravo.pos.panels.JPanelCloseMoney");
+            leftMenuPanel.add(btnCierre);
+        }
 
-        // Botón Gestión de Sucursales (Menu.BranchesManagement)
-        javax.swing.JButton btnSucursales = createMenuButton(
-                "/com/openbravo/images/user.png",
-                AppLocal.getIntString("Menu.BranchesManagement"),
-                "com.openbravo.pos.branches.JPanelBranchesManagement");
-        leftMenuPanel.add(btnSucursales);
+        // Botón Gestión de Sucursales (Menu.BranchesManagement) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.branches.JPanelBranchesManagement")) {
+            javax.swing.JButton btnSucursales = createMenuButton(
+                    "/com/openbravo/images/user.png",
+                    AppLocal.getIntString("Menu.BranchesManagement"),
+                    "com.openbravo.pos.branches.JPanelBranchesManagement");
+            leftMenuPanel.add(btnSucursales);
+        }
 
         // ========== MENU.BACKOFFICE - Submenús ==========
-        // Botón Clientes (Menu.Customers - submenu)
-        javax.swing.JButton btnClientes = createMenuButton(
-                "/com/openbravo/images/customer.png",
-                AppLocal.getIntString("Menu.Customers"),
-                "com.openbravo.pos.forms.MenuCustomers");
-        leftMenuPanel.add(btnClientes);
+        // Botón Clientes (Menu.Customers - submenu) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuCustomers")) {
+            javax.swing.JButton btnClientes = createMenuButton(
+                    "/com/openbravo/images/customer.png",
+                    AppLocal.getIntString("Menu.Customers"),
+                    "com.openbravo.pos.forms.MenuCustomers");
+            leftMenuPanel.add(btnClientes);
+        }
 
-        // Botón Proveedores (Menu.Suppliers - submenu)
-        javax.swing.JButton btnProveedores = createMenuButton(
-                "/com/openbravo/images/stockmaint.png",
-                AppLocal.getIntString("Menu.Suppliers"),
-                "com.openbravo.pos.forms.MenuSuppliers");
-        leftMenuPanel.add(btnProveedores);
+        // Botón Proveedores (Menu.Suppliers - submenu) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuSuppliers")) {
+            javax.swing.JButton btnProveedores = createMenuButton(
+                    "/com/openbravo/images/stockmaint.png",
+                    AppLocal.getIntString("Menu.Suppliers"),
+                    "com.openbravo.pos.forms.MenuSuppliers");
+            leftMenuPanel.add(btnProveedores);
+        }
 
-        // Botón Gestión de Inventario (Menu.StockManagement - submenu)
-        javax.swing.JButton btnInventario = createMenuButton(
-                "/com/openbravo/images/products.png",
-                AppLocal.getIntString("Menu.StockManagement"),
-                "com.openbravo.pos.forms.MenuStockManagement");
-        leftMenuPanel.add(btnInventario);
+        // Botón Gestión de Inventario (Menu.StockManagement - submenu) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuStockManagement")) {
+            javax.swing.JButton btnInventario = createMenuButton(
+                    "/com/openbravo/images/products.png",
+                    AppLocal.getIntString("Menu.StockManagement"),
+                    "com.openbravo.pos.forms.MenuStockManagement");
+            leftMenuPanel.add(btnInventario);
+        }
 
-        // Botón Gestión de Ventas (Menu.SalesManagement - submenu)
-        javax.swing.JButton btnVentasManagement = createMenuButton(
-                "/com/openbravo/images/sales.png",
-                AppLocal.getIntString("Menu.SalesManagement"),
-                "com.openbravo.pos.forms.MenuSalesManagement");
-        leftMenuPanel.add(btnVentasManagement);
+        // Botón Gestión de Ventas (Menu.SalesManagement - submenu) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuSalesManagement")) {
+            javax.swing.JButton btnVentasManagement = createMenuButton(
+                    "/com/openbravo/images/sales.png",
+                    AppLocal.getIntString("Menu.SalesManagement"),
+                    "com.openbravo.pos.forms.MenuSalesManagement");
+            leftMenuPanel.add(btnVentasManagement);
+        }
 
-        // Botón Mantenimiento (Menu.Maintenance - submenu)
-        javax.swing.JButton btnMantenimiento = createMenuButton(
-                "/com/openbravo/images/maintain.png",
-                AppLocal.getIntString("Menu.Maintenance"),
-                "com.openbravo.pos.forms.MenuMaintenance");
-        leftMenuPanel.add(btnMantenimiento);
+        // Botón Mantenimiento (Menu.Maintenance - submenu) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuMaintenance")) {
+            javax.swing.JButton btnMantenimiento = createMenuButton(
+                    "/com/openbravo/images/maintain.png",
+                    AppLocal.getIntString("Menu.Maintenance"),
+                    "com.openbravo.pos.forms.MenuMaintenance");
+            leftMenuPanel.add(btnMantenimiento);
+        }
 
-        // Botón Gestión de Presencia (Menu.PresenceManagement - submenu)
-        javax.swing.JButton btnPresencia = createMenuButton(
-                "/com/openbravo/images/users.png",
-                AppLocal.getIntString("Menu.PresenceManagement"),
-                "com.openbravo.pos.forms.MenuEmployees");
-        leftMenuPanel.add(btnPresencia);
+        // Botón Gestión de Presencia (Menu.PresenceManagement - submenu) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuEmployees")) {
+            javax.swing.JButton btnPresencia = createMenuButton(
+                    "/com/openbravo/images/users.png",
+                    AppLocal.getIntString("Menu.PresenceManagement"),
+                    "com.openbravo.pos.forms.MenuEmployees");
+            leftMenuPanel.add(btnPresencia);
+        }
 
         // ========== MENU.UTILITIES ==========
-        // Botón Herramientas (Menu.Tools - submenu)
-        javax.swing.JButton btnHerramientas = createMenuButton(
-                "/com/openbravo/images/utilities.png",
-                AppLocal.getIntString("Menu.Tools"),
-                "com.openbravo.pos.imports.JPanelCSV");
-        leftMenuPanel.add(btnHerramientas);
+        // Botón Herramientas (Menu.Tools - submenu) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.imports.JPanelCSV")) {
+            javax.swing.JButton btnHerramientas = createMenuButton(
+                    "/com/openbravo/images/utilities.png",
+                    AppLocal.getIntString("Menu.Tools"),
+                    "com.openbravo.pos.imports.JPanelCSV");
+            leftMenuPanel.add(btnHerramientas);
+        }
 
         // ========== MENU.SYSTEM ==========
         // Botón Cambiar Contraseña movido a Configuración > General
 
-        // Botón Configuración (Menu.Configuration)
-        javax.swing.JButton btnConfig = createMenuButton(
-                "/com/openbravo/images/configuration.png",
-                AppLocal.getIntString("Menu.Configuration"),
-                "com.openbravo.pos.config.JPanelConfiguration");
-        leftMenuPanel.add(btnConfig);
-
-        // Botón Impresora (Menu.Printer)
-        javax.swing.JButton btnImpresora = createMenuButton(
-                "/com/openbravo/images/printer.png",
-                AppLocal.getIntString("Menu.Printer"),
-                "com.openbravo.pos.panels.JPanelPrinter");
-        leftMenuPanel.add(btnImpresora);
-
-        // Botón Reportes (Menu.Reports) - Con icono como en la imagen
-        javax.swing.JButton btnReportes = new javax.swing.JButton();
-        try {
-            javax.swing.ImageIcon iconReportes = new javax.swing.ImageIcon(
-                    getClass().getResource("/com/openbravo/images/reports.png"));
-            btnReportes.setIcon(iconReportes);
-        } catch (Exception e) {
-            // Si no existe el icono, continuar sin él
+        // Botón Configuración (Menu.Configuration) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.config.JPanelConfiguration")) {
+            javax.swing.JButton btnConfig = createMenuButton(
+                    "/com/openbravo/images/configuration.png",
+                    AppLocal.getIntString("Menu.Configuration"),
+                    "com.openbravo.pos.config.JPanelConfiguration");
+            leftMenuPanel.add(btnConfig);
         }
-        btnReportes.setText(AppLocal.getIntString("Menu.Reports"));
-        btnReportes.setPreferredSize(new java.awt.Dimension(90, 25));
-        btnReportes.setMinimumSize(new java.awt.Dimension(80, 25));
-        btnReportes.setMaximumSize(new java.awt.Dimension(100, 25));
-        btnReportes.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
-        btnReportes.setBackground(java.awt.Color.WHITE);
-        btnReportes.setForeground(java.awt.Color.BLACK);
-        btnReportes.setOpaque(true);
-        btnReportes.setFocusPainted(false);
-        btnReportes.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        btnReportes.setIconTextGap(5);
-        btnReportes.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                showTask("com.openbravo.pos.reports.JPanelGraphics");
+
+        // Botón Impresora (Menu.Printer) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.panels.JPanelPrinter")) {
+            javax.swing.JButton btnImpresora = createMenuButton(
+                    "/com/openbravo/images/printer.png",
+                    AppLocal.getIntString("Menu.Printer"),
+                    "com.openbravo.pos.panels.JPanelPrinter");
+            leftMenuPanel.add(btnImpresora);
+        }
+
+        // Botón Reportes (Menu.Reports) - Solo mostrar si tiene permiso
+        if (m_appuser.hasPermission("com.openbravo.pos.reports.JPanelGraphics")) {
+            javax.swing.JButton btnReportes = new javax.swing.JButton();
+            try {
+                javax.swing.ImageIcon iconReportes = new javax.swing.ImageIcon(
+                        getClass().getResource("/com/openbravo/images/reports.png"));
+                btnReportes.setIcon(iconReportes);
+            } catch (Exception e) {
+                // Si no existe el icono, continuar sin él
             }
-        });
-        leftMenuPanel.add(btnReportes);
+            btnReportes.setText(AppLocal.getIntString("Menu.Reports"));
+            btnReportes.setPreferredSize(new java.awt.Dimension(90, 25));
+            btnReportes.setMinimumSize(new java.awt.Dimension(80, 25));
+            btnReportes.setMaximumSize(new java.awt.Dimension(100, 25));
+            btnReportes.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
+            btnReportes.setBackground(java.awt.Color.WHITE);
+            btnReportes.setForeground(java.awt.Color.BLACK);
+            btnReportes.setOpaque(true);
+            btnReportes.setFocusPainted(false);
+            btnReportes.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            btnReportes.setIconTextGap(5);
+            btnReportes.addActionListener(new java.awt.event.ActionListener() {
+                public void actionPerformed(java.awt.event.ActionEvent evt) {
+                    showTask("com.openbravo.pos.reports.JPanelGraphics");
+                }
+            });
+            leftMenuPanel.add(btnReportes);
+        }
 
         // Sebastian - Label de puntos del cliente (al lado del botón Salir)
         m_jCustomerPoints = new javax.swing.JLabel();
