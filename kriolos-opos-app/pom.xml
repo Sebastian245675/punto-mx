@@ -102,6 +102,13 @@ along with this program.  If not, see <http://www.gnu.org/licenses/>.
             <version>2.0</version> 
         </dependency>
         
+        <!-- JFreeChart para gráficos -->
+        <dependency>
+            <groupId>org.jfree</groupId>
+            <artifactId>jfreechart</artifactId>
+            <version>1.5.4</version>
+        </dependency>
+        
         <!-- Firebase Admin SDK -->
         <dependency>
             <groupId>com.google.firebase</groupId>

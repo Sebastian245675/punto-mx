@@ -179,6 +179,7 @@ public class PermissionsCatalog {
         
         // GRÁFICOS
         List<PermissionInfo> charts = new ArrayList<>();
+        charts.add(new PermissionInfo("com.openbravo.pos.reports.JPanelGraphics", "Panel de Gráficos", "Gráficos"));
         charts.add(new PermissionInfo("/com/openbravo/reports/sales_chart_chartsales.bs", "Gráfico: Ventas", "Gráficos"));
         charts.add(new PermissionInfo("/com/openbravo/reports/sales_chart_piesalescat.bs", "Gráfico: Pastel Ventas por Categoría", "Gráficos"));
         charts.add(new PermissionInfo("/com/openbravo/reports/sales_chart_productsales.bs", "Gráfico: Ventas de Productos", "Gráficos"));

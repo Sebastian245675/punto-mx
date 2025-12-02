@@ -77,6 +77,13 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         System.out.println("Usuario: " + m_appuser.getName() + " | Rol ID: " + m_appuser.getRole() + " | Rol Nombre: " + roleName);
         
         Set<String> userPermissions = aupLoader.getPermissionsForRole(roleName);
+        
+        // Sebastian - TEMPORAL: Agregar permiso de gráficos manualmente hasta que se arregle el BLOB
+        if ("ADMIN".equals(roleName) || "1".equals(m_appuser.getRole())) {
+            userPermissions.add("com.openbravo.pos.reports.JPanelGraphics");
+            System.out.println("✓ Permiso de Gráficos agregado manualmente al admin");
+        }
+        
         m_appuser.fillPermissions(userPermissions);
 
         initComponents();
@@ -477,6 +484,32 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             "com.openbravo.pos.panels.JPanelPrinter"
         );
         leftMenuPanel.add(btnImpresora);
+        
+        // Botón Reportes (Menu.Reports) - Con icono como en la imagen
+        javax.swing.JButton btnReportes = new javax.swing.JButton();
+        try {
+            javax.swing.ImageIcon iconReportes = new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reports.png"));
+            btnReportes.setIcon(iconReportes);
+        } catch (Exception e) {
+            // Si no existe el icono, continuar sin él
+        }
+        btnReportes.setText(AppLocal.getIntString("Menu.Reports"));
+        btnReportes.setPreferredSize(new java.awt.Dimension(90, 25));
+        btnReportes.setMinimumSize(new java.awt.Dimension(80, 25));
+        btnReportes.setMaximumSize(new java.awt.Dimension(100, 25));
+        btnReportes.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
+        btnReportes.setBackground(java.awt.Color.WHITE);
+        btnReportes.setForeground(java.awt.Color.BLACK);
+        btnReportes.setOpaque(true);
+        btnReportes.setFocusPainted(false);
+        btnReportes.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        btnReportes.setIconTextGap(5);
+        btnReportes.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                showTask("com.openbravo.pos.reports.JPanelGraphics");
+            }
+        });
+        leftMenuPanel.add(btnReportes);
         
         // Sebastian - Label de puntos del cliente (al lado del botón Salir)
         m_jCustomerPoints = new javax.swing.JLabel();
