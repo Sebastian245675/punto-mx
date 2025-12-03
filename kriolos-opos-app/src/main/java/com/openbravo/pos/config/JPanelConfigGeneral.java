@@ -249,6 +249,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         previewButton = new javax.swing.JButton();
         jLabelPassword = new javax.swing.JLabel();
         jbtnChangePassword = new javax.swing.JButton();
+        jbtnCheckUpdates = new javax.swing.JButton();
 
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         setOpaque(false);
@@ -468,6 +469,16 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                 jbtnChangePasswordActionPerformed(evt);
             }
         });
+        
+        jbtnCheckUpdates.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jbtnCheckUpdates.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/utilities.png"))); // NOI18N
+        jbtnCheckUpdates.setText("Verificar Actualizaciones"); // NOI18N
+        jbtnCheckUpdates.setPreferredSize(new java.awt.Dimension(200, 35));
+        jbtnCheckUpdates.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                jbtnCheckUpdatesActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanel11Layout = new javax.swing.GroupLayout(jPanel11);
         jPanel11.setLayout(jPanel11Layout);
@@ -531,7 +542,10 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                     .addGroup(jPanel11Layout.createSequentialGroup()
                         .addComponent(jLabelPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addComponent(jbtnChangePassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(jbtnChangePassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanel11Layout.createSequentialGroup()
+                        .addGap(160, 160, 160)
+                        .addComponent(jbtnCheckUpdates, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel11Layout.setVerticalGroup(
@@ -585,6 +599,8 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
                 .addGroup(jPanel11Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(jLabelPassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(jbtnChangePassword, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                .addComponent(jbtnCheckUpdates, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );
 
@@ -688,6 +704,17 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
         }
     }//GEN-LAST:event_jbtnChangePasswordActionPerformed
 
+    private void jbtnCheckUpdatesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnCheckUpdatesActionPerformed
+        if (m_App != null && m_App instanceof com.openbravo.pos.forms.JRootApp) {
+            ((com.openbravo.pos.forms.JRootApp) m_App).checkForUpdatesManually();
+        } else {
+            JOptionPane.showMessageDialog(this,
+                "No se puede verificar actualizaciones en este momento.",
+                "Error",
+                JOptionPane.ERROR_MESSAGE);
+        }
+    }//GEN-LAST:event_jbtnCheckUpdatesActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel18;
@@ -703,6 +730,7 @@ public class JPanelConfigGeneral extends javax.swing.JPanel implements PanelConf
     private javax.swing.JButton jbtnHTML;
     private javax.swing.JButton jbtnLogo;
     private javax.swing.JButton jbtnChangePassword;
+    private javax.swing.JButton jbtnCheckUpdates;
     private javax.swing.JButton jbtnText;
     private javax.swing.JButton jbtnTextClear;
     private javax.swing.JComboBox jcboLAF;

@@ -430,7 +430,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             javax.swing.JButton btnVentas = createMenuButton(
                     "/com/openbravo/images/sale.png",
                     AppLocal.getIntString("Menu.Ticket"),
-                    "com.openbravo.pos.sales.JPanelTicketSales");
+                    "com.openbravo.pos.sales.JPanelTicketSales",
+                    new java.awt.Color(231, 76, 60)); // Rojo atractivo
             leftMenuPanel.add(btnVentas);
         }
 
@@ -448,7 +449,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             javax.swing.JButton btnCierre = createMenuButton(
                     "/com/openbravo/images/calculator.png",
                     AppLocal.getIntString("Menu.CloseTPV"),
-                    "com.openbravo.pos.panels.JPanelCloseMoney");
+                    "com.openbravo.pos.panels.JPanelCloseMoney",
+                    new java.awt.Color(52, 152, 219)); // Azul atractivo
             leftMenuPanel.add(btnCierre);
         }
 
@@ -485,16 +487,19 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             javax.swing.JButton btnInventario = createMenuButton(
                     "/com/openbravo/images/products.png",
                     AppLocal.getIntString("Menu.StockManagement"),
-                    "com.openbravo.pos.forms.MenuStockManagement");
+                    "com.openbravo.pos.forms.MenuStockManagement",
+                    new java.awt.Color(46, 204, 113)); // Verde atractivo
             leftMenuPanel.add(btnInventario);
         }
 
         // Botón Gestión de Ventas (Menu.SalesManagement - submenu) - Solo mostrar si tiene permiso
+        // Cambiar texto para distinguirlo del botón principal de Ventas
         if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuSalesManagement")) {
             javax.swing.JButton btnVentasManagement = createMenuButton(
                     "/com/openbravo/images/sales.png",
-                    AppLocal.getIntString("Menu.SalesManagement"),
-                    "com.openbravo.pos.forms.MenuSalesManagement");
+                    "Gestión Ventas", // Texto más descriptivo para distinguirlo
+                    "com.openbravo.pos.forms.MenuSalesManagement",
+                    new java.awt.Color(241, 196, 15)); // Amarillo/dorado atractivo
             leftMenuPanel.add(btnVentasManagement);
         }
 
@@ -549,30 +554,11 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         // Botón Reportes (Menu.Reports) - Solo mostrar si tiene permiso
         if (m_appuser.hasPermission("com.openbravo.pos.reports.JPanelGraphics")) {
-            javax.swing.JButton btnReportes = new javax.swing.JButton();
-            try {
-                javax.swing.ImageIcon iconReportes = new javax.swing.ImageIcon(
-                        getClass().getResource("/com/openbravo/images/reports.png"));
-                btnReportes.setIcon(iconReportes);
-            } catch (Exception e) {
-                // Si no existe el icono, continuar sin él
-            }
-            btnReportes.setText(AppLocal.getIntString("Menu.Reports"));
-            btnReportes.setPreferredSize(new java.awt.Dimension(90, 25));
-            btnReportes.setMinimumSize(new java.awt.Dimension(80, 25));
-            btnReportes.setMaximumSize(new java.awt.Dimension(100, 25));
-            btnReportes.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
-            btnReportes.setBackground(java.awt.Color.WHITE);
-            btnReportes.setForeground(java.awt.Color.BLACK);
-            btnReportes.setOpaque(true);
-            btnReportes.setFocusPainted(false);
-            btnReportes.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-            btnReportes.setIconTextGap(5);
-            btnReportes.addActionListener(new java.awt.event.ActionListener() {
-                public void actionPerformed(java.awt.event.ActionEvent evt) {
-                    showTask("com.openbravo.pos.reports.JPanelGraphics");
-                }
-            });
+            javax.swing.JButton btnReportes = createMenuButton(
+                    null, // Sin icono
+                    AppLocal.getIntString("Menu.Reports"),
+                    "com.openbravo.pos.reports.JPanelGraphics",
+                    new java.awt.Color(155, 89, 182)); // Morado atractivo
             leftMenuPanel.add(btnReportes);
         }
 
@@ -667,19 +653,45 @@ public class JPrincipalApp extends JPanel implements AppUserView {
      * Método helper para crear botones del menú de forma consistente
      */
     private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass) {
+        return createMenuButton(iconPath, text, taskClass, null);
+    }
+    
+    /**
+     * Método helper para crear botones del menú con color personalizado
+     */
+    private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass, java.awt.Color backgroundColor) {
         javax.swing.JButton button = new javax.swing.JButton();
         // Iconos removidos para diseño compacto como eleventa
         button.setText(text);
-        // Tamaño reducido para que quepan todos en una línea
-        button.setPreferredSize(new java.awt.Dimension(70, 25));
-        button.setMinimumSize(new java.awt.Dimension(60, 25));
-        button.setMaximumSize(new java.awt.Dimension(90, 25));
-        button.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
-        // Botones blancos con texto negro
-        button.setBackground(java.awt.Color.WHITE);
-        button.setForeground(java.awt.Color.BLACK);
+        
+        // Calcular ancho basado en la longitud del texto para que se lea bien
+        int textLength = text.length();
+        int buttonWidth = Math.max(90, Math.min(140, 70 + (textLength * 4))); // Mínimo 90, máximo 140
+        
+        // Tamaño aumentado para que se lea bien el texto
+        button.setPreferredSize(new java.awt.Dimension(buttonWidth, 25));
+        button.setMinimumSize(new java.awt.Dimension(80, 25));
+        button.setMaximumSize(new java.awt.Dimension(150, 25));
+        button.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10)); // Tamaño de fuente ligeramente mayor
+        
+        // Color de fondo personalizado o blanco por defecto
+        if (backgroundColor != null) {
+            button.setBackground(backgroundColor);
+            // Texto blanco si el fondo es oscuro, negro si es claro
+            int brightness = (backgroundColor.getRed() + backgroundColor.getGreen() + backgroundColor.getBlue()) / 3;
+            button.setForeground(brightness < 128 ? java.awt.Color.WHITE : java.awt.Color.BLACK);
+        } else {
+            button.setBackground(java.awt.Color.WHITE);
+            button.setForeground(java.awt.Color.BLACK);
+        }
+        
         button.setOpaque(true);
         button.setFocusPainted(false);
+        button.setBorderPainted(true);
+        button.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1),
+            javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)));
+        
         button.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 showTask(taskClass);

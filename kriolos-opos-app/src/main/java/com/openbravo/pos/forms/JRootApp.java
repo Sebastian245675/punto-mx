@@ -219,6 +219,102 @@ public class JRootApp extends JPanel implements AppView {
         setStatusBarPanel();
 
         showLoginPanel();
+        
+        // Sebastian - Verificar actualizaciones en segundo plano (no bloquea el inicio)
+        checkForUpdatesAsync();
+    }
+    
+    /**
+     * Sebastian - Verifica actualizaciones de forma asíncrona
+     */
+    private void checkForUpdatesAsync() {
+        new Thread(() -> {
+            try {
+                // Esperar un poco para no interferir con el inicio
+                Thread.sleep(3000);
+                
+                UpdateChecker.UpdateInfo updateInfo = UpdateChecker.checkForUpdates();
+                if (updateInfo != null && updateInfo.isAvailable()) {
+                    // Mostrar diálogo de actualización en el hilo de UI
+                    SwingUtilities.invokeLater(() -> {
+                        showUpdateDialog(updateInfo);
+                    });
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error verificando actualizaciones: " + e.getMessage());
+            }
+        }).start();
+    }
+    
+    /**
+     * Sebastian - Muestra el diálogo de actualización
+     */
+    private void showUpdateDialog(UpdateChecker.UpdateInfo updateInfo) {
+        java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
+        java.awt.Frame parentFrame = null;
+        if (parentWindow instanceof java.awt.Frame) {
+            parentFrame = (java.awt.Frame) parentWindow;
+        } else if (parentWindow instanceof java.awt.Dialog) {
+            parentFrame = (java.awt.Frame) ((java.awt.Dialog) parentWindow).getParent();
+        }
+        
+        JDialogUpdate updateDialog = new JDialogUpdate(parentFrame, updateInfo);
+        updateDialog.showUpdateDialog();
+    }
+    
+    /**
+     * Sebastian - Método público para verificar actualizaciones manualmente
+     * Puede ser llamado desde el menú de configuración
+     */
+    public void checkForUpdatesManually() {
+        waitCursorBegin();
+        new Thread(() -> {
+            try {
+                UpdateChecker.UpdateInfo updateInfo = UpdateChecker.checkForUpdates();
+                SwingUtilities.invokeLater(() -> {
+                    waitCursorEnd();
+                    if (updateInfo != null && updateInfo.isAvailable()) {
+                        showUpdateDialog(updateInfo);
+                    } else {
+                        javax.swing.JOptionPane.showMessageDialog(
+                            SwingUtilities.getWindowAncestor(this),
+                            "Ya tienes la versión más reciente.\nVersión actual: " + AppLocal.APP_VERSION,
+                            "Sin Actualizaciones",
+                            javax.swing.JOptionPane.INFORMATION_MESSAGE);
+                    }
+                });
+            } catch (Exception e) {
+                SwingUtilities.invokeLater(() -> {
+                    waitCursorEnd();
+                    javax.swing.JOptionPane.showMessageDialog(
+                        SwingUtilities.getWindowAncestor(this),
+                        "Error al verificar actualizaciones:\n" + e.getMessage(),
+                        "Error",
+                        javax.swing.JOptionPane.ERROR_MESSAGE);
+                });
+            }
+        }).start();
+    }
+    
+    /**
+     * Sebastian - Método para mostrar opción de actualización cuando hay un problema
+     * Puede ser llamado desde catch blocks o cuando se detecta un error crítico
+     */
+    public void showUpdateOptionOnError(String errorMessage) {
+        int option = javax.swing.JOptionPane.showOptionDialog(
+            SwingUtilities.getWindowAncestor(this),
+            "Se ha detectado un problema:\n\n" + errorMessage + 
+            "\n\n¿Deseas verificar si hay una actualización disponible que pueda solucionarlo?",
+            "Problema Detectado",
+            javax.swing.JOptionPane.YES_NO_OPTION,
+            javax.swing.JOptionPane.WARNING_MESSAGE,
+            null,
+            new Object[] { "Verificar Actualización", "Cancelar" },
+            "Verificar Actualización");
+        
+        if (option == 0) {
+            checkForUpdatesManually();
+        }
     }
 
     private void setTitlePanel() {
