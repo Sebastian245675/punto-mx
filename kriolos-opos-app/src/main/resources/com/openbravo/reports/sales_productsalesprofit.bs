@@ -49,7 +49,7 @@ report.setSentence("SELECT products.REFERENCE, " +
        "LEFT OUTER JOIN products products " +
           "ON (ticketlines.PRODUCT = products.ID) " +
     "WHERE ?(QBF_FILTER) " +
-    "GROUP BY ticketlines.PRODUCT " +
+    "GROUP BY ticketlines.PRODUCT, products.REFERENCE, products.NAME, products.PRICEBUY, products.PRICESELL " +
     "ORDER BY products.REFERENCE ASC");
 
 report.addParameter("RECEIPTS.DATENEW");

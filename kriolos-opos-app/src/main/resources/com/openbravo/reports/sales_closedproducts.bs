@@ -26,7 +26,7 @@ report.setSentence("SELECT " +
                         "closedcash.DATEEND, " +
                         "products.REFERENCE, " +
                         "products.NAME, " +
-                        "PRICESELL AS PRICE, " +
+                        "products.PRICESELL AS PRICE, " +
                             "Sum(ticketlines.UNITS) AS UNITS, " +
                             "Sum((ticketlines.PRICE+ticketlines.PRICE*taxes.RATE)*UNITS) AS VALUE, " +
                             "Sum((ticketlines.PRICE+ticketlines.PRICE*taxes.RATE)*ticketlines.UNITS-(ticketlines.PRICE+(ticketlines.PRICE*taxes.RATE))*ticketlines.UNITS) AS DISCOUNT, " +
@@ -35,7 +35,7 @@ report.setSentence("SELECT " +
                             "ON tickets.ID = ticketlines.TICKET) INNER JOIN (receipts INNER JOIN closedcash " +
                             "ON receipts.MONEY = closedcash.MONEY) ON tickets.ID = receipts.ID) INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
                         "WHERE closedcash.MONEY = receipts.MONEY AND receipts.ID = tickets.ID AND tickets.ID = ticketlines.TICKET AND ?(QBF_FILTER) " +
-                        "GROUP BY closedcash.HOST, closedcash.MONEY, closedcash.DATEEND, products.REFERENCE, products.NAME " +
+                        "GROUP BY closedcash.HOST, closedcash.MONEY, closedcash.DATEEND, products.REFERENCE, products.NAME, products.PRICESELL " +
                         "ORDER BY products.NAME, closedcash.HOST, closedcash.DATEEND");
 
 report.addParameter("closedcash.DATEEND");

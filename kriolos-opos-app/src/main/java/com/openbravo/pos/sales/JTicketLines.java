@@ -118,6 +118,9 @@ public class JTicketLines extends javax.swing.JPanel {
         Font f = new Font("Arial", Font.BOLD, 14);
         JTableHeader header = m_jTicketTable.getTableHeader();
         header.setFont(f);
+        
+        // Configurar renderer personalizado para el header que pinte fondo azul claro en columnas de código de barras y precio
+        header.setDefaultRenderer(new HeaderCellRenderer(acolumns));
 
         m_jTicketTable.getTableHeader().setReorderingAllowed(true);
         m_jTicketTable.setAutoCreateRowSorter(true);
@@ -134,7 +137,8 @@ public class JTicketLines extends javax.swing.JPanel {
         
         // Configurar el fondo del viewport para que las columnas de código de barras y precio se extiendan hasta abajo
         m_jTicketTable.setFillsViewportHeight(true);
-        m_jTicketTable.setOpaque(true);
+        m_jTicketTable.setOpaque(false); // Hacer la tabla transparente para que se vea el fondo del viewport
+        m_jTicketTable.setShowGrid(false); // Ocultar grid para mejor visualización
         
         // Reemplazar el viewport por defecto con uno personalizado que pinte el fondo de las columnas
         ColumnBackgroundViewport customViewport = new ColumnBackgroundViewport(m_jTicketTable, acolumns, defaultRenderer);
@@ -677,6 +681,55 @@ public class JTicketLines extends javax.swing.JPanel {
     // End of variables declaration//GEN-END:variables
 
     /**
+     * Renderer personalizado para el header de la tabla que pinta fondo azul claro
+     * en las columnas de código de barras y precio
+     */
+    private static class HeaderCellRenderer extends javax.swing.table.DefaultTableCellRenderer {
+        private static final long serialVersionUID = 1L;
+        private final ColumnTicket[] columns;
+        
+        public HeaderCellRenderer(ColumnTicket[] columns) {
+            this.columns = columns;
+            setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+            setFont(new Font("Arial", Font.BOLD, 14));
+        }
+        
+        @Override
+        public Component getTableCellRendererComponent(JTable table, Object value,
+                boolean isSelected, boolean hasFocus, int row, int column) {
+            super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+            
+            if (column >= 0 && column < columns.length) {
+                String columnName = com.openbravo.pos.forms.AppLocal.getIntString(columns[column].name);
+                String columnKey = columns[column].name;
+                
+                boolean isBarcodeColumn = columnKey != null && (
+                    columnKey.contains("barcode") || 
+                    columnKey.contains("code") ||
+                    (columnName != null && columnName.toLowerCase().contains("código de barras")) ||
+                    (columnName != null && columnName.toLowerCase().contains("codigo de barras"))
+                );
+                boolean isPriceColumn = columnKey != null && (
+                    columnKey.contains("price") ||
+                    (columnName != null && columnName.toLowerCase().contains("precio"))
+                );
+                
+                // Aplicar fondo azul claro a columnas de código de barras y precio
+                if (isBarcodeColumn || isPriceColumn) {
+                    setBackground(new java.awt.Color(220, 235, 245)); // Azul claro suave
+                    setForeground(java.awt.Color.BLACK);
+                } else {
+                    setBackground(java.awt.Color.WHITE);
+                    setForeground(java.awt.Color.BLACK);
+                }
+            }
+            
+            setOpaque(true);
+            return this;
+        }
+    }
+    
+    /**
      * Viewport personalizado que pinta el fondo de las columnas de código de barras y precio hasta abajo
      */
     private static class ColumnBackgroundViewport extends javax.swing.JViewport {
@@ -698,6 +751,8 @@ public class JTicketLines extends javax.swing.JPanel {
             g.fillRect(0, 0, getWidth(), getHeight());
             
             // Pintar el fondo azul claro de las columnas de código de barras y precio (siempre, desde arriba hasta abajo)
+            // Esto se hace ANTES de pintar la tabla para que siempre esté visible, incluso cuando está vacía
+            // El fondo se pintará uniformemente de arriba a abajo en toda la altura del viewport
             if (table != null && columns != null) {
                 paintColumnBackgrounds(g);
             }
@@ -706,8 +761,10 @@ public class JTicketLines extends javax.swing.JPanel {
             super.paint(g);
         }
         
+        
         /**
          * Pinta el fondo de las columnas de código de barras y precio desde arriba hasta abajo
+         * Siempre pinta el fondo completo, incluso cuando la tabla está vacía
          */
         private void paintColumnBackgrounds(java.awt.Graphics g) {
             if (table == null || columns == null) return;
@@ -735,13 +792,14 @@ public class JTicketLines extends javax.swing.JPanel {
                     (columnName != null && columnName.toLowerCase().contains("precio"))
                 );
                 
-                // Pintar el fondo completo de la columna desde arriba hasta abajo (siempre)
+                // Pintar el fondo completo de la columna desde arriba hasta abajo (siempre, incluso vacía)
                 if (isBarcodeColumn || isPriceColumn) {
                     g.setColor(new java.awt.Color(220, 235, 245)); // Azul claro suave
                     int paintX = Math.max(0, x);
                     int paintWidth = Math.min(columnWidth - (paintX - x), getWidth() - paintX);
                     if (paintWidth > 0) {
-                        // Pintar desde el inicio del viewport hasta abajo
+                        // Pintar desde el inicio del viewport (0) hasta el final (viewportHeight)
+                        // Esto asegura que el fondo azul se vea en toda la altura, uniforme de arriba a abajo
                         g.fillRect(paintX, 0, paintWidth, viewportHeight);
                     }
                 }

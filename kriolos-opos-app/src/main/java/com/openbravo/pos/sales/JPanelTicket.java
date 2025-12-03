@@ -74,6 +74,7 @@ import java.awt.event.ActionEvent;
 import java.awt.image.BufferedImage;
 import java.util.*;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.print.PrintService;
 import javax.swing.AbstractAction;
 import javax.swing.Action;
@@ -5590,6 +5591,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Cargar tickets inicialmente
             cargarTickets.accept(null);
 
+            // Variable para almacenar el ticket seleccionado
+            final java.util.concurrent.atomic.AtomicReference<TicketInfo> selectedTicketRef = new java.util.concurrent.atomic.AtomicReference<>();
+            
             // Listener para selección de ticket
             ticketsTable.getSelectionModel().addListSelectionListener(e -> {
                 if (!e.getValueIsAdjusting()) {
@@ -5609,6 +5613,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         }
                         
                         if (ticketInfo != null) {
+                            // Guardar referencia al ticket seleccionado
+                            selectedTicketRef.set(ticketInfo);
+                            
                             // Actualizar información del ticket
                             lblFolioValor.setText(String.valueOf(ticketInfo.getTicketId()));
                             lblCajeroDetValor.setText(ticketInfo.getUser() != null ? ticketInfo.getUser().getName() : "-");
@@ -5631,13 +5638,24 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             lblTotalValor.setText(Formats.CURRENCY.formatValue(ticketInfo.getTotal()));
                             lblPagoConValor.setText(Formats.CURRENCY.formatValue(ticketInfo.getTotalPaid()));
                             
-                            // Habilitar botones
-                            btnDevolver.setEnabled(true);
+                            // Habilitar botones (pero btnDevolver solo si hay un item seleccionado)
+                            btnDevolver.setEnabled(false);
                             btnCancelar.setEnabled(true);
                             btnFacturar.setEnabled(true);
                             btnImprimir.setEnabled(true);
+                        } else {
+                            selectedTicketRef.set(null);
+                            btnDevolver.setEnabled(false);
                         }
                     }
+                }
+            });
+            
+            // Listener para selección de artículo en la tabla de items
+            itemsTable.getSelectionModel().addListSelectionListener(e -> {
+                if (!e.getValueIsAdjusting()) {
+                    int selectedRow = itemsTable.getSelectedRow();
+                    btnDevolver.setEnabled(selectedRow >= 0 && selectedTicketRef.get() != null);
                 }
             });
 
@@ -5664,6 +5682,63 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             btnHoy.addActionListener(e -> {
                 lblFechaValor.setText(dateFormat.format(new java.util.Date()));
                 cargarTickets.accept(null);
+            });
+            
+            // Listener para botón Devolver Artículo seleccionado
+            btnDevolver.addActionListener(e -> {
+                try {
+                    TicketInfo originalTicket = selectedTicketRef.get();
+                    int selectedItemRow = itemsTable.getSelectedRow();
+                    
+                    if (originalTicket == null) {
+                        javax.swing.JOptionPane.showMessageDialog(dialog,
+                                "Por favor seleccione un ticket",
+                                "Error",
+                                javax.swing.JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    if (selectedItemRow < 0) {
+                        javax.swing.JOptionPane.showMessageDialog(dialog,
+                                "Por favor seleccione un artículo para devolver",
+                                "Error",
+                                javax.swing.JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    // Obtener la línea del ticket original
+                    TicketLineInfo originalLine = originalTicket.getLine(selectedItemRow);
+                    
+                    // Crear un nuevo ticket de devolución
+                    TicketInfo refundTicket = new TicketInfo();
+                    refundTicket.setTicketType(TicketInfo.RECEIPT_REFUND);
+                    refundTicket.setTicketStatus(originalTicket.getTicketId());
+                    refundTicket.setCustomer(originalTicket.getCustomer());
+                    refundTicket.setUser(m_App.getAppUserView().getUser().getUserInfo());
+                    refundTicket.setActiveCash(m_App.getActiveCashIndex());
+                    refundTicket.setDate(new java.util.Date());
+                    refundTicket.setOldTicket(true);
+                    
+                    // Crear una nueva línea con cantidad negativa para la devolución
+                    TicketLineInfo refundLine = new TicketLineInfo(originalLine);
+                    refundLine.setMultiply(-originalLine.getMultiply());
+                    
+                    // Agregar la línea al ticket de devolución
+                    refundTicket.addLine(refundLine);
+                    
+                    // Cerrar el diálogo
+                    dialog.dispose();
+                    
+                    // Activar el ticket de devolución en el panel principal
+                    setActiveTicket(refundTicket, null);
+                    
+                } catch (Exception ex) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog,
+                            "Error al procesar la devolución: " + ex.getMessage(),
+                            "Error",
+                            javax.swing.JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                }
             });
 
             dialog.setVisible(true);

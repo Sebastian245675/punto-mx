@@ -40,7 +40,7 @@ report.setSentence("SELECT " +
             "INNER JOIN receipts receipts ON (tickets.id = receipts.id)) " +
             "INNER JOIN taxes taxes ON (ticketlines.taxid = taxes.id) " +
     "WHERE ?(QBF_FILTER) " +
-    "GROUP BY customers.name, categories.NAME, products.REFERENCE " +
+    "GROUP BY customers.name, categories.NAME, products.REFERENCE, products.NAME " +
     "ORDER BY CUSTname ASC, CATname ASC, PRODname ASC"); 
 
 report.addParameter("customers.ID");

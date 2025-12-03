@@ -2996,7 +2996,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 }
             }
             
-            // Obtener ventas totales
+            // Obtener ventas totales (se calculará después de obtener returns para restarlas)
             double totalSales = 0.0;
             try {
                 String salesTotalStr = m_PaymentsToClose.printSalesTotal();
@@ -3006,6 +3006,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             } catch (Exception e) {
                 LOGGER.log(Level.WARNING, "Error parseando ventas totales", e);
             }
+            
+            // Nota: returns se calculará más adelante y se restará del total de ventas
             
             // Calcular ganancia
             double profit = 0.0;
@@ -3164,14 +3166,53 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 LOGGER.log(Level.WARNING, "Error obteniendo entradas/salidas", e);
             }
             
-            // Calcular total de dinero en caja
-            double cashTotal = initialAmount + cashSales + creditPaymentsCash + cashIn - cashOut;
+            // Calcular devoluciones en efectivo
+            double returns = 0.0;
+            try {
+                String activeCashIndex = m_App.getActiveCashIndex();
+                Session session = m_App.getSession();
+                Connection conn = session.getConnection();
+                Date shiftDateStart = m_PaymentsToClose.getDateStart();
+                
+                // Buscar devoluciones en efectivo:
+                // 1. Tickets de tipo REFUND (TICKETTYPE = 1) con pago en efectivo
+                // 2. Pagos negativos en efectivo (pueden ser devoluciones)
+                // 3. Pagos con tipo 'cashrefund'
+                String sqlReturns = "SELECT SUM(ABS(payments.TOTAL)) as TOTAL_RETURNS " +
+                             "FROM receipts " +
+                             "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                             "INNER JOIN tickets ON receipts.ID = tickets.ID " +
+                             "WHERE receipts.MONEY = ? " +
+                             "AND receipts.DATENEW >= ? " +
+                             "AND (payments.PAYMENT = 'cash' OR payments.PAYMENT = 'cashrefund') " +
+                             "AND (tickets.TICKETTYPE = 1 OR payments.TOTAL < 0)";
+                
+                java.sql.PreparedStatement pstmt = conn.prepareStatement(sqlReturns);
+                pstmt.setString(1, activeCashIndex);
+                pstmt.setTimestamp(2, new java.sql.Timestamp(shiftDateStart.getTime()));
+                ResultSet rs = pstmt.executeQuery();
+                if (rs.next()) {
+                    Double totalReturns = rs.getDouble("TOTAL_RETURNS");
+                    if (!rs.wasNull() && totalReturns != null) {
+                        returns = totalReturns;
+                    }
+                }
+                rs.close();
+                pstmt.close();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error calculando devoluciones en efectivo", e);
+            }
+            
+            // Calcular total de dinero en caja (restando devoluciones)
+            double cashTotal = initialAmount + cashSales + creditPaymentsCash + cashIn - cashOut - returns;
+            
+            // Calcular total de ventas restando devoluciones
+            double totalSalesWithReturns = totalSales - returns;
             
             // Obtener ventas por tipo de pago
             double cardSales = 0.0;
             double creditSales = 0.0;
             double voucherSales = 0.0;
-            double returns = 0.0;
             
             if (m_PaymentsToClose.getPaymentLines() != null) {
                 for (PaymentsModel.PaymentsLine pl : m_PaymentsToClose.getPaymentLines()) {
@@ -3287,11 +3328,11 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append("<table class='metrics' cellpadding='0' cellspacing='0' border='0' width='100%'>");
             html.append("<tr>");
             
-            // Ventas Totales (lado izquierdo)
+            // Ventas Totales (lado izquierdo) - restando devoluciones
             html.append("<td style='width: 50%; padding: 20px 24px 20px 24px;'>");
             html.append("<div class='metric-card'>");
             html.append("<div class='metric-label'>💰 Ventas Totales</div>");
-            html.append("<div class='metric-value'>").append(Formats.CURRENCY.formatValue(totalSales)).append("</div>");
+            html.append("<div class='metric-value'>").append(Formats.CURRENCY.formatValue(totalSalesWithReturns)).append("</div>");
             html.append("</div>");
             html.append("</td>");
             
@@ -3330,7 +3371,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             html.append("<div class='section-row'><span class='section-label'>A Crédito</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(creditSales)).append("</span></div>");
             html.append("<div class='section-row'><span class='section-label'>Con Vales de Despensa</span><span class='section-value positive'>+").append(Formats.CURRENCY.formatValue(voucherSales)).append("</span></div>");
             html.append("<div class='section-row'><span class='section-label'>Devoluciones de Ventas</span><span class='section-value negative'>-").append(Formats.CURRENCY.formatValue(returns)).append("</span></div>");
-            html.append("<div class='section-total'><span>Total</span><span>").append(Formats.CURRENCY.formatValue(totalSales)).append("</span></div>");
+            html.append("<div class='section-total'><span>Total</span><span>").append(Formats.CURRENCY.formatValue(totalSalesWithReturns)).append("</span></div>");
             html.append("</td>");
             
             html.append("</tr>");
@@ -3536,9 +3577,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                              "FROM receipts " +
                              "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
                              "INNER JOIN tickets ON receipts.ID = tickets.ID " +
-                             "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cash' " +
+                             "WHERE receipts.MONEY = ? " +
                              "AND receipts.DATENEW >= ? " +
-                             "AND payments.TOTAL < 0 " +
+                             "AND (payments.PAYMENT = 'cash' OR payments.PAYMENT = 'cashrefund') " +
+                             "AND (tickets.TICKETTYPE = 1 OR payments.TOTAL < 0) " +
                              "ORDER BY receipts.DATENEW DESC";
                 
                 java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
