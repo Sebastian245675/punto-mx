@@ -9,7 +9,9 @@ package com.openbravo.pos.sales;
 import java.awt.*;
 import java.awt.event.*;
 import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
+import java.util.Locale;
 import javax.swing.*;
 import javax.swing.text.AbstractDocument;
 import javax.swing.text.AttributeSet;
@@ -22,8 +24,10 @@ import javax.swing.text.DocumentFilter;
  */
 public class JGranelDialog extends JDialog {
     
-    private static final DecimalFormat CANTIDAD_FORMAT = new DecimalFormat("0.000");
-    private static final DecimalFormat PRECIO_FORMAT = new DecimalFormat("$#,##0.00");
+    // Forzar uso de punto como separador decimal para evitar problemas de parseo
+    private static final DecimalFormatSymbols symbols = new DecimalFormatSymbols(Locale.US);
+    private static final DecimalFormat CANTIDAD_FORMAT = new DecimalFormat("0.000", symbols);
+    private static final DecimalFormat PRECIO_FORMAT = new DecimalFormat("$#,##0.00", symbols);
     
     private JLabel lblNombreProducto;
     private JTextField txtValor;  // Valor/Importe a la izquierda
@@ -38,6 +42,7 @@ public class JGranelDialog extends JDialog {
     private boolean aceptado = false;
     private boolean actualizando = false; // Bandera para evitar actualizaciones recursivas
     private JTextField campoActivo; // Campo que tiene el foco actualmente
+    private final Object lockAceptar = new Object(); // Lock para evitar doble ejecución de aceptar()
     
     /** 
      * Constructor
@@ -63,6 +68,9 @@ public class JGranelDialog extends JDialog {
     private void initComponents() {
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setResizable(false);
+        
+        // NO establecer botón por defecto para evitar que Enter active el botón automáticamente
+        getRootPane().setDefaultButton(null);
         
         // Tamaño del diálogo ajustado para casillas panorámicas
         setSize(1300, 500);
@@ -310,13 +318,12 @@ public class JGranelDialog extends JDialog {
         };
         txtValor.getDocument().addDocumentListener(listenerValor);
         
-        // Eventos de teclado compartidos
+        // Eventos de teclado compartidos (sin Enter, que se maneja con ActionListener)
         KeyListener keyListener = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
-                if (e.getKeyCode() == KeyEvent.VK_ENTER) {
-                    aceptar();
-                } else if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                if (e.getKeyCode() == KeyEvent.VK_ESCAPE) {
+                    e.consume();
                     cancelar();
                 } else if (e.getKeyCode() == KeyEvent.VK_UP) {
                     // Incrementar el campo activo
@@ -344,6 +351,11 @@ public class JGranelDialog extends JDialog {
         
         txtCantidad.addKeyListener(keyListener);
         txtValor.addKeyListener(keyListener);
+        
+        // ActionListener para Enter en los campos de texto (método estándar para JTextField)
+        // El método aceptar() ya tiene protección contra doble ejecución
+        txtCantidad.addActionListener(e -> aceptar());
+        txtValor.addActionListener(e -> aceptar());
         
         // Detectar qué campo tiene el foco
         txtCantidad.addFocusListener(new FocusAdapter() {
@@ -616,6 +628,18 @@ public class JGranelDialog extends JDialog {
         }
     }
     
+    /**
+     * Normaliza el formato de un número, reemplazando coma por punto
+     * para asegurar compatibilidad con Double.parseDouble()
+     */
+    private String normalizarFormatoNumero(String texto) {
+        if (texto == null || texto.isEmpty()) {
+            return texto;
+        }
+        // Reemplazar coma por punto para asegurar parseo correcto
+        return texto.replace(",", ".").trim();
+    }
+    
     private void calcularDesdeCantidad() {
         if (actualizando) return;
         actualizando = true;
@@ -630,7 +654,9 @@ public class JGranelDialog extends JDialog {
                 }
                 btnAceptar.setEnabled(false);
             } else {
-                double cantidad = Double.parseDouble(textoCantidad);
+                // Normalizar formato antes de parsear (reemplazar coma por punto)
+                String cantidadNormalizada = normalizarFormatoNumero(textoCantidad);
+                double cantidad = Double.parseDouble(cantidadNormalizada);
                 double valor = cantidad * precioUnitario;
                 
                 System.out.println("DEBUG CALCULAR DESDE CANTIDAD:");
@@ -727,27 +753,41 @@ public class JGranelDialog extends JDialog {
     }
     
     private void aceptar() {
-        try {
-            double cantidad = Double.parseDouble(txtCantidad.getText().trim());
-            
-            if (cantidad <= 0) {
-                JOptionPane.showMessageDialog(this, 
-                    "La cantidad debe ser mayor a 0", 
-                    "Error", 
-                    JOptionPane.ERROR_MESSAGE);
+        // Sincronización para evitar doble ejecución
+        synchronized (lockAceptar) {
+            // Evitar procesamiento múltiple si ya se está cerrando o ya fue aceptado
+            if (aceptado || !isVisible()) {
                 return;
             }
             
-            cantidadFinal = cantidad;
+            // Marcar como aceptado inmediatamente para evitar doble procesamiento
             aceptado = true;
-            dispose();
             
-        } catch (NumberFormatException ex) {
-            JOptionPane.showMessageDialog(this, 
-                "Formato de cantidad inválido", 
-                "Error", 
-                JOptionPane.ERROR_MESSAGE);
-            txtCantidad.requestFocus();
+            try {
+                // Normalizar formato antes de parsear (reemplazar coma por punto)
+                String textoCantidad = normalizarFormatoNumero(txtCantidad.getText());
+                double cantidad = Double.parseDouble(textoCantidad);
+                
+                if (cantidad <= 0) {
+                    aceptado = false; // Permitir reintentar si hay error
+                    JOptionPane.showMessageDialog(this, 
+                        "La cantidad debe ser mayor a 0", 
+                        "Error", 
+                        JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                cantidadFinal = cantidad;
+                dispose(); // Cerrar el diálogo
+                
+            } catch (NumberFormatException ex) {
+                aceptado = false; // Permitir reintentar si hay error
+                JOptionPane.showMessageDialog(this, 
+                    "Formato de cantidad inválido. Use punto (.) como separador decimal.", 
+                    "Error", 
+                    JOptionPane.ERROR_MESSAGE);
+                txtCantidad.requestFocus();
+            }
         }
     }
     

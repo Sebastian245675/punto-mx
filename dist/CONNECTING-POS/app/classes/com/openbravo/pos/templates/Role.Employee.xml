@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- 
+    KriolOS POS - Open Source Point Of Sale
+    Copyright (c) 2019-2023 KriolOS.
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+ -->
+
+<!--
+    The Administrator Role Permissions has full access to all KriolOS POS
+    functionality.
+    The Administrator Role should only be used to make system changes.
+    
+    *** Do not change unless you know what you are doing ***
+-->
+
+<permissions>
+    <class name="com.openbravo.pos.sales.JPanelTicketSales"/>
+    <class name="com.openbravo.pos.sales.JPanelTicketEdits"/>
+    <class name="com.openbravo.pos.customers.CustomersPayment"/>
+    <class name="com.openbravo.pos.panels.JPanelPayments"/>  
+
+    <class name="sales.EditLines"/>
+    <class name="sales.EditTicket"/>
+    <class name="sales.PrintTicket"/>
+    <class name="sales.DeleteLines"/>
+    <class name="sales.Total"/>
+    <class name="sales.ViewSharedTicket"/>
+    
+    <class name="payment.cash"/>
+    <class name="payment.cheque"/>
+    <class name="payment.voucher"/>
+    <class name="payment.magcard"/>
+    <class name="payment.slip"/>    
+    <class name="payment.free"/>
+    <class name="payment.debt"/>
+    <class name="sales.PrintRemote"/>
+
+<!-- EPM -->
+    <!-- Sebastian - Removido JPanelEmployeePresence para ocultar "Entrada/Salida" del menú Sistema para empleados -->
+    <!-- <class name="com.openbravo.pos.epm.JPanelEmployeePresence" /> -->
+
+<!-- Standard button scripts -->
+    <class name="button.totaldiscount"/>
+    <class name="button.print"/>
+    
+<!-- Additional button scripts -->
+    <class name="button.linediscount"/>
+    <class name="button.sendorder"/>
+    <class name="button.keyboard"/>    
+
+<class name="Menu.ChangePassword"/>
+<class name="com.openbravo.pos.panels.JPanelPrinter"/>
+
+<!-- Sebastian - Permisos adicionales para empleados (rol 3) -->
+<!-- Cierre de Caja -->
+<class name="com.openbravo.pos.panels.JPanelCloseMoney"/>
+
+<!-- Administrar Sucursales -->
+<class name="com.openbravo.pos.branches.JPanelBranchesManagement"/>
+
+<!-- Configuración (necesario para acceder a Firebase, pero JPanelConfigFirebase solo muestra subida de datos) -->
+<class name="com.openbravo.pos.config.JPanelConfiguration"/>
+<class name="com.openbravo.pos.config.JPanelConfigFirebase"/>
+
+</permissions>

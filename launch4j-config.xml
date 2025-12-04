@@ -3,8 +3,8 @@
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
   <jar>kriolos-opos-app\target\kriolos-pos.jar</jar>
-  <outfile>D:\intento 99\SebastianPOS.exe</outfile>
-  <errTitle>SebastianPOS Error</errTitle>
+  <outfile>dist\CONNECTING-POS.exe</outfile>
+  <errTitle>CONNECTING POS Error</errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>
   <priority>normal</priority>
@@ -26,13 +26,13 @@
   <versionInfo>
     <fileVersion>1.0.0.0</fileVersion>
     <txtFileVersion>1.0.0</txtFileVersion>
-    <fileDescription>SebastianPOS - Sistema de Punto de Venta</fileDescription>
-    <copyright>2025 SebastianPOS</copyright>
+    <fileDescription>CONNECTING POS - Sistema de Punto de Venta</fileDescription>
+    <copyright>2025 CONNECTING POS</copyright>
     <productVersion>1.0.0.0</productVersion>
     <txtProductVersion>1.0.0</txtProductVersion>
-    <productName>SebastianPOS</productName>
-    <companyName>SebastianPOS</companyName>
-    <internalName>SebastianPOS</internalName>
-    <originalFilename>SebastianPOS.exe</originalFilename>
+    <productName>CONNECTING POS</productName>
+    <companyName>CONNECTING POS</companyName>
+    <internalName>CONNECTING-POS</internalName>
+    <originalFilename>CONNECTING-POS.exe</originalFilename>
   </versionInfo>
 </launch4jConfig>

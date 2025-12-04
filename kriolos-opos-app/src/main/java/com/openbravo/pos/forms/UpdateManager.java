@@ -19,7 +19,15 @@ public class UpdateManager {
     private static final Logger LOGGER = Logger.getLogger(UpdateManager.class.getName());
     
     // URL base donde están los archivos JAR actualizados
+    // Formato: https://github.com/USER/REPO/releases/download/vVERSION/kriolos-pos.jar
     private static final String UPDATE_BASE_URL = "https://github.com/Sebastian245675/punto-mx/releases/download/";
+    
+    // URLs alternativas para descargar actualizaciones
+    private static final String[] UPDATE_URLS = {
+        UPDATE_BASE_URL + "v{version}/kriolos-pos.jar",
+        "https://github.com/Sebastian245675/punto-mx/releases/latest/download/kriolos-pos.jar",
+        "https://raw.githubusercontent.com/Sebastian245675/punto-mx/main/kriolos-opos-app/target/kriolos-pos.jar"
+    };
     
     /**
      * Descarga y aplica una actualización
@@ -47,15 +55,27 @@ public class UpdateManager {
             Files.copy(currentJar.toPath(), backupJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
             
             // 2. Descargar nuevo JAR
-            progressCallback.onProgress(20, "Descargando nueva versión...");
-            String downloadUrl = UPDATE_BASE_URL + "v" + version + "/kriolos-pos.jar";
-            if (!downloadFile(downloadUrl, newJar, progressCallback)) {
-                // Si falla, intentar desde URL alternativa
-                downloadUrl = "https://raw.githubusercontent.com/Sebastian245675/punto-mx/main/kriolos-opos-app/target/kriolos-pos.jar";
-                if (!downloadFile(downloadUrl, newJar, progressCallback)) {
-                    progressCallback.onError("No se pudo descargar la actualización");
-                    return false;
+            progressCallback.onProgress(20, "Descargando nueva versión " + version + "...");
+            boolean downloadSuccess = false;
+            
+            // Intentar descargar desde múltiples URLs
+            for (String urlTemplate : UPDATE_URLS) {
+                String downloadUrl = urlTemplate.replace("{version}", version);
+                LOGGER.info("Intentando descargar desde: " + downloadUrl);
+                
+                if (downloadFile(downloadUrl, newJar, progressCallback)) {
+                    downloadSuccess = true;
+                    LOGGER.info("Descarga exitosa desde: " + downloadUrl);
+                    break;
+                } else {
+                    LOGGER.warning("Falló descarga desde: " + downloadUrl);
                 }
+            }
+            
+            if (!downloadSuccess) {
+                progressCallback.onError("No se pudo descargar la actualización desde ninguna fuente disponible.\n" +
+                    "Por favor, verifica tu conexión a internet o descarga manualmente desde GitHub.");
+                return false;
             }
             
             // 3. Verificar que el nuevo JAR es válido (tiene tamaño razonable)

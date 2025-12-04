@@ -1,0 +1,7 @@
+# Este archivo necesita ser reemplazado por un icono real (.ico)
+# Para crear el EXE necesitarás un archivo sebastianpos.ico
+# Puedes usar herramientas como:
+# - https://www.icoconverter.com/
+# - https://convertio.co/png-ico/
+# 
+# Guarda el icono como: src/main/resources/sebastianpos.ico
