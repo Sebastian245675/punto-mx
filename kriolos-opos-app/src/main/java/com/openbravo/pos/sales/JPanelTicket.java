@@ -593,7 +593,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_jPrice.setFont(new Font("Segoe UI", Font.BOLD, 24));
         }
         if (m_jTotalEuros != null) {
-            m_jTotalEuros.setFont(new Font("Arial", Font.BOLD, 64)); // Total estilo Eleventa
+            m_jTotalEuros.setFont(new Font("Arial", Font.BOLD, 58)); // Total estilo Eleventa (reducido 10%)
             m_jTotalEuros.setForeground(new Color(0, 153, 204)); // Cyan/Azul como Eleventa
         }
         // if (m_jSubtotalEuros != null) {
@@ -1185,7 +1185,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private void incProductByCode(String sCode) {
 
         try {
+            // Primero intentar buscar por código de barras
             ProductInfoExt oProduct = dlSales.getProductInfoByCode(sCode);
+
+            // Si no se encuentra por código de barras, intentar por referencia
+            if (oProduct == null) {
+                try {
+                    oProduct = dlSales.getProductInfoByReference(sCode);
+                } catch (BasicException exRef) {
+                    // Si falla la búsqueda por referencia, continuar con el flujo normal
+                    LOGGER.log(System.Logger.Level.DEBUG, "No se encontró producto por referencia: " + sCode, exRef);
+                }
+            }
 
             if (oProduct == null) {
                 Toolkit.getDefaultToolkit().beep();
@@ -3380,7 +3391,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         totalAndButtonPanel.setOpaque(false);
         
         // Total sin recuadro, solo el número grande en cyan/azul estilo Eleventa (POSICIÓN ORIGINAL - derecha)
-        m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 72)); // Muy grande como Eleventa
+        m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 65)); // Muy grande como Eleventa (reducido 10%)
         m_jTotalEuros.setForeground(new java.awt.Color(91, 192, 222)); // Cyan claro de Eleventa
         m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         m_jTotalEuros.setText("$0.00");
@@ -3780,8 +3791,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnMayoreo.setForeground(java.awt.Color.BLACK);
         btnMayoreo.setOpaque(true);
         btnMayoreo.addActionListener(e -> {
-            // TODO: Implementar funcionalidad de Mayoreo
-            javax.swing.JOptionPane.showMessageDialog(this, "Función Mayoreo", "Mayoreo", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            aplicarDescuentoMayoreo();
         });
         actionButtonsPanel.add(btnMayoreo);
         
@@ -5928,6 +5938,186 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     private void showSalidasDialog() {
         showEntradasSalidasDialog("Salida");
+    }
+
+    /**
+     * Aplica un descuento de mayoreo a las líneas del ticket
+     * Muestra un diálogo para ingresar el porcentaje de descuento y lo aplica a todas las líneas
+     */
+    private void aplicarDescuentoMayoreo() {
+        // Verificar que haya un ticket activo
+        if (m_oTicket == null || m_oTicket.getLinesCount() == 0) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "No hay productos en el ticket para aplicar descuento de mayoreo",
+                    "Mayoreo",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // Crear diálogo personalizado para pedir el porcentaje de descuento
+        javax.swing.JDialog dialog = new javax.swing.JDialog(
+                (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this), 
+                "Descuento de Mayoreo", 
+                true);
+        dialog.setSize(350, 180);
+        dialog.setLocationRelativeTo(this);
+
+        javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(10, 10, 10, 10);
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+
+        // Etiqueta
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        panel.add(new javax.swing.JLabel("Ingrese el porcentaje de descuento a aplicar:"), gbc);
+
+        // Campo de texto para el porcentaje
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.gridwidth = 1;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.weightx = 0;
+        panel.add(new javax.swing.JLabel("Porcentaje (%):"), gbc);
+        
+        gbc.gridx = 1;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        javax.swing.JTextField txtPorcentaje = new javax.swing.JTextField();
+        txtPorcentaje.setPreferredSize(new java.awt.Dimension(200, 30));
+        txtPorcentaje.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+        panel.add(txtPorcentaje, gbc);
+
+        // Botones
+        javax.swing.JPanel btnPanel = new javax.swing.JPanel(new java.awt.FlowLayout());
+        javax.swing.JButton btnAceptar = new javax.swing.JButton("Aceptar");
+        javax.swing.JButton btnCancelar = new javax.swing.JButton("Cancelar");
+        btnPanel.add(btnAceptar);
+        btnPanel.add(btnCancelar);
+
+        gbc.gridx = 0;
+        gbc.gridy = 2;
+        gbc.gridwidth = 2;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        panel.add(btnPanel, gbc);
+
+        dialog.add(panel);
+        
+        // Hacer que el campo de texto tenga foco y seleccione todo al mostrar
+        dialog.addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowOpened(java.awt.event.WindowEvent e) {
+                txtPorcentaje.requestFocus();
+                txtPorcentaje.selectAll();
+            }
+        });
+
+        // Variable para almacenar el resultado
+        final java.util.concurrent.atomic.AtomicReference<Double> resultado = 
+            new java.util.concurrent.atomic.AtomicReference<>(null);
+
+        btnCancelar.addActionListener(e -> dialog.dispose());
+        
+        btnAceptar.addActionListener(e -> {
+            try {
+                String texto = txtPorcentaje.getText().trim();
+                if (texto.isEmpty()) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog,
+                            "Por favor ingrese un porcentaje",
+                            "Error",
+                            javax.swing.JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                double porcentaje = Double.parseDouble(texto);
+                
+                // Validar que el descuento esté entre 0 y 100
+                if (porcentaje < 0 || porcentaje > 100) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog,
+                            "El porcentaje debe estar entre 0 y 100",
+                            "Error",
+                            javax.swing.JOptionPane.ERROR_MESSAGE);
+                    return;
+                }
+                
+                resultado.set(porcentaje);
+                dialog.dispose();
+            } catch (NumberFormatException ex) {
+                javax.swing.JOptionPane.showMessageDialog(dialog,
+                        "Por favor ingrese un número válido",
+                        "Error",
+                        javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        });
+
+        // Permitir Enter en el campo de texto
+        txtPorcentaje.addActionListener(e -> btnAceptar.doClick());
+
+        dialog.setVisible(true);
+
+        // Obtener el resultado
+        Double porcentajeDescuento = resultado.get();
+
+        // Si el usuario canceló o no ingresó un valor válido
+        if (porcentajeDescuento == null || porcentajeDescuento <= 0) {
+            return;
+        }
+
+        // Aplicar descuento a todas las líneas del ticket
+        int lineasModificadas = 0;
+        double factorDescuento = 1.0 - (porcentajeDescuento / 100.0);
+
+        for (int i = 0; i < m_oTicket.getLinesCount(); i++) {
+            TicketLineInfo linea = m_oTicket.getLine(i);
+            
+            // Solo aplicar descuento a líneas de productos (no a descuentos o ajustes)
+            if (linea.getProductID() != null && !linea.getProductID().equals("0000") && linea.getPrice() > 0) {
+                double precioOriginal = linea.getPrice();
+                double nuevoPrecio = precioOriginal * factorDescuento;
+                
+                // Crear nueva línea copiando la original
+                TicketLineInfo nuevaLinea = new TicketLineInfo(linea);
+                
+                // Actualizar el precio
+                nuevaLinea.setPrice(nuevoPrecio);
+                
+                // Actualizar el nombre del producto para indicar el descuento
+                String nombreOriginal = linea.getProductName();
+                if (nombreOriginal != null && !nombreOriginal.isEmpty()) {
+                    // Verificar si ya tiene un descuento aplicado para no duplicar
+                    if (!nombreOriginal.contains("[Mayoreo")) {
+                        String nombreConDescuento = nombreOriginal + " [Mayoreo -" + 
+                            Formats.PERCENT.formatValue(porcentajeDescuento / 100.0) + "]";
+                        nuevaLinea.getProperties().setProperty("product.name", nombreConDescuento);
+                    }
+                }
+                
+                // Actualizar la línea en el ticket
+                m_oTicket.setLine(i, nuevaLinea);
+                m_ticketlines.setTicketLine(i, nuevaLinea);
+                lineasModificadas++;
+            }
+        }
+
+        // Actualizar la vista del ticket
+        refreshTicket();
+        printPartialTotals();
+        
+        // Mostrar mensaje de confirmación
+        if (lineasModificadas > 0) {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "Se aplicó un descuento del " + Formats.PERCENT.formatValue(porcentajeDescuento / 100.0) + 
+                    " a " + lineasModificadas + " línea(s) del ticket",
+                    "Descuento de Mayoreo Aplicado",
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "No se pudo aplicar el descuento. Verifique que haya productos válidos en el ticket.",
+                    "Advertencia",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+        }
     }
 
 }

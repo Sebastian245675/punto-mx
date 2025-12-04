@@ -149,7 +149,7 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
         
         // Sebastian - Asegurar que el campo tenga el foco para recibir eventos de teclado
         m_jTendered.requestFocusInWindow();
-
+        
         printState();
     }
 
@@ -172,7 +172,7 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
     private void printState() {
 
         Double value = m_jTendered.getValue();
-        if (value == null || value == 0.0) {
+        if (value == null) {
             m_dPaid = m_dTotal;
         } else {
             m_dPaid = value;
