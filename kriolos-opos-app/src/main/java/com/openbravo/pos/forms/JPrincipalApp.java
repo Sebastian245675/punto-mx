@@ -666,12 +666,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         
         // Calcular ancho basado en la longitud del texto para que se lea bien
         int textLength = text.length();
-        int buttonWidth = Math.max(90, Math.min(140, 70 + (textLength * 4))); // Mínimo 90, máximo 140
+        int buttonWidth = Math.max(60, Math.min(130, 30 + (textLength * 6))); // Mínimo 60, máximo 130, más proporcional al texto
         
-        // Tamaño aumentado para que se lea bien el texto
+        // Tamaño compacto y proporcional al texto
         button.setPreferredSize(new java.awt.Dimension(buttonWidth, 25));
-        button.setMinimumSize(new java.awt.Dimension(80, 25));
-        button.setMaximumSize(new java.awt.Dimension(150, 25));
+        button.setMinimumSize(new java.awt.Dimension(60, 25));
+        button.setMaximumSize(new java.awt.Dimension(130, 25));
         button.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10)); // Tamaño de fuente ligeramente mayor
         
         // Color de fondo personalizado o blanco por defecto

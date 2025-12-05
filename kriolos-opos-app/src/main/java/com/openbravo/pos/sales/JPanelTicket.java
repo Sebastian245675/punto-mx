@@ -573,6 +573,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
 
         refreshTicket();
+        
+        // Sebastian - Actualizar indicador de ticket al activar
+        updateTicketIndicator();
 
         // Aplicar fuentes grandes nuevamente por si acaso
         SwingUtilities.invokeLater(() -> {
@@ -581,13 +584,21 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     }
 
     /**
-     * Aplica fuentes grandes a los campos numéricos del panel de ventas
+     * Aplica fuentes optimizadas a los campos numéricos del panel de ventas
      * Se llama en activate() para sobrescribir las fuentes del Look and Feel Metal
      */
     private void aplicarFuentesGrandesVentas() {
         if (m_jKeyFactory != null) {
-            m_jKeyFactory.setFont(new Font("Segoe UI", Font.BOLD, 20));
-            m_jKeyFactory.setForeground(Color.BLACK); // Números negros
+            // Configuración optimizada para códigos de barras largos
+            m_jKeyFactory.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Fuente de 14pt sin negrita para evitar corte
+            m_jKeyFactory.setForeground(Color.BLACK);
+            m_jKeyFactory.setBackground(Color.WHITE);
+            m_jKeyFactory.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
+                javax.swing.BorderFactory.createEmptyBorder(3, 6, 3, 6)
+            ));
+            m_jKeyFactory.setMargin(new java.awt.Insets(2, 4, 2, 4));
+            m_jKeyFactory.setAutoscrolls(true);
         }
         if (m_jPrice != null) {
             m_jPrice.setFont(new Font("Segoe UI", Font.BOLD, 24));
@@ -3639,17 +3650,20 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPor.setRequestFocusEnabled(false);
 
         m_jKeyFactory.setEditable(true);
-        m_jKeyFactory.setFont(new java.awt.Font("Segoe UI", 1, 20)); // Fuente más grande para mejor legibilidad
-        m_jKeyFactory.setForeground(java.awt.Color.BLACK); // Números negros
+        m_jKeyFactory.setFont(new java.awt.Font("Segoe UI", 0, 15)); // Fuente más grande para mejor legibilidad
+        m_jKeyFactory.setForeground(new java.awt.Color(33, 33, 33)); // Texto oscuro moderno
         m_jKeyFactory.setBackground(java.awt.Color.WHITE);
         m_jKeyFactory.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        m_jKeyFactory.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 5, 4, 10)); // Padding ajustado para fuente más grande
-        m_jKeyFactory.setOpaque(true); // Asegurar que el fondo sea visible
-        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 40)); // Aumentar altura para acomodar fuente más grande
-        m_jKeyFactory.setAutoscrolls(false);
-        m_jKeyFactory.setCaretColor(new java.awt.Color(76, 197, 237));
+        m_jKeyFactory.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 10, 8, 10)); // Solo padding, sin borde
+        m_jKeyFactory.setOpaque(true);
+        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(600, 44));
+        m_jKeyFactory.setMinimumSize(new java.awt.Dimension(400, 44));
+        m_jKeyFactory.setAutoscrolls(true);
+        m_jKeyFactory.setCaretColor(new java.awt.Color(52, 152, 219));
         m_jKeyFactory.setRequestFocusEnabled(true);
         m_jKeyFactory.setVerifyInputWhenFocusTarget(false);
+        m_jKeyFactory.setScrollOffset(0);
+        m_jKeyFactory.setMargin(new java.awt.Insets(4, 6, 4, 6));
         m_jKeyFactory.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 m_jKeyFactoryActionPerformed(evt);
@@ -3676,17 +3690,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JPanel searchFieldContainer = new javax.swing.JPanel();
         searchFieldContainer.setLayout(new java.awt.BorderLayout());
         searchFieldContainer.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(76, 197, 237), 2),
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(52, 152, 219), 2), // Azul moderno
                 javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)));
         searchFieldContainer.setBackground(java.awt.Color.WHITE);
         searchFieldContainer.setOpaque(true);
-        searchFieldContainer.setPreferredSize(new java.awt.Dimension(500, 40)); // Aumentar altura para acomodar fuente más grande
+        searchFieldContainer.setPreferredSize(new java.awt.Dimension(600, 44)); // Más grande y alto
+        searchFieldContainer.setMinimumSize(new java.awt.Dimension(400, 44));
         
         // Panel para el icono con padding
         javax.swing.JPanel iconContainer = new javax.swing.JPanel();
         iconContainer.setLayout(new java.awt.BorderLayout());
         iconContainer.setOpaque(false);
-        iconContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 0)); // Pequeño padding izquierdo
+        iconContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 8, 0, 5)); // Padding mejorado
         iconContainer.add(m_jEnter, java.awt.BorderLayout.CENTER);
         
         // Agregar el icono a la izquierda
@@ -3695,101 +3710,249 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Agregar el campo de texto ocupando el resto del espacio
         searchFieldContainer.add(m_jKeyFactory, java.awt.BorderLayout.CENTER);
         
-        javax.swing.GroupLayout jPanelScannerLayout = new javax.swing.GroupLayout(jPanelScanner);
-        jPanelScanner.setLayout(jPanelScannerLayout);
-        jPanelScannerLayout.setHorizontalGroup(
-                jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanelScannerLayout.createSequentialGroup()
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                                .addComponent(searchFieldContainer, javax.swing.GroupLayout.PREFERRED_SIZE, 500,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jTax, javax.swing.GroupLayout.PREFERRED_SIZE, 80,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(m_jaddtax)
-                                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-        );
-        jPanelScannerLayout.setVerticalGroup(
-                jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(jPanelScannerLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.CENTER)
-                                .addComponent(searchFieldContainer, javax.swing.GroupLayout.PREFERRED_SIZE,
-                                        javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(m_jTax, javax.swing.GroupLayout.PREFERRED_SIZE, 30,
-                                        javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(m_jaddtax)));
-
+        // Sebastian - Layout comentado porque ahora usamos el campo de manera diferente
+        // El campo de búsqueda y el botón se agregan directamente al scannerContainerPanel
         m_jContEntries.add(m_jPanEntries, java.awt.BorderLayout.LINE_START);
 
         // Sebastian - Comentar la adición del panel de entradas para liberar espacio
         // m_jPanelTicket.add(m_jContEntries, java.awt.BorderLayout.LINE_END);
 
-        // Crear panel para la barra de búsqueda en la parte superior - alineado a la izquierda como Eleventa
+        // Crear panel para la barra de búsqueda en la parte superior - OCUPA TODO EL ANCHO
         javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5)); // Sin padding vertical para subir el contenido
-        searchPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris para la barra de búsqueda
+        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 20, 12, 20)); // Menos espacio superior, más cerca de la barra
+        searchPanel.setBackground(new java.awt.Color(245, 245, 245)); // Fondo gris claro moderno
         searchPanel.setOpaque(true);
-        // jPanelScanner debe tener fondo gris también
-        jPanelScanner.setBackground(new java.awt.Color(220, 220, 220));
+        
+        // Sebastian - Crear panel contenedor para la sección del escáner - ANCHO COMPLETO
+        javax.swing.JPanel scannerContainerPanel = new javax.swing.JPanel();
+        scannerContainerPanel.setLayout(new java.awt.BorderLayout());
+        scannerContainerPanel.setBackground(java.awt.Color.WHITE); // Fondo blanco para la sección
+        scannerContainerPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1), // Borde gris delgado y elegante
+            javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20) // Padding interno óptimo
+        ));
+        
+        // Sebastian - Label indicador de ticket arriba del escáner
+        javax.swing.JLabel lblTicketIndicator = new javax.swing.JLabel();
+        lblTicketIndicator.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        lblTicketIndicator.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        lblTicketIndicator.setText("VENTA - Ticket 1"); // Se actualizará dinámicamente
+        lblTicketIndicator.setForeground(java.awt.Color.WHITE);
+        lblTicketIndicator.setBackground(new java.awt.Color(52, 152, 219)); // Azul moderno
+        lblTicketIndicator.setOpaque(true);
+        lblTicketIndicator.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        lblTicketIndicator.setPreferredSize(new java.awt.Dimension(180, 32));
+        
+        // Panel para el indicador de ticket y botones de atajos
+        javax.swing.JPanel ticketIndicatorPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        ticketIndicatorPanel.setOpaque(false);
+        ticketIndicatorPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        
+        // Panel izquierdo con el indicador de ticket
+        javax.swing.JPanel leftIndicatorPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
+        leftIndicatorPanel.setOpaque(false);
+        leftIndicatorPanel.add(lblTicketIndicator);
+        
+        // Panel derecho con botones de atajos
+        javax.swing.JPanel shortcutButtonsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 5, 0));
+        shortcutButtonsPanel.setOpaque(false);
+        
+        // Estilo común para botones de atajos
+        java.awt.Color shortcutBg = new java.awt.Color(52, 152, 219); // Azul
+        java.awt.Color shortcutFg = java.awt.Color.WHITE;
+        java.awt.Font shortcutFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11);
+        
+        // F2 - Cliente
+        javax.swing.JButton btnF2 = new javax.swing.JButton("F2 Cliente");
+        btnF2.setFont(shortcutFont);
+        btnF2.setBackground(shortcutBg);
+        btnF2.setForeground(shortcutFg);
+        btnF2.setFocusPainted(false);
+        btnF2.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        btnF2.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnF2.setPreferredSize(new java.awt.Dimension(100, 32));
+        btnF2.addActionListener(e -> {
+            if (jBtnCustomer != null && jBtnCustomer.isEnabled()) {
+                jBtnCustomer.doClick();
+            }
+        });
+        shortcutButtonsPanel.add(btnF2);
+        
+        // F3 - Historial
+        javax.swing.JButton btnF3 = new javax.swing.JButton("F3 Historial");
+        btnF3.setFont(shortcutFont);
+        btnF3.setBackground(shortcutBg);
+        btnF3.setForeground(shortcutFg);
+        btnF3.setFocusPainted(false);
+        btnF3.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        btnF3.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnF3.setPreferredSize(new java.awt.Dimension(110, 32));
+        btnF3.addActionListener(e -> {
+            if (m_ticketsbag != null) {
+                m_ticketsbag.activate();
+            }
+        });
+        shortcutButtonsPanel.add(btnF3);
+        
+        // F4 - Nueva Venta
+        javax.swing.JButton btnF4 = new javax.swing.JButton("F4 Nueva");
+        btnF4.setFont(shortcutFont);
+        btnF4.setBackground(shortcutBg);
+        btnF4.setForeground(shortcutFg);
+        btnF4.setFocusPainted(false);
+        btnF4.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        btnF4.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnF4.setPreferredSize(new java.awt.Dimension(95, 32));
+        btnF4.addActionListener(e -> {
+            createNewTicket();
+        });
+        shortcutButtonsPanel.add(btnF4);
+        
+        // F12 - Cobrar (verde destacado)
+        javax.swing.JButton btnF12 = new javax.swing.JButton("F12 Cobrar");
+        btnF12.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        btnF12.setBackground(new java.awt.Color(46, 204, 113)); // Verde
+        btnF12.setForeground(java.awt.Color.WHITE);
+        btnF12.setFocusPainted(false);
+        btnF12.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 15, 6, 15));
+        btnF12.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnF12.setPreferredSize(new java.awt.Dimension(110, 32));
+        btnF12.addActionListener(e -> {
+            if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
+                if (m_jPayNow != null && m_jPayNow.isEnabled()) {
+                    m_jPayNow.doClick();
+                }
+            } else {
+                java.awt.Toolkit.getDefaultToolkit().beep();
+            }
+        });
+        shortcutButtonsPanel.add(btnF12);
+        
+        ticketIndicatorPanel.add(leftIndicatorPanel, java.awt.BorderLayout.WEST);
+        ticketIndicatorPanel.add(shortcutButtonsPanel, java.awt.BorderLayout.EAST);
+        
+        // Guardar referencia para actualizar dinámicamente
+        this.m_jTicketIndicator = lblTicketIndicator;
+        
+        scannerContainerPanel.add(ticketIndicatorPanel, java.awt.BorderLayout.NORTH);
+        
+        // Panel horizontal para el campo de código y botón ENTER (sin label)
+        javax.swing.JPanel scannerInputPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 0));
+        scannerInputPanel.setOpaque(false);
+        
+        // Botón ENTER - Agregar Producto
+        javax.swing.JButton btnAgregarProducto = new javax.swing.JButton();
+        btnAgregarProducto.setText("ENTER - Agregar Producto");
+        btnAgregarProducto.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        btnAgregarProducto.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png")));
+        btnAgregarProducto.setForeground(java.awt.Color.WHITE);
+        btnAgregarProducto.setBackground(new java.awt.Color(46, 204, 113)); // Verde atractivo
+        btnAgregarProducto.setFocusPainted(false);
+        btnAgregarProducto.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(39, 174, 96), 1),
+            javax.swing.BorderFactory.createEmptyBorder(8, 15, 8, 15)
+        ));
+        btnAgregarProducto.setPreferredSize(new java.awt.Dimension(220, 44));
+        btnAgregarProducto.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnAgregarProducto.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                m_jEnterActionPerformed(evt);
+            }
+        });
+        
+        // Panel para centrar verticalmente el botón
+        javax.swing.JPanel btnPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0));
+        btnPanel.setOpaque(false);
+        btnPanel.add(btnAgregarProducto);
+        
+        scannerInputPanel.add(searchFieldContainer, java.awt.BorderLayout.CENTER);
+        scannerInputPanel.add(btnPanel, java.awt.BorderLayout.EAST);
+        
+        // jPanelScanner debe tener fondo blanco también para estar dentro de la sección
+        jPanelScanner.setBackground(java.awt.Color.WHITE);
         jPanelScanner.setOpaque(true);
-        // Alinear la barra de búsqueda a la izquierda como en Eleventa
-        searchPanel.add(jPanelScanner, java.awt.BorderLayout.LINE_START);
+        
+        scannerContainerPanel.add(scannerInputPanel, java.awt.BorderLayout.CENTER);
+        
+        // Agregar directamente sin wrapper para ocupar todo el ancho
+        searchPanel.add(scannerContainerPanel, java.awt.BorderLayout.CENTER);
 
         // Sebastian - Crear barra de botones de acción debajo del campo de búsqueda
         javax.swing.JPanel actionButtonsPanel = new javax.swing.JPanel();
-        actionButtonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0)); // Sin espaciado vertical para subir el contenido
-        actionButtonsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5)); // Sin padding vertical para subir el contenido
-        actionButtonsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave para que coincida con la barra superior
+        actionButtonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 6, 0));
+        actionButtonsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 20, 12, 20)); // Espaciado óptimo
+        actionButtonsPanel.setBackground(new java.awt.Color(245, 245, 245)); // Mismo fondo que searchPanel
+        
+        // Estilo común para todos los botones
+        java.awt.Color btnBg = java.awt.Color.WHITE;
+        java.awt.Color btnFg = new java.awt.Color(60, 60, 60);
+        java.awt.Color btnBorder = new java.awt.Color(220, 220, 220);
+        java.awt.Font btnFont = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11);
+        int btnHeight = 36;
         
         // Botón Varios
         javax.swing.JButton btnVarios = new javax.swing.JButton("INS Varios");
-        btnVarios.setPreferredSize(new java.awt.Dimension(90, 28));
-        btnVarios.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnVarios.setPreferredSize(new java.awt.Dimension(108, btnHeight));
+        btnVarios.setFont(btnFont);
         btnVarios.setFocusPainted(false);
-        btnVarios.setBackground(java.awt.Color.WHITE);
-        btnVarios.setForeground(java.awt.Color.BLACK);
-        btnVarios.setOpaque(true);
+        btnVarios.setBackground(btnBg);
+        btnVarios.setForeground(btnFg);
+        btnVarios.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        btnVarios.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnVarios.addActionListener(e -> {
-            // TODO: Implementar funcionalidad de Varios
             javax.swing.JOptionPane.showMessageDialog(this, "Función Varios", "Varios", javax.swing.JOptionPane.INFORMATION_MESSAGE);
         });
         actionButtonsPanel.add(btnVarios);
         
         // Botón Artículo Común
         javax.swing.JButton btnArticuloComun = new javax.swing.JButton("CTRL+P Art. Común");
-        btnArticuloComun.setPreferredSize(new java.awt.Dimension(110, 28));
-        btnArticuloComun.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnArticuloComun.setPreferredSize(new java.awt.Dimension(145, btnHeight));
+        btnArticuloComun.setFont(btnFont);
         btnArticuloComun.setFocusPainted(false);
-        btnArticuloComun.setBackground(java.awt.Color.WHITE);
-        btnArticuloComun.setForeground(java.awt.Color.BLACK);
-        btnArticuloComun.setOpaque(true);
+        btnArticuloComun.setBackground(btnBg);
+        btnArticuloComun.setForeground(btnFg);
+        btnArticuloComun.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        btnArticuloComun.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnArticuloComun.addActionListener(e -> {
-            // TODO: Implementar funcionalidad de Artículo Común
             javax.swing.JOptionPane.showMessageDialog(this, "Función Artículo Común", "Artículo Común", javax.swing.JOptionPane.INFORMATION_MESSAGE);
         });
         actionButtonsPanel.add(btnArticuloComun);
         
         // Botón Buscar
         javax.swing.JButton btnBuscar = new javax.swing.JButton("F10 Buscar");
-        btnBuscar.setPreferredSize(new java.awt.Dimension(90, 28));
-        btnBuscar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnBuscar.setPreferredSize(new java.awt.Dimension(105, btnHeight));
+        btnBuscar.setFont(btnFont);
         btnBuscar.setFocusPainted(false);
-        btnBuscar.setBackground(java.awt.Color.WHITE);
-        btnBuscar.setForeground(java.awt.Color.BLACK);
-        btnBuscar.setOpaque(true);
+        btnBuscar.setBackground(btnBg);
+        btnBuscar.setForeground(btnFg);
+        btnBuscar.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        btnBuscar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnBuscar.addActionListener(e -> {
-            m_jListActionPerformed(null); // Usar la funcionalidad existente de búsqueda
+            m_jListActionPerformed(null);
         });
         actionButtonsPanel.add(btnBuscar);
         
         // Botón Mayoreo
         javax.swing.JButton btnMayoreo = new javax.swing.JButton("F11 Mayoreo");
-        btnMayoreo.setPreferredSize(new java.awt.Dimension(90, 28));
-        btnMayoreo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnMayoreo.setPreferredSize(new java.awt.Dimension(110, btnHeight));
+        btnMayoreo.setFont(btnFont);
         btnMayoreo.setFocusPainted(false);
-        btnMayoreo.setBackground(java.awt.Color.WHITE);
-        btnMayoreo.setForeground(java.awt.Color.BLACK);
-        btnMayoreo.setOpaque(true);
+        btnMayoreo.setBackground(btnBg);
+        btnMayoreo.setForeground(btnFg);
+        btnMayoreo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        btnMayoreo.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnMayoreo.addActionListener(e -> {
             aplicarDescuentoMayoreo();
         });
@@ -3797,40 +3960,52 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         
         // Botón Entradas
         javax.swing.JButton btnEntradas = new javax.swing.JButton("F7 Entradas");
-        btnEntradas.setPreferredSize(new java.awt.Dimension(90, 28));
-        btnEntradas.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnEntradas.setPreferredSize(new java.awt.Dimension(105, btnHeight));
+        btnEntradas.setFont(btnFont);
         btnEntradas.setFocusPainted(false);
-        btnEntradas.setBackground(java.awt.Color.WHITE);
-        btnEntradas.setForeground(java.awt.Color.BLACK);
-        btnEntradas.setOpaque(true);
+        btnEntradas.setBackground(btnBg);
+        btnEntradas.setForeground(btnFg);
+        btnEntradas.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        btnEntradas.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnEntradas.addActionListener(e -> {
-            showEntradasDialog(); // Abrir diálogo solo para Entradas
+            showEntradasDialog();
         });
         actionButtonsPanel.add(btnEntradas);
         
         // Botón Salidas
         javax.swing.JButton btnSalidas = new javax.swing.JButton("F8 Salidas");
-        btnSalidas.setPreferredSize(new java.awt.Dimension(90, 28));
-        btnSalidas.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnSalidas.setPreferredSize(new java.awt.Dimension(100, btnHeight));
+        btnSalidas.setFont(btnFont);
         btnSalidas.setFocusPainted(false);
-        btnSalidas.setBackground(java.awt.Color.WHITE);
-        btnSalidas.setForeground(java.awt.Color.BLACK);
-        btnSalidas.setOpaque(true);
+        btnSalidas.setBackground(btnBg);
+        btnSalidas.setForeground(btnFg);
+        btnSalidas.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        btnSalidas.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnSalidas.addActionListener(e -> {
-            showSalidasDialog(); // Abrir diálogo solo para Salidas
+            showSalidasDialog();
         });
         actionButtonsPanel.add(btnSalidas);
         
         // Botón Borrar Artículo
         javax.swing.JButton btnBorrarArt = new javax.swing.JButton("DEL Borrar Art.");
-        btnBorrarArt.setPreferredSize(new java.awt.Dimension(100, 28));
-        btnBorrarArt.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
+        btnBorrarArt.setPreferredSize(new java.awt.Dimension(115, btnHeight));
+        btnBorrarArt.setFont(btnFont);
         btnBorrarArt.setFocusPainted(false);
-        btnBorrarArt.setBackground(java.awt.Color.WHITE);
-        btnBorrarArt.setForeground(java.awt.Color.BLACK);
-        btnBorrarArt.setOpaque(true);
+        btnBorrarArt.setBackground(btnBg);
+        btnBorrarArt.setForeground(btnFg);
+        btnBorrarArt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+        btnBorrarArt.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnBorrarArt.addActionListener(e -> {
-            m_jDeleteActionPerformed(null); // Usar la funcionalidad existente de borrar
+            m_jDeleteActionPerformed(null);
         });
         actionButtonsPanel.add(btnBorrarArt);
         
@@ -4469,6 +4644,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     
     // Sebastian - Panel de pestañas para tickets múltiples
     private javax.swing.JPanel m_jTabsPanel;
+    
+    // Sebastian - Label indicador de ticket (arriba del escáner)
+    private javax.swing.JLabel m_jTicketIndicator;
     // End of variables declaration//GEN-END:variables
 
     /**
@@ -4931,6 +5109,26 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jTabsPanel.add(addTabButton);
         m_jTabsPanel.revalidate();
         m_jTabsPanel.repaint();
+        
+        // Sebastian - Actualizar el indicador de ticket (VENTA - Ticket X)
+        updateTicketIndicator();
+    }
+    
+    /**
+     * Sebastian - Método para actualizar el indicador de ticket
+     */
+    private void updateTicketIndicator() {
+        if (m_jTicketIndicator != null) {
+            int ticketNumber = ventaActualIndex + 1;
+            // Si no hay tickets activos o el índice es inválido, usar 1
+            if (ventasActivas.isEmpty() || ventaActualIndex < 0 || ventaActualIndex >= ventasActivas.size()) {
+                ticketNumber = 1;
+            }
+            String ticketText = "VENTA - Ticket " + ticketNumber;
+            m_jTicketIndicator.setText(ticketText);
+            m_jTicketIndicator.revalidate();
+            m_jTicketIndicator.repaint();
+        }
     }
 
     /**
