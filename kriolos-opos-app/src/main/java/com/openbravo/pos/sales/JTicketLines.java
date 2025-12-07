@@ -123,8 +123,18 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jTicketTable.setIntercellSpacing(new java.awt.Dimension(0, 0)); // Sin espacio entre celdas
         m_jTicketTable.setRowMargin(0); // Sin margen entre filas
         
-        // Eliminar bordes y espacios del header para perfecta alineación
-        header.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        // Eliminar TODOS los bordes y espacios del header para perfecta alineación sin gaps
+        header.setBorder(null); // Sin borde en absoluto
+        header.setPreferredSize(new java.awt.Dimension(header.getPreferredSize().width, 30)); // Altura fija del header
+        
+        // Eliminar cualquier espacio entre el header y la tabla
+        // Eliminar todos los bordes del scrollpane para que no haya espacios
+        javax.swing.border.Border emptyBorder = javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0);
+        m_jScrollTableTicket.setViewportBorder(emptyBorder);
+        m_jScrollTableTicket.setBorder(emptyBorder);
+        
+        // Configurar el header para que no tenga separación con la tabla
+        header.setBorder(null);
         
         // Configurar renderer personalizado para el header que pinte fondo azul claro en columnas de código de barras y precio
         header.setDefaultRenderer(new HeaderCellRenderer(acolumns));
@@ -429,8 +439,8 @@ public class JTicketLines extends javax.swing.JPanel {
             // Asegurarse de que el componente sea opaco para que se vea el fondo
             aux.setOpaque(true);
             
-            // Sin bordes para perfecta alineación con el header
-            aux.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+            // Sin bordes NI márgenes para perfecta alineación sin espacios
+            aux.setBorder(null); // Sin borde en absoluto
             
             // Color azul uniforme como Eleventa
             java.awt.Color azulColumnas = new java.awt.Color(220, 235, 245);
@@ -744,8 +754,8 @@ public class JTicketLines extends javax.swing.JPanel {
             }
             
             setOpaque(true);
-            // Sin bordes para perfecta alineación con las celdas
-            setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+            // Sin bordes NI márgenes para perfecta alineación sin espacios
+            setBorder(null); // Sin borde en absoluto
             return this;
         }
     }
@@ -798,6 +808,7 @@ public class JTicketLines extends javax.swing.JPanel {
         /**
          * Pinta el fondo de las columnas de código de barras y precio desde arriba hasta abajo
          * Siempre pinta el fondo completo, incluso cuando la tabla está vacía
+         * Se asegura de que NO haya espacios entre el header y las celdas
          */
         private void paintColumnBackgrounds(java.awt.Graphics g) {
             if (table == null || columns == null) return;
@@ -856,9 +867,11 @@ public class JTicketLines extends javax.swing.JPanel {
                         paintWidth = Math.max(0, viewportWidth - paintX); // Ajustar si se sale por la derecha
                     }
                     
-                    // Pintar el fondo azul completo desde arriba hasta abajo
+                    // Pintar el fondo azul completo desde y=0 hasta abajo (sin espacios)
                     // El ancho debe ser EXACTAMENTE igual al del header (pixel perfect)
+                    // Sin espacios en la parte superior
                     if (paintWidth > 0 && paintX < viewportWidth) {
+                        // Pintar desde y=0 para que no haya gap con el header
                         g.fillRect(paintX, 0, paintWidth, viewportHeight);
                     }
                 }

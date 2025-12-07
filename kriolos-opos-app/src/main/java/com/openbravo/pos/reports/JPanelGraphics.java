@@ -831,7 +831,8 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
     private List<MonthData> loadSalesProfitByMonth() throws SQLException {
         List<MonthData> monthData = new ArrayList<>();
         
-        if (session == null || activeCashIndex == null) {
+        // Sebastian - Ya no requerimos activeCashIndex para reportes
+        if (session == null) {
             return monthData;
         }
         
@@ -847,13 +848,19 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             sqlBuilder.append("INNER JOIN receipts ON tickets.ID = receipts.ID ");
             sqlBuilder.append("INNER JOIN products ON ticketlines.PRODUCT = products.ID ");
             sqlBuilder.append("INNER JOIN taxes ON ticketlines.TAXID = taxes.ID ");
-            sqlBuilder.append("WHERE receipts.MONEY = ? ");
             
+            // Sebastian - Para reportes, mostrar TODAS las ventas, no solo las de la caja activa del usuario actual
+            // Usar solo filtros de fecha para los reportes
+            boolean hasDateFilter = false;
             if (dateStart != null) {
-                sqlBuilder.append("AND receipts.DATENEW >= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW >= ? ");
+                hasDateFilter = true;
             }
             if (dateEnd != null) {
-                sqlBuilder.append("AND receipts.DATENEW <= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW <= ? ");
+                hasDateFilter = true;
             }
             
             sqlBuilder.append("GROUP BY MONTH(receipts.DATENEW) ");
@@ -861,7 +868,7 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             
             PreparedStatement stmt = session.getConnection().prepareStatement(sqlBuilder.toString());
             int paramIndex = 1;
-            stmt.setString(paramIndex++, activeCashIndex);
+            // Ya no se usa activeCashIndex para reportes
             if (dateStart != null) {
                 stmt.setTimestamp(paramIndex++, new Timestamp(dateStart.getTime()));
             }
@@ -1563,53 +1570,31 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
     private void loadDataForPeriod(int periodIndex) {
         SwingUtilities.invokeLater(() -> {
             try {
-                // Obtener fecha de inicio de la caja activa
-                java.util.Date cashStartDate = getCashStartDate();
-                
+                // Sebastian - Para reportes, NO usamos la fecha de inicio de caja del usuario actual
+                // Mostramos TODAS las ventas del período seleccionado, sin importar quién las hizo
                 Calendar cal = Calendar.getInstance();
                 java.util.Date endDate = new java.util.Date();
                 
                 switch (periodIndex) {
-                    case 0: // Día Actual - desde inicio del día de hoy o desde apertura de caja
+                    case 0: // Día Actual - desde inicio del día de hoy
                         Calendar todayCal = Calendar.getInstance();
                         todayCal.set(Calendar.HOUR_OF_DAY, 0);
                         todayCal.set(Calendar.MINUTE, 0);
                         todayCal.set(Calendar.SECOND, 0);
                         todayCal.set(Calendar.MILLISECOND, 0);
-                        java.util.Date todayStart = todayCal.getTime();
-                        
-                        if (cashStartDate != null && cashStartDate.after(todayStart)) {
-                            dateStart = cashStartDate; // Si la caja se abrió hoy, desde la apertura
-                        } else {
-                            dateStart = todayStart; // Desde inicio del día
-                        }
+                        dateStart = todayCal.getTime(); // Siempre desde inicio del día
                         dateEnd = endDate; // Hasta ahora
                         break;
-                    case 1: // Semana Actual - desde inicio de caja o lunes de esta semana
-                        java.util.Date weekStart = getWeekStart();
-                        if (cashStartDate != null && cashStartDate.after(weekStart)) {
-                            dateStart = cashStartDate;
-                        } else {
-                            dateStart = weekStart;
-                        }
+                    case 1: // Semana Actual - desde lunes de esta semana
+                        dateStart = getWeekStart(); // Siempre desde inicio de la semana
                         dateEnd = endDate;
                         break;
-                    case 2: // Mes Actual - desde inicio de mes o desde apertura de caja
-                        java.util.Date monthStart = getMonthStart();
-                        if (cashStartDate != null && cashStartDate.after(monthStart)) {
-                            dateStart = cashStartDate;
-                        } else {
-                            dateStart = monthStart;
-                        }
+                    case 2: // Mes Actual - desde inicio del mes
+                        dateStart = getMonthStart(); // Siempre desde inicio del mes
                         dateEnd = endDate;
                         break;
-                    case 3: // Año Actual - desde inicio de año o desde apertura de caja
-                        java.util.Date yearStart = getYearStart();
-                        if (cashStartDate != null && cashStartDate.after(yearStart)) {
-                            dateStart = cashStartDate;
-                        } else {
-                            dateStart = yearStart;
-                        }
+                    case 3: // Año Actual - desde inicio del año
+                        dateStart = getYearStart(); // Siempre desde inicio del año
                         dateEnd = endDate;
                         break;
                     case 4: // Periodo personalizado
@@ -1678,10 +1663,14 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
     
     private java.util.Date getWeekStart() {
         Calendar cal = Calendar.getInstance();
-        cal.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        // Retroceder hasta el lunes más reciente
+        int dayOfWeek = cal.get(Calendar.DAY_OF_WEEK);
+        int daysFromMonday = (dayOfWeek == Calendar.SUNDAY) ? 6 : dayOfWeek - Calendar.MONDAY;
+        cal.add(Calendar.DAY_OF_MONTH, -daysFromMonday);
         cal.set(Calendar.HOUR_OF_DAY, 0);
         cal.set(Calendar.MINUTE, 0);
         cal.set(Calendar.SECOND, 0);
+        cal.set(Calendar.MILLISECOND, 0);
         return cal.getTime();
     }
     
@@ -1712,7 +1701,8 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
     private int loadNumberOfSales() {
         int count = 0;
         try {
-            if (session == null || activeCashIndex == null) {
+            // Sebastian - Ya no requerimos activeCashIndex para reportes
+            if (session == null) {
                 return 0;
             }
             
@@ -1720,18 +1710,24 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             sqlBuilder.append("SELECT COUNT(DISTINCT receipts.ID) as TOTAL_COUNT ");
             sqlBuilder.append("FROM receipts ");
             sqlBuilder.append("INNER JOIN tickets ON receipts.ID = tickets.ID ");
-            sqlBuilder.append("WHERE receipts.MONEY = ? ");
             
+            // Sebastian - Para reportes, mostrar TODAS las ventas, no solo las de la caja activa del usuario actual
+            // Usar solo filtros de fecha para los reportes
+            boolean hasDateFilter = false;
             if (dateStart != null) {
-                sqlBuilder.append("AND receipts.DATENEW >= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW >= ? ");
+                hasDateFilter = true;
             }
             if (dateEnd != null) {
-                sqlBuilder.append("AND receipts.DATENEW <= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW <= ? ");
+                hasDateFilter = true;
             }
             
             PreparedStatement stmt = session.getConnection().prepareStatement(sqlBuilder.toString());
             int paramIndex = 1;
-            stmt.setString(paramIndex++, activeCashIndex);
+            // Ya no se usa activeCashIndex para reportes
             if (dateStart != null) {
                 stmt.setTimestamp(paramIndex++, new Timestamp(dateStart.getTime()));
             }
@@ -1755,11 +1751,12 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
     }
     
     private void loadDataFromDatabase() throws BasicException {
-        if (session == null || activeCashIndex == null) {
-            LOGGER.warning("Session o activeCashIndex es null. Session: " + (session != null) + ", CashIndex: " + activeCashIndex);
+        // Sebastian - Para reportes, ya no requerimos activeCashIndex porque mostramos TODAS las ventas
+        if (session == null) {
+            LOGGER.warning("Session es null. Session: " + (session != null));
             SwingUtilities.invokeLater(() -> {
                 JOptionPane.showMessageDialog(this, 
-                    "Error: No se pudo obtener la sesión o la caja activa. Por favor, verifica que haya una caja abierta.",
+                    "Error: No se pudo obtener la sesión de base de datos.",
                     "Error", 
                     JOptionPane.ERROR_MESSAGE);
             });
@@ -1875,18 +1872,24 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             sqlBuilder.append("MIN(receipts.DATENEW) as MIN_DATE, ");
             sqlBuilder.append("MAX(receipts.DATENEW) as MAX_DATE ");
             sqlBuilder.append("FROM receipts ");
-            sqlBuilder.append("WHERE receipts.MONEY = ? ");
             
+            // Sebastian - Para reportes, mostrar TODAS las ventas, no solo las de la caja activa del usuario actual
+            // Usar solo filtros de fecha para los reportes
+            boolean hasDateFilter = false;
             if (dateStart != null) {
-                sqlBuilder.append("AND receipts.DATENEW >= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW >= ? ");
+                hasDateFilter = true;
             }
             if (dateEnd != null) {
-                sqlBuilder.append("AND receipts.DATENEW <= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW <= ? ");
+                hasDateFilter = true;
             }
             
             PreparedStatement stmt = session.getConnection().prepareStatement(sqlBuilder.toString());
             int paramIndex = 1;
-            stmt.setString(paramIndex++, activeCashIndex);
+            // Ya no se usa activeCashIndex para reportes
             if (dateStart != null) {
                 stmt.setTimestamp(paramIndex++, new Timestamp(dateStart.getTime()));
             }
@@ -1933,13 +1936,19 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             sqlBuilder.append("INNER JOIN products ON ticketlines.PRODUCT = products.ID ");
             sqlBuilder.append("LEFT JOIN categories ON products.CATEGORY = categories.ID ");
             sqlBuilder.append("INNER JOIN taxes ON ticketlines.TAXID = taxes.ID ");
-            sqlBuilder.append("WHERE receipts.MONEY = ? ");
             
+            // Sebastian - Para reportes, mostrar TODAS las ventas, no solo las de la caja activa del usuario actual
+            // Usar solo filtros de fecha para los reportes
+            boolean hasDateFilter = false;
             if (dateStart != null) {
-                sqlBuilder.append("AND receipts.DATENEW >= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW >= ? ");
+                hasDateFilter = true;
             }
             if (dateEnd != null) {
-                sqlBuilder.append("AND receipts.DATENEW <= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW <= ? ");
+                hasDateFilter = true;
             }
             
             sqlBuilder.append("GROUP BY COALESCE(categories.NAME, 'Sin Departamento'), COALESCE(categories.ID, '') ");
@@ -1947,21 +1956,21 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             
             String sql = sqlBuilder.toString();
             LOGGER.info("Ejecutando consulta de departamentos");
-            LOGGER.info("Parámetros: activeCashIndex=" + activeCashIndex);
+            LOGGER.info("Parámetros: (TODAS las ventas, sin filtrar por caja)");
             if (dateStart != null) {
                 LOGGER.info("  - Filtro fecha inicio: " + dateStart);
             } else {
-                LOGGER.info("  - Sin filtro de fecha inicio (todas las ventas de la caja)");
+                LOGGER.info("  - Sin filtro de fecha inicio (todas las ventas)");
             }
             if (dateEnd != null) {
                 LOGGER.info("  - Filtro fecha fin: " + dateEnd);
             } else {
-                LOGGER.info("  - Sin filtro de fecha fin (hasta ahora)");
+                LOGGER.info("  - Sin filtro de fecha fin (todas las ventas)");
             }
             
             PreparedStatement stmt = session.getConnection().prepareStatement(sql);
             int paramIndex = 1;
-            stmt.setString(paramIndex++, activeCashIndex);
+            // Ya no se usa activeCashIndex para reportes
             if (dateStart != null) {
                 Timestamp tsStart = new Timestamp(dateStart.getTime());
                 stmt.setTimestamp(paramIndex++, tsStart);
@@ -2042,21 +2051,29 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             sqlBuilder.append("SELECT payments.PAYMENT, SUM(payments.TOTAL) as TOTAL ");
             sqlBuilder.append("FROM payments ");
             sqlBuilder.append("INNER JOIN receipts ON payments.RECEIPT = receipts.ID ");
-            sqlBuilder.append("WHERE receipts.MONEY = ? ");
+            
+            // Sebastian - Para reportes, mostrar TODAS las ventas, no solo las de la caja activa del usuario actual
+            // Usar solo filtros de fecha para los reportes
+            boolean hasDateFilter = false;
             if (dateStart != null) {
-                sqlBuilder.append("AND receipts.DATENEW >= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW >= ? ");
+                hasDateFilter = true;
             }
             if (dateEnd != null) {
-                sqlBuilder.append("AND receipts.DATENEW <= ? ");
+                sqlBuilder.append(hasDateFilter ? "AND " : "WHERE ");
+                sqlBuilder.append("receipts.DATENEW <= ? ");
+                hasDateFilter = true;
             }
             sqlBuilder.append("GROUP BY payments.PAYMENT");
             
             String sql = sqlBuilder.toString();
             LOGGER.info("Ejecutando consulta de formas de pago: " + sql);
+            LOGGER.info("Parámetros: (TODAS las ventas, sin filtrar por caja)");
             
             PreparedStatement stmt = session.getConnection().prepareStatement(sql);
             int paramIndex = 1;
-            stmt.setString(paramIndex++, activeCashIndex);
+            // Ya no se usa activeCashIndex para reportes
             if (dateStart != null) {
                 stmt.setTimestamp(paramIndex++, new Timestamp(dateStart.getTime()));
             }
@@ -2107,42 +2124,25 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
             return;
         }
         
-        // Asegurar que session y activeCashIndex estén disponibles
+        // Asegurar que session esté disponible
         if (session == null) {
             session = m_App.getSession();
         }
         
-        // Intentar obtener activeCashIndex varias veces si es null
+        // Sebastian - Ya no requerimos activeCashIndex para reportes, mostramos TODAS las ventas
+        // Obtener activeCashIndex solo para logging, pero no es necesario para cargar datos
         if (activeCashIndex == null) {
             activeCashIndex = m_App.getActiveCashIndex();
         }
         
-        // Si aún es null, intentar de nuevo con un pequeño delay
-        if (activeCashIndex == null) {
-            SwingUtilities.invokeLater(() -> {
-                try {
-                    Thread.sleep(500); // Esperar 500ms
-                    if (m_App != null) {
-                        activeCashIndex = m_App.getActiveCashIndex();
-                        LOGGER.info("Reintentando obtener activeCashIndex después de delay: " + activeCashIndex);
-                        if (activeCashIndex != null) {
-                            loadDataForPeriod(2); // Cargar datos del mes actual
-                        }
-                    }
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Error obteniendo activeCashIndex después de delay", e);
-                }
-            });
-        }
+        LOGGER.info("Panel de gráficos activado. CashIndex: " + activeCashIndex + " (no usado para reportes), Session: " + (session != null));
         
-        LOGGER.info("Panel de gráficos activado. CashIndex: " + activeCashIndex + ", Session: " + (session != null));
-        
-        if (activeCashIndex == null) {
-            LOGGER.warning("⚠️ activeCashIndex es null - los datos no se cargarán. Verifica que haya una caja abierta.");
+        if (session == null) {
+            LOGGER.warning("⚠️ Session es null - los datos no se cargarán.");
             SwingUtilities.invokeLater(() -> {
                 JOptionPane.showMessageDialog(this, 
-                    "Advertencia: No hay una caja activa abierta. Por favor, abre una caja primero para ver los gráficos.",
-                    "Caja no activa", 
+                    "Advertencia: No se pudo obtener la sesión de base de datos.",
+                    "Error de sesión", 
                     JOptionPane.WARNING_MESSAGE);
             });
             return;
@@ -2163,3 +2163,4 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         return true;
     }
 }
+
