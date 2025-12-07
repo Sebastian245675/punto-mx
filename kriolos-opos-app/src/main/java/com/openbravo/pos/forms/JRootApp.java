@@ -616,7 +616,8 @@ public class JRootApp extends JPanel implements AppView {
 
             m_principalapp = new JPrincipalApp(this, user);
 
-            jPanel3.add(m_principalapp.getNotificator());
+            // Sebastian - El perfil ahora está en el panel superior, no en jPanel3
+            // jPanel3.add(m_principalapp.getNotificator());
             jPanel3.revalidate();
 
             String viewID = "_" + m_principalapp.getUser().getId();
@@ -1046,7 +1047,8 @@ public class JRootApp extends JPanel implements AppView {
         } else if (!m_principalapp.deactivate()) {
             return false;
         } else {
-            jPanel3.remove(m_principalapp.getNotificator());
+            // Sebastian - El perfil ahora está en el panel superior, no en jPanel3
+            // jPanel3.remove(m_principalapp.getNotificator());
             jPanel3.revalidate();
             jPanel3.repaint();
 
@@ -1088,8 +1090,8 @@ public class JRootApp extends JPanel implements AppView {
         } catch (SQLException e) {
             url = "";
         }
-        m_jHost.setText(
-                "<html>" + appFileProperties.getHost() + " ;<b>WareHouse<b>: " + sWareHouse + "<br>" + url + "</html>");
+        String hostText = appFileProperties.getHost() + " ; WareHouse: " + sWareHouse + " | " + url;
+        m_jHost.setText(hostText);
     }
 
     /**
@@ -1143,28 +1145,28 @@ public class JRootApp extends JPanel implements AppView {
         m_jPanelContainer.setLayout(new java.awt.CardLayout());
         add(m_jPanelContainer, java.awt.BorderLayout.CENTER);
 
-        statusBarPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(1, 0, 0, 0,
-                javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")));
+        // Sebastian - Ocultar la barra inferior completamente
+        statusBarPanel.setBorder(null);
         statusBarPanel.setLayout(new javax.swing.BoxLayout(statusBarPanel, javax.swing.BoxLayout.LINE_AXIS));
-        statusBarPanel.setPreferredSize(new java.awt.Dimension(0, 35)); // Altura más delgada (35px en lugar de ~50px)
-        statusBarPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 35));
+        statusBarPanel.setPreferredSize(new java.awt.Dimension(0, 0)); // Sin altura
+        statusBarPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0));
+        statusBarPanel.setVisible(false); // Ocultar completamente
 
         panelTask.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 2)); // Menos padding vertical (2px en lugar del default)
 
+        // Sebastian - El host ahora está en el panel superior, no en la barra inferior
         m_jHost.setFont(new java.awt.Font("Arial", 0, 10)); // NOI18N - Fuente más pequeña
-        m_jHost.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/display.png"))); // NOI18N
+        m_jHost.setIcon(null); // Sin icono
         m_jHost.setText("*Hostname");
-        m_jHost.setMaximumSize(new java.awt.Dimension(200, 25)); // Altura reducida
-        m_jHost.setMinimumSize(new java.awt.Dimension(200, 25));
-        m_jHost.setPreferredSize(new java.awt.Dimension(200, 25)); // Altura reducida
-        panelTask.add(m_jHost);
+        // panelTask.add(m_jHost); // Ya no se agrega a la barra inferior
 
         statusBarPanel.add(panelTask);
 
         jPanel3.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 5, 2)); // Menos padding vertical (2px en lugar del default)
 
+        // Sebastian - El botón cerrar ahora está en el panel superior, no en la barra inferior
         m_jClose.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N - Fuente más pequeña
-        m_jClose.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/exit.png"))); // NOI18N
+        m_jClose.setIcon(null); // Sin icono
         m_jClose.setText(AppLocal.getIntString("button.exit")); // NOI18N
         m_jClose.setFocusPainted(false);
         m_jClose.setFocusable(false);
@@ -1177,11 +1179,12 @@ public class JRootApp extends JPanel implements AppView {
                 m_jCloseActionPerformed(evt);
             }
         });
-        jPanel3.add(m_jClose);
+        // jPanel3.add(m_jClose); // Ya no se agrega a la barra inferior
 
         statusBarPanel.add(jPanel3);
 
-        add(statusBarPanel, java.awt.BorderLayout.SOUTH);
+        // Sebastian - La barra inferior está oculta, no se agrega al layout
+        // add(statusBarPanel, java.awt.BorderLayout.SOUTH);
     }// </editor-fold>//GEN-END:initComponents
 
     private void m_jCloseActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jCloseActionPerformed

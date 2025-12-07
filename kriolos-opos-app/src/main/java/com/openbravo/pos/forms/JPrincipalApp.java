@@ -50,6 +50,9 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private javax.swing.JButton btnCierreRef;
     private javax.swing.JButton btnInventarioRef;
     private javax.swing.JButton btnReportesRef;
+    
+    // Referencia al panel de perfil en el panel superior
+    private javax.swing.JPanel profilePanelRef;
 
     /**
      * Creates a JPanel
@@ -101,7 +104,23 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_principalnotificator = new JLabel();
         m_principalnotificator.applyComponentOrientation(getComponentOrientation());
         m_principalnotificator.setText(m_appuser.getName());
-        m_principalnotificator.setIcon(m_appuser.getIcon());
+        // Sebastian - Sin icono en el perfil, solo texto
+        m_principalnotificator.setIcon(null);
+        
+        // Sebastian - Configurar estilo del perfil para el panel superior
+        m_principalnotificator.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 13));
+        m_principalnotificator.setForeground(new java.awt.Color(50, 50, 70));
+        m_principalnotificator.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
+        
+        // Agregar el perfil al panel superior (se inicializa en initComponents)
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            if (profilePanelRef != null) {
+                profilePanelRef.removeAll();
+                profilePanelRef.add(m_principalnotificator);
+                profilePanelRef.revalidate();
+                profilePanelRef.repaint();
+            }
+        });
 
         // MENU SIDE
         colapseHPanel.add(Box.createVerticalStrut(50), 0);
@@ -151,6 +170,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     public JComponent getNotificator() {
         return m_principalnotificator;
     }
+    
 
     public void activate() {
 
@@ -602,22 +622,207 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jTitle.setPreferredSize(new java.awt.Dimension(100, 28)); // Reducir altura preferida (28px)
         m_jPanelTitle.add(m_jTitle, java.awt.BorderLayout.NORTH);
 
+        // Sebastian - Panel artístico superior con fondo difuminado tipo Eleventa
+        javax.swing.JPanel artisticTopPanel = new javax.swing.JPanel() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+                
+                int width = getWidth();
+                int height = getHeight();
+                
+                // Gradiente base suave tipo Eleventa - mejorado con más tonos
+                java.awt.GradientPaint baseGradient = new java.awt.GradientPaint(
+                    0, 0, new java.awt.Color(250, 252, 255),
+                    0, height, new java.awt.Color(238, 242, 247)
+                );
+                g2d.setPaint(baseGradient);
+                g2d.fillRect(0, 0, width, height);
+                
+                // Efecto de luz difuminada superior izquierda (para logo) - más suave
+                java.awt.RadialGradientPaint lightEffect1 = new java.awt.RadialGradientPaint(
+                    150, 40, 250,
+                    new float[]{0f, 0.5f, 0.8f, 1f},
+                    new java.awt.Color[]{
+                        new java.awt.Color(140, 195, 240, 50),
+                        new java.awt.Color(140, 195, 240, 25),
+                        new java.awt.Color(140, 195, 240, 10),
+                        new java.awt.Color(140, 195, 240, 0)
+                    }
+                );
+                g2d.setPaint(lightEffect1);
+                g2d.fillOval(-50, -30, 500, 200);
+                
+                // Efecto de luz difuminada superior derecha - más suave
+                java.awt.RadialGradientPaint lightEffect2 = new java.awt.RadialGradientPaint(
+                    width - 150, 40, 220,
+                    new float[]{0f, 0.6f, 0.9f, 1f},
+                    new java.awt.Color[]{
+                        new java.awt.Color(110, 170, 230, 35),
+                        new java.awt.Color(110, 170, 230, 15),
+                        new java.awt.Color(110, 170, 230, 5),
+                        new java.awt.Color(110, 170, 230, 0)
+                    }
+                );
+                g2d.setPaint(lightEffect2);
+                g2d.fillOval(width - 440, -20, 440, 180);
+                
+                // Efecto adicional central para más profundidad
+                java.awt.RadialGradientPaint lightEffect3 = new java.awt.RadialGradientPaint(
+                    width / 2, height / 3, 300,
+                    new float[]{0f, 0.7f, 1f},
+                    new java.awt.Color[]{
+                        new java.awt.Color(120, 180, 225, 20),
+                        new java.awt.Color(120, 180, 225, 5),
+                        new java.awt.Color(120, 180, 225, 0)
+                    }
+                );
+                g2d.setPaint(lightEffect3);
+                g2d.fillOval(width / 2 - 300, -50, 600, 200);
+                
+                // Línea sutil inferior con gradiente más suave
+                java.awt.MultipleGradientPaint.CycleMethod cycleMethod = java.awt.MultipleGradientPaint.CycleMethod.NO_CYCLE;
+                java.awt.Color[] lineColors = {
+                    new java.awt.Color(200, 210, 220, 80),
+                    new java.awt.Color(220, 220, 220, 40),
+                    new java.awt.Color(240, 240, 240, 0)
+                };
+                float[] lineFractions = {0.0f, 0.5f, 1.0f};
+                java.awt.LinearGradientPaint lineGradient = new java.awt.LinearGradientPaint(
+                    0, height - 1, width, height - 1,
+                    lineFractions, lineColors, cycleMethod
+                );
+                g2d.setPaint(lineGradient);
+                g2d.fillRect(0, height - 2, width, 2);
+                
+                // Sombra sutil superior para profundidad
+                java.awt.GradientPaint shadowGradient = new java.awt.GradientPaint(
+                    0, 0, new java.awt.Color(0, 0, 0, 5),
+                    0, 10, new java.awt.Color(0, 0, 0, 0)
+                );
+                g2d.setPaint(shadowGradient);
+                g2d.fillRect(0, 0, width, 10);
+                
+                g2d.dispose();
+            }
+        };
+        artisticTopPanel.setLayout(new java.awt.BorderLayout());
+        artisticTopPanel.setPreferredSize(new java.awt.Dimension(0, 80)); // Altura exacta de 80px
+        artisticTopPanel.setOpaque(false);
+        
+        // Panel para el logo en la parte izquierda con medidas exactas
+        javax.swing.JPanel logoPanel = new javax.swing.JPanel();
+        logoPanel.setLayout(new java.awt.BorderLayout());
+        logoPanel.setOpaque(false);
+        logoPanel.setPreferredSize(new java.awt.Dimension(200, 80)); // Ancho exacto 200px, alto 80px
+        logoPanel.setMaximumSize(new java.awt.Dimension(200, 80));
+        logoPanel.setMinimumSize(new java.awt.Dimension(200, 80));
+        logoPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 20, 10, 20)); // Padding interno para centrar el logo
+        
+        // Label para el logo (el usuario puede reemplazar esto con su imagen)
+        javax.swing.JLabel logoLabel = new javax.swing.JLabel("LOGO");
+        logoLabel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24));
+        logoLabel.setForeground(new java.awt.Color(100, 160, 220));
+        logoLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        logoLabel.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+        logoPanel.add(logoLabel, java.awt.BorderLayout.CENTER);
+        
+        artisticTopPanel.add(logoPanel, java.awt.BorderLayout.WEST);
+        
+        // Panel derecho con "Le atiende: [perfil]"
+        javax.swing.JPanel rightTopPanel = new javax.swing.JPanel();
+        rightTopPanel.setLayout(new java.awt.BorderLayout());
+        rightTopPanel.setOpaque(false);
+        rightTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 20, 10, 30)); // Padding para espaciar
+        
+        // Panel contenedor para el texto y el perfil (vertical)
+        javax.swing.JPanel atendidoPanel = new javax.swing.JPanel();
+        atendidoPanel.setLayout(new javax.swing.BoxLayout(atendidoPanel, javax.swing.BoxLayout.Y_AXIS));
+        atendidoPanel.setOpaque(false);
+        atendidoPanel.setAlignmentX(javax.swing.JComponent.RIGHT_ALIGNMENT);
+        
+        // Panel superior: "Le atiende: [perfil]"
+        javax.swing.JPanel perfilPanel = new javax.swing.JPanel();
+        perfilPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 8, 0));
+        perfilPanel.setOpaque(false);
+        perfilPanel.setAlignmentX(javax.swing.JComponent.RIGHT_ALIGNMENT);
+        
+        // Label "Le atiende:"
+        javax.swing.JLabel lblLeAtiende = new javax.swing.JLabel("Le atiende:");
+        lblLeAtiende.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblLeAtiende.setForeground(new java.awt.Color(80, 80, 100));
+        perfilPanel.add(lblLeAtiende);
+        
+        // Perfil del usuario - se agregará después de inicializar m_principalnotificator
+        profilePanelRef = new javax.swing.JPanel();
+        profilePanelRef.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
+        profilePanelRef.setOpaque(false);
+        
+        perfilPanel.add(profilePanelRef);
+        atendidoPanel.add(perfilPanel);
+        
+        // Espacio pequeño entre perfil y botón cerrar
+        atendidoPanel.add(javax.swing.Box.createVerticalStrut(5));
+        
+        // Panel inferior: botón cerrar
+        javax.swing.JPanel closeButtonPanel = new javax.swing.JPanel();
+        closeButtonPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        closeButtonPanel.setOpaque(false);
+        closeButtonPanel.setAlignmentX(javax.swing.JComponent.RIGHT_ALIGNMENT);
+        
+        // Botón cerrar programa
+        javax.swing.JButton btnCerrar = new javax.swing.JButton();
+        btnCerrar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        btnCerrar.setText(AppLocal.getIntString("button.exit"));
+        btnCerrar.setFocusPainted(false);
+        btnCerrar.setFocusable(false);
+        btnCerrar.setPreferredSize(new java.awt.Dimension(80, 25));
+        btnCerrar.setMinimumSize(new java.awt.Dimension(70, 25));
+        btnCerrar.setMaximumSize(new java.awt.Dimension(90, 25));
+        btnCerrar.setBackground(new java.awt.Color(220, 53, 69)); // Rojo para cerrar
+        btnCerrar.setForeground(java.awt.Color.WHITE);
+        btnCerrar.setOpaque(true);
+        btnCerrar.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 12, 4, 12));
+        btnCerrar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                m_appview.tryToClose();
+            }
+        });
+        closeButtonPanel.add(btnCerrar);
+        
+        atendidoPanel.add(closeButtonPanel);
+        rightTopPanel.add(atendidoPanel, java.awt.BorderLayout.CENTER);
+        
+        artisticTopPanel.add(rightTopPanel, java.awt.BorderLayout.EAST);
+        
         // Sebastian - Agregar barra de menú horizontal arriba del título (con múltiples
         // filas automáticas)
         // Usar BoxLayout vertical para permitir que el panel de botones se expanda
         // correctamente
         javax.swing.JPanel topContainer = new javax.swing.JPanel();
-        topContainer.setLayout(new javax.swing.BoxLayout(topContainer, javax.swing.BoxLayout.Y_AXIS));
-        topContainer.setBorder(null); // Sin borde
+        topContainer.setLayout(new java.awt.BorderLayout());
+        
+        // Agregar panel artístico arriba
+        topContainer.add(artisticTopPanel, java.awt.BorderLayout.NORTH);
+        
+        // Panel para la barra de menú y título
+        javax.swing.JPanel menuContainer = new javax.swing.JPanel();
+        menuContainer.setLayout(new javax.swing.BoxLayout(menuContainer, javax.swing.BoxLayout.Y_AXIS));
+        menuContainer.setOpaque(false);
         topMenuBar.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
-        topContainer.add(topMenuBar);
+        menuContainer.add(topMenuBar);
         m_jPanelTitle.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
-        topContainer.add(m_jPanelTitle); // Sin espacio entre barra y título
+        menuContainer.add(m_jPanelTitle); // Sin espacio entre barra y título
         // Asegurar que el contenedor respete el tamaño preferido del panel de botones
-        topContainer.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
+        menuContainer.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
         // No forzar tamaño preferido para evitar espacio cuando m_jPanelTitle está
         // oculto
         // El tamaño se calculará automáticamente basado en los componentes visibles
+        
+        topContainer.add(menuContainer, java.awt.BorderLayout.CENTER);
 
         m_jPanelRightSide.add(topContainer, java.awt.BorderLayout.NORTH);
 

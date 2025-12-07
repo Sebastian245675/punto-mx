@@ -213,6 +213,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         });
         // Configurar fondo blanco para la tabla de ventas
         m_ticketlines.setBackground(java.awt.Color.WHITE);
+        // Sebastian - Eliminar cualquier espacio alrededor de la tabla
+        m_ticketlines.setBorder(null);
         m_jPanelLines.add(m_ticketlines, java.awt.BorderLayout.CENTER);
         m_TTP = new TicketParser(m_App.getDeviceTicket(), dlSystem);
 
@@ -2870,9 +2872,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         setOpaque(false);
         setLayout(new java.awt.CardLayout());
 
-        m_jPanelContainer.setLayout(new java.awt.BorderLayout());
+        m_jPanelContainer.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps para eliminar espacios
         m_jPanelContainer.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris para el contenedor
         m_jPanelContainer.setOpaque(true);
+        m_jPanelContainer.setBorder(null); // Sin bordes que creen espacio
 
         m_jPanelMainToolbar.setLayout(new java.awt.BorderLayout());
         m_jPanelMainToolbar.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris para el toolbar
@@ -3030,8 +3033,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelScripts.getAccessibleContext().setAccessibleDescription("");
 
         // Sebastian - Eliminar padding izquierdo para que el contenido esté completamente a la izquierda
-        m_jPanelTicket.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 5, 5));
-        m_jPanelTicket.setLayout(new java.awt.BorderLayout());
+        // Sebastian - Eliminar padding inferior para que el contenido llegue al límite
+        m_jPanelTicket.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 5)); // Sin padding inferior
+        m_jPanelTicket.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps
         m_jPanelTicket.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continúa desde arriba
         m_jPanelTicket.setOpaque(true);
 
@@ -3190,9 +3194,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Expandir el panel de líneas para ocupar TODO el ancho disponible (sin barra lateral)
         // Remover el tamaño preferido limitado para que ocupe todo el espacio
         m_jPanelLines.setPreferredSize(null);
-        m_jPanelLines.setLayout(new java.awt.BorderLayout());
+        m_jPanelLines.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps para bajar la tabla
+        m_jPanelLines.setBorder(null); // Sin bordes que creen espacio
 
-        m_jPanelLinesSum.setLayout(new java.awt.BorderLayout());
+        m_jPanelLinesSum.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps
+        m_jPanelLinesSum.setBorder(null); // Sin bordes que creen espacio
+        m_jPanelLinesSum.setPreferredSize(null); // Sin tamaño preferido que cree espacio
+        m_jPanelLinesSum.setMaximumSize(null); // Sin tamaño máximo que limite
         // Sebastian - Eliminar el filler para que no haya espacio en blanco a la izquierda
         // m_jPanelLinesSum.add(filler2, java.awt.BorderLayout.LINE_START);
 
@@ -3226,8 +3234,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Ocultar el panel de ID de cliente
         customerPanel.setVisible(false);
-
-        m_jPanelLinesSum.add(customerPanel, java.awt.BorderLayout.NORTH);
+        // Sebastian - Eliminar customerPanel completamente para bajar más la tabla
+        // m_jPanelLinesSum.add(customerPanel, java.awt.BorderLayout.NORTH);
 
         m_jTicketId.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
         m_jTicketId.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
@@ -3348,11 +3356,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JPanel rightPanel = new javax.swing.JPanel();
         rightPanel.setLayout(new java.awt.BorderLayout(0, 0)); // Sin espacio vertical, todo pegado abajo
         rightPanel.setOpaque(false);
+        rightPanel.setBorder(null); // Sin bordes que creen espacio
         
         // === Panel superior: Botón Cobrar y Total (horizontal) ===
         javax.swing.JPanel topRightPanel = new javax.swing.JPanel();
         topRightPanel.setLayout(new java.awt.BorderLayout(0, 0));
         topRightPanel.setOpaque(false);
+        topRightPanel.setBorder(null); // Sin bordes que creen espacio
         
         // Panel para el total y el botón "Ventas del día y Devoluciones" (vertical, alineado a la derecha)
         javax.swing.JPanel totalAndButtonPanel = new javax.swing.JPanel();
@@ -3528,39 +3538,20 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
          * totalsWithPay.add(payPanel, java.awt.BorderLayout.SOUTH);
          */
 
-        // Sebastian - Crear panel para "productos de la venta actual" justo arriba del panel de botones
-        javax.swing.JPanel productosPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
-        productosPanel.setOpaque(false);
-        productosPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding
-        
-        m_jProductosVenta.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
-        m_jProductosVenta.setForeground(new java.awt.Color(80, 80, 80));
-        m_jProductosVenta.setText("0 productos en la venta actual.");
-        productosPanel.add(m_jProductosVenta);
-        
-        // Panel contenedor para productos y botones - casi al límite con la barra inferior
+        // Sebastian - Eliminar "productos de la venta actual" y bajar la tabla lo más posible
+        // Panel contenedor solo para botones - sin espacios innecesarios
         javax.swing.JPanel bottomContainer = new javax.swing.JPanel();
-        bottomContainer.setLayout(new javax.swing.BoxLayout(bottomContainer, javax.swing.BoxLayout.Y_AXIS));
+        bottomContainer.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps
         bottomContainer.setOpaque(false);
-        bottomContainer.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
-        bottomContainer.add(productosPanel);
-        // Sebastian - Reducir espacio entre productos y panel de botones para alinearlo todo abajo
-        bottomContainer.add(javax.swing.Box.createVerticalStrut(5)); // 5px mínimo de espacio entre productos y botones
-        bottomContainer.add(m_jPanelTotals);
+        bottomContainer.setBorder(null); // Sin bordes que creen espacio
+        bottomContainer.setPreferredSize(null); // Sin tamaño preferido que cree espacio
+        bottomContainer.setMaximumSize(null); // Sin tamaño máximo que limite
+        bottomContainer.add(m_jPanelTotals, java.awt.BorderLayout.CENTER);
         
-        // Sebastian - Crear un espacio flexible arriba que empuje el bottomContainer hacia abajo
-        javax.swing.JPanel spacerPanel = new javax.swing.JPanel();
-        spacerPanel.setOpaque(false);
-        spacerPanel.setPreferredSize(new java.awt.Dimension(0, 0)); // Se expandirá para empujar el contenido abajo
-        
-        javax.swing.JPanel bottomWithSpacer = new javax.swing.JPanel(new java.awt.BorderLayout());
-        bottomWithSpacer.setOpaque(false);
-        bottomWithSpacer.add(spacerPanel, java.awt.BorderLayout.CENTER); // Espacio flexible que se expande
-        bottomWithSpacer.add(bottomContainer, java.awt.BorderLayout.SOUTH); // Contenedor con productos y botones abajo
-        
-        // Sebastian - Agregar el contenedor completo en SOUTH para que ocupe todo el ancho y esté casi al límite
-        m_jPanelLinesSum.add(bottomWithSpacer, java.awt.BorderLayout.SOUTH);
+        // Sebastian - Agregar directamente el panel de botones sin espacios adicionales
+        m_jPanelLinesSum.add(bottomContainer, java.awt.BorderLayout.SOUTH);
 
+        // Sebastian - Agregar m_jPanelLinesSum directamente sin espacios
         m_jPanelLines.add(m_jPanelLinesSum, java.awt.BorderLayout.SOUTH);
 
         // Sebastian - Crear barra de pestañas sobre la tabla de ventas
@@ -3568,12 +3559,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         tabsPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(200, 200, 200)));
         tabsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave para continuar el fondo
         tabsPanel.setPreferredSize(new java.awt.Dimension(0, 35));
+        tabsPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 35)); // Limitar altura máxima
+        tabsPanel.setMinimumSize(new java.awt.Dimension(0, 35)); // Limitar altura mínima
         tabsPanel.setName("tabsPanel"); // Para poder encontrarlo después
         
         // Panel contenedor para la barra de pestañas y la tabla
-        javax.swing.JPanel linesWithTabsPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        javax.swing.JPanel linesWithTabsPanel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 0)); // Sin gaps
         linesWithTabsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continúa desde arriba
         linesWithTabsPanel.setOpaque(true);
+        linesWithTabsPanel.setBorder(null); // Sin bordes que creen espacio
         linesWithTabsPanel.add(tabsPanel, java.awt.BorderLayout.NORTH);
         // Asegurar que el panel de líneas (tabla) tenga fondo blanco
         m_jPanelLines.setBackground(java.awt.Color.WHITE);
@@ -3736,10 +3730,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 // Obtener el ancho del panel y calcular punto de desvanecido (más allá de la mitad, aprox 60%)
                 int width = getWidth();
                 
-                // Crear gradiente con desvanecido suave tipo eleventa
+                // Crear gradiente con desvanecido suave tipo eleventa - colores más claros
                 // Empieza desde el borde izquierdo, va más allá de la mitad y se desvanece suavemente
-                java.awt.Color colorInicio = new java.awt.Color(70, 130, 180); // Azul acero
-                java.awt.Color colorMedio = new java.awt.Color(52, 152, 219); // Azul moderno
+                java.awt.Color colorInicio = new java.awt.Color(100, 160, 220); // Azul claro más suave
+                java.awt.Color colorMedio = new java.awt.Color(135, 190, 235); // Azul cielo claro
                 java.awt.Color colorFin = new java.awt.Color(255, 255, 255, 0); // Transparente
                 
                 java.awt.LinearGradientPaint gradient = new java.awt.LinearGradientPaint(
@@ -3756,13 +3750,16 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         };
         lblTicketIndicator.setLayout(new java.awt.BorderLayout());
         lblTicketIndicator.setOpaque(false);
+        // Hacer la barra más gruesa (más alta) como en Eleventa
+        lblTicketIndicator.setPreferredSize(new java.awt.Dimension(0, 38)); // Más alto que antes
+        lblTicketIndicator.setMinimumSize(new java.awt.Dimension(0, 38));
         
         // Label con el texto sobre el panel con gradiente
         javax.swing.JLabel lblTicketText = new javax.swing.JLabel("VENTA - Ticket 1");
-        lblTicketText.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        lblTicketText.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14)); // Fuente un poco más grande
         lblTicketText.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         lblTicketText.setForeground(java.awt.Color.WHITE);
-        lblTicketText.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        lblTicketText.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 15, 10, 15)); // Más padding vertical para la barra más gruesa
         lblTicketText.setOpaque(false);
         
         lblTicketIndicator.add(lblTicketText, java.awt.BorderLayout.CENTER);
@@ -3770,7 +3767,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Panel para el indicador de ticket que se extiende desde el borde izquierdo (sin padding)
         javax.swing.JPanel ticketIndicatorPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         ticketIndicatorPanel.setOpaque(false);
-        ticketIndicatorPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        ticketIndicatorPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding inferior para que quede justo encima
         ticketIndicatorPanel.add(lblTicketIndicator, java.awt.BorderLayout.CENTER);
         
         // Guardar referencia al label de texto para actualizar dinámicamente
@@ -3778,7 +3775,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         
         // Crear panel para la barra de búsqueda en la parte superior - OCUPA TODO EL ANCHO
         javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 10, 12, 10)); // Padding reducido para barra más corta
+        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 10, 4, 10)); // Sin padding superior para que quede justo debajo de la barra azul
         searchPanel.setBackground(new java.awt.Color(245, 245, 245)); // Fondo gris claro moderno
         searchPanel.setOpaque(true);
         
@@ -3788,7 +3785,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         scannerContainerPanel.setBackground(java.awt.Color.WHITE); // Fondo blanco para la sección
         scannerContainerPanel.setBorder(javax.swing.BorderFactory.createCompoundBorder(
             javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1), // Borde gris delgado y elegante
-            javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20) // Padding interno óptimo
+            javax.swing.BorderFactory.createEmptyBorder(10, 20, 8, 20) // Padding superior reducido para compactar
         ));
         
         // Panel horizontal para el campo de código y botón ENTER (sin label)
@@ -3842,7 +3839,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Crear barra de botones de acción debajo del campo de búsqueda
         javax.swing.JPanel actionButtonsPanel = new javax.swing.JPanel();
         actionButtonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 6, 0));
-        actionButtonsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 20, 12, 20)); // Espaciado óptimo
+        actionButtonsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 20, 12, 20)); // Padding superior reducido para acercar a la barra de búsqueda
         actionButtonsPanel.setBackground(new java.awt.Color(245, 245, 245)); // Mismo fondo que searchPanel
         
         // Estilo común para todos los botones
@@ -3989,6 +3986,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JPanel searchAndActionsPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         searchAndActionsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris suave que continúa desde arriba
         searchAndActionsPanel.setOpaque(true);
+        searchAndActionsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding para reducir espacio
         
         // Agregar la barra VENTA - Ticket primero, desde el borde izquierdo
         searchAndActionsPanel.add(ticketIndicatorPanel, java.awt.BorderLayout.NORTH);
@@ -3996,6 +3994,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Panel para searchPanel y actionButtonsPanel
         javax.swing.JPanel searchAndButtonsContainer = new javax.swing.JPanel(new java.awt.BorderLayout());
         searchAndButtonsContainer.setOpaque(false);
+        searchAndButtonsContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding
         searchAndButtonsContainer.add(searchPanel, java.awt.BorderLayout.NORTH);
         searchAndButtonsContainer.add(actionButtonsPanel, java.awt.BorderLayout.SOUTH);
         
@@ -4010,7 +4009,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JPanel completeTopPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         completeTopPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continúa desde la barra superior
         completeTopPanel.setOpaque(true);
-        completeTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding para subir el contenido
+        // Sebastian - Sin espacio superior aquí, el espacio está en JPrincipalApp para bajar la barra de botones
+        completeTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding
         
         // Panel central con búsqueda y botones (los puntos están dentro de actionButtonsPanel)
         completeTopPanel.add(topPanel, java.awt.BorderLayout.CENTER); // Panel central con búsqueda y botones
@@ -4021,6 +4021,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelCatalog.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         m_jPanelCatalog.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jPanelCatalog.setLayout(new java.awt.BorderLayout());
+        // Sebastian - Ocultar m_jPanelCatalog o hacerlo invisible para eliminar espacio inferior
+        m_jPanelCatalog.setVisible(false);
+        m_jPanelCatalog.setPreferredSize(new java.awt.Dimension(0, 0));
         m_jPanelContainer.add(m_jPanelCatalog, java.awt.BorderLayout.SOUTH);
 
         add(m_jPanelContainer, "ticket");
