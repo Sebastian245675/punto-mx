@@ -3,7 +3,6 @@ group = menu.addGroup("Menu.Main");
         group.addPanel("/com/openbravo/images/saleedit.png", "Menu.TicketEdit", "com.openbravo.pos.sales.JPanelTicketEdits");
         group.addPanel("/com/openbravo/images/customerpay.png", "Menu.CustomersPayment", "com.openbravo.pos.customers.CustomersPayment");
         group.addPanel("/com/openbravo/images/calculator.png", "Menu.CloseTPV", "com.openbravo.pos.panels.JPanelCloseMoney");
-        group.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesManagement");
 
 group = menu.addGroup("Menu.Backoffice");
     
@@ -103,6 +102,22 @@ group = menu.addGroup("Menu.Backoffice");
         submenu.addPanel("/com/openbravo/images/user.png", "Menu.BranchesManagement", "com.openbravo.pos.branches.JPanelBranchesManagement");
         submenu.addPanel("/com/openbravo/images/tables.png", "Menu.Tables", "com.openbravo.pos.sales.restaurant.JPanelPlaces");
         submenu.addPanel("/com/openbravo/images/products.png", "Menu.Vouchers", "com.openbravo.pos.voucher.VoucherPanel");
+    
+    submenu.addTitle("Menu.Import");
+        submenu.addPanel("/com/openbravo/images/import.png", "Menu.CSVImport", "com.openbravo.pos.imports.JPanelCSVImport");
+        submenu.addPanel("/com/openbravo/images/import.png", "Menu.CSVStockQty", "com.openbravo.pos.imports.StockQtyImport");
+        submenu.addPanel("/com/openbravo/images/import.png", "Menu.CustomerCSVImport", "com.openbravo.pos.imports.CustomerCSVImport");
+        submenu.addPanel("/com/openbravo/images/database.png", "Menu.CSVReset", "com.openbravo.pos.imports.JPanelCSVCleardb");
+        submenu.addPanel("/com/openbravo/images/database.png", "Menu.Transfer", "com.unicenta.pos.transfer.Transfer");
+    
+    submenu.addTitle("Menu.Import.Reports");
+        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.NewProducts", "/com/openbravo/reports/tools_newproducts.bs");
+        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.UpdatedPrices", "/com/openbravo/reports/tools_updatedprices.bs");
+        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.StockQtyUpdate", "/com/openbravo/reports/tools_inventoryqtyupdate.bs");
+        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.BadPrices", "/com/openbravo/reports/tools_badprice.bs");
+        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.InvalidCategory", "/com/openbravo/reports/tools_invalidcategory.bs");
+        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.MissingData", "/com/openbravo/reports/tools_missingdata.bs");
+        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.InvalidData", "/com/openbravo/reports/tools_invaliddata.bs");
 
     submenu.addTitle("Menu.Panel.Maintenance.Reports");
         submenu.addPanel("/com/openbravo/images/reports.png", "Menu.UsersReport", "/com/openbravo/reports/users.bs");
@@ -120,24 +135,6 @@ group = menu.addGroup("Menu.Backoffice");
         submenu.addPanel("/com/openbravo/images/reports.png", "Menu.EPM.DailyPresenceReport", "/com/openbravo/reports/epm_dailypresence.bs");
         submenu.addPanel("/com/openbravo/images/reports.png", "Menu.EPM.DailyScheduleReport", "/com/openbravo/reports/epm_dailyschedule.bs");
         submenu.addPanel("/com/openbravo/images/reports.png", "Menu.EPM.PerformanceReport", "/com/openbravo/reports/epm_performance.bs");
-
- 
-    group = menu.addGroup("Menu.Utilities");
-    submenu = group.addSubmenu("/com/openbravo/images/utilities.png", "Menu.Tools", "com.openbravo.pos.imports.JPanelCSV");	
-    submenu.addTitle("Menu.Import");
-        submenu.addPanel("/com/openbravo/images/import.png", "Menu.CSVImport", "com.openbravo.pos.imports.JPanelCSVImport");
-        submenu.addPanel("/com/openbravo/images/import.png", "Menu.CSVStockQty", "com.openbravo.pos.imports.StockQtyImport");
-        submenu.addPanel("/com/openbravo/images/import.png", "Menu.CustomerCSVImport", "com.openbravo.pos.imports.CustomerCSVImport");
-        submenu.addPanel("/com/openbravo/images/database.png", "Menu.CSVReset", "com.openbravo.pos.imports.JPanelCSVCleardb");
-        submenu.addPanel("/com/openbravo/images/database.png", "Menu.Transfer", "com.unicenta.pos.transfer.Transfer");
-    submenu.addTitle("Menu.Import.Reports");
-        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.NewProducts", "/com/openbravo/reports/tools_newproducts.bs");
-        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.UpdatedPrices", "/com/openbravo/reports/tools_updatedprices.bs");
-        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.StockQtyUpdate", "/com/openbravo/reports/tools_inventoryqtyupdate.bs");
-        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.BadPrices", "/com/openbravo/reports/tools_badprice.bs");
-        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.InvalidCategory", "/com/openbravo/reports/tools_invalidcategory.bs");
-        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.MissingData", "/com/openbravo/reports/tools_missingdata.bs");
-        submenu.addPanel("/com/openbravo/images/reports.png", "Menu.Tools.InvalidData", "/com/openbravo/reports/tools_invaliddata.bs");
 
     group = menu.addGroup("Menu.System");
     group.addChangePasswordAction();

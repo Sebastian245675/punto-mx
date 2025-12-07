@@ -8,6 +8,8 @@ import com.openbravo.data.loader.SentenceList;
 import com.openbravo.data.loader.SerializerWriteString;
 import com.openbravo.data.loader.SerializerWrite;
 import com.openbravo.data.loader.SerializerReadInteger;
+import com.openbravo.data.loader.SerializerRead;
+import com.openbravo.data.loader.DataRead;
 import com.openbravo.data.loader.DataWrite;
 import com.openbravo.data.loader.Session;
 import com.openbravo.data.loader.StaticSentence;
@@ -215,50 +217,111 @@ public class PuntosDataLogic {
     }
     
     /**
-     * Agrega puntos a un cliente por una compra
+     * Agrega puntos a un cliente por una compra usando acumulable diario
+     * Sebastian - Modificado para acumular montos del día y otorgar puntos cuando se alcance el umbral
      */
     public void agregarPuntosPorCompra(String clienteId, double montoCompra, String descripcion) throws BasicException {
+        System.out.println("🚀 agregarPuntosPorCompra INICIADO - Cliente: " + clienteId + ", Monto: $" + montoCompra);
+        
         PuntosConfiguracion config = getConfiguracionActiva();
-        if (config != null && config.isSistemaActivo()) {
-            int puntosAOtorgar = config.calcularPuntos(montoCompra);
-            if (puntosAOtorgar > 0) {
-                // Sebastian - Verificar límite diario antes de otorgar puntos
-                int puntosGanadosHoy = getPuntosGanadosHoy(clienteId);
-                int limiteDiario = config.getLimiteDiarioPuntos();
-                
-                System.out.println("🔍 VERIFICANDO LÍMITE: Cliente " + clienteId + 
-                                 " - Puntos hoy: " + puntosGanadosHoy + 
-                                 " - Límite diario: " + limiteDiario + 
-                                 " - Puntos a otorgar: " + puntosAOtorgar);
-                
-                if (puntosGanadosHoy >= limiteDiario) {
-                    System.out.println("🚫 LÍMITE DIARIO ALCANZADO: Cliente " + clienteId + 
-                                     " ya ganó " + puntosGanadosHoy + " puntos hoy (límite: " + limiteDiario + ")");
-                    return; // No otorgar más puntos
-                }
-                
-                // Si otorgar los puntos excedería el límite, ajustar la cantidad
-                int puntosDisponibles = limiteDiario - puntosGanadosHoy;
-                if (puntosAOtorgar > puntosDisponibles) {
-                    puntosAOtorgar = puntosDisponibles;
-                    System.out.println("⚠️ PUNTOS AJUSTADOS: Otorgando " + puntosAOtorgar + 
-                                     " puntos para no exceder límite diario");
-                }
-                
-                if (puntosAOtorgar > 0) {
-                    // Actualizar puntos totales del cliente
-                    ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
-                    puntos.agregarPuntos(puntosAOtorgar, descripcion);
-                    updateClientePuntos(puntos);
-                    
-                    // Sebastian - Registrar en historial para límites diarios
-                    registrarHistorialPuntos(clienteId, puntosAOtorgar, descripcion, montoCompra);
-                    
-                    System.out.println("✅ PUNTOS OTORGADOS: " + puntosAOtorgar + 
-                                     " puntos (total hoy: " + (puntosGanadosHoy + puntosAOtorgar) + 
-                                     "/" + limiteDiario + ")");
-                }
+        if (config == null || !config.isSistemaActivo()) {
+            System.out.println("⚠️ Sistema de puntos desactivado o sin configuración");
+            return;
+        }
+        
+        System.out.println("✅ Configuración activa - Monto por punto: $" + config.getMontoPorPunto() + 
+                         ", Puntos otorgados: " + config.getPuntosOtorgados());
+        
+        // Obtener o inicializar el acumulable del día
+        double acumulableActual = obtenerAcumulableDiario(clienteId);
+        
+        System.out.println("🔍 DEBUG INICIAL - Cliente: " + clienteId + 
+                         ", Acumulable actual: $" + acumulableActual + 
+                         ", Monto compra: $" + montoCompra);
+        
+        // Sumar el monto de la compra actual al acumulable
+        double nuevoAcumulable = acumulableActual + montoCompra;
+        
+        System.out.println("💰 ACUMULABLE: Cliente " + clienteId + 
+                         " - Anterior: $" + acumulableActual + 
+                         " + Compra: $" + montoCompra + 
+                         " = Nuevo: $" + nuevoAcumulable);
+        
+        // Calcular cuántos puntos se deben otorgar con el nuevo acumulable
+        int puntosAOtorgar = config.calcularPuntos(nuevoAcumulable);
+        
+        // Calcular cuántos puntos ya se habían otorgado con el acumulable anterior
+        int puntosYaOtorgados = config.calcularPuntos(acumulableActual);
+        
+        // Los puntos nuevos a otorgar son la diferencia
+        int puntosNuevos = puntosAOtorgar - puntosYaOtorgados;
+        
+        System.out.println("🎯 PUNTOS: Acumulable anterior otorgaba " + puntosYaOtorgados + 
+                         " puntos, nuevo acumulable otorga " + puntosAOtorgar + 
+                         " puntos → Puntos nuevos: " + puntosNuevos);
+        
+        // SIEMPRE actualizar el acumulable, incluso si no hay puntos nuevos
+        // Calcular el acumulable restante después de otorgar puntos
+        double montoPorPunto = config.getMontoPorPunto();
+        int tramosCompletos = (int) Math.floor(nuevoAcumulable / montoPorPunto);
+        double montoUsado = tramosCompletos * montoPorPunto;
+        double nuevoAcumulableRestante = nuevoAcumulable - montoUsado;
+        
+        System.out.println("📊 CÁLCULO ACUMULABLE RESTANTE: " + 
+                         "Acumulable total: $" + nuevoAcumulable + 
+                         " - Tramos completos: " + tramosCompletos + 
+                         " × $" + montoPorPunto + 
+                         " = Monto usado: $" + montoUsado + 
+                         " → Nuevo acumulable restante: $" + nuevoAcumulableRestante);
+        
+        if (puntosNuevos > 0) {
+            // Verificar límite diario antes de otorgar puntos
+            int puntosGanadosHoy = getPuntosGanadosHoy(clienteId);
+            int limiteDiario = config.getLimiteDiarioPuntos();
+            
+            System.out.println("🔍 VERIFICANDO LÍMITE: Cliente " + clienteId + 
+                             " - Puntos hoy: " + puntosGanadosHoy + 
+                             " - Límite diario: " + limiteDiario + 
+                             " - Puntos nuevos a otorgar: " + puntosNuevos);
+            
+            if (puntosGanadosHoy >= limiteDiario) {
+                System.out.println("🚫 LÍMITE DIARIO ALCANZADO: Cliente " + clienteId + 
+                                 " ya ganó " + puntosGanadosHoy + " puntos hoy (límite: " + limiteDiario + ")");
+                // Aún así actualizamos el acumulable aunque no otorguemos puntos
+                actualizarAcumulableDiario(clienteId, nuevoAcumulableRestante);
+                return;
             }
+            
+            // Si otorgar los puntos excedería el límite, ajustar la cantidad
+            int puntosDisponibles = limiteDiario - puntosGanadosHoy;
+            if (puntosNuevos > puntosDisponibles) {
+                puntosNuevos = puntosDisponibles;
+                System.out.println("⚠️ PUNTOS AJUSTADOS: Otorgando " + puntosNuevos + 
+                                 " puntos para no exceder límite diario");
+            }
+            
+            if (puntosNuevos > 0) {
+                // Actualizar puntos totales del cliente
+                ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
+                puntos.agregarPuntos(puntosNuevos, descripcion);
+                updateClientePuntos(puntos);
+                
+                // Registrar en historial para límites diarios
+                registrarHistorialPuntos(clienteId, puntosNuevos, descripcion, montoCompra);
+                
+                System.out.println("✅ PUNTOS OTORGADOS: " + puntosNuevos + 
+                                 " puntos (total hoy: " + (puntosGanadosHoy + puntosNuevos) + 
+                                 "/" + limiteDiario + ")");
+            }
+        }
+        
+        // Actualizar el acumulable diario (SIEMPRE, incluso si no se otorgaron puntos)
+        try {
+            actualizarAcumulableDiario(clienteId, nuevoAcumulableRestante);
+            System.out.println("✅ Acumulable actualizado exitosamente: $" + nuevoAcumulableRestante);
+        } catch (Exception e) {
+            System.err.println("❌ ERROR actualizando acumulable: " + e.getMessage());
+            e.printStackTrace();
         }
     }
     
@@ -375,6 +438,25 @@ public class PuntosDataLogic {
                     System.out.println("ℹ️ Tabla PUNTOS_HISTORIAL ya existe");
                 } else {
                     System.err.println("⚠️ Error creando tabla PUNTOS_HISTORIAL: " + e.getMessage());
+                }
+            }
+            
+            // Sebastian - Crear tabla de acumulable diario para puntos acumulables
+            String createAcumulableTable = 
+                "CREATE TABLE PUNTOS_ACUMULABLE_DIARIO (" +
+                "CLIENTE_ID VARCHAR(36) NOT NULL PRIMARY KEY, " +
+                "MONTO_ACUMULADO DECIMAL(10,2) NOT NULL, " +
+                "FECHA_ACTUALIZACION TIMESTAMP NOT NULL)";
+            
+            try {
+                new StaticSentence(s, createAcumulableTable).exec();
+                System.out.println("✅ Tabla PUNTOS_ACUMULABLE_DIARIO creada exitosamente");
+            } catch (BasicException e) {
+                if (e.getMessage().contains("already exists") || e.getMessage().contains("ya existe") || 
+                    e.getMessage().contains("nombre del objeto ya existe")) {
+                    System.out.println("ℹ️ Tabla PUNTOS_ACUMULABLE_DIARIO ya existe");
+                } else {
+                    System.err.println("⚠️ Error creando tabla PUNTOS_ACUMULABLE_DIARIO: " + e.getMessage());
                 }
             }
             
@@ -577,6 +659,161 @@ public class PuntosDataLogic {
     }
     
     /**
+     * Sebastian - Obtiene el monto acumulado del día para un cliente
+     * Si es un nuevo día, resetea el acumulable a 0
+     */
+    public double obtenerAcumulableDiario(String clienteId) throws BasicException {
+        try {
+            // Verificar si existe registro para el cliente y si es del día actual
+            String query = "SELECT MONTO_ACUMULADO, FECHA_ACTUALIZACION " +
+                          "FROM PUNTOS_ACUMULABLE_DIARIO " +
+                          "WHERE CLIENTE_ID = ?";
+            
+            PreparedSentence sentencia = new PreparedSentence(s, query, 
+                SerializerWriteString.INSTANCE,
+                new SerializerRead() {
+                    @Override
+                    public Object readValues(DataRead dr) throws BasicException {
+                        // Leer la fecha como Object porque HSQLDB puede devolver Date o Timestamp
+                        Object fechaObj = dr.getObject(2);
+                        return new Object[] {
+                            dr.getDouble(1),  // MONTO_ACUMULADO
+                            fechaObj          // FECHA_ACTUALIZACION (Date, Timestamp, o null)
+                        };
+                    }
+                });
+            
+            Object[] resultado = (Object[]) sentencia.find(clienteId);
+            
+            if (resultado != null) {
+                double montoAcumulado = (Double) resultado[0];
+                Object fechaObj = resultado[1];
+                
+                // HSQLDB puede devolver Date o Timestamp, convertir a Timestamp
+                java.sql.Timestamp fechaActualizacion = null;
+                if (fechaObj != null) {
+                    if (fechaObj instanceof java.sql.Timestamp) {
+                        fechaActualizacion = (java.sql.Timestamp) fechaObj;
+                    } else if (fechaObj instanceof java.util.Date) {
+                        fechaActualizacion = new java.sql.Timestamp(((java.util.Date) fechaObj).getTime());
+                    } else if (fechaObj instanceof java.sql.Date) {
+                        fechaActualizacion = new java.sql.Timestamp(((java.sql.Date) fechaObj).getTime());
+                    }
+                }
+                
+                // Comparar solo la fecha (sin hora)
+                java.util.Calendar calActualizacion = java.util.Calendar.getInstance();
+                if (fechaActualizacion != null) {
+                    calActualizacion.setTimeInMillis(fechaActualizacion.getTime());
+                }
+                java.util.Calendar calHoy = java.util.Calendar.getInstance();
+                calHoy.setTimeInMillis(System.currentTimeMillis());
+                
+                boolean mismoDia = fechaActualizacion != null &&
+                    calActualizacion.get(java.util.Calendar.YEAR) == calHoy.get(java.util.Calendar.YEAR) &&
+                    calActualizacion.get(java.util.Calendar.DAY_OF_YEAR) == calHoy.get(java.util.Calendar.DAY_OF_YEAR);
+                
+                // Si la fecha es diferente a hoy, resetear el acumulable
+                if (!mismoDia) {
+                    System.out.println("🔄 Nuevo día detectado para cliente " + clienteId + 
+                                     ", reseteando acumulable");
+                    actualizarAcumulableDiario(clienteId, 0.0);
+                    return 0.0;
+                }
+                
+                System.out.println("✅ Acumulable recuperado: $" + montoAcumulado + 
+                                 " (fecha: " + fechaActualizacion + ")");
+                return montoAcumulado;
+            } else {
+                // No existe registro, crear uno con acumulable 0
+                actualizarAcumulableDiario(clienteId, 0.0);
+                return 0.0;
+            }
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error obteniendo acumulable diario para cliente " + clienteId + ": " + e.getMessage());
+            // Si hay error (tabla no existe), retornar 0 y la tabla se creará en la próxima actualización
+            return 0.0;
+        }
+    }
+    
+    /**
+     * Sebastian - Actualiza el monto acumulado del día para un cliente
+     */
+    public void actualizarAcumulableDiario(String clienteId, double nuevoMonto) throws BasicException {
+        try {
+            // Verificar si existe registro
+            String checkQuery = "SELECT COUNT(*) FROM PUNTOS_ACUMULABLE_DIARIO WHERE CLIENTE_ID = ?";
+            PreparedSentence checkSentencia = new PreparedSentence(s, checkQuery, 
+                SerializerWriteString.INSTANCE, SerializerReadInteger.INSTANCE);
+            
+            Integer existe = (Integer) checkSentencia.find(clienteId);
+            boolean existeRegistro = existe != null && existe > 0;
+            
+            java.sql.Timestamp ahora = new java.sql.Timestamp(System.currentTimeMillis());
+            
+            if (existeRegistro) {
+                // Actualizar registro existente
+                String updateQuery = "UPDATE PUNTOS_ACUMULABLE_DIARIO " +
+                                   "SET MONTO_ACUMULADO = ?, FECHA_ACTUALIZACION = ? " +
+                                   "WHERE CLIENTE_ID = ?";
+                
+                System.out.println("🔄 ACTUALIZANDO acumulable existente - Cliente: " + clienteId + 
+                                 ", Nuevo monto: $" + nuevoMonto);
+                
+                PreparedSentence updateSentencia = new PreparedSentence(s, updateQuery,
+                    new SerializerWrite<Object[]>() {
+                        @Override
+                        public void writeValues(DataWrite dp, Object[] obj) throws BasicException {
+                            dp.setDouble(1, (Double) obj[0]);
+                            dp.setTimestamp(2, (java.sql.Timestamp) obj[1]);
+                            dp.setString(3, (String) obj[2]);
+                        }
+                    });
+                
+                Object[] params = {nuevoMonto, ahora, clienteId};
+                updateSentencia.exec(params);
+                System.out.println("✅ Acumulable actualizado en BD: $" + nuevoMonto);
+            } else {
+                // Insertar nuevo registro
+                String insertQuery = "INSERT INTO PUNTOS_ACUMULABLE_DIARIO " +
+                                   "(CLIENTE_ID, MONTO_ACUMULADO, FECHA_ACTUALIZACION) " +
+                                   "VALUES (?, ?, ?)";
+                
+                System.out.println("➕ INSERTANDO nuevo acumulable - Cliente: " + clienteId + 
+                                 ", Monto inicial: $" + nuevoMonto);
+                
+                PreparedSentence insertSentencia = new PreparedSentence(s, insertQuery,
+                    new SerializerWrite<Object[]>() {
+                        @Override
+                        public void writeValues(DataWrite dp, Object[] obj) throws BasicException {
+                            dp.setString(1, (String) obj[0]);
+                            dp.setDouble(2, (Double) obj[1]);
+                            dp.setTimestamp(3, (java.sql.Timestamp) obj[2]);
+                        }
+                    });
+                
+                Object[] params = {clienteId, nuevoMonto, ahora};
+                insertSentencia.exec(params);
+                System.out.println("✅ Acumulable insertado en BD: $" + nuevoMonto);
+            }
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error actualizando acumulable diario para cliente " + clienteId + ": " + e.getMessage());
+            // Si la tabla no existe, intentar crearla
+            if (e.getMessage() != null && e.getMessage().contains("objeto no encontrado")) {
+                try {
+                    initTables();
+                    // Reintentar después de crear la tabla
+                    actualizarAcumulableDiario(clienteId, nuevoMonto);
+                } catch (Exception ex) {
+                    System.err.println("❌ Error creando tabla de acumulable: " + ex.getMessage());
+                }
+            }
+        }
+    }
+    
+    /**
      * Sebastian - Verifica y aplica migraciones necesarias (nuevas columnas)
      */
     private void verificarMigraciones() {
@@ -598,6 +835,21 @@ public class PuntosDataLogic {
                 String addLimitColumn = "ALTER TABLE PUNTOS_CONFIGURACION ADD COLUMN LIMITE_DIARIO_PUNTOS INTEGER DEFAULT 500";
                 new StaticSentence(s, addLimitColumn).exec();
                 System.out.println("✅ Migración: Columna LIMITE_DIARIO_PUNTOS agregada");
+            }
+            
+            // Sebastian - Verificar si la tabla PUNTOS_ACUMULABLE_DIARIO existe
+            try {
+                new StaticSentence(s, "SELECT COUNT(*) FROM PUNTOS_ACUMULABLE_DIARIO").exec();
+                // Si no hay error, la tabla ya existe
+            } catch (BasicException checkEx) {
+                // La tabla no existe, crearla
+                String createAcumulableTable = 
+                    "CREATE TABLE PUNTOS_ACUMULABLE_DIARIO (" +
+                    "CLIENTE_ID VARCHAR(36) NOT NULL PRIMARY KEY, " +
+                    "MONTO_ACUMULADO DECIMAL(10,2) NOT NULL, " +
+                    "FECHA_ACTUALIZACION TIMESTAMP NOT NULL)";
+                new StaticSentence(s, createAcumulableTable).exec();
+                System.out.println("✅ Migración: Tabla PUNTOS_ACUMULABLE_DIARIO creada");
             }
         } catch (BasicException e) {
             // Silencioso si hay error al agregar (probablemente ya existe)

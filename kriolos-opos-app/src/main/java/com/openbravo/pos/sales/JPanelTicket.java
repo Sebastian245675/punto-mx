@@ -590,7 +590,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private void aplicarFuentesGrandesVentas() {
         if (m_jKeyFactory != null) {
             // Configuración optimizada para códigos de barras largos
-            m_jKeyFactory.setFont(new Font("Segoe UI", Font.PLAIN, 14)); // Fuente de 14pt sin negrita para evitar corte
+            m_jKeyFactory.setFont(new Font("Arial", Font.BOLD, 22)); // Fuente Arial Bold más grande y gruesa para números más anchos
             m_jKeyFactory.setForeground(Color.BLACK);
             m_jKeyFactory.setBackground(Color.WHITE);
             m_jKeyFactory.setBorder(javax.swing.BorderFactory.createCompoundBorder(
@@ -604,8 +604,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_jPrice.setFont(new Font("Segoe UI", Font.BOLD, 24));
         }
         if (m_jTotalEuros != null) {
-            m_jTotalEuros.setFont(new Font("Arial", Font.BOLD, 58)); // Total estilo Eleventa (reducido 10%)
-            m_jTotalEuros.setForeground(new Color(0, 153, 204)); // Cyan/Azul como Eleventa
+            m_jTotalEuros.setFont(new Font("Arial", Font.BOLD, 50)); // Total estilo Eleventa - tipografía EXACTA
+            m_jTotalEuros.setForeground(new Color(0, 20, 80)); // Azul muy oscuro (RGB: 0, 20, 80) exacto de la imagen
         }
         // if (m_jSubtotalEuros != null) {
         //     m_jSubtotalEuros.setFont(new Font("Segoe UI", Font.PLAIN, 32)); // Ya no se muestra
@@ -3267,10 +3267,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // === COLUMNA IZQUIERDA: Información y botones ===
         javax.swing.JPanel leftPanel = new javax.swing.JPanel();
-        leftPanel.setLayout(new javax.swing.BoxLayout(leftPanel, javax.swing.BoxLayout.Y_AXIS));
+        leftPanel.setLayout(new java.awt.BorderLayout(0, 0)); // BorderLayout para alinear abajo
         leftPanel.setOpaque(false);
         // Sebastian - Sin padding ni bordes para que esté completamente a la izquierda
         leftPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        
+        // Panel contenedor para el contenido izquierdo (infoPanel + botones)
+        javax.swing.JPanel leftContentPanel = new javax.swing.JPanel();
+        leftContentPanel.setLayout(new javax.swing.BoxLayout(leftContentPanel, javax.swing.BoxLayout.Y_AXIS));
+        leftContentPanel.setOpaque(false);
         
         // Sebastian - Remover "productos de la venta actual" de aquí, se moverá arriba del panel de botones
         
@@ -3301,8 +3306,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         lblCambioValue.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
         infoPanel.add(lblCambioValue);
         
-        leftPanel.add(infoPanel);
-        leftPanel.add(javax.swing.Box.createVerticalStrut(8));
+        leftContentPanel.add(infoPanel);
+        leftContentPanel.add(javax.swing.Box.createVerticalStrut(5)); // Reducir espacio
         
         // Panel de botones pequeños (F5 Cambiar, F6 Pendiente, Eliminar)
         javax.swing.JPanel smallButtonsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
@@ -3334,34 +3339,54 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnAsignarCliente.addActionListener(e -> mostrarModalIdCliente());
         smallButtonsPanel.add(btnAsignarCliente);
         
-        leftPanel.add(smallButtonsPanel);
+        leftContentPanel.add(smallButtonsPanel);
+        
+        // Agregar contenido al leftPanel en SOUTH para alinearlo abajo
+        leftPanel.add(leftContentPanel, java.awt.BorderLayout.SOUTH);
         
         // === COLUMNA DERECHA: Botón Cobrar + Total + Ventas del día y Devoluciones ===
         javax.swing.JPanel rightPanel = new javax.swing.JPanel();
-        rightPanel.setLayout(new java.awt.BorderLayout(0, 10)); // 10px de espacio vertical entre elementos
+        rightPanel.setLayout(new java.awt.BorderLayout(0, 0)); // Sin espacio vertical, todo pegado abajo
         rightPanel.setOpaque(false);
         
         // === Panel superior: Botón Cobrar y Total (horizontal) ===
         javax.swing.JPanel topRightPanel = new javax.swing.JPanel();
-        topRightPanel.setLayout(new java.awt.BorderLayout(15, 0)); // 15px de espacio entre botón y total
+        topRightPanel.setLayout(new java.awt.BorderLayout(0, 0));
         topRightPanel.setOpaque(false);
         
-        // Botón Cobrar al lado izquierdo del total (largo de lado, no de altura como en la imagen)
+        // Panel para el total y el botón "Ventas del día y Devoluciones" (vertical, alineado a la derecha)
+        javax.swing.JPanel totalAndButtonPanel = new javax.swing.JPanel();
+        totalAndButtonPanel.setLayout(new java.awt.BorderLayout(0, 2)); // 2px de espacio vertical mínimo entre total y botón
+        totalAndButtonPanel.setOpaque(false);
+        
+        // Total sin recuadro, solo el número grande estilo Eleventa - tipografía EXACTA de la imagen
+        // Fuente: Arial Bold, tamaño y color exactos de la imagen (azul muy oscuro)
+        m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 50)); // Tamaño exacto de la imagen
+        m_jTotalEuros.setForeground(new java.awt.Color(0, 20, 80)); // Azul muy oscuro (RGB: 0, 20, 80) exacto de la imagen
+        m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        m_jTotalEuros.setText("$0.00");
+        m_jTotalEuros.setBorder(null); // Sin borde
+        m_jTotalEuros.setOpaque(false); // Sin fondo
+        m_jTotalEuros.setRequestFocusEnabled(false);
+        // Asegurar que el total no ocupe todo el espacio vertical
+        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(400, 52));
+        
+        // Ocultar el label "Total:" porque Eleventa no lo tiene
+        m_jLblTotalEuros.setVisible(false);
+        
+        // Botón Cobrar compacto, justo al lado del total
         m_jPayNow = new javax.swing.JButton();
         m_jPayNow.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
         m_jPayNow.setText("F12 - Cobrar");
         m_jPayNow.setFocusPainted(false);
-        m_jPayNow.setPreferredSize(new java.awt.Dimension(250, 28)); // Más ancho que alto - largo horizontal
-        m_jPayNow.setMinimumSize(new java.awt.Dimension(250, 28));
-        m_jPayNow.setMaximumSize(new java.awt.Dimension(250, 28));
-        m_jPayNow.setBackground(new java.awt.Color(92, 184, 92)); // Verde más claro
+        m_jPayNow.setBackground(new java.awt.Color(92, 184, 92)); // Verde
         m_jPayNow.setForeground(java.awt.Color.WHITE);
         m_jPayNow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
             new javax.swing.border.LineBorder(new java.awt.Color(76, 174, 76), 1),
-            javax.swing.BorderFactory.createEmptyBorder(4, 20, 4, 20) // Padding horizontal más grande
+            javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 6) // Padding derecho reducido para acercarlo al total
         ));
         m_jPayNow.setOpaque(true);
-
+        
         // Acción: reutiliza el flujo de cierre/pago de ticket
         m_jPayNow.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -3396,41 +3421,24 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
         
-        // Panel para el total y el botón "Ventas del día y Devoluciones" (vertical, alineado a la derecha)
-        javax.swing.JPanel totalAndButtonPanel = new javax.swing.JPanel();
-        totalAndButtonPanel.setLayout(new java.awt.BorderLayout(0, 5)); // 5px de espacio vertical entre total y botón
-        totalAndButtonPanel.setOpaque(false);
-        
-        // Total sin recuadro, solo el número grande en cyan/azul estilo Eleventa (POSICIÓN ORIGINAL - derecha)
-        m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 65)); // Muy grande como Eleventa (reducido 10%)
-        m_jTotalEuros.setForeground(new java.awt.Color(91, 192, 222)); // Cyan claro de Eleventa
-        m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        m_jTotalEuros.setText("$0.00");
-        m_jTotalEuros.setBorder(null); // Sin borde
-        m_jTotalEuros.setOpaque(false); // Sin fondo
-        m_jTotalEuros.setRequestFocusEnabled(false);
-        // Asegurar que el total no ocupe todo el espacio vertical
-        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(400, 80));
-        
-        // Ocultar el label "Total:" porque Eleventa no lo tiene
-        m_jLblTotalEuros.setVisible(false);
-        
-        // Panel para el total (para controlar mejor el espacio)
-        javax.swing.JPanel totalPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        // Panel para el total con el botón cobrar justo al lado (alineado a la derecha)
+        // El botón a la izquierda del total, manteniendo el total en su posición original
+        javax.swing.JPanel totalPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 1, 0));
         totalPanel.setOpaque(false);
-        totalPanel.add(m_jTotalEuros);
+        totalPanel.add(m_jPayNow); // Botón cobrar primero (quedará a la izquierda del total)
+        totalPanel.add(m_jTotalEuros); // Total después (mantiene su posición original a la derecha)
         
-        // Agregar total al panel (arriba)
+        // Agregar total y botón cobrar al panel (arriba)
         totalAndButtonPanel.add(totalPanel, java.awt.BorderLayout.NORTH);
         
         // === Botón "Ventas del día y Devoluciones" directamente debajo del total ===
         javax.swing.JButton btnVentasDelDia = new javax.swing.JButton();
-        btnVentasDelDia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
-        btnVentasDelDia.setText("Ventas del día y Devoluciones");
+        btnVentasDelDia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9)); // Fuente más pequeña
+        btnVentasDelDia.setText("Ventas / Devoluciones");
         btnVentasDelDia.setFocusPainted(false);
-        btnVentasDelDia.setPreferredSize(new java.awt.Dimension(220, 28)); // Tamaño reducido
-        btnVentasDelDia.setMinimumSize(new java.awt.Dimension(220, 28));
-        btnVentasDelDia.setMaximumSize(new java.awt.Dimension(220, 28));
+        btnVentasDelDia.setPreferredSize(new java.awt.Dimension(140, 22)); // Tamaño más pequeño
+        btnVentasDelDia.setMinimumSize(new java.awt.Dimension(140, 22));
+        btnVentasDelDia.setMaximumSize(new java.awt.Dimension(140, 22));
         btnVentasDelDia.setBackground(java.awt.Color.WHITE);
         btnVentasDelDia.setForeground(new java.awt.Color(80, 80, 80));
         btnVentasDelDia.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1));
@@ -3446,20 +3454,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Panel contenedor para el botón, alineado a la derecha como en la imagen
         javax.swing.JPanel btnVentasPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
         btnVentasPanel.setOpaque(false);
-        btnVentasPanel.setPreferredSize(new java.awt.Dimension(220, 32)); // Asegurar espacio para el botón
+        btnVentasPanel.setPreferredSize(new java.awt.Dimension(140, 26)); // Espacio reducido para el botón más pequeño
         btnVentasPanel.add(btnVentasDelDia);
         
         // Agregar botón al panel (debajo del total)
         totalAndButtonPanel.add(btnVentasPanel, java.awt.BorderLayout.SOUTH);
         
-        // Agregar botón Cobrar a la IZQUIERDA (WEST) - antes del panel de total y botón
-        topRightPanel.add(m_jPayNow, java.awt.BorderLayout.WEST);
-        
-        // Agregar panel de total y botón a la derecha (EAST)
+        // Agregar panel de total y botón cobrar al panel superior
         topRightPanel.add(totalAndButtonPanel, java.awt.BorderLayout.EAST);
         
-        // Agregar panel superior al rightPanel
-        rightPanel.add(topRightPanel, java.awt.BorderLayout.NORTH);
+        // Agregar panel superior al rightPanel en SOUTH para que esté pegado abajo
+        rightPanel.add(topRightPanel, java.awt.BorderLayout.SOUTH);
 
         // Agregar paneles al m_jPanelTotals usando BorderLayout
         // leftPanel completamente a la izquierda
@@ -3525,9 +3530,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Crear panel para "productos de la venta actual" justo arriba del panel de botones
         javax.swing.JPanel productosPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
         productosPanel.setOpaque(false);
-        productosPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(3, 0, 0, 0)); // Sin padding inferior, el espacio se manejará en el contenedor
+        productosPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding
         
-        m_jProductosVenta.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        m_jProductosVenta.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
         m_jProductosVenta.setForeground(new java.awt.Color(80, 80, 80));
         m_jProductosVenta.setText("0 productos en la venta actual.");
         productosPanel.add(m_jProductosVenta);
@@ -3538,8 +3543,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         bottomContainer.setOpaque(false);
         bottomContainer.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
         bottomContainer.add(productosPanel);
-        // Sebastian - Agregar espacio flexible entre productos y panel de botones para separarlos
-        bottomContainer.add(javax.swing.Box.createVerticalStrut(60)); // 60px de espacio entre productos y botones
+        // Sebastian - Reducir espacio entre productos y panel de botones para alinearlo todo abajo
+        bottomContainer.add(javax.swing.Box.createVerticalStrut(5)); // 5px mínimo de espacio entre productos y botones
         bottomContainer.add(m_jPanelTotals);
         
         // Sebastian - Crear un espacio flexible arriba que empuje el bottomContainer hacia abajo
@@ -3650,14 +3655,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPor.setRequestFocusEnabled(false);
 
         m_jKeyFactory.setEditable(true);
-        m_jKeyFactory.setFont(new java.awt.Font("Segoe UI", 0, 15)); // Fuente más grande para mejor legibilidad
+        m_jKeyFactory.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 22)); // Fuente Arial Bold más grande y gruesa para números más anchos
         m_jKeyFactory.setForeground(new java.awt.Color(33, 33, 33)); // Texto oscuro moderno
         m_jKeyFactory.setBackground(java.awt.Color.WHITE);
         m_jKeyFactory.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         m_jKeyFactory.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 10, 8, 10)); // Solo padding, sin borde
         m_jKeyFactory.setOpaque(true);
-        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(600, 44));
-        m_jKeyFactory.setMinimumSize(new java.awt.Dimension(400, 44));
+        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 44));
+        m_jKeyFactory.setMinimumSize(new java.awt.Dimension(350, 44));
+        m_jKeyFactory.setMaximumSize(new java.awt.Dimension(500, 44)); // Limitar el ancho máximo
         m_jKeyFactory.setAutoscrolls(true);
         m_jKeyFactory.setCaretColor(new java.awt.Color(52, 152, 219));
         m_jKeyFactory.setRequestFocusEnabled(true);
@@ -3694,8 +3700,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)));
         searchFieldContainer.setBackground(java.awt.Color.WHITE);
         searchFieldContainer.setOpaque(true);
-        searchFieldContainer.setPreferredSize(new java.awt.Dimension(600, 44)); // Más grande y alto
-        searchFieldContainer.setMinimumSize(new java.awt.Dimension(400, 44));
+        searchFieldContainer.setPreferredSize(new java.awt.Dimension(500, 44)); // Tamaño intermedio
+        searchFieldContainer.setMinimumSize(new java.awt.Dimension(350, 44));
+        searchFieldContainer.setMaximumSize(new java.awt.Dimension(500, 44)); // Limitar el ancho máximo
         
         // Panel para el icono con padding
         javax.swing.JPanel iconContainer = new javax.swing.JPanel();
@@ -3719,7 +3726,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Crear panel para la barra de búsqueda en la parte superior - OCUPA TODO EL ANCHO
         javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 20, 12, 20)); // Menos espacio superior, más cerca de la barra
+        searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 10, 12, 10)); // Padding reducido para barra más corta
         searchPanel.setBackground(new java.awt.Color(245, 245, 245)); // Fondo gris claro moderno
         searchPanel.setOpaque(true);
         
@@ -3732,107 +3739,52 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20) // Padding interno óptimo
         ));
         
-        // Sebastian - Label indicador de ticket arriba del escáner
-        javax.swing.JLabel lblTicketIndicator = new javax.swing.JLabel();
-        lblTicketIndicator.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
-        lblTicketIndicator.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        lblTicketIndicator.setText("VENTA - Ticket 1"); // Se actualizará dinámicamente
-        lblTicketIndicator.setForeground(java.awt.Color.WHITE);
-        lblTicketIndicator.setBackground(new java.awt.Color(52, 152, 219)); // Azul moderno
-        lblTicketIndicator.setOpaque(true);
-        lblTicketIndicator.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
-        lblTicketIndicator.setPreferredSize(new java.awt.Dimension(180, 32));
+        // Sebastian - Panel indicador de ticket con diseño elegante tipo eleventa (gradiente)
+        javax.swing.JPanel lblTicketIndicator = new javax.swing.JPanel() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                
+                // Crear gradiente horizontal suave tipo eleventa
+                java.awt.Color colorInicio = new java.awt.Color(70, 130, 180); // Azul acero más suave
+                java.awt.Color colorFin = new java.awt.Color(52, 152, 219); // Azul moderno
+                java.awt.LinearGradientPaint gradient = new java.awt.LinearGradientPaint(
+                    0, 0, getWidth(), 0,
+                    new float[]{0.0f, 1.0f},
+                    new java.awt.Color[]{colorInicio, colorFin}
+                );
+                
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, getWidth(), getHeight()); // Bordes cuadrados elegantes como eleventa
+                
+                g2d.dispose();
+            }
+        };
+        lblTicketIndicator.setLayout(new java.awt.BorderLayout());
+        lblTicketIndicator.setOpaque(false);
+        // Sin tamaño preferido para que se extienda a todo el ancho
         
-        // Panel para el indicador de ticket y botones de atajos
+        // Label con el texto sobre el panel con gradiente
+        javax.swing.JLabel lblTicketText = new javax.swing.JLabel("VENTA - Ticket 1");
+        lblTicketText.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        lblTicketText.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        lblTicketText.setForeground(java.awt.Color.WHITE);
+        lblTicketText.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        lblTicketText.setOpaque(false);
+        
+        lblTicketIndicator.add(lblTicketText, java.awt.BorderLayout.CENTER);
+        
+        // Panel para el indicador de ticket que se extiende a todo el ancho (como eleventa)
         javax.swing.JPanel ticketIndicatorPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         ticketIndicatorPanel.setOpaque(false);
         ticketIndicatorPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
         
-        // Panel izquierdo con el indicador de ticket
-        javax.swing.JPanel leftIndicatorPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 0, 0));
-        leftIndicatorPanel.setOpaque(false);
-        leftIndicatorPanel.add(lblTicketIndicator);
+        // El indicador de ticket ocupa todo el ancho
+        ticketIndicatorPanel.add(lblTicketIndicator, java.awt.BorderLayout.CENTER);
         
-        // Panel derecho con botones de atajos
-        javax.swing.JPanel shortcutButtonsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 5, 0));
-        shortcutButtonsPanel.setOpaque(false);
-        
-        // Estilo común para botones de atajos
-        java.awt.Color shortcutBg = new java.awt.Color(52, 152, 219); // Azul
-        java.awt.Color shortcutFg = java.awt.Color.WHITE;
-        java.awt.Font shortcutFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11);
-        
-        // F2 - Cliente
-        javax.swing.JButton btnF2 = new javax.swing.JButton("F2 Cliente");
-        btnF2.setFont(shortcutFont);
-        btnF2.setBackground(shortcutBg);
-        btnF2.setForeground(shortcutFg);
-        btnF2.setFocusPainted(false);
-        btnF2.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
-        btnF2.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnF2.setPreferredSize(new java.awt.Dimension(100, 32));
-        btnF2.addActionListener(e -> {
-            if (jBtnCustomer != null && jBtnCustomer.isEnabled()) {
-                jBtnCustomer.doClick();
-            }
-        });
-        shortcutButtonsPanel.add(btnF2);
-        
-        // F3 - Historial
-        javax.swing.JButton btnF3 = new javax.swing.JButton("F3 Historial");
-        btnF3.setFont(shortcutFont);
-        btnF3.setBackground(shortcutBg);
-        btnF3.setForeground(shortcutFg);
-        btnF3.setFocusPainted(false);
-        btnF3.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
-        btnF3.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnF3.setPreferredSize(new java.awt.Dimension(110, 32));
-        btnF3.addActionListener(e -> {
-            if (m_ticketsbag != null) {
-                m_ticketsbag.activate();
-            }
-        });
-        shortcutButtonsPanel.add(btnF3);
-        
-        // F4 - Nueva Venta
-        javax.swing.JButton btnF4 = new javax.swing.JButton("F4 Nueva");
-        btnF4.setFont(shortcutFont);
-        btnF4.setBackground(shortcutBg);
-        btnF4.setForeground(shortcutFg);
-        btnF4.setFocusPainted(false);
-        btnF4.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
-        btnF4.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnF4.setPreferredSize(new java.awt.Dimension(95, 32));
-        btnF4.addActionListener(e -> {
-            createNewTicket();
-        });
-        shortcutButtonsPanel.add(btnF4);
-        
-        // F12 - Cobrar (verde destacado)
-        javax.swing.JButton btnF12 = new javax.swing.JButton("F12 Cobrar");
-        btnF12.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
-        btnF12.setBackground(new java.awt.Color(46, 204, 113)); // Verde
-        btnF12.setForeground(java.awt.Color.WHITE);
-        btnF12.setFocusPainted(false);
-        btnF12.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 15, 6, 15));
-        btnF12.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnF12.setPreferredSize(new java.awt.Dimension(110, 32));
-        btnF12.addActionListener(e -> {
-            if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
-                if (m_jPayNow != null && m_jPayNow.isEnabled()) {
-                    m_jPayNow.doClick();
-                }
-            } else {
-                java.awt.Toolkit.getDefaultToolkit().beep();
-            }
-        });
-        shortcutButtonsPanel.add(btnF12);
-        
-        ticketIndicatorPanel.add(leftIndicatorPanel, java.awt.BorderLayout.WEST);
-        ticketIndicatorPanel.add(shortcutButtonsPanel, java.awt.BorderLayout.EAST);
-        
-        // Guardar referencia para actualizar dinámicamente
-        this.m_jTicketIndicator = lblTicketIndicator;
+        // Guardar referencia al label de texto para actualizar dinámicamente
+        this.m_jTicketIndicator = lblTicketText;
         
         scannerContainerPanel.add(ticketIndicatorPanel, java.awt.BorderLayout.NORTH);
         
@@ -3860,13 +3812,20 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
         
-        // Panel para centrar verticalmente el botón
-        javax.swing.JPanel btnPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0));
-        btnPanel.setOpaque(false);
-        btnPanel.add(btnAgregarProducto);
+        // Label "Código del Producto" antes de la barra de búsqueda - Tipografía moderna y decorativa
+        javax.swing.JLabel lblCodigoProducto = new javax.swing.JLabel("Código del Producto");
+        lblCodigoProducto.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 13)); // Fuente moderna en cursiva
+        lblCodigoProducto.setForeground(new java.awt.Color(100, 100, 120)); // Color gris elegante y moderno
+        lblCodigoProducto.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 8)); // Espacio antes de la barra
         
-        scannerInputPanel.add(searchFieldContainer, java.awt.BorderLayout.CENTER);
-        scannerInputPanel.add(btnPanel, java.awt.BorderLayout.EAST);
+        // Panel wrapper para el label, la barra de búsqueda y el botón ENTER juntos
+        javax.swing.JPanel searchWrapper = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 10, 0));
+        searchWrapper.setOpaque(false);
+        searchWrapper.add(lblCodigoProducto);
+        searchWrapper.add(searchFieldContainer);
+        searchWrapper.add(btnAgregarProducto); // Botón ENTER justo al lado de la barra
+        
+        scannerInputPanel.add(searchWrapper, java.awt.BorderLayout.WEST);
         
         // jPanelScanner debe tener fondo blanco también para estar dentro de la sección
         jPanelScanner.setBackground(java.awt.Color.WHITE);
@@ -3992,22 +3951,22 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         });
         actionButtonsPanel.add(btnSalidas);
         
-        // Botón Borrar Artículo
-        javax.swing.JButton btnBorrarArt = new javax.swing.JButton("DEL Borrar Art.");
-        btnBorrarArt.setPreferredSize(new java.awt.Dimension(115, btnHeight));
-        btnBorrarArt.setFont(btnFont);
-        btnBorrarArt.setFocusPainted(false);
-        btnBorrarArt.setBackground(btnBg);
-        btnBorrarArt.setForeground(btnFg);
-        btnBorrarArt.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+        // Botón F4 - Nueva Venta (reemplaza DEL Borrar Art.)
+        javax.swing.JButton btnF4Nueva = new javax.swing.JButton("F4 Nueva");
+        btnF4Nueva.setPreferredSize(new java.awt.Dimension(100, btnHeight));
+        btnF4Nueva.setFont(btnFont);
+        btnF4Nueva.setFocusPainted(false);
+        btnF4Nueva.setBackground(btnBg);
+        btnF4Nueva.setForeground(btnFg);
+        btnF4Nueva.setBorder(javax.swing.BorderFactory.createCompoundBorder(
             javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
             javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
         ));
-        btnBorrarArt.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnBorrarArt.addActionListener(e -> {
-            m_jDeleteActionPerformed(null);
+        btnF4Nueva.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnF4Nueva.addActionListener(e -> {
+            createNewTicket();
         });
-        actionButtonsPanel.add(btnBorrarArt);
+        actionButtonsPanel.add(btnF4Nueva);
         
         // Botones de la barra lateral movidos aquí
         // (Botón ID Cliente movido a la parte inferior)
@@ -4870,29 +4829,25 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             System.out.println("🛒 PROCESAMIENTO REAL - Cálculo: " + tramosCompletos + " × "
                     + config.getPuntosOtorgados() + " = " + puntosAOtorgar + " puntos");
 
-            if (puntosAOtorgar <= 0) {
-                LOGGER.log(System.Logger.Level.DEBUG,
-                        String.format("No se otorgan puntos: total acumulable=%.2f, configuración=%.2f %s = %d puntos",
-                                totalAcumulable, config.getMontoPorPunto(), config.getMoneda(),
-                                config.getPuntosOtorgados()));
-                return;
-            }
-
             // Crear descripción de la transacción
             String descripcion = String.format("Venta automática #%d - Total acumulable: $%.2f %s",
                     ticket.getTicketId(),
                     totalAcumulable,
                     config.getMoneda());
 
-            // Otorgar puntos al cliente
+            // IMPORTANTE: SIEMPRE llamar a agregarPuntosPorCompra, incluso si puntosAOtorgar <= 0
+            // porque este método maneja el acumulable diario y puede otorgar puntos cuando
+            // el acumulable total del día alcanza el umbral
             String clienteId = cliente.getId();
-            puntosDataLogic.agregarPuntosPorCompra(clienteId, totalAcumulable, descripcion);
-
-            // Log exitoso
-            LOGGER.log(System.Logger.Level.INFO,
-                    String.format(
-                            "✅ PUNTOS OTORGADOS AUTOMÁTICAMENTE: Cliente=%s, Total acumulable=$%.2f, Puntos=%d, Desc='%s'",
-                            clienteId, totalAcumulable, puntosAOtorgar, descripcion));
+            System.out.println("🔄 LLAMANDO agregarPuntosPorCompra - Cliente: " + clienteId + ", Monto: $" + totalAcumulable);
+            try {
+                puntosDataLogic.agregarPuntosPorCompra(clienteId, totalAcumulable, descripcion);
+                System.out.println("✅ agregarPuntosPorCompra completado exitosamente");
+            } catch (Exception ex) {
+                System.err.println("❌ ERROR en agregarPuntosPorCompra: " + ex.getMessage());
+                ex.printStackTrace();
+                LOGGER.log(System.Logger.Level.ERROR, "Error otorgando puntos: ", ex);
+            }
 
             // Mostrar notificación opcional al usuario (comentada por defecto)
             /*

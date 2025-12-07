@@ -44,6 +44,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private Icon menu_close;
 
     private final JRootMenu rMenu;
+    
+    // Referencias a botones principales para atajos de teclado
+    private javax.swing.JButton btnVentasRef;
+    private javax.swing.JButton btnCierreRef;
+    private javax.swing.JButton btnInventarioRef;
+    private javax.swing.JButton btnReportesRef;
 
     /**
      * Creates a JPanel
@@ -111,6 +117,9 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
         addView(new JPanel(), "<NULL>");
         showView("<NULL>");
+        
+        // Configurar atajos de teclado globales después de inicializar todo
+        setupGlobalKeyboardShortcuts();
 
     }
 
@@ -427,12 +436,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         // ========== MENU.MAIN - Elementos principales ==========
         // Botón Ventas (Menu.Ticket) - Solo mostrar si tiene permiso
         if (m_appuser.hasPermission("com.openbravo.pos.sales.JPanelTicketSales")) {
-            javax.swing.JButton btnVentas = createMenuButton(
+            btnVentasRef = createMenuButton(
                     "/com/openbravo/images/sale.png",
-                    AppLocal.getIntString("Menu.Ticket"),
+                    "F1 " + AppLocal.getIntString("Menu.Ticket"),
                     "com.openbravo.pos.sales.JPanelTicketSales",
-                    new java.awt.Color(231, 76, 60)); // Rojo atractivo
-            leftMenuPanel.add(btnVentas);
+                    new java.awt.Color(52, 152, 219)); // Azul (igual que Cerrar Caja)
+            leftMenuPanel.add(btnVentasRef);
         }
 
         // Botón Pagos de Clientes (Menu.CustomersPayment) - Solo mostrar si tiene permiso
@@ -446,22 +455,15 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         // Botón Cierre de Caja (Menu.CloseTPV) - Solo mostrar si tiene permiso
         if (m_appuser.hasPermission("com.openbravo.pos.panels.JPanelCloseMoney")) {
-            javax.swing.JButton btnCierre = createMenuButton(
+            btnCierreRef = createMenuButton(
                     "/com/openbravo/images/calculator.png",
-                    AppLocal.getIntString("Menu.CloseTPV"),
+                    "F2 " + AppLocal.getIntString("Menu.CloseTPV"),
                     "com.openbravo.pos.panels.JPanelCloseMoney",
                     new java.awt.Color(52, 152, 219)); // Azul atractivo
-            leftMenuPanel.add(btnCierre);
+            leftMenuPanel.add(btnCierreRef);
         }
 
-        // Botón Gestión de Sucursales (Menu.BranchesManagement) - Solo mostrar si tiene permiso
-        if (m_appuser.hasPermission("com.openbravo.pos.branches.JPanelBranchesManagement")) {
-            javax.swing.JButton btnSucursales = createMenuButton(
-                    "/com/openbravo/images/user.png",
-                    AppLocal.getIntString("Menu.BranchesManagement"),
-                    "com.openbravo.pos.branches.JPanelBranchesManagement");
-            leftMenuPanel.add(btnSucursales);
-        }
+        // Botón Gestión de Sucursales eliminado de la barra superior - ahora está dentro de Mantenimiento
 
         // ========== MENU.BACKOFFICE - Submenús ==========
         // Botón Clientes (Menu.Customers - submenu) - Solo mostrar si tiene permiso
@@ -484,12 +486,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         // Botón Gestión de Inventario (Menu.StockManagement - submenu) - Solo mostrar si tiene permiso
         if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuStockManagement")) {
-            javax.swing.JButton btnInventario = createMenuButton(
+            btnInventarioRef = createMenuButton(
                     "/com/openbravo/images/products.png",
-                    AppLocal.getIntString("Menu.StockManagement"),
+                    "F3 " + AppLocal.getIntString("Menu.StockManagement"),
                     "com.openbravo.pos.forms.MenuStockManagement",
-                    new java.awt.Color(46, 204, 113)); // Verde atractivo
-            leftMenuPanel.add(btnInventario);
+                    new java.awt.Color(52, 152, 219)); // Azul (igual que Cerrar Caja)
+            leftMenuPanel.add(btnInventarioRef);
         }
 
         // Botón Gestión de Ventas (Menu.SalesManagement - submenu) - Solo mostrar si tiene permiso
@@ -499,7 +501,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     "/com/openbravo/images/sales.png",
                     "Gestión Ventas", // Texto más descriptivo para distinguirlo
                     "com.openbravo.pos.forms.MenuSalesManagement",
-                    new java.awt.Color(241, 196, 15)); // Amarillo/dorado atractivo
+                    null); // Sin color especial
             leftMenuPanel.add(btnVentasManagement);
         }
 
@@ -511,6 +513,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     "com.openbravo.pos.forms.MenuMaintenance");
             leftMenuPanel.add(btnMantenimiento);
         }
+        // Botón Herramientas eliminado de la barra superior - ahora está dentro de Mantenimiento
 
         // Botón Gestión de Presencia (Menu.PresenceManagement - submenu) - Solo mostrar si tiene permiso
         if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuEmployees")) {
@@ -519,16 +522,6 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     AppLocal.getIntString("Menu.PresenceManagement"),
                     "com.openbravo.pos.forms.MenuEmployees");
             leftMenuPanel.add(btnPresencia);
-        }
-
-        // ========== MENU.UTILITIES ==========
-        // Botón Herramientas (Menu.Tools - submenu) - Solo mostrar si tiene permiso
-        if (m_appuser.hasPermission("com.openbravo.pos.imports.JPanelCSV")) {
-            javax.swing.JButton btnHerramientas = createMenuButton(
-                    "/com/openbravo/images/utilities.png",
-                    AppLocal.getIntString("Menu.Tools"),
-                    "com.openbravo.pos.imports.JPanelCSV");
-            leftMenuPanel.add(btnHerramientas);
         }
 
         // ========== MENU.SYSTEM ==========
@@ -554,12 +547,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         // Botón Reportes (Menu.Reports) - Solo mostrar si tiene permiso
         if (m_appuser.hasPermission("com.openbravo.pos.reports.JPanelGraphics")) {
-            javax.swing.JButton btnReportes = createMenuButton(
+            btnReportesRef = createMenuButton(
                     null, // Sin icono
-                    AppLocal.getIntString("Menu.Reports"),
+                    "F4 " + AppLocal.getIntString("Menu.Reports"),
                     "com.openbravo.pos.reports.JPanelGraphics",
-                    new java.awt.Color(155, 89, 182)); // Morado atractivo
-            leftMenuPanel.add(btnReportes);
+                    new java.awt.Color(52, 152, 219)); // Azul (igual que Cerrar Caja)
+            leftMenuPanel.add(btnReportesRef);
         }
 
         // Sebastian - Label de puntos del cliente (al lado del botón Salir)
@@ -700,6 +693,72 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         return button;
     }
 
+    /**
+     * Configura los atajos de teclado globales para los botones principales
+     * F1: Ventas
+     * F2: Cerrar Caja
+     * F3: Stock (Gestión de Inventario)
+     * F4: Reportes
+     */
+    private void setupGlobalKeyboardShortcuts() {
+        javax.swing.InputMap inputMap = this.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);
+        javax.swing.ActionMap actionMap = this.getActionMap();
+        
+        // F1: Ventas
+        if (btnVentasRef != null) {
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0), "shortcutVentas");
+            actionMap.put("shortcutVentas", new javax.swing.AbstractAction() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent e) {
+                    if (btnVentasRef != null && btnVentasRef.isEnabled()) {
+                        btnVentasRef.doClick();
+                    }
+                }
+            });
+        }
+        
+        // F2: Cerrar Caja
+        if (btnCierreRef != null) {
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0), "shortcutCierre");
+            actionMap.put("shortcutCierre", new javax.swing.AbstractAction() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent e) {
+                    if (btnCierreRef != null && btnCierreRef.isEnabled()) {
+                        btnCierreRef.doClick();
+                    }
+                }
+            });
+        }
+        
+        // F3: Stock (Gestión de Inventario)
+        if (btnInventarioRef != null) {
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F3, 0), "shortcutInventario");
+            actionMap.put("shortcutInventario", new javax.swing.AbstractAction() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent e) {
+                    if (btnInventarioRef != null && btnInventarioRef.isEnabled()) {
+                        btnInventarioRef.doClick();
+                    }
+                }
+            });
+        }
+        
+        // F4: Reportes
+        if (btnReportesRef != null) {
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0), "shortcutReportes");
+            actionMap.put("shortcutReportes", new javax.swing.AbstractAction() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent e) {
+                    if (btnReportesRef != null && btnReportesRef.isEnabled()) {
+                        btnReportesRef.doClick();
+                    }
+                }
+            });
+        }
+        
+        LOGGER.log(Level.INFO, "✅ Atajos de teclado globales configurados: F1=Ventas, F2=Cerrar Caja, F3=Stock, F4=Reportes");
+    }
+    
     /**
      * Convierte el ID del rol (0, 1, 2, 3...) al nombre del rol (ADMIN, MANAGER,
      * Employee)
