@@ -285,22 +285,26 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
             jPanel3.setPreferredSize(new Dimension(10, 10));
         }
         
-        // 3. Hacer que ambos campos de visualización sean más grandes
-        Dimension fieldSize = new Dimension(400, 60);
+        // Sebastian - Campos estilo Eleventa (tamaño moderado)
+        Dimension fieldSize = new Dimension(350, 50);
         
         if (m_jMoneyEuros != null) {
             m_jMoneyEuros.setPreferredSize(fieldSize);
             m_jMoneyEuros.setMinimumSize(fieldSize);
             m_jMoneyEuros.setMaximumSize(fieldSize);
             
-            // Fuente más grande y negrita
+            // Fuente tamaño moderado estilo Eleventa
             Font currentFont = m_jMoneyEuros.getFont();
-            m_jMoneyEuros.setFont(new Font(currentFont.getName(), Font.BOLD, 28));
+            m_jMoneyEuros.setFont(new Font(currentFont.getName(), Font.BOLD, 26));
             
-            // Borde verde más visible
+            // Sebastian - Fondo blanco y texto negro estilo Eleventa (sin verde)
+            m_jMoneyEuros.setBackground(java.awt.Color.WHITE);
+            m_jMoneyEuros.setForeground(java.awt.Color.BLACK);
+            
+            // Sebastian - Borde gris neutro estilo Eleventa (sin verde)
             m_jMoneyEuros.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new java.awt.Color(34, 197, 94), 3),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                BorderFactory.createLineBorder(new java.awt.Color(220, 220, 220), 1),
+                BorderFactory.createEmptyBorder(12, 15, 12, 15)
             ));
         }
         
@@ -309,38 +313,42 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
             m_jChangeEuros.setMinimumSize(fieldSize);
             m_jChangeEuros.setMaximumSize(fieldSize);
             
-            // Fuente más grande y negrita
+            // Fuente tamaño moderado estilo Eleventa
             Font currentFont = m_jChangeEuros.getFont();
-            m_jChangeEuros.setFont(new Font(currentFont.getName(), Font.BOLD, 28));
+            m_jChangeEuros.setFont(new Font(currentFont.getName(), Font.BOLD, 26));
             
-            // Borde amarillo más visible
+            // Sebastian - Fondo blanco y texto negro estilo Eleventa
+            m_jChangeEuros.setBackground(java.awt.Color.WHITE);
+            m_jChangeEuros.setForeground(java.awt.Color.BLACK);
+            
+            // Sebastian - Borde gris neutro estilo Eleventa (sin amarillo)
             m_jChangeEuros.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(new java.awt.Color(234, 179, 8), 3),
-                BorderFactory.createEmptyBorder(10, 15, 10, 15)
+                BorderFactory.createLineBorder(new java.awt.Color(220, 220, 220), 1),
+                BorderFactory.createEmptyBorder(12, 15, 12, 15)
             ));
         }
         
-        // Ajustar el panel contenedor y reposicionar los componentes
+        // Sebastian - Panel estilo Eleventa (tamaño moderado)
         if (jPanel4 != null) {
-            // Hacer el panel más alto para acomodar los campos más grandes
-            jPanel4.setPreferredSize(new Dimension(500, 140));
+            // Panel con tamaño moderado
+            jPanel4.setPreferredSize(new Dimension(450, 110));
             
-            // Reposicionar los componentes con las posiciones absolutas correctas
+            // Reposicionar los componentes
             if (m_jMoneyEuros != null) {
-                m_jMoneyEuros.setBounds(120, 10, 400, 60);
+                m_jMoneyEuros.setBounds(100, 10, 350, 45);
             }
             
             if (m_jChangeEuros != null) {
-                m_jChangeEuros.setBounds(120, 75, 400, 60);
+                m_jChangeEuros.setBounds(100, 60, 350, 45);
             }
             
             // Reposicionar las etiquetas también
             if (jLabel8 != null) { // "InputCash"
-                jLabel8.setBounds(10, 10, 100, 60);
+                jLabel8.setBounds(10, 10, 90, 45);
             }
             
             if (jLabel6 != null) { // "ChangeCash"
-                jLabel6.setBounds(10, 75, 100, 60);
+                jLabel6.setBounds(10, 60, 90, 45);
             }
         }
     }
@@ -415,10 +423,15 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
         jPanel4.setPreferredSize(new java.awt.Dimension(450, 70));
         jPanel4.setLayout(null);
 
-        m_jChangeEuros.setBackground(new java.awt.Color(255, 255, 255));
+        // Sebastian - Fondo blanco y texto negro estilo Eleventa
+        m_jChangeEuros.setBackground(java.awt.Color.WHITE);
+        m_jChangeEuros.setForeground(java.awt.Color.BLACK);
         m_jChangeEuros.setFont(m_jChangeEuros.getFont().deriveFont(m_jChangeEuros.getFont().getSize()+5f));
         m_jChangeEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        m_jChangeEuros.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
+        // Sebastian - Borde gris neutro estilo Eleventa
+        m_jChangeEuros.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1),
+            javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12)));
         m_jChangeEuros.setOpaque(true);
         m_jChangeEuros.setPreferredSize(new java.awt.Dimension(180, 30));
         jPanel4.add(m_jChangeEuros);
@@ -436,10 +449,15 @@ public class JPaymentCashPos extends javax.swing.JPanel implements JPaymentInter
         jPanel4.add(jLabel8);
         jLabel8.setBounds(10, 4, 100, 30);
 
-        m_jMoneyEuros.setBackground(new java.awt.Color(204, 255, 51));
+        // Sebastian - Fondo blanco estilo Eleventa (sin verde)
+        m_jMoneyEuros.setBackground(java.awt.Color.WHITE);
+        m_jMoneyEuros.setForeground(java.awt.Color.BLACK); // Texto negro (sin verde)
         m_jMoneyEuros.setFont(m_jMoneyEuros.getFont().deriveFont(m_jMoneyEuros.getFont().getSize()+5f));
         m_jMoneyEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
-        m_jMoneyEuros.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
+        // Sebastian - Borde gris neutro estilo Eleventa
+        m_jMoneyEuros.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1),
+            javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12)));
         m_jMoneyEuros.setOpaque(true);
         m_jMoneyEuros.setPreferredSize(new java.awt.Dimension(180, 30));
         jPanel4.add(m_jMoneyEuros);

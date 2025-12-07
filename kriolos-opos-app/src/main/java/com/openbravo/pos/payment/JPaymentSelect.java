@@ -576,15 +576,13 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
         // Actualizar el campo de restante en tiempo real
         m_jRemaininglEuros.setText(Formats.CURRENCY.formatValue(remaining));
         
-        // Cambiar el color según si falta dinero o hay cambio
+        // Sebastian - Colores estilo Eleventa: negro siempre, sin verde ni colores extraños
+        // Solo rojo si falta dinero, negro en cualquier otro caso (como Eleventa)
         if (remaining > 0.01) {
             // Falta dinero - color rojo
             m_jRemaininglEuros.setForeground(new java.awt.Color(220, 38, 38)); // Rojo
-        } else if (remaining < -0.01) {
-            // Hay cambio - color verde
-            m_jRemaininglEuros.setForeground(new java.awt.Color(22, 163, 74)); // Verde
         } else {
-            // Pago exacto - color normal
+            // Pago exacto, cambio o sobrepago - siempre negro (sin verde)
             m_jRemaininglEuros.setForeground(java.awt.Color.BLACK);
         }
     }
@@ -619,34 +617,40 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
         jlblPrinterStatus = new javax.swing.JLabel();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DISPOSE_ON_CLOSE);
-        setTitle(AppLocal.getIntString("payment.title")); // NOI18N
-        setMaximumSize(new java.awt.Dimension(800, 600));
-        setMinimumSize(new java.awt.Dimension(600, 400));
-        setPreferredSize(new java.awt.Dimension(600, 400));
-        setResizable(false);
+        setTitle("Venta de Productos: Cobrar"); // Sebastian - Título estilo Eleventa
+        setMaximumSize(new java.awt.Dimension(900, 600));
+        setMinimumSize(new java.awt.Dimension(650, 450));
+        setPreferredSize(new java.awt.Dimension(800, 520));
+        setResizable(true); // Sebastian - Permitir redimensionar para mejor adaptación
 
         jPanel4.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
 
-        m_jLblTotalEuros1.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
-        m_jLblTotalEuros1.setText(AppLocal.getIntString("label.totalcash")); // NOI18N
-        m_jLblTotalEuros1.setPreferredSize(new java.awt.Dimension(100, 30));
+        // Sebastian - Etiqueta oculta, el total se muestra solo con el número grande
+        m_jLblTotalEuros1.setFont(new java.awt.Font("Arial", 0, 16)); // NOI18N
+        m_jLblTotalEuros1.setText(""); // Sebastian - Sin etiqueta, solo el número grande
+        m_jLblTotalEuros1.setPreferredSize(new java.awt.Dimension(0, 0));
+        m_jLblTotalEuros1.setVisible(false);
 
-        m_jTotalEuros.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
+        // Sebastian - Total en azul estilo Eleventa
+        m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 40)); // NOI18N - Tamaño moderado
         m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        m_jTotalEuros.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
-        m_jTotalEuros.setOpaque(true);
-        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jTotalEuros.setForeground(new java.awt.Color(52, 152, 219)); // Azul estilo Eleventa
+        m_jTotalEuros.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 15, 10, 15));
+        m_jTotalEuros.setOpaque(false);
+        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(220, 50));
         m_jTotalEuros.setRequestFocusEnabled(false);
 
-        m_jLblRemainingEuros.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
-        m_jLblRemainingEuros.setText(AppLocal.getIntString("label.remainingcash")); // NOI18N
-        m_jLblRemainingEuros.setPreferredSize(new java.awt.Dimension(120, 30));
+        // Sebastian - "Restante" estilo Eleventa
+        m_jLblRemainingEuros.setFont(new java.awt.Font("Arial", 0, 15)); // NOI18N
+        m_jLblRemainingEuros.setText("Restante:"); // Sebastian - Texto directo estilo Eleventa
+        m_jLblRemainingEuros.setPreferredSize(new java.awt.Dimension(90, 22));
 
-        m_jRemaininglEuros.setFont(new java.awt.Font("Arial", 0, 24)); // NOI18N
+        m_jRemaininglEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18)); // NOI18N
         m_jRemaininglEuros.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        m_jRemaininglEuros.setBorder(javax.swing.BorderFactory.createCompoundBorder(javax.swing.BorderFactory.createLineBorder(javax.swing.UIManager.getDefaults().getColor("Button.darkShadow")), javax.swing.BorderFactory.createEmptyBorder(1, 4, 1, 4)));
-        m_jRemaininglEuros.setOpaque(true);
-        m_jRemaininglEuros.setPreferredSize(new java.awt.Dimension(150, 30));
+        m_jRemaininglEuros.setForeground(java.awt.Color.BLACK); // Siempre negro, sin verde
+        m_jRemaininglEuros.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 10, 4, 10));
+        m_jRemaininglEuros.setOpaque(false);
+        m_jRemaininglEuros.setPreferredSize(new java.awt.Dimension(130, 28));
         m_jRemaininglEuros.setRequestFocusEnabled(false);
 
         jPanel6.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 5, 0));
@@ -671,45 +675,43 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
             }
         });
 
+        // Sebastian - Layout reorganizado estilo Eleventa: total arriba, restante abajo
         javax.swing.GroupLayout jPanel4Layout = new javax.swing.GroupLayout(jPanel4);
         jPanel4.setLayout(jPanel4Layout);
+        jPanel4.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 18, 15, 18));
         jPanel4Layout.setHorizontalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel4Layout.createSequentialGroup()
-                .addGap(5, 5, 5)
-                .addComponent(m_jLblTotalEuros1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(m_jTotalEuros, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addGroup(jPanel4Layout.createSequentialGroup()
-                        .addComponent(m_jLblRemainingEuros, javax.swing.GroupLayout.PREFERRED_SIZE, 120, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(m_jLblRemainingEuros, javax.swing.GroupLayout.PREFERRED_SIZE, 80, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(m_jRemaininglEuros, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                .addGap(18, 18, 18)
+                        .addComponent(m_jRemaininglEuros, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20)
                 .addComponent(m_jButtonAdd, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(m_jButtonRemove, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(4, 4, 4))
+                .addComponent(m_jButtonRemove, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
         );
         jPanel4Layout.setVerticalGroup(
             jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
-                .addGap(0, 0, Short.MAX_VALUE)
+            .addGroup(jPanel4Layout.createSequentialGroup()
                 .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(m_jButtonRemove, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jButtonAdd, javax.swing.GroupLayout.Alignment.TRAILING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-            .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanel4Layout.createSequentialGroup()
-                .addGap(5, 5, 5)
-                .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(m_jTotalEuros, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(m_jLblTotalEuros1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jRemaininglEuros, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(m_jLblRemainingEuros, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(m_jTotalEuros, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap())
+                            .addComponent(m_jRemaininglEuros, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                    .addGroup(jPanel4Layout.createSequentialGroup()
+                        .addComponent(jPanel6, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(jPanel4Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                            .addComponent(m_jButtonAdd, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                            .addComponent(m_jButtonRemove, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
         getContentPane().add(jPanel4, java.awt.BorderLayout.NORTH);
@@ -795,7 +797,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
 
         getContentPane().add(jPanel5, java.awt.BorderLayout.SOUTH);
 
-        setSize(new java.awt.Dimension(758, 497));
+        setSize(new java.awt.Dimension(800, 520)); // Sebastian - Tamaño moderado
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
