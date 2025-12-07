@@ -514,15 +514,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             leftMenuPanel.add(btnMantenimiento);
         }
         // Botón Herramientas eliminado de la barra superior - ahora está dentro de Mantenimiento
-
-        // Botón Gestión de Presencia (Menu.PresenceManagement - submenu) - Solo mostrar si tiene permiso
-        if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuEmployees")) {
-            javax.swing.JButton btnPresencia = createMenuButton(
-                    "/com/openbravo/images/users.png",
-                    AppLocal.getIntString("Menu.PresenceManagement"),
-                    "com.openbravo.pos.forms.MenuEmployees");
-            leftMenuPanel.add(btnPresencia);
-        }
+        // Botón Gestión de Presencia eliminado de la barra superior
 
         // ========== MENU.SYSTEM ==========
         // Botón Cambiar Contraseña movido a Configuración > General

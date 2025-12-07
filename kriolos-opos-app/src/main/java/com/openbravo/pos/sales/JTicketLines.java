@@ -119,6 +119,13 @@ public class JTicketLines extends javax.swing.JPanel {
         JTableHeader header = m_jTicketTable.getTableHeader();
         header.setFont(f);
         
+        // Eliminar espacio entre header y tabla para mejor alineación
+        m_jTicketTable.setIntercellSpacing(new java.awt.Dimension(0, 0)); // Sin espacio entre celdas
+        m_jTicketTable.setRowMargin(0); // Sin margen entre filas
+        
+        // Eliminar bordes y espacios del header para perfecta alineación
+        header.setBorder(javax.swing.BorderFactory.createEmptyBorder());
+        
         // Configurar renderer personalizado para el header que pinte fondo azul claro en columnas de código de barras y precio
         header.setDefaultRenderer(new HeaderCellRenderer(acolumns));
 
@@ -405,20 +412,28 @@ public class JTicketLines extends javax.swing.JPanel {
             String columnName = com.openbravo.pos.forms.AppLocal.getIntString(m_acolumns[column].name);
             String columnKey = m_acolumns[column].name;
             
-            // Verificar si es columna de código de barras o precio
+            // Verificar si es columna de código de barras o precio usando las claves exactas
             boolean isBarcodeColumn = columnKey != null && (
+                "label.prodbarcode".equals(columnKey) ||
                 columnKey.contains("barcode") || 
                 columnKey.contains("code") ||
-                columnName.toLowerCase().contains("código de barras") ||
-                columnName.toLowerCase().contains("codigo de barras")
+                (columnName != null && (columnName.toLowerCase().contains("código de barras") || 
+                                      columnName.toLowerCase().contains("codigo de barras")))
             );
             boolean isPriceColumn = columnKey != null && (
+                "label.price".equals(columnKey) ||
                 columnKey.contains("price") ||
-                columnName.toLowerCase().contains("precio")
+                (columnName != null && columnName.toLowerCase().contains("precio"))
             );
             
             // Asegurarse de que el componente sea opaco para que se vea el fondo
             aux.setOpaque(true);
+            
+            // Sin bordes para perfecta alineación con el header
+            aux.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
+            
+            // Color azul uniforme como Eleventa
+            java.awt.Color azulColumnas = new java.awt.Color(220, 235, 245);
             
             // Colores estilo Eleventa
             if (isSelected) {
@@ -427,7 +442,7 @@ public class JTicketLines extends javax.swing.JPanel {
             } else {
                 // Aplicar fondo azul claro a columnas de código de barras y precio (siempre, incluso en celdas vacías)
                 if (isBarcodeColumn || isPriceColumn) {
-                    aux.setBackground(new java.awt.Color(220, 235, 245)); // Azul claro suave
+                    aux.setBackground(azulColumnas); // Azul claro uniforme
                     aux.setForeground(java.awt.Color.BLACK);
                 } else {
                     aux.setBackground(java.awt.Color.WHITE);
@@ -662,7 +677,7 @@ public class JTicketLines extends javax.swing.JPanel {
 
         m_jTicketTable.setFont(new java.awt.Font("Segoe UI", 0, 20)); // Fuente moderna y números grandes
         m_jTicketTable.setFocusable(false);
-        m_jTicketTable.setIntercellSpacing(new java.awt.Dimension(0, 1));
+        // setIntercellSpacing ya está configurado arriba (0, 0) para mejor alineación
         m_jTicketTable.setRequestFocusEnabled(false);
         m_jTicketTable.setShowVerticalLines(false);
         // Configurar fondo blanco para la tabla
@@ -692,6 +707,7 @@ public class JTicketLines extends javax.swing.JPanel {
             this.columns = columns;
             setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
             setFont(new Font("Arial", Font.BOLD, 14));
+            setBorder(javax.swing.BorderFactory.createEmptyBorder()); // Sin bordes para perfecta alineación
         }
         
         @Override
@@ -703,20 +719,23 @@ public class JTicketLines extends javax.swing.JPanel {
                 String columnName = com.openbravo.pos.forms.AppLocal.getIntString(columns[column].name);
                 String columnKey = columns[column].name;
                 
+                // Usar las mismas claves exactas que el viewport para perfecta alineación
                 boolean isBarcodeColumn = columnKey != null && (
+                    "label.prodbarcode".equals(columnKey) ||
                     columnKey.contains("barcode") || 
                     columnKey.contains("code") ||
-                    (columnName != null && columnName.toLowerCase().contains("código de barras")) ||
-                    (columnName != null && columnName.toLowerCase().contains("codigo de barras"))
+                    (columnName != null && (columnName.toLowerCase().contains("código de barras") || 
+                                          columnName.toLowerCase().contains("codigo de barras")))
                 );
                 boolean isPriceColumn = columnKey != null && (
+                    "label.price".equals(columnKey) ||
                     columnKey.contains("price") ||
                     (columnName != null && columnName.toLowerCase().contains("precio"))
                 );
                 
-                // Aplicar fondo azul claro a columnas de código de barras y precio
+                // Aplicar fondo azul claro a columnas de código de barras y precio (mismo color que el viewport)
                 if (isBarcodeColumn || isPriceColumn) {
-                    setBackground(new java.awt.Color(220, 235, 245)); // Azul claro suave
+                    setBackground(new java.awt.Color(220, 235, 245)); // Azul claro uniforme
                     setForeground(java.awt.Color.BLACK);
                 } else {
                     setBackground(java.awt.Color.WHITE);
@@ -725,6 +744,8 @@ public class JTicketLines extends javax.swing.JPanel {
             }
             
             setOpaque(true);
+            // Sin bordes para perfecta alineación con las celdas
+            setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
             return this;
         }
     }
@@ -742,22 +763,34 @@ public class JTicketLines extends javax.swing.JPanel {
             this.table = table;
             this.columns = columns;
             this.renderer = renderer;
+            // Asegurar que el viewport se repinta cuando cambian las columnas
+            if (table != null) {
+                table.getTableHeader().addPropertyChangeListener(evt -> repaint());
+            }
         }
         
         @Override
-        public void paint(java.awt.Graphics g) {
+        protected void paintComponent(java.awt.Graphics g) {
             // Pintar primero el fondo blanco completo
             g.setColor(java.awt.Color.WHITE);
             g.fillRect(0, 0, getWidth(), getHeight());
             
-            // Pintar el fondo azul claro de las columnas de código de barras y precio (siempre, desde arriba hasta abajo)
-            // Esto se hace ANTES de pintar la tabla para que siempre esté visible, incluso cuando está vacía
-            // El fondo se pintará uniformemente de arriba a abajo en toda la altura del viewport
+            // Pintar el fondo azul claro de las columnas de código de barras y precio
+            // Esto asegura que el fondo azul esté siempre visible, incluso cuando la tabla está vacía
             if (table != null && columns != null) {
                 paintColumnBackgrounds(g);
             }
+        }
+        
+        @Override
+        public void paint(java.awt.Graphics g) {
+            // Primero pintar el componente (fondo blanco y azul de columnas)
+            // Esto se pinta ANTES de la tabla para que quede como fondo
+            paintComponent(g);
             
-            // Luego pintar el contenido normal (tabla) - las celdas mantendrán su color gracias al renderizador
+            // Luego pintar la tabla (esto incluye las celdas con contenido)
+            // La tabla es transparente (setOpaque(false)) pero las celdas son opacas
+            // así que el contenido se verá sobre el fondo azul
             super.paint(g);
         }
         
@@ -771,40 +804,70 @@ public class JTicketLines extends javax.swing.JPanel {
             
             java.awt.Point viewPosition = getViewPosition();
             int viewportHeight = getHeight();
+            int viewportWidth = getWidth();
             
-            // Pintar el fondo completo de cada columna desde arriba hasta abajo (incluyendo cuando está vacía)
+            if (viewportHeight <= 0 || viewportWidth <= 0) return;
+            
+            // Color azul claro uniforme como Eleventa (mismo que el renderizador y el header)
+            java.awt.Color azulColumnas = new java.awt.Color(220, 235, 245);
+            
+            // Pintar el fondo completo de cada columna desde arriba hasta abajo (siempre, incluso cuando está vacía)
+            // Usar EXACTAMENTE los mismos anchos que el header para perfecta alineación
+            // El header y las celdas comparten el mismo TableColumnModel, así que los anchos deben ser idénticos
             int x = -viewPosition.x;
+            javax.swing.table.TableColumnModel columnModel = table.getColumnModel();
+            
             for (int i = 0; i < columns.length && i < table.getColumnCount(); i++) {
-                int columnWidth = table.getColumnModel().getColumn(i).getWidth();
+                // Obtener el ancho EXACTO de la columna del modelo (mismo que usa el header)
+                int columnWidth = columnModel.getColumn(i).getWidth();
                 
-                // Verificar si es columna de código de barras o precio
+                // Verificar si es columna de código de barras o precio usando las claves exactas
                 String columnName = com.openbravo.pos.forms.AppLocal.getIntString(columns[i].name);
                 String columnKey = columns[i].name;
                 
                 boolean isBarcodeColumn = columnKey != null && (
+                    "label.prodbarcode".equals(columnKey) ||
                     columnKey.contains("barcode") || 
                     columnKey.contains("code") ||
-                    (columnName != null && columnName.toLowerCase().contains("código de barras")) ||
-                    (columnName != null && columnName.toLowerCase().contains("codigo de barras"))
+                    (columnName != null && (columnName.toLowerCase().contains("código de barras") || 
+                                          columnName.toLowerCase().contains("codigo de barras")))
                 );
                 boolean isPriceColumn = columnKey != null && (
+                    "label.price".equals(columnKey) ||
                     columnKey.contains("price") ||
                     (columnName != null && columnName.toLowerCase().contains("precio"))
                 );
                 
                 // Pintar el fondo completo de la columna desde arriba hasta abajo (siempre, incluso vacía)
                 if (isBarcodeColumn || isPriceColumn) {
-                    g.setColor(new java.awt.Color(220, 235, 245)); // Azul claro suave
-                    int paintX = Math.max(0, x);
-                    int paintWidth = Math.min(columnWidth - (paintX - x), getWidth() - paintX);
-                    if (paintWidth > 0) {
-                        // Pintar desde el inicio del viewport (0) hasta el final (viewportHeight)
-                        // Esto asegura que el fondo azul se vea en toda la altura, uniforme de arriba a abajo
+                    g.setColor(azulColumnas);
+                    
+                    // Usar el ancho EXACTO de la columna, pixel por pixel igual al header
+                    // Sin ajustes ni redondeos - debe ser idéntico
+                    int paintX = x;
+                    int paintWidth = columnWidth;
+                    
+                    // Solo ajustar si la columna está parcialmente fuera del viewport visible
+                    if (paintX < 0) {
+                        paintWidth += paintX; // Reducir el ancho si parte está fuera por la izquierda
+                        paintX = 0;
+                    }
+                    if (paintX + paintWidth > viewportWidth) {
+                        paintWidth = Math.max(0, viewportWidth - paintX); // Ajustar si se sale por la derecha
+                    }
+                    
+                    // Pintar el fondo azul completo desde arriba hasta abajo
+                    // El ancho debe ser EXACTAMENTE igual al del header (pixel perfect)
+                    if (paintWidth > 0 && paintX < viewportWidth) {
                         g.fillRect(paintX, 0, paintWidth, viewportHeight);
                     }
                 }
                 
+                // Avanzar la posición X usando el ancho exacto (pixel por pixel igual al header)
                 x += columnWidth;
+                
+                // Si ya pasamos del ancho del viewport, no necesitamos seguir
+                if (x > viewportWidth) break;
             }
         }
         

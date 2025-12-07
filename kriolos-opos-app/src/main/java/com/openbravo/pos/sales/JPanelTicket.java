@@ -3381,9 +3381,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPayNow.setFocusPainted(false);
         m_jPayNow.setBackground(new java.awt.Color(92, 184, 92)); // Verde
         m_jPayNow.setForeground(java.awt.Color.WHITE);
+        m_jPayNow.setPreferredSize(new java.awt.Dimension(160, 40)); // Más ancho
         m_jPayNow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
             new javax.swing.border.LineBorder(new java.awt.Color(76, 174, 76), 1),
-            javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 6) // Padding derecho reducido para acercarlo al total
+            javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 8) // Padding derecho reducido para acercarlo al total
         ));
         m_jPayNow.setOpaque(true);
         
@@ -3423,7 +3424,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         
         // Panel para el total con el botón cobrar justo al lado (alineado a la derecha)
         // El botón a la izquierda del total, manteniendo el total en su posición original
-        javax.swing.JPanel totalPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 1, 0));
+        javax.swing.JPanel totalPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0)); // Sin espacio, casi pegado al total
         totalPanel.setOpaque(false);
         totalPanel.add(m_jPayNow); // Botón cobrar primero (quedará a la izquierda del total)
         totalPanel.add(m_jTotalEuros); // Total después (mantiene su posición original a la derecha)
@@ -3724,6 +3725,57 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Comentar la adición del panel de entradas para liberar espacio
         // m_jPanelTicket.add(m_jContEntries, java.awt.BorderLayout.LINE_END);
 
+        // Sebastian - Panel indicador de ticket con diseño elegante tipo eleventa (gradiente con desvanecido)
+        // La barra debe empezar desde el borde izquierdo y extenderse más allá de la mitad con desvanecido suave
+        javax.swing.JPanel lblTicketIndicator = new javax.swing.JPanel() {
+            @Override
+            protected void paintComponent(java.awt.Graphics g) {
+                super.paintComponent(g);
+                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                
+                // Obtener el ancho del panel y calcular punto de desvanecido (más allá de la mitad, aprox 60%)
+                int width = getWidth();
+                
+                // Crear gradiente con desvanecido suave tipo eleventa
+                // Empieza desde el borde izquierdo, va más allá de la mitad y se desvanece suavemente
+                java.awt.Color colorInicio = new java.awt.Color(70, 130, 180); // Azul acero
+                java.awt.Color colorMedio = new java.awt.Color(52, 152, 219); // Azul moderno
+                java.awt.Color colorFin = new java.awt.Color(255, 255, 255, 0); // Transparente
+                
+                java.awt.LinearGradientPaint gradient = new java.awt.LinearGradientPaint(
+                    0, 0, width, 0,
+                    new float[]{0.0f, 0.6f, 1.0f},
+                    new java.awt.Color[]{colorInicio, colorMedio, colorFin}
+                );
+                
+                g2d.setPaint(gradient);
+                g2d.fillRect(0, 0, width, getHeight()); // Bordes cuadrados elegantes como eleventa
+                
+                g2d.dispose();
+            }
+        };
+        lblTicketIndicator.setLayout(new java.awt.BorderLayout());
+        lblTicketIndicator.setOpaque(false);
+        
+        // Label con el texto sobre el panel con gradiente
+        javax.swing.JLabel lblTicketText = new javax.swing.JLabel("VENTA - Ticket 1");
+        lblTicketText.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        lblTicketText.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+        lblTicketText.setForeground(java.awt.Color.WHITE);
+        lblTicketText.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
+        lblTicketText.setOpaque(false);
+        
+        lblTicketIndicator.add(lblTicketText, java.awt.BorderLayout.CENTER);
+        
+        // Panel para el indicador de ticket que se extiende desde el borde izquierdo (sin padding)
+        javax.swing.JPanel ticketIndicatorPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        ticketIndicatorPanel.setOpaque(false);
+        ticketIndicatorPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
+        ticketIndicatorPanel.add(lblTicketIndicator, java.awt.BorderLayout.CENTER);
+        
+        // Guardar referencia al label de texto para actualizar dinámicamente
+        this.m_jTicketIndicator = lblTicketText;
+        
         // Crear panel para la barra de búsqueda en la parte superior - OCUPA TODO EL ANCHO
         javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         searchPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(12, 10, 12, 10)); // Padding reducido para barra más corta
@@ -3738,55 +3790,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1), // Borde gris delgado y elegante
             javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20) // Padding interno óptimo
         ));
-        
-        // Sebastian - Panel indicador de ticket con diseño elegante tipo eleventa (gradiente)
-        javax.swing.JPanel lblTicketIndicator = new javax.swing.JPanel() {
-            @Override
-            protected void paintComponent(java.awt.Graphics g) {
-                super.paintComponent(g);
-                java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-                
-                // Crear gradiente horizontal suave tipo eleventa
-                java.awt.Color colorInicio = new java.awt.Color(70, 130, 180); // Azul acero más suave
-                java.awt.Color colorFin = new java.awt.Color(52, 152, 219); // Azul moderno
-                java.awt.LinearGradientPaint gradient = new java.awt.LinearGradientPaint(
-                    0, 0, getWidth(), 0,
-                    new float[]{0.0f, 1.0f},
-                    new java.awt.Color[]{colorInicio, colorFin}
-                );
-                
-                g2d.setPaint(gradient);
-                g2d.fillRect(0, 0, getWidth(), getHeight()); // Bordes cuadrados elegantes como eleventa
-                
-                g2d.dispose();
-            }
-        };
-        lblTicketIndicator.setLayout(new java.awt.BorderLayout());
-        lblTicketIndicator.setOpaque(false);
-        // Sin tamaño preferido para que se extienda a todo el ancho
-        
-        // Label con el texto sobre el panel con gradiente
-        javax.swing.JLabel lblTicketText = new javax.swing.JLabel("VENTA - Ticket 1");
-        lblTicketText.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
-        lblTicketText.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
-        lblTicketText.setForeground(java.awt.Color.WHITE);
-        lblTicketText.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 12, 6, 12));
-        lblTicketText.setOpaque(false);
-        
-        lblTicketIndicator.add(lblTicketText, java.awt.BorderLayout.CENTER);
-        
-        // Panel para el indicador de ticket que se extiende a todo el ancho (como eleventa)
-        javax.swing.JPanel ticketIndicatorPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
-        ticketIndicatorPanel.setOpaque(false);
-        ticketIndicatorPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        
-        // El indicador de ticket ocupa todo el ancho
-        ticketIndicatorPanel.add(lblTicketIndicator, java.awt.BorderLayout.CENTER);
-        
-        // Guardar referencia al label de texto para actualizar dinámicamente
-        this.m_jTicketIndicator = lblTicketText;
-        
-        scannerContainerPanel.add(ticketIndicatorPanel, java.awt.BorderLayout.NORTH);
         
         // Panel horizontal para el campo de código y botón ENTER (sin label)
         javax.swing.JPanel scannerInputPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 0));
@@ -3986,8 +3989,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JPanel searchAndActionsPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         searchAndActionsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris suave que continúa desde arriba
         searchAndActionsPanel.setOpaque(true);
-        searchAndActionsPanel.add(searchPanel, java.awt.BorderLayout.NORTH);
-        searchAndActionsPanel.add(actionButtonsPanel, java.awt.BorderLayout.SOUTH);
+        
+        // Agregar la barra VENTA - Ticket primero, desde el borde izquierdo
+        searchAndActionsPanel.add(ticketIndicatorPanel, java.awt.BorderLayout.NORTH);
+        
+        // Panel para searchPanel y actionButtonsPanel
+        javax.swing.JPanel searchAndButtonsContainer = new javax.swing.JPanel(new java.awt.BorderLayout());
+        searchAndButtonsContainer.setOpaque(false);
+        searchAndButtonsContainer.add(searchPanel, java.awt.BorderLayout.NORTH);
+        searchAndButtonsContainer.add(actionButtonsPanel, java.awt.BorderLayout.SOUTH);
+        
+        searchAndActionsPanel.add(searchAndButtonsContainer, java.awt.BorderLayout.CENTER);
         
         topPanel.add(searchAndActionsPanel, java.awt.BorderLayout.SOUTH);
 
