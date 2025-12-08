@@ -2043,9 +2043,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     if (closeTicket(m_oTicket, m_oTicketExt)) {
                         // Sebastian - Eliminar el ticket cerrado de la lista de pestañas
                         TicketInfo ticketCerrado = m_oTicket;
+                        String clienteIdCancelado = ticketCerrado.getCustomer() != null ? ticketCerrado.getCustomer().getId() : null;
                         setActiveTicket(null, null);
                         refreshTicket();
                         m_ticketsbag.deleteTicket();
+                        
+                        // Sebastian - Actualizar vista de puntos después de cancelar
+                        if (clienteIdCancelado != null) {
+                            actualizarVistaPuntosCliente(clienteIdCancelado);
+                        }
 
                         if (isAutoLogout()) {
                             if (isRestaurantMode() && isAutoLogoutRestaurant()) {
@@ -2711,6 +2717,44 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
     }
 
+    /**
+     * Sebastian - Actualiza la vista de puntos del cliente después de operaciones (cancelar/devolver)
+     * @param clienteId ID del cliente cuyos puntos se actualizaron
+     */
+    private void actualizarVistaPuntosCliente(String clienteId) {
+        try {
+            if (puntosDataLogic == null || clienteId == null) {
+                return;
+            }
+            
+            // Obtener puntos actuales del cliente
+            int puntosActuales = puntosDataLogic.obtenerPuntos(clienteId);
+            
+            // Si hay un ticket activo con este cliente, actualizar la vista
+            if (m_oTicket != null && m_oTicket.getCustomer() != null && 
+                clienteId.equals(m_oTicket.getCustomer().getId())) {
+                updateCustomerPointsDisplay();
+            }
+            
+            // Actualizar también en JPrincipalApp si está disponible
+            try {
+                if (m_oTicket != null && m_oTicket.getCustomer() != null && 
+                    clienteId.equals(m_oTicket.getCustomer().getId())) {
+                    String nombreCliente = m_oTicket.getCustomer().getName();
+                    String textoCompleto = String.format("%s %d", nombreCliente, puntosActuales);
+                    updatePrincipalAppCustomerPoints(textoCompleto, true);
+                }
+            } catch (Exception e) {
+                // Silencioso si no se puede actualizar
+            }
+            
+            System.out.println("✅ Vista de puntos actualizada para cliente " + clienteId + " - Puntos: " + puntosActuales);
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error actualizando vista de puntos: " + e.getMessage());
+        }
+    }
+    
     // Sebastian - Método para actualizar información de puntos del cliente
     private void updateCustomerPointsDisplay() {
         System.out.println("🔍 updateCustomerPointsDisplay() called");
@@ -3409,9 +3453,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     if (closeTicket(m_oTicket, m_oTicketExt)) {
                         // Sebastian - Eliminar el ticket cerrado de la lista de pestañas
                         TicketInfo ticketCerrado = m_oTicket;
+                        String clienteIdCancelado = ticketCerrado.getCustomer() != null ? ticketCerrado.getCustomer().getId() : null;
                         setActiveTicket(null, null);
                         refreshTicket();
                         m_ticketsbag.deleteTicket();
+                        
+                        // Sebastian - Actualizar vista de puntos después de cancelar
+                        if (clienteIdCancelado != null) {
+                            actualizarVistaPuntosCliente(clienteIdCancelado);
+                        }
                         
                         // Eliminar el ticket de la lista si existe
                         if (ventasActivas.contains(ticketCerrado)) {
@@ -4807,6 +4857,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
     /**
      * Sebastian - Procesa automáticamente los puntos después de una venta exitosa
+     * Maneja tanto ventas normales (otorga puntos) como devoluciones (descuenta puntos)
      */
     private void procesarPuntosAutomaticos(TicketInfo ticket) {
         try {
@@ -4838,6 +4889,39 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 }
             }
 
+            // Sebastian - Detectar si es una devolución (REFUND)
+            boolean esDevolucion = ticket.getTicketType() == TicketInfo.RECEIPT_REFUND;
+            
+            if (esDevolucion) {
+                // Para devoluciones, usar el valor absoluto y descontar puntos
+                double montoAbsoluto = Math.abs(totalAcumulable);
+                
+                if (montoAbsoluto > 0 && ticket.getTicketStatus() > 0) {
+                    // ticket.getTicketStatus() contiene el ID del ticket original en devoluciones
+                    String ticketIdOriginal = String.valueOf(ticket.getTicketStatus());
+                    String clienteId = cliente.getId();
+                    
+                    System.out.println("🔄 DEVOLUCIÓN DETECTADA - Ticket original: #" + ticketIdOriginal + 
+                                     ", Cliente: " + clienteId + ", Monto: $" + montoAbsoluto);
+                    
+                    try {
+                        // Descontar puntos del ticket original
+                        puntosDataLogic.descontarPuntosPorCancelacion(ticketIdOriginal, clienteId, montoAbsoluto);
+                        System.out.println("✅ Puntos descontados por devolución exitosamente");
+                        
+                        // Actualizar vista de puntos del cliente
+                        actualizarVistaPuntosCliente(clienteId);
+                        
+                    } catch (Exception ex) {
+                        System.err.println("❌ ERROR descontando puntos por devolución: " + ex.getMessage());
+                        ex.printStackTrace();
+                        LOGGER.log(System.Logger.Level.ERROR, "Error descontando puntos por devolución: ", ex);
+                    }
+                }
+                return; // Salir temprano para devoluciones
+            }
+
+            // Para ventas normales, continuar con la lógica de otorgar puntos
             if (totalAcumulable <= 0) {
                 LOGGER.log(System.Logger.Level.DEBUG, "Total acumulable <= 0, no se otorgan puntos");
                 return;
@@ -4872,6 +4956,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             try {
                 puntosDataLogic.agregarPuntosPorCompra(clienteId, totalAcumulable, descripcion);
                 System.out.println("✅ agregarPuntosPorCompra completado exitosamente");
+                
+                // Actualizar vista de puntos del cliente
+                actualizarVistaPuntosCliente(clienteId);
+                
             } catch (Exception ex) {
                 System.err.println("❌ ERROR en agregarPuntosPorCompra: " + ex.getMessage());
                 ex.printStackTrace();

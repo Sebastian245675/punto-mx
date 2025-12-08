@@ -573,6 +573,121 @@ public class PuntosDataLogic {
     }
     
     /**
+     * Sebastian - Descuenta puntos cuando se cancela una venta
+     * Busca en el historial los puntos otorgados para el ticket y los descuenta
+     * @param ticketId ID del ticket cancelado
+     * @param clienteId ID del cliente
+     * @param montoAcumulableTicket Monto acumulable del ticket (para actualizar acumulable diario incluso si no hay puntos)
+     */
+    public void descontarPuntosPorCancelacion(String ticketId, String clienteId, double montoAcumulableTicket) throws BasicException {
+        System.out.println("🔄 descontarPuntosPorCancelacion INICIADO - Ticket: " + ticketId + ", Cliente: " + clienteId);
+        
+        try {
+            // Buscar en el historial las transacciones relacionadas con este ticket
+            // La descripción contiene "Venta automática #" + ticketId
+            String descripcionBusqueda = "Venta automática #" + ticketId;
+            
+            String query = "SELECT ID, CLIENTE_ID, PUNTOS_OTORGADOS, DESCRIPCION, MONTO_COMPRA " +
+                          "FROM PUNTOS_HISTORIAL " +
+                          "WHERE CLIENTE_ID = ? AND DESCRIPCION LIKE ?";
+            
+            PreparedSentence sentencia = new PreparedSentence(s, query,
+                new SerializerWrite<Object[]>() {
+                    public void writeValues(DataWrite dp, Object[] obj) throws BasicException {
+                        dp.setString(1, (String) obj[0]); // CLIENTE_ID
+                        dp.setString(2, (String) obj[1]); // DESCRIPCION LIKE
+                    }
+                },
+                new SerializerRead() {
+                    @Override
+                    public Object readValues(DataRead dr) throws BasicException {
+                        return new Object[] {
+                            dr.getString(1),  // ID
+                            dr.getString(2),  // CLIENTE_ID
+                            dr.getInt(3),    // PUNTOS_OTORGADOS
+                            dr.getString(4),  // DESCRIPCION
+                            dr.getDouble(5)   // MONTO_COMPRA
+                        };
+                    }
+                });
+            
+            String pattern = "%" + descripcionBusqueda + "%";
+            List<Object[]> resultados = sentencia.list(new Object[]{clienteId, pattern});
+            
+            if (resultados == null || resultados.isEmpty()) {
+                System.out.println("ℹ️ No se encontraron puntos otorgados para el ticket #" + ticketId);
+                return;
+            }
+            
+            int totalPuntosADescontar = 0;
+            double totalMontoADescontar = 0.0;
+            
+            // Sumar todos los puntos y montos de las transacciones encontradas
+            for (Object[] resultado : resultados) {
+                int puntosOtorgados = (Integer) resultado[2];
+                double montoCompra = (Double) resultado[4];
+                totalPuntosADescontar += puntosOtorgados;
+                totalMontoADescontar += montoCompra;
+                
+                System.out.println("📋 Transacción encontrada: " + puntosOtorgados + " puntos, $" + montoCompra);
+            }
+            
+            System.out.println("💰 TOTAL A DESCONTAR: " + totalPuntosADescontar + " puntos, $" + totalMontoADescontar);
+            
+            if (totalPuntosADescontar > 0) {
+                // Descontar puntos del cliente
+                ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
+                int puntosActuales = puntos.getPuntosActuales();
+                
+                // Si el cliente no tiene suficientes puntos, solo descontar los que tiene
+                int puntosADescontar = Math.min(totalPuntosADescontar, puntosActuales);
+                
+                if (puntosADescontar > 0) {
+                    puntos.setPuntosActuales(puntosActuales - puntosADescontar);
+                    puntos.setUltimaTransaccion("Cancelación venta #" + ticketId + ": -" + puntosADescontar + " puntos");
+                    puntos.setFechaUltimaTransaccion(new java.sql.Timestamp(System.currentTimeMillis()));
+                    updateClientePuntos(puntos);
+                    
+                    System.out.println("✅ Puntos descontados: " + puntosADescontar + " (tenía " + puntosActuales + ", ahora tiene " + puntos.getPuntosActuales() + ")");
+                } else {
+                    System.out.println("⚠️ Cliente no tiene puntos para descontar (tiene " + puntosActuales + ", se intentaron descontar " + totalPuntosADescontar + ")");
+                }
+            }
+            
+            // Actualizar el acumulable diario (restar el monto de la venta cancelada)
+            // Usar el monto del historial si está disponible, sino usar el monto del ticket
+            double montoADescontarAcumulable = totalMontoADescontar > 0 ? totalMontoADescontar : montoAcumulableTicket;
+            
+            if (montoADescontarAcumulable > 0) {
+                double acumulableActual = obtenerAcumulableDiario(clienteId);
+                double nuevoAcumulable = Math.max(0.0, acumulableActual - montoADescontarAcumulable);
+                
+                String fuente = totalMontoADescontar > 0 ? "historial" : "ticket (sin puntos en historial)";
+                System.out.println("🔄 Actualizando acumulable (" + fuente + "): $" + acumulableActual + " - $" + montoADescontarAcumulable + " = $" + nuevoAcumulable);
+                actualizarAcumulableDiario(clienteId, nuevoAcumulable);
+            }
+            
+            // Eliminar las transacciones del historial relacionadas con este ticket
+            String deleteQuery = "DELETE FROM PUNTOS_HISTORIAL WHERE CLIENTE_ID = ? AND DESCRIPCION LIKE ?";
+            PreparedSentence deleteSentencia = new PreparedSentence(s, deleteQuery,
+                new SerializerWrite<Object[]>() {
+                    public void writeValues(DataWrite dp, Object[] obj) throws BasicException {
+                        dp.setString(1, (String) obj[0]); // CLIENTE_ID
+                        dp.setString(2, (String) obj[1]); // DESCRIPCION LIKE
+                    }
+                });
+            
+            deleteSentencia.exec(new Object[]{clienteId, pattern});
+            System.out.println("🗑️ Transacciones del historial eliminadas para ticket #" + ticketId);
+            
+        } catch (Exception e) {
+            System.err.println("❌ ERROR en descontarPuntosPorCancelacion: " + e.getMessage());
+            e.printStackTrace();
+            // No lanzar excepción para no interrumpir la cancelación del ticket
+        }
+    }
+    
+    /**
      * Sebastian - Registra una transacción de puntos en el historial para límites diarios
      */
     private void registrarHistorialPuntos(String clienteId, int puntosOtorgados, String descripcion, double montoCompra) throws BasicException {
