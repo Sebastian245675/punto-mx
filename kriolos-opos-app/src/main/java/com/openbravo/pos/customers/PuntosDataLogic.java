@@ -573,13 +573,39 @@ public class PuntosDataLogic {
     }
     
     /**
+     * Sebastian - Clase para retornar información sobre el descuento de puntos
+     */
+    public static class ResultadoDescuento {
+        private int puntosDescontados;
+        private int puntosAnteriores;
+        private int puntosActuales;
+        private double montoDescontado;
+        private boolean seDescontaronPuntos;
+        
+        public ResultadoDescuento(int puntosDescontados, int puntosAnteriores, int puntosActuales, double montoDescontado, boolean seDescontaronPuntos) {
+            this.puntosDescontados = puntosDescontados;
+            this.puntosAnteriores = puntosAnteriores;
+            this.puntosActuales = puntosActuales;
+            this.montoDescontado = montoDescontado;
+            this.seDescontaronPuntos = seDescontaronPuntos;
+        }
+        
+        public int getPuntosDescontados() { return puntosDescontados; }
+        public int getPuntosAnteriores() { return puntosAnteriores; }
+        public int getPuntosActuales() { return puntosActuales; }
+        public double getMontoDescontado() { return montoDescontado; }
+        public boolean seDescontaronPuntos() { return seDescontaronPuntos; }
+    }
+    
+    /**
      * Sebastian - Descuenta puntos cuando se cancela una venta
      * Busca en el historial los puntos otorgados para el ticket y los descuenta
      * @param ticketId ID del ticket cancelado
      * @param clienteId ID del cliente
      * @param montoAcumulableTicket Monto acumulable del ticket (para actualizar acumulable diario incluso si no hay puntos)
+     * @return ResultadoDescuento con información sobre los puntos descontados
      */
-    public void descontarPuntosPorCancelacion(String ticketId, String clienteId, double montoAcumulableTicket) throws BasicException {
+    public ResultadoDescuento descontarPuntosPorCancelacion(String ticketId, String clienteId, double montoAcumulableTicket) throws BasicException {
         System.out.println("🔄 descontarPuntosPorCancelacion INICIADO - Ticket: " + ticketId + ", Cliente: " + clienteId);
         
         try {
@@ -616,7 +642,27 @@ public class PuntosDataLogic {
             
             if (resultados == null || resultados.isEmpty()) {
                 System.out.println("ℹ️ No se encontraron puntos otorgados para el ticket #" + ticketId);
-                return;
+                // Retornar resultado vacío pero actualizar acumulable si es necesario
+                if (montoAcumulableTicket > 0) {
+                    double acumulableActual = obtenerAcumulableDiario(clienteId);
+                    // Permitir valores negativos para reflejar correctamente la cancelación
+                    double nuevoAcumulable = acumulableActual - montoAcumulableTicket;
+                    
+                    // Limitar solo si queda muy negativo (más de un tramo)
+                    PuntosConfiguracion config = getConfiguracionActiva();
+                    if (config != null) {
+                        double montoPorPunto = config.getMontoPorPunto();
+                        if (nuevoAcumulable < -montoPorPunto) {
+                            nuevoAcumulable = 0.0;
+                        }
+                    } else {
+                        nuevoAcumulable = Math.max(0.0, nuevoAcumulable);
+                    }
+                    
+                    System.out.println("🔄 Actualizando acumulable (sin puntos en historial): $" + acumulableActual + " - $" + montoAcumulableTicket + " = $" + nuevoAcumulable);
+                    actualizarAcumulableDiario(clienteId, nuevoAcumulable);
+                }
+                return new ResultadoDescuento(0, 0, obtenerPuntos(clienteId), montoAcumulableTicket, false);
             }
             
             int totalPuntosADescontar = 0;
@@ -634,13 +680,16 @@ public class PuntosDataLogic {
             
             System.out.println("💰 TOTAL A DESCONTAR: " + totalPuntosADescontar + " puntos, $" + totalMontoADescontar);
             
+            int puntosActuales = 0;
+            int puntosADescontar = 0;
+            
             if (totalPuntosADescontar > 0) {
                 // Descontar puntos del cliente
                 ClientePuntos puntos = getOrCreateClientePuntos(clienteId);
-                int puntosActuales = puntos.getPuntosActuales();
+                puntosActuales = puntos.getPuntosActuales();
                 
                 // Si el cliente no tiene suficientes puntos, solo descontar los que tiene
-                int puntosADescontar = Math.min(totalPuntosADescontar, puntosActuales);
+                puntosADescontar = Math.min(totalPuntosADescontar, puntosActuales);
                 
                 if (puntosADescontar > 0) {
                     puntos.setPuntosActuales(puntosActuales - puntosADescontar);
@@ -652,19 +701,50 @@ public class PuntosDataLogic {
                 } else {
                     System.out.println("⚠️ Cliente no tiene puntos para descontar (tiene " + puntosActuales + ", se intentaron descontar " + totalPuntosADescontar + ")");
                 }
+            } else {
+                // Si no hay puntos para descontar, obtener puntos actuales para el resultado
+                puntosActuales = getOrCreateClientePuntos(clienteId).getPuntosActuales();
             }
             
             // Actualizar el acumulable diario (restar el monto de la venta cancelada)
-            // Usar el monto del historial si está disponible, sino usar el monto del ticket
+            // Sebastian - IMPORTANTE: El acumulable debe restablecerse correctamente
+            // Cuando se otorgan puntos, el acumulable se reduce por el monto usado para generar puntos
+            // Al cancelar, debemos restar el monto completo de la venta cancelada del acumulable actual
             double montoADescontarAcumulable = totalMontoADescontar > 0 ? totalMontoADescontar : montoAcumulableTicket;
             
             if (montoADescontarAcumulable > 0) {
                 double acumulableActual = obtenerAcumulableDiario(clienteId);
-                double nuevoAcumulable = Math.max(0.0, acumulableActual - montoADescontarAcumulable);
+                PuntosConfiguracion config = getConfiguracionActiva();
+                
+                // Restar el monto completo de la venta cancelada
+                // Si el acumulable queda negativo, significa que parte del monto cancelado
+                // ya se usó para generar puntos (y esos puntos ya se descontaron arriba)
+                double nuevoAcumulable = acumulableActual - montoADescontarAcumulable;
+                
+                // Permitir valores negativos hasta un límite razonable (un tramo completo)
+                // Esto permite que el acumulable refleje correctamente la cancelación
+                // En la próxima compra, el acumulable se ajustará automáticamente
+                if (config != null) {
+                    double montoPorPunto = config.getMontoPorPunto();
+                    // Solo limitar si queda muy negativo (más de un tramo), puede indicar un error
+                    if (nuevoAcumulable < -montoPorPunto) {
+                        System.out.println("⚠️ Acumulable muy negativo (" + nuevoAcumulable + "), limitando a 0 para evitar inconsistencias");
+                        nuevoAcumulable = 0.0;
+                    }
+                } else {
+                    // Si no hay configuración, limitar a 0 como medida de seguridad
+                    nuevoAcumulable = Math.max(0.0, nuevoAcumulable);
+                }
                 
                 String fuente = totalMontoADescontar > 0 ? "historial" : "ticket (sin puntos en historial)";
-                System.out.println("🔄 Actualizando acumulable (" + fuente + "): $" + acumulableActual + " - $" + montoADescontarAcumulable + " = $" + nuevoAcumulable);
+                System.out.println("🔄 RESTABLECIENDO ACUMULABLE DIARIO (" + fuente + "):");
+                System.out.println("   - Acumulable actual: $" + acumulableActual);
+                System.out.println("   - Monto de venta cancelada: $" + montoADescontarAcumulable);
+                System.out.println("   - Nuevo acumulable: $" + nuevoAcumulable);
+                System.out.println("   " + (nuevoAcumulable < 0 ? "⚠️ Acumulable negativo (normal si la venta ya generó puntos)" : "✅ Acumulable positivo"));
+                
                 actualizarAcumulableDiario(clienteId, nuevoAcumulable);
+                System.out.println("✅ Acumulable diario restablecido correctamente: $" + nuevoAcumulable);
             }
             
             // Eliminar las transacciones del historial relacionadas con este ticket
@@ -680,10 +760,33 @@ public class PuntosDataLogic {
             deleteSentencia.exec(new Object[]{clienteId, pattern});
             System.out.println("🗑️ Transacciones del historial eliminadas para ticket #" + ticketId);
             
+            // Retornar resultado del descuento
+            int puntosFinales = getOrCreateClientePuntos(clienteId).getPuntosActuales();
+            int puntosDescontadosFinal = 0;
+            int puntosAnterioresFinal = puntosActuales;
+            
+            if (totalPuntosADescontar > 0 && puntosADescontar > 0) {
+                puntosDescontadosFinal = puntosADescontar;
+            }
+            
+            return new ResultadoDescuento(
+                puntosDescontadosFinal,
+                puntosAnterioresFinal,
+                puntosFinales,
+                montoADescontarAcumulable,
+                puntosDescontadosFinal > 0
+            );
+            
         } catch (Exception e) {
             System.err.println("❌ ERROR en descontarPuntosPorCancelacion: " + e.getMessage());
             e.printStackTrace();
             // No lanzar excepción para no interrumpir la cancelación del ticket
+            // Retornar resultado vacío en caso de error
+            try {
+                return new ResultadoDescuento(0, obtenerPuntos(clienteId), obtenerPuntos(clienteId), 0, false);
+            } catch (Exception ex) {
+                return new ResultadoDescuento(0, 0, 0, 0, false);
+            }
         }
     }
     

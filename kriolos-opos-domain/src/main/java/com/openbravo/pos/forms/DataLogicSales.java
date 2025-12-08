@@ -2039,29 +2039,9 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                     }
                 }
 
-                // Sebastian - Descontar puntos si el ticket tenía un cliente y se le otorgaron puntos
-                if (ticket.getCustomer() != null && ticket.getCustomer().getId() != null && ticket.getTicketId() > 0) {
-                    try {
-                        com.openbravo.pos.customers.PuntosDataLogic puntosDataLogic = new com.openbravo.pos.customers.PuntosDataLogic(s);
-                        String ticketIdStr = String.valueOf(ticket.getTicketId());
-                        String clienteId = ticket.getCustomer().getId();
-                        
-                        // Calcular el monto acumulable del ticket (solo productos que acumulan puntos)
-                        double totalAcumulable = 0.0;
-                        for (int i = 0; i < ticket.getLinesCount(); i++) {
-                            TicketLineInfo line = ticket.getLine(i);
-                            if (line.isProductAccumulatesPoints()) {
-                                totalAcumulable += line.getValue();
-                            }
-                        }
-                        
-                        puntosDataLogic.descontarPuntosPorCancelacion(ticketIdStr, clienteId, totalAcumulable);
-                        LOGGER.info("Puntos descontados por cancelación de ticket #" + ticketIdStr + " para cliente " + clienteId);
-                    } catch (Exception e) {
-                        // No interrumpir la cancelación del ticket si hay error con los puntos
-                        LOGGER.log(Level.WARNING, "Error descontando puntos al cancelar ticket: " + e.getMessage(), e);
-                    }
-                }
+                // Sebastian - Nota: El descuento de puntos se maneja en JPanelTicket antes de llamar a deleteTicket
+                // para poder mostrar el mensaje de confirmación. Si se llama deleteTicket desde otro lugar,
+                // se debe manejar el descuento de puntos manualmente antes de esta llamada.
 
                 // and delete the receipt
                 new StaticSentence(s,

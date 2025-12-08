@@ -2043,15 +2043,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     if (closeTicket(m_oTicket, m_oTicketExt)) {
                         // Sebastian - Eliminar el ticket cerrado de la lista de pestañas
                         TicketInfo ticketCerrado = m_oTicket;
-                        String clienteIdCancelado = ticketCerrado.getCustomer() != null ? ticketCerrado.getCustomer().getId() : null;
                         setActiveTicket(null, null);
                         refreshTicket();
                         m_ticketsbag.deleteTicket();
-                        
-                        // Sebastian - Actualizar vista de puntos después de cancelar
-                        if (clienteIdCancelado != null) {
-                            actualizarVistaPuntosCliente(clienteIdCancelado);
-                        }
 
                         if (isAutoLogout()) {
                             if (isRestaurantMode() && isAutoLogoutRestaurant()) {
@@ -3449,15 +3443,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     if (closeTicket(m_oTicket, m_oTicketExt)) {
                         // Sebastian - Eliminar el ticket cerrado de la lista de pestañas
                         TicketInfo ticketCerrado = m_oTicket;
-                        String clienteIdCancelado = ticketCerrado.getCustomer() != null ? ticketCerrado.getCustomer().getId() : null;
                         setActiveTicket(null, null);
                         refreshTicket();
                         m_ticketsbag.deleteTicket();
-                        
-                        // Sebastian - Actualizar vista de puntos después de cancelar
-                        if (clienteIdCancelado != null) {
-                            actualizarVistaPuntosCliente(clienteIdCancelado);
-                        }
                         
                         // Eliminar el ticket de la lista si existe
                         if (ventasActivas.contains(ticketCerrado)) {
@@ -4892,11 +4880,48 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     
                     try {
                         // Descontar puntos del ticket original
-                        puntosDataLogic.descontarPuntosPorCancelacion(ticketIdOriginal, clienteId, montoAbsoluto);
+                        PuntosDataLogic.ResultadoDescuento resultado = puntosDataLogic.descontarPuntosPorCancelacion(ticketIdOriginal, clienteId, montoAbsoluto);
                         System.out.println("✅ Puntos descontados por devolución exitosamente");
                         
                         // Actualizar vista de puntos del cliente
                         actualizarVistaPuntosCliente(clienteId);
+                        
+                        // Mostrar mensaje de confirmación de devolución
+                        String mensajeDevolucion;
+                        if (resultado.seDescontaronPuntos()) {
+                            mensajeDevolucion = String.format(
+                                "<html><center><h3>✅ Devolución Procesada</h3>" +
+                                "<p><b>Ticket Original:</b> #%s</p>" +
+                                "<p><b>Cliente:</b> %s</p>" +
+                                "<p><b>Puntos Descontados:</b> %d</p>" +
+                                "<p><b>Puntos Anteriores:</b> %d → <b>Puntos Actuales:</b> %d</p>" +
+                                "<p><b>Monto:</b> $%.2f</p></center></html>",
+                                ticketIdOriginal,
+                                cliente.getName() != null ? cliente.getName() : clienteId,
+                                resultado.getPuntosDescontados(),
+                                resultado.getPuntosAnteriores(),
+                                resultado.getPuntosActuales(),
+                                montoAbsoluto
+                            );
+                        } else {
+                            mensajeDevolucion = String.format(
+                                "<html><center><h3>✅ Devolución Procesada</h3>" +
+                                "<p><b>Ticket Original:</b> #%s</p>" +
+                                "<p><b>Cliente:</b> %s</p>" +
+                                "<p>No se encontraron puntos para descontar</p>" +
+                                "<p><b>Monto:</b> $%.2f</p></center></html>",
+                                ticketIdOriginal,
+                                cliente.getName() != null ? cliente.getName() : clienteId,
+                                montoAbsoluto
+                            );
+                        }
+                        
+                        javax.swing.JOptionPane.showMessageDialog(
+                            this,
+                            mensajeDevolucion,
+                            "Devolución Completada",
+                            javax.swing.JOptionPane.INFORMATION_MESSAGE
+                        );
                         
                     } catch (Exception ex) {
                         System.err.println("❌ ERROR descontando puntos por devolución: " + ex.getMessage());
@@ -5975,6 +6000,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     // Obtener la línea del ticket original
                     TicketLineInfo originalLine = originalTicket.getLine(selectedItemRow);
                     
+                    // Calcular monto acumulable del artículo a devolver
+                    double montoAcumulable = 0.0;
+                    if (originalLine.isProductAccumulatesPoints()) {
+                        montoAcumulable = Math.abs(originalLine.getValue());
+                    }
+                    
                     // Crear un nuevo ticket de devolución
                     TicketInfo refundTicket = new TicketInfo();
                     refundTicket.setTicketType(TicketInfo.RECEIPT_REFUND);
@@ -5998,9 +6029,165 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     // Activar el ticket de devolución en el panel principal
                     setActiveTicket(refundTicket, null);
                     
+                    // Nota: El mensaje de confirmación se mostrará cuando se guarde el ticket de devolución
+                    // en procesarPuntosAutomaticos()
+                    
                 } catch (Exception ex) {
                     javax.swing.JOptionPane.showMessageDialog(dialog,
                             "Error al procesar la devolución: " + ex.getMessage(),
+                            "Error",
+                            javax.swing.JOptionPane.ERROR_MESSAGE);
+                    ex.printStackTrace();
+                }
+            });
+            
+            // Listener para botón Cancelar Venta
+            btnCancelar.addActionListener(e -> {
+                try {
+                    TicketInfo ticketACancelar = selectedTicketRef.get();
+                    
+                    if (ticketACancelar == null) {
+                        javax.swing.JOptionPane.showMessageDialog(dialog,
+                                "Por favor seleccione un ticket para cancelar",
+                                "Error",
+                                javax.swing.JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+                    
+                    // Confirmar cancelación
+                    int confirmacion = javax.swing.JOptionPane.showConfirmDialog(
+                        dialog,
+                        String.format(
+                            "<html><center><h3>¿Cancelar esta venta?</h3>" +
+                            "<p><b>Ticket:</b> #%d</p>" +
+                            "<p><b>Cliente:</b> %s</p>" +
+                            "<p><b>Total:</b> %s</p>" +
+                            "<p>Esta acción no se puede deshacer.</p></center></html>",
+                            ticketACancelar.getTicketId(),
+                            ticketACancelar.getCustomer() != null ? ticketACancelar.getCustomer().getName() : "Al contado",
+                            Formats.CURRENCY.formatValue(ticketACancelar.getTotal())
+                        ),
+                        "Confirmar Cancelación",
+                        javax.swing.JOptionPane.YES_NO_OPTION,
+                        javax.swing.JOptionPane.WARNING_MESSAGE
+                    );
+                    
+                    if (confirmacion != javax.swing.JOptionPane.YES_OPTION) {
+                        return;
+                    }
+                    
+                    // Calcular monto acumulable antes de eliminar
+                    String clienteId = ticketACancelar.getCustomer() != null ? ticketACancelar.getCustomer().getId() : null;
+                    String nombreCliente = ticketACancelar.getCustomer() != null && ticketACancelar.getCustomer().getName() != null 
+                        ? ticketACancelar.getCustomer().getName() : clienteId;
+                    int ticketId = ticketACancelar.getTicketId();
+                    
+                    double totalAcumulable = 0.0;
+                    for (int i = 0; i < ticketACancelar.getLinesCount(); i++) {
+                        TicketLineInfo line = ticketACancelar.getLine(i);
+                        if (line.isProductAccumulatesPoints()) {
+                            totalAcumulable += line.getValue();
+                        }
+                    }
+                    
+                    // Descontar puntos antes de eliminar el ticket
+                    PuntosDataLogic.ResultadoDescuento resultadoCancelacion = null;
+                    if (clienteId != null && ticketId > 0 && puntosDataLogic != null) {
+                        try {
+                            resultadoCancelacion = puntosDataLogic.descontarPuntosPorCancelacion(
+                                String.valueOf(ticketId), 
+                                clienteId, 
+                                totalAcumulable
+                            );
+                        } catch (Exception ex) {
+                            LOGGER.log(System.Logger.Level.WARNING, "Error descontando puntos: " + ex.getMessage());
+                        }
+                    }
+                    
+                    // Eliminar el ticket
+                    try {
+                        dlSales.deleteTicket(ticketACancelar, m_App.getInventoryLocation());
+                        
+                        // Actualizar vista de puntos
+                        if (clienteId != null) {
+                            actualizarVistaPuntosCliente(clienteId);
+                        }
+                        
+                        // Mostrar mensaje de confirmación
+                        if (resultadoCancelacion != null && clienteId != null) {
+                            String mensajeCancelacion;
+                            if (resultadoCancelacion.seDescontaronPuntos()) {
+                                mensajeCancelacion = String.format(
+                                    "<html><center><h3>✅ Venta Cancelada</h3>" +
+                                    "<p><b>Ticket:</b> #%d</p>" +
+                                    "<p><b>Cliente:</b> %s</p>" +
+                                    "<p><b>Puntos Descontados:</b> %d</p>" +
+                                    "<p><b>Puntos Anteriores:</b> %d → <b>Puntos Actuales:</b> %d</p></center></html>",
+                                    ticketId,
+                                    nombreCliente,
+                                    resultadoCancelacion.getPuntosDescontados(),
+                                    resultadoCancelacion.getPuntosAnteriores(),
+                                    resultadoCancelacion.getPuntosActuales()
+                                );
+                            } else {
+                                mensajeCancelacion = String.format(
+                                    "<html><center><h3>✅ Venta Cancelada</h3>" +
+                                    "<p><b>Ticket:</b> #%d</p>" +
+                                    "<p><b>Cliente:</b> %s</p>" +
+                                    "<p>No se encontraron puntos para descontar</p></center></html>",
+                                    ticketId,
+                                    nombreCliente
+                                );
+                            }
+                            
+                            javax.swing.JOptionPane.showMessageDialog(
+                                dialog,
+                                mensajeCancelacion,
+                                "Cancelación Completada",
+                                javax.swing.JOptionPane.INFORMATION_MESSAGE
+                            );
+                        } else {
+                            // Mensaje simple si no hay cliente o puntos
+                            javax.swing.JOptionPane.showMessageDialog(
+                                dialog,
+                                String.format(
+                                    "<html><center><h3>✅ Venta Cancelada</h3>" +
+                                    "<p><b>Ticket:</b> #%d</p></center></html>",
+                                    ticketId
+                                ),
+                                "Cancelación Completada",
+                                javax.swing.JOptionPane.INFORMATION_MESSAGE
+                            );
+                        }
+                        
+                        // Recargar la lista de tickets
+                        cargarTickets.accept(null);
+                        selectedTicketRef.set(null);
+                        
+                        // Limpiar la vista de detalles
+                        lblFolioValor.setText("-");
+                        lblCajeroDetValor.setText("-");
+                        lblClienteValor.setText("-");
+                        lblFechaDet.setText("-");
+                        itemsTableModel.setRowCount(0);
+                        lblTotalValor.setText(Formats.CURRENCY.formatValue(0.0));
+                        lblPagoConValor.setText(Formats.CURRENCY.formatValue(0.0));
+                        btnCancelar.setEnabled(false);
+                        btnDevolver.setEnabled(false);
+                        btnFacturar.setEnabled(false);
+                        btnImprimir.setEnabled(false);
+                        
+                    } catch (Exception ex) {
+                        javax.swing.JOptionPane.showMessageDialog(dialog,
+                                "Error al cancelar el ticket: " + ex.getMessage(),
+                                "Error",
+                                javax.swing.JOptionPane.ERROR_MESSAGE);
+                        ex.printStackTrace();
+                    }
+                    
+                } catch (Exception ex) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog,
+                            "Error al procesar la cancelación: " + ex.getMessage(),
                             "Error",
                             javax.swing.JOptionPane.ERROR_MESSAGE);
                     ex.printStackTrace();
