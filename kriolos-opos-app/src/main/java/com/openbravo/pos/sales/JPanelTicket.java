@@ -606,8 +606,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_jPrice.setFont(new Font("Segoe UI", Font.BOLD, 24));
         }
         if (m_jTotalEuros != null) {
-            m_jTotalEuros.setFont(new Font("Arial", Font.BOLD, 50)); // Total estilo Eleventa - tipografía EXACTA
-            m_jTotalEuros.setForeground(new Color(0, 20, 80)); // Azul muy oscuro (RGB: 0, 20, 80) exacto de la imagen
+            m_jTotalEuros.setFont(new Font("Arial", Font.PLAIN, 52)); // Total estilo Eleventa - tamaño grande pero delgado (PLAIN, tamaño 52)
+            m_jTotalEuros.setForeground(new Color(0, 100, 200)); // Azul como en Eleventa (más claro que el anterior)
         }
         // if (m_jSubtotalEuros != null) {
         //     m_jSubtotalEuros.setFont(new Font("Segoe UI", Font.PLAIN, 32)); // Ya no se muestra
@@ -3369,17 +3369,21 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         totalAndButtonPanel.setLayout(new java.awt.BorderLayout(0, 2)); // 2px de espacio vertical mínimo entre total y botón
         totalAndButtonPanel.setOpaque(false);
         
-        // Total sin recuadro, solo el número grande estilo Eleventa - tipografía EXACTA de la imagen
-        // Fuente: Arial Bold, tamaño y color exactos de la imagen (azul muy oscuro)
-        m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 50)); // Tamaño exacto de la imagen
-        m_jTotalEuros.setForeground(new java.awt.Color(0, 20, 80)); // Azul muy oscuro (RGB: 0, 20, 80) exacto de la imagen
-        m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        // Total exactamente como Eleventa - número grande en azul, estilo delgado pero legible
+        // Basado en la imagen: fuente más grande, estilo regular/delgado, color azul
+        java.awt.Font totalFont = new java.awt.Font("Arial", java.awt.Font.PLAIN, 52); // Tamaño como Eleventa (grande pero no bold)
+        m_jTotalEuros.setFont(totalFont);
+        m_jTotalEuros.setForeground(new java.awt.Color(0, 100, 200)); // Azul más claro como en Eleventa (no tan oscuro)
+        m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.LEFT); // Alineación a la IZQUIERDA para que siempre empiece desde el mismo punto
         m_jTotalEuros.setText("$0.00");
-        m_jTotalEuros.setBorder(null); // Sin borde
         m_jTotalEuros.setOpaque(false); // Sin fondo
         m_jTotalEuros.setRequestFocusEnabled(false);
-        // Asegurar que el total no ocupe todo el espacio vertical
-        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(400, 52));
+        // Padding izquierdo reducido porque el gap del panel moverá ambos componentes juntos
+        m_jTotalEuros.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 0)); // Padding mínimo solo para el texto dentro del label
+        // Ancho suficiente para números grandes - cuando crezca se expandirá hacia la DERECHA
+        m_jTotalEuros.setPreferredSize(new java.awt.Dimension(300, 60)); // Ancho más generoso para números grandes
+        m_jTotalEuros.setMinimumSize(new java.awt.Dimension(150, 60)); // Mínimo para números pequeños
+        m_jTotalEuros.setMaximumSize(new java.awt.Dimension(320, 60)); // Máximo con espacio para crecer
         
         // Ocultar el label "Total:" porque Eleventa no lo tiene
         m_jLblTotalEuros.setVisible(false);
@@ -3394,7 +3398,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPayNow.setPreferredSize(new java.awt.Dimension(160, 40)); // Más ancho
         m_jPayNow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
             new javax.swing.border.LineBorder(new java.awt.Color(76, 174, 76), 1),
-            javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 8) // Padding derecho reducido para acercarlo al total
+            javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 4) // Padding derecho reducido para acercarlo al total
         ));
         m_jPayNow.setOpaque(true);
         
@@ -3432,12 +3436,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
         
-        // Panel para el total con el botón cobrar justo al lado (alineado a la derecha)
-        // El botón a la izquierda del total, manteniendo el total en su posición original
-        javax.swing.JPanel totalPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0)); // Sin espacio, casi pegado al total
+        // Panel para el total con el botón cobrar justo al lado (alineado a la derecha) - estilo Eleventa
+        // Usar BoxLayout horizontal para tener mejor control del posicionamiento
+        javax.swing.JPanel totalPanel = new javax.swing.JPanel();
+        totalPanel.setLayout(new javax.swing.BoxLayout(totalPanel, javax.swing.BoxLayout.X_AXIS));
         totalPanel.setOpaque(false);
+        // Agregar espacio flexible a la izquierda para empujar el contenido a la derecha
+        totalPanel.add(javax.swing.Box.createHorizontalStrut(200)); // 200px de espacio a la izquierda para mover ambos a la derecha
         totalPanel.add(m_jPayNow); // Botón cobrar primero (quedará a la izquierda del total)
-        totalPanel.add(m_jTotalEuros); // Total después (mantiene su posición original a la derecha)
+        totalPanel.add(javax.swing.Box.createHorizontalStrut(5)); // Gap pequeño (5px) entre botón y total
+        totalPanel.add(m_jTotalEuros); // Total después - posición fija, crece hacia la derecha
+        totalPanel.add(javax.swing.Box.createHorizontalGlue()); // Espacio flexible a la derecha
+        totalPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 20)); // Padding derecho para espacio cuando crezca la cifra
         
         // Agregar total y botón cobrar al panel (arriba)
         totalAndButtonPanel.add(totalPanel, java.awt.BorderLayout.NORTH);
@@ -3462,11 +3472,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
         
-        // Panel contenedor para el botón, alineado a la derecha como en la imagen
-        javax.swing.JPanel btnVentasPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        // Panel contenedor para el botón, alineado debajo del inicio del total
+        javax.swing.JPanel btnVentasPanel = new javax.swing.JPanel();
+        btnVentasPanel.setLayout(new javax.swing.BoxLayout(btnVentasPanel, javax.swing.BoxLayout.X_AXIS));
         btnVentasPanel.setOpaque(false);
-        btnVentasPanel.setPreferredSize(new java.awt.Dimension(140, 26)); // Espacio reducido para el botón más pequeño
+        // Alinearlo con el INICIO del total: 200px (strut inicial) + 160px (ancho botón cobrar) + 5px (gap) = 365px
+        btnVentasPanel.add(javax.swing.Box.createHorizontalStrut(365)); // 200 + 160 + 5 = 365px para alinearlo con el inicio del total
         btnVentasPanel.add(btnVentasDelDia);
+        btnVentasPanel.add(javax.swing.Box.createHorizontalGlue()); // Espacio flexible a la derecha
+        btnVentasPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 20)); // Padding derecho
         
         // Agregar botón al panel (debajo del total)
         totalAndButtonPanel.add(btnVentasPanel, java.awt.BorderLayout.SOUTH);

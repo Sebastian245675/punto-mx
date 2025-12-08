@@ -177,6 +177,57 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         // Sebastian - Mantener el menú lateral siempre oculto para diseño tipo eleventa
         setMenuVisible(false);
         rMenu.getViewManager().resetActionfirst();
+        
+        // Sebastian - Refrescar el logo cuando se active el panel (por si cambió en configuración)
+        try {
+            // Buscar el logoPanel en el componente
+            javax.swing.JPanel artisticPanel = findArtisticTopPanel(this);
+            if (artisticPanel != null) {
+                for (java.awt.Component comp : artisticPanel.getComponents()) {
+                    if (comp instanceof javax.swing.JPanel) {
+                        javax.swing.JPanel logoPanel = (javax.swing.JPanel) comp;
+                        @SuppressWarnings("unchecked")
+                        java.util.function.Consumer<String> updateLogo = (java.util.function.Consumer<String>) logoPanel.getClientProperty("updateLogo");
+                        if (updateLogo != null) {
+                            // Recargar la configuración y actualizar el logo
+                            com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig.getInstance();
+                            appConfig.load();
+                            String logoPath = appConfig.getProperty("start.logo");
+                            updateLogo.accept(logoPath);
+                            logoPanel.revalidate();
+                            logoPanel.repaint();
+                            break;
+                        }
+                    }
+                }
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al refrescar el logo", e);
+        }
+    }
+    
+    // Sebastian - Método helper para encontrar el artisticTopPanel
+    private javax.swing.JPanel findArtisticTopPanel(java.awt.Container container) {
+        for (java.awt.Component comp : container.getComponents()) {
+            if (comp instanceof javax.swing.JPanel) {
+                javax.swing.JPanel panel = (javax.swing.JPanel) comp;
+                // Verificar si es el artisticTopPanel buscando el logoPanel dentro
+                for (java.awt.Component child : panel.getComponents()) {
+                    if (child instanceof javax.swing.JPanel) {
+                        javax.swing.JPanel childPanel = (javax.swing.JPanel) child;
+                        if (childPanel.getClientProperty("logoLabel") != null) {
+                            return panel; // Este es el artisticTopPanel
+                        }
+                    }
+                }
+                // Buscar recursivamente
+                javax.swing.JPanel found = findArtisticTopPanel(panel);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 
     public boolean deactivate() {
@@ -722,13 +773,121 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         logoPanel.setMinimumSize(new java.awt.Dimension(200, 80));
         logoPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 20, 10, 20)); // Padding interno para centrar el logo
         
-        // Label para el logo (el usuario puede reemplazar esto con su imagen)
-        javax.swing.JLabel logoLabel = new javax.swing.JLabel("LOGO");
-        logoLabel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24));
-        logoLabel.setForeground(new java.awt.Color(100, 160, 220));
+        // Sebastian - Cargar imagen del logo desde configuraciones (propiedad "start.logo")
+        javax.swing.JLabel logoLabel = new javax.swing.JLabel();
         logoLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         logoLabel.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
+        
+        // Método para actualizar el logo
+        java.util.function.Consumer<String> updateLogo = (logoPath) -> {
+            try {
+                logoLabel.setIcon(null); // Limpiar icono anterior
+                logoLabel.setText(""); // Limpiar texto anterior
+                
+                if (logoPath != null && !logoPath.trim().isEmpty()) {
+                    java.io.File logoFile = new java.io.File(logoPath);
+                    LOGGER.log(Level.INFO, "Verificando archivo de logo: " + logoPath + " - Existe: " + logoFile.exists() + " - Es archivo: " + logoFile.isFile());
+                    
+                    if (logoFile.exists() && logoFile.isFile()) {
+                        // Cargar la imagen del logo usando ImageIO para mejor manejo
+                        try {
+                            java.awt.Image originalImage = javax.imageio.ImageIO.read(logoFile);
+                            
+                            // Verificar que la imagen se cargó correctamente
+                            if (originalImage != null) {
+                                int originalWidth = originalImage.getWidth(null);
+                                int originalHeight = originalImage.getHeight(null);
+                                LOGGER.log(Level.INFO, "Imagen cargada: " + originalWidth + "x" + originalHeight);
+                                
+                                if (originalWidth > 0 && originalHeight > 0) {
+                                    // Escalar la imagen para que quepa en el panel (máximo 180x60px manteniendo proporción)
+                                    int maxWidth = 180;
+                                    int maxHeight = 60;
+                                    
+                                    // Calcular dimensiones manteniendo proporción
+                                    double widthRatio = (double) maxWidth / originalWidth;
+                                    double heightRatio = (double) maxHeight / originalHeight;
+                                    double ratio = Math.min(widthRatio, heightRatio);
+                                    
+                                    int scaledWidth = (int) (originalWidth * ratio);
+                                    int scaledHeight = (int) (originalHeight * ratio);
+                                    
+                                    LOGGER.log(Level.INFO, "Escalando imagen a: " + scaledWidth + "x" + scaledHeight);
+                                    
+                                    // Escalar la imagen con mejor calidad usando Graphics2D
+                                    java.awt.Image scaledImage = originalImage.getScaledInstance(
+                                        scaledWidth, scaledHeight, java.awt.Image.SCALE_SMOOTH
+                                    );
+                                    
+                                    // Usar BufferedImage para mejor renderizado
+                                    java.awt.image.BufferedImage bufferedImage = new java.awt.image.BufferedImage(
+                                        scaledWidth, scaledHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB
+                                    );
+                                    java.awt.Graphics2D g2d = bufferedImage.createGraphics();
+                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                                    g2d.drawImage(scaledImage, 0, 0, null);
+                                    g2d.dispose();
+                                    
+                                    logoLabel.setIcon(new javax.swing.ImageIcon(bufferedImage));
+                                    logoLabel.setText(""); // Sin texto, solo imagen
+                                    LOGGER.log(Level.INFO, "✓ Logo cargado y mostrado exitosamente desde: " + logoPath);
+                                    logoPanel.revalidate();
+                                    logoPanel.repaint();
+                                    return;
+                                }
+                            }
+                        } catch (javax.imageio.IIOException e) {
+                            LOGGER.log(Level.WARNING, "Error al leer imagen del logo (formato no soportado?): " + logoPath, e);
+                        }
+                    } else {
+                        LOGGER.log(Level.WARNING, "El archivo de logo no existe o no es un archivo válido: " + logoPath);
+                    }
+                } else {
+                    LOGGER.log(Level.INFO, "No hay ruta de logo configurada en 'start.logo'");
+                }
+                
+                // Si no hay ruta válida o el archivo no existe, mostrar texto "LOGO"
+                logoLabel.setIcon(null);
+                logoLabel.setText("LOGO");
+                logoLabel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24));
+                logoLabel.setForeground(new java.awt.Color(100, 160, 220));
+                logoPanel.revalidate();
+                logoPanel.repaint();
+            } catch (Exception e) {
+                // En caso de error, mostrar texto "LOGO"
+                logoLabel.setIcon(null);
+                logoLabel.setText("LOGO");
+                logoLabel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24));
+                logoLabel.setForeground(new java.awt.Color(100, 160, 220));
+                LOGGER.log(Level.WARNING, "Error al cargar el logo desde: " + logoPath, e);
+                logoPanel.revalidate();
+                logoPanel.repaint();
+            }
+        };
+        
+        // Cargar el logo inicialmente
+        try {
+            com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig.getInstance();
+            appConfig.load();
+            String logoPath = appConfig.getProperty("start.logo"); // Sebastian - Propiedad correcta desde Configuración > General > Logo
+            LOGGER.log(Level.INFO, "Ruta del logo desde configuraciones: " + logoPath);
+            if (logoPath != null && !logoPath.trim().isEmpty()) {
+                LOGGER.log(Level.INFO, "Intentando cargar logo desde: " + logoPath);
+            }
+            updateLogo.accept(logoPath);
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error al cargar configuración del logo", e);
+            updateLogo.accept(null);
+        }
+        
         logoPanel.add(logoLabel, java.awt.BorderLayout.CENTER);
+        
+        // Sebastian - Guardar referencia al logoLabel para poder actualizarlo dinámicamente
+        // (se puede usar más adelante para refrescar cuando cambie la configuración)
+        logoPanel.putClientProperty("logoLabel", logoLabel);
+        logoPanel.putClientProperty("updateLogo", updateLogo);
         
         artisticTopPanel.add(logoPanel, java.awt.BorderLayout.WEST);
         
