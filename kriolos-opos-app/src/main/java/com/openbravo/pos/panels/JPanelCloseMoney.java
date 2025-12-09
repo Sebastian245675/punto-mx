@@ -1763,6 +1763,132 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     productosXML = productosText.toString(); // Productos consolidados del día
                     script.put("productosText", productosXML); // Variable de texto simple para productos consolidados
                     script.put("productosPorTurnoText", productosPorTurnoText.toString()); // Productos por turno
+                    
+                    // Calcular totales de entradas y salidas del día
+                    double totalDayCashIn = 0.0;
+                    double totalDayCashOut = 0.0;
+                    double totalDayCashSales = 0.0;
+                    double totalDayCreditPayments = 0.0;
+                    
+                    if (allShifts != null) {
+                        for (ShiftData shift : allShifts) {
+                            totalDayCashIn += shift.getCashIn();
+                            totalDayCashOut += shift.getCashOut();
+                        }
+                    }
+                    
+                    // Obtener ventas en efectivo del día
+                    try {
+                        Session session = m_App.getSession();
+                        java.sql.Connection conn = session.getConnection();
+                        java.util.List<String> moneyList = new java.util.ArrayList<>();
+                        if (allShifts != null) {
+                            for (ShiftData shift : allShifts) {
+                                if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                                    moneyList.add(shift.getMoney());
+                                }
+                            }
+                        }
+                        
+                        if (!moneyList.isEmpty()) {
+                            StringBuilder placeholders = new StringBuilder();
+                            for (int i = 0; i < moneyList.size(); i++) {
+                                if (i > 0) placeholders.append(",");
+                                placeholders.append("?");
+                            }
+                            String sql = "SELECT COALESCE(SUM(payments.TOTAL), 0.0) as TOTAL " +
+                                       "FROM payments " +
+                                       "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                                       "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
+                                       "AND payments.PAYMENT = 'cash'";
+                            java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+                            for (int i = 0; i < moneyList.size(); i++) {
+                                pstmt.setString(i + 1, moneyList.get(i));
+                            }
+                            java.sql.ResultSet rs = pstmt.executeQuery();
+                            if (rs.next()) {
+                                totalDayCashSales = rs.getDouble("TOTAL");
+                            }
+                            rs.close();
+                            pstmt.close();
+                            
+                            // Obtener pagos de créditos del día
+                            sql = "SELECT COALESCE(SUM(payments.TOTAL), 0.0) as TOTAL " +
+                                "FROM payments " +
+                                "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                                "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
+                                "AND payments.PAYMENT = 'debt'";
+                            pstmt = conn.prepareStatement(sql);
+                            for (int i = 0; i < moneyList.size(); i++) {
+                                pstmt.setString(i + 1, moneyList.get(i));
+                            }
+                            rs = pstmt.executeQuery();
+                            if (rs.next()) {
+                                totalDayCreditPayments = rs.getDouble("TOTAL");
+                            }
+                            rs.close();
+                            pstmt.close();
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error obteniendo datos de efectivo y créditos: " + e.getMessage(), e);
+                    }
+                    
+                    // Obtener ganancias por departamento (no solo ventas)
+                    java.util.List<DeptProfitData> deptProfitList = new java.util.ArrayList<>();
+                    try {
+                        Session session = m_App.getSession();
+                        java.sql.Connection conn = session.getConnection();
+                        java.util.List<String> moneyList = new java.util.ArrayList<>();
+                        if (allShifts != null) {
+                            for (ShiftData shift : allShifts) {
+                                if (shift.getMoney() != null && !shift.getMoney().isEmpty()) {
+                                    moneyList.add(shift.getMoney());
+                                }
+                            }
+                        }
+                        
+                        if (!moneyList.isEmpty()) {
+                            StringBuilder placeholders = new StringBuilder();
+                            for (int i = 0; i < moneyList.size(); i++) {
+                                if (i > 0) placeholders.append(",");
+                                placeholders.append("?");
+                            }
+                            String sql = "SELECT COALESCE(categories.NAME, 'Sin Departamento') as CATEGORY_NAME, " +
+                                       "COALESCE(categories.CATORDER, 0) as CAT_ORDER, " +
+                                       "SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) as TOTAL_PROFIT " +
+                                       "FROM ticketlines " +
+                                       "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                                       "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                                       "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                                       "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
+                                       "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
+                                       "GROUP BY COALESCE(categories.NAME, 'Sin Departamento'), COALESCE(categories.CATORDER, 0) " +
+                                       "HAVING SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) > 0 " +
+                                       "ORDER BY COALESCE(categories.CATORDER, 0), CATEGORY_NAME";
+                            java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
+                            for (int i = 0; i < moneyList.size(); i++) {
+                                pstmt.setString(i + 1, moneyList.get(i));
+                            }
+                            java.sql.ResultSet rs = pstmt.executeQuery();
+                            while (rs.next()) {
+                                String deptName = rs.getString("CATEGORY_NAME");
+                                double profit = rs.getDouble("TOTAL_PROFIT");
+                                if (profit > 0) {
+                                    deptProfitList.add(new DeptProfitData(deptName, profit));
+                                }
+                            }
+                            rs.close();
+                            pstmt.close();
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "Error obteniendo ganancias por departamento: " + e.getMessage(), e);
+                    }
+                    
+                    script.put("totalDayCashIn", Formats.CURRENCY.formatValue(totalDayCashIn));
+                    script.put("totalDayCashOut", Formats.CURRENCY.formatValue(totalDayCashOut));
+                    script.put("totalDayCashSales", Formats.CURRENCY.formatValue(totalDayCashSales));
+                    script.put("totalDayCreditPayments", Formats.CURRENCY.formatValue(totalDayCreditPayments));
+                    script.put("deptProfitList", deptProfitList);
                     LOGGER.info("Totales del día - Ventas: " + totalDaySales + ", Pagos: " + totalDayPayments);
                     LOGGER.info("Productos consolidados: " + consolidatedProductList.size());
                     LOGGER.info("Turnos procesados: " + (allShifts != null ? allShifts.size() : 0));
@@ -2486,6 +2612,35 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     /**
      * Clase auxiliar para productos consolidados del día
      */
+    /**
+     * Clase auxiliar para almacenar datos de ganancia por departamento
+     */
+    public static class DeptProfitData {
+        private String deptName;
+        private double profit;
+        
+        public DeptProfitData(String deptName, double profit) {
+            this.deptName = deptName;
+            this.profit = profit;
+        }
+        
+        public String getDeptName() {
+            return deptName;
+        }
+        
+        public double getProfit() {
+            return profit;
+        }
+        
+        public String printDeptName() {
+            return deptName;
+        }
+        
+        public String printProfit() {
+            return Formats.CURRENCY.formatValue(profit);
+        }
+    }
+    
     public static class ConsolidatedProduct {
         private String name;
         private double totalUnits;
@@ -4537,13 +4692,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Si es "Corte del día", solo mostrar el reporte sin cerrar la caja
             if (isDayClose) {
                 LOGGER.info("Corte del día: solo generando reporte, NO cerrando caja");
-                // Generar y mostrar el reporte del día sin cerrar la caja
-                generateDayCloseReportDirect(dNow);
-                
-                // Mostrar reporte del día automáticamente
-                SwingUtilities.invokeLater(() -> {
-                    showDayReport(dNow);
-                });
+                // Usar el sistema de preview de impresión como los tickets de venta
+                printPayments("Printer.CloseCash", true);
                 return; // Salir sin cerrar la caja
             }
             
@@ -4678,7 +4828,25 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     }//GEN-LAST:event_m_jPrintCashPreviewActionPerformed
 
     private void m_jPrintCash1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jPrintCash1ActionPerformed
-        printPayments("Printer.CloseCash.Preview"); 
+        // Detectar si es cierre del día verificando si hay múltiples turnos del día
+        Date closeDate = m_PaymentsToClose.getDateEnd();
+        boolean isDayClose = false;
+        
+        if (closeDate != null) {
+            try {
+                java.util.List<ShiftData> allShifts = getAllShiftsForDay(closeDate);
+                // Si hay más de un turno, es cierre del día
+                if (allShifts != null && allShifts.size() > 1) {
+                    isDayClose = true;
+                    LOGGER.info("Detectado cierre del día: " + allShifts.size() + " turnos encontrados");
+                }
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error detectando si es cierre del día: " + e.getMessage(), e);
+            }
+        }
+        
+        // Usar el mismo template pero con isDayClose para que use el formato correcto
+        printPayments("Printer.CloseCash", isDayClose);
     }//GEN-LAST:event_m_jPrintCash1ActionPerformed
 
     private void m_jReprintCashActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jReprintCashActionPerformed
@@ -5395,13 +5563,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         Date dNow = new Date();
         
         try {
-            // Generar el reporte del día
-            generateDayCloseReportDirect(dNow);
-            
-            // Mostrar el reporte automáticamente
-            SwingUtilities.invokeLater(() -> {
-                showDayReport(dNow);
-            });
+            // Usar el sistema de preview de impresión como los tickets de venta
+            printPayments("Printer.CloseCash", true);
             
             LOGGER.info("=== FIN: Corte del día completado (solo reporte) ===");
         } catch (Exception e) {

@@ -248,41 +248,37 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
     /**
      * Sebastian - Configura los atajos de teclado para el módulo de ventas
-     * F12: Cobrar/Pagar
-     * F2: Ingresar cliente (simula clic en botón)
+     * F2: Corte de caja
      * F3: Historial de pestañas
      * F4: Nueva pestaña de venta
+     * F5: Cliente
+     * F6: Eliminar línea
+     * F7: Buscar producto
+     * F8: Editar línea
+     * F9: Atributos
+     * F10: Dividir ticket
+     * F11: Reimprimir último ticket
+     * F12: Cobrar/Pagar
      */
     private void setupKeyboardShortcuts() {
         javax.swing.InputMap inputMap = this.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);
         javax.swing.ActionMap actionMap = this.getActionMap();
 
-        // F12: Cobrar/Pagar
-        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F12, 0), "cobrar");
-        actionMap.put("cobrar", new javax.swing.AbstractAction() {
+        // F2: Corte de caja
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0), "corteCaja");
+        actionMap.put("corteCaja", new javax.swing.AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
-                    if (m_jPayNow != null && m_jPayNow.isEnabled()) {
-                        LOGGER.log(System.Logger.Level.DEBUG, "F12 → Cobrar: Simulando clic en botón Pagar");
-                        m_jPayNow.doClick();
+                try {
+                    if (m_App.getAppUserView().getUser().hasPermission("com.openbravo.pos.panels.JPanelCloseMoney")) {
+                        LOGGER.log(System.Logger.Level.DEBUG, "F2 → Corte de Caja: Abriendo panel de cierre");
+                        m_App.getAppUserView().showTask("com.openbravo.pos.panels.JPanelCloseMoney");
+                    } else {
+                        java.awt.Toolkit.getDefaultToolkit().beep();
+                        LOGGER.log(System.Logger.Level.WARNING, "F2 → Sin permiso para corte de caja");
                     }
-                } else {
-                    java.awt.Toolkit.getDefaultToolkit().beep();
-                }
-            }
-        });
-
-        // F2: Ingresar cliente (simula clic en jBtnCustomer)
-        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0), "ingresarCliente");
-        actionMap.put("ingresarCliente", new javax.swing.AbstractAction() {
-            @Override
-            public void actionPerformed(java.awt.event.ActionEvent e) {
-                if (jBtnCustomer != null && jBtnCustomer.isEnabled()) {
-                    LOGGER.log(System.Logger.Level.DEBUG, "F2 → Ingresar Cliente: Simulando clic en botón de cliente");
-                    jBtnCustomer.doClick();
-                } else {
-                    LOGGER.log(System.Logger.Level.WARNING, "F2 → Botón de cliente no disponible");
+                } catch (Exception ex) {
+                    LOGGER.log(System.Logger.Level.ERROR, "F2 → Error abriendo corte de caja: " + ex.getMessage(), ex);
                 }
             }
         });
@@ -309,13 +305,268 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
 
+        // F5: Asignar cliente
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F5, 0), "asignarCliente");
+        actionMap.put("asignarCliente", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                LOGGER.log(System.Logger.Level.DEBUG, "F5 → Asignar Cliente: Abriendo modal de asignar cliente");
+                mostrarModalIdCliente();
+            }
+        });
+
+        // F6: Eliminar línea
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F6, 0), "eliminarLinea");
+        actionMap.put("eliminarLinea", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (m_jDelete != null && m_jDelete.isEnabled() && m_oTicket != null && m_oTicket.getLinesCount() > 0) {
+                    LOGGER.log(System.Logger.Level.DEBUG, "F6 → Eliminar Línea");
+                    m_jDelete.doClick();
+                } else {
+                    java.awt.Toolkit.getDefaultToolkit().beep();
+                }
+            }
+        });
+
+        // F7: Entradas
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F7, 0), "entradas");
+        actionMap.put("entradas", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                LOGGER.log(System.Logger.Level.DEBUG, "F7 → Entradas: Abriendo diálogo de entradas");
+                showEntradasDialog();
+            }
+        });
+
+        // F8: Salidas
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F8, 0), "salidas");
+        actionMap.put("salidas", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                LOGGER.log(System.Logger.Level.DEBUG, "F8 → Salidas: Abriendo diálogo de salidas");
+                showSalidasDialog();
+            }
+        });
+
+        // F9: Atributos
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F9, 0), "atributos");
+        actionMap.put("atributos", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (jEditAttributes != null && jEditAttributes.isEnabled() && m_oTicket != null && m_oTicket.getLinesCount() > 0) {
+                    LOGGER.log(System.Logger.Level.DEBUG, "F9 → Atributos");
+                    jEditAttributes.doClick();
+                } else {
+                    java.awt.Toolkit.getDefaultToolkit().beep();
+                }
+            }
+        });
+
+        // F10: Dividir ticket
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F10, 0), "dividirTicket");
+        actionMap.put("dividirTicket", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (btnSplit != null && btnSplit.isEnabled()) {
+                    LOGGER.log(System.Logger.Level.DEBUG, "F10 → Dividir Ticket");
+                    btnSplit.doClick();
+                } else {
+                    java.awt.Toolkit.getDefaultToolkit().beep();
+                }
+            }
+        });
+
+        // F11: Mayoreo
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F11, 0), "mayoreo");
+        actionMap.put("mayoreo", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                LOGGER.log(System.Logger.Level.DEBUG, "F11 → Mayoreo: Aplicando descuento de mayoreo");
+                aplicarDescuentoMayoreo();
+            }
+        });
+
+        // F12: Cobrar/Pagar
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F12, 0), "cobrar");
+        actionMap.put("cobrar", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
+                    if (m_jPayNow != null && m_jPayNow.isEnabled()) {
+                        LOGGER.log(System.Logger.Level.DEBUG, "F12 → Cobrar: Simulando clic en botón Pagar");
+                        m_jPayNow.doClick();
+                    }
+                } else {
+                    java.awt.Toolkit.getDefaultToolkit().beep();
+                }
+            }
+        });
+
+
+        // Agregar atajos para botones de m_jbtnconfig (descuento, imprimir, etc.)
+        setupConfigButtonsShortcuts(inputMap, actionMap);
+
         LOGGER.log(System.Logger.Level.INFO,
-                "✅ Atajos de teclado configurados: F12=Cobrar, F2=Cliente, F3=Historial, F4=Nueva");
+                "✅ Atajos de teclado configurados: F2=Corte, F3=Historial, F4=Nueva, F5=Asignar Cliente, F6=Eliminar, F7=Entradas, F8=Salidas, F9=Atributos, F10=Dividir, F11=Mayoreo, F12=Cobrar");
         
         // Sebastian - Inicializar barra de pestañas después de que todos los componentes estén listos
         javax.swing.SwingUtilities.invokeLater(() -> {
             initializeTabsBar();
+            updateButtonTextsWithShortcuts();
         });
+    }
+
+    /**
+     * Configura atajos para los botones de configuración (descuento, imprimir, etc.)
+     */
+    private void setupConfigButtonsShortcuts(javax.swing.InputMap inputMap, javax.swing.ActionMap actionMap) {
+        if (m_jbtnconfig == null) return;
+        
+        // Buscar botones en m_jbtnconfig y asignarles atajos
+        java.awt.Component[] components = m_jbtnconfig.getComponents();
+        int keyCode = java.awt.event.KeyEvent.VK_1; // Empezar con números
+        
+        for (java.awt.Component comp : components) {
+            if (comp instanceof javax.swing.JButton) {
+                javax.swing.JButton btn = (javax.swing.JButton) comp;
+                String btnKey = btn.getName();
+                
+                if (btnKey != null && !btnKey.isEmpty()) {
+                    // Asignar atajos según el tipo de botón
+                    if ("button.totaldiscount".equals(btnKey)) {
+                        // Ctrl+D para descuento
+                        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_D, java.awt.event.InputEvent.CTRL_DOWN_MASK), "descuento");
+                        actionMap.put("descuento", new javax.swing.AbstractAction() {
+                            @Override
+                            public void actionPerformed(java.awt.event.ActionEvent e) {
+                                if (btn.isEnabled()) {
+                                    btn.doClick();
+                                }
+                            }
+                        });
+                        updateButtonTextWithShortcut(btn, "Ctrl+D");
+                    } else if ("button.print".equals(btnKey)) {
+                        // Ctrl+P para imprimir
+                        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_P, java.awt.event.InputEvent.CTRL_DOWN_MASK), "imprimir");
+                        actionMap.put("imprimir", new javax.swing.AbstractAction() {
+                            @Override
+                            public void actionPerformed(java.awt.event.ActionEvent e) {
+                                if (btn.isEnabled()) {
+                                    btn.doClick();
+                                }
+                            }
+                        });
+                        updateButtonTextWithShortcut(btn, "Ctrl+P");
+                    } else if ("button.opendrawer".equals(btnKey)) {
+                        // Ctrl+O para abrir cajón
+                        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_O, java.awt.event.InputEvent.CTRL_DOWN_MASK), "abrirCajon");
+                        actionMap.put("abrirCajon", new javax.swing.AbstractAction() {
+                            @Override
+                            public void actionPerformed(java.awt.event.ActionEvent e) {
+                                if (btn.isEnabled()) {
+                                    btn.doClick();
+                                }
+                            }
+                        });
+                        updateButtonTextWithShortcut(btn, "Ctrl+O");
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * Actualiza el texto de los botones para mostrar el atajo
+     */
+    private void updateButtonTextsWithShortcuts() {
+        // Actualizar botón de cliente (F5 ahora es para asignar cliente, no este botón)
+        if (jBtnCustomer != null) {
+            String originalText = AppLocal.getIntString("button.customer");
+            if (originalText == null || originalText.isEmpty()) {
+                originalText = "Cliente";
+            }
+            jBtnCustomer.setText(originalText);
+            // Remover F5 del tooltip si estaba
+            String tooltip = jBtnCustomer.getToolTipText();
+            if (tooltip != null && tooltip.contains("(F5)")) {
+                jBtnCustomer.setToolTipText(tooltip.replace(" (F5)", ""));
+            }
+        }
+
+        // Actualizar botón de cobrar
+        if (m_jPayNow != null) {
+            String originalText = AppLocal.getIntString("button.pay");
+            if (originalText == null || originalText.isEmpty()) {
+                originalText = "Cobrar";
+            }
+            m_jPayNow.setText("F12 - " + originalText);
+        }
+
+        // Actualizar botones de líneas
+        if (m_jDelete != null) {
+            String tooltip = m_jDelete.getToolTipText();
+            if (tooltip != null && !tooltip.contains("F6")) {
+                m_jDelete.setToolTipText(tooltip + " (F6)");
+            }
+        }
+
+        // F7 ahora es para Entradas y Salidas, no para buscar producto
+        if (m_jList != null) {
+            String tooltip = m_jList.getToolTipText();
+            if (tooltip != null && tooltip.contains("F7")) {
+                // Remover F7 del tooltip si estaba
+                m_jList.setToolTipText(tooltip.replace(" (F7)", ""));
+            }
+        }
+
+        // F8 ahora es para Salidas, no para editar línea
+        if (m_jEditLine != null) {
+            String tooltip = m_jEditLine.getToolTipText();
+            if (tooltip != null && tooltip.contains("F8")) {
+                // Remover F8 del tooltip si estaba
+                m_jEditLine.setToolTipText(tooltip.replace(" (F8)", ""));
+            }
+        }
+
+        if (jEditAttributes != null) {
+            String tooltip = jEditAttributes.getToolTipText();
+            if (tooltip != null && !tooltip.contains("F9")) {
+                jEditAttributes.setToolTipText(tooltip + " (F9)");
+            }
+        }
+
+        if (btnSplit != null) {
+            String tooltip = btnSplit.getToolTipText();
+            if (tooltip != null && !tooltip.contains("F10")) {
+                btnSplit.setToolTipText(tooltip + " (F10)");
+            }
+        }
+
+        // F11 ahora es para Mayoreo, no para reimprimir
+        if (btnReprint1 != null) {
+            String tooltip = btnReprint1.getToolTipText();
+            if (tooltip != null && tooltip.contains("F11")) {
+                // Remover F11 del tooltip si estaba
+                btnReprint1.setToolTipText(tooltip.replace(" (F11)", ""));
+            }
+        }
+    }
+
+    /**
+     * Actualiza el texto de un botón para mostrar el atajo
+     */
+    private void updateButtonTextWithShortcut(javax.swing.JButton btn, String shortcut) {
+        if (btn != null) {
+            String currentText = btn.getText();
+            if (currentText != null && !currentText.contains(shortcut)) {
+                btn.setText(currentText + " (" + shortcut + ")");
+            }
+            String tooltip = btn.getToolTipText();
+            if (tooltip != null && !tooltip.contains(shortcut)) {
+                btn.setToolTipText(tooltip + " (" + shortcut + ")");
+            }
+        }
     }
 
     private void initExtButtons() {
@@ -360,25 +611,26 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         panelBotones.setLayout(new java.awt.GridLayout(3, 1, 5, 5));
         panelBotones.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
 
-        // Botón 1 - Cliente
-        javax.swing.JButton btnCliente = new javax.swing.JButton("Cliente");
-        btnCliente.setPreferredSize(new java.awt.Dimension(120, 40));
-        btnCliente.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11));
-        btnCliente.setBackground(new java.awt.Color(70, 130, 180));
-        btnCliente.setForeground(java.awt.Color.WHITE);
-        btnCliente.setFocusPainted(false);
+        // Botón 1 - Cliente (sin atajo específico, se usa F5 para asignar cliente)
+        btnClienteCustom = new javax.swing.JButton("Cliente");
+        btnClienteCustom.setPreferredSize(new java.awt.Dimension(120, 40));
+        btnClienteCustom.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11));
+        btnClienteCustom.setBackground(new java.awt.Color(70, 130, 180));
+        btnClienteCustom.setForeground(java.awt.Color.WHITE);
+        btnClienteCustom.setFocusPainted(false);
         try {
-            btnCliente.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer.png")));
+            btnClienteCustom.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer.png")));
         } catch (Exception e) {
             // Ignorar si no se encuentra la imagen
         }
-        btnCliente.addActionListener(e -> {
-            javax.swing.JOptionPane.showMessageDialog(this, "Función de Cliente", "Cliente",
-                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+        btnClienteCustom.addActionListener(e -> {
+            if (jBtnCustomer != null && jBtnCustomer.isEnabled()) {
+                jBtnCustomer.doClick();
+            }
         });
 
-        // Botón 2 - Historial
-        javax.swing.JButton btnHistorial = new javax.swing.JButton("Historial");
+        // Botón 2 - Historial (F3)
+        javax.swing.JButton btnHistorial = new javax.swing.JButton("F3 - Historial");
         btnHistorial.setPreferredSize(new java.awt.Dimension(120, 40));
         btnHistorial.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11));
         btnHistorial.setBackground(new java.awt.Color(34, 139, 34));
@@ -391,48 +643,40 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Ignorar si no se encuentra la imagen
         }
         btnHistorial.addActionListener(e -> {
-            javax.swing.JOptionPane.showMessageDialog(this, "Función de Historial", "Historial",
-                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            if (m_ticketsbag != null) {
+                m_ticketsbag.activate();
+            }
         });
 
-        // Botón 3 - Entradas y Salidas
-        javax.swing.JButton btnEntradasSalidas = new javax.swing.JButton(
-                "<html><center>Entradas<br/>y Salidas</center></html>");
-        btnEntradasSalidas.setPreferredSize(new java.awt.Dimension(120, 40));
-        btnEntradasSalidas.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 10));
-        btnEntradasSalidas.setBackground(new java.awt.Color(255, 140, 0)); // Color naranja
-        btnEntradasSalidas.setForeground(java.awt.Color.WHITE);
-        btnEntradasSalidas.setFocusPainted(false);
+        // Botón 3 - Entradas y Salidas (F7/F8)
+        btnEntradasSalidasCustom = new javax.swing.JButton(
+                "<html><center>F7 Entradas<br/>F8 Salidas</center></html>");
+        btnEntradasSalidasCustom.setPreferredSize(new java.awt.Dimension(120, 40));
+        btnEntradasSalidasCustom.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 9));
+        btnEntradasSalidasCustom.setBackground(new java.awt.Color(255, 140, 0)); // Color naranja
+        btnEntradasSalidasCustom.setForeground(java.awt.Color.WHITE);
+        btnEntradasSalidasCustom.setFocusPainted(false);
         try {
             // Intentar usar el icono de pagos si existe
-            btnEntradasSalidas
+            btnEntradasSalidasCustom
                     .setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/payments.png")));
         } catch (Exception e) {
             // Si no existe, usar un icono alternativo o sin icono
             try {
-                btnEntradasSalidas.setIcon(
+                btnEntradasSalidasCustom.setIcon(
                         new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/calculator.png")));
             } catch (Exception ex) {
                 // Sin icono si no se encuentra ninguno
             }
         }
-        btnEntradasSalidas.addActionListener(e -> {
-            try {
-                // Abrir el panel de Entradas y Salidas
-                m_App.getAppUserView().showTask("com.openbravo.pos.panels.JPanelPayments");
-            } catch (Exception ex) {
-                LOGGER.log(System.Logger.Level.ERROR, "Error al abrir panel de Entradas y Salidas: " + ex.getMessage(),
-                        ex);
-                javax.swing.JOptionPane.showMessageDialog(this,
-                        "Error al abrir Entradas y Salidas: " + ex.getMessage(),
-                        "Error",
-                        javax.swing.JOptionPane.ERROR_MESSAGE);
-            }
+        btnEntradasSalidasCustom.addActionListener(e -> {
+            // Abrir diálogo de Entradas y Salidas (sin tipo fijo para que el usuario elija)
+            showEntradasSalidasDialog();
         });
 
-        panelBotones.add(btnCliente);
+        panelBotones.add(btnClienteCustom);
         panelBotones.add(btnHistorial);
-        panelBotones.add(btnEntradasSalidas);
+        panelBotones.add(btnEntradasSalidasCustom);
         m_jPanelBagExt.add(panelBotones);
 
         // Sebastian - Hacer visible el panel para mostrar los 2 botones nuevos
@@ -3006,7 +3250,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         jBtnCustomer.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jBtnCustomer.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer.png"))); // NOI18N
-        jBtnCustomer.setToolTipText(bundle.getString("tooltip.salescustomer") + " (F2)"); // NOI18N
+        jBtnCustomer.setToolTipText(bundle.getString("tooltip.salescustomer") + " (F5)"); // NOI18N
         jBtnCustomer.setPreferredSize(new java.awt.Dimension(80, 45));
         jBtnCustomer.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -3093,7 +3337,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Hacer invisibles los botones originales
 
         m_jDelete.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/editdelete.png"))); // NOI18N
-        m_jDelete.setToolTipText(bundle.getString("tooltip.saleremoveline")); // NOI18N
+        m_jDelete.setToolTipText(bundle.getString("tooltip.saleremoveline") + " (F6)"); // NOI18N
         m_jDelete.setFocusPainted(false);
         m_jDelete.setFocusable(false);
         m_jDelete.setMargin(new java.awt.Insets(8, 14, 8, 14));
@@ -3109,7 +3353,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         jPanel2.add(m_jDelete);
 
         m_jList.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/search32.png"))); // NOI18N
-        m_jList.setToolTipText(bundle.getString("tooltip.saleproductfind")); // NOI18N
+        m_jList.setToolTipText(bundle.getString("tooltip.saleproductfind") + " (F7)"); // NOI18N
         m_jList.setFocusPainted(false);
         m_jList.setFocusable(false);
         m_jList.setMargin(new java.awt.Insets(8, 14, 8, 14));
@@ -3126,7 +3370,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         m_jEditLine
                 .setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/sale_editline.png"))); // NOI18N
-        m_jEditLine.setToolTipText(bundle.getString("tooltip.saleeditline")); // NOI18N
+        m_jEditLine.setToolTipText(bundle.getString("tooltip.saleeditline") + " (F8)"); // NOI18N
         m_jEditLine.setFocusPainted(false);
         m_jEditLine.setFocusable(false);
         m_jEditLine.setMargin(new java.awt.Insets(8, 14, 8, 14));
@@ -3143,7 +3387,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         jEditAttributes
                 .setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/attributes.png"))); // NOI18N
-        jEditAttributes.setToolTipText(bundle.getString("tooltip.saleattributes")); // NOI18N
+        jEditAttributes.setToolTipText(bundle.getString("tooltip.saleattributes") + " (F9)"); // NOI18N
         jEditAttributes.setFocusPainted(false);
         jEditAttributes.setFocusable(false);
         jEditAttributes.setMargin(new java.awt.Insets(8, 14, 8, 14));
@@ -3360,7 +3604,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         smallButtonsPanel.setOpaque(false);
         smallButtonsPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
         
-        javax.swing.JButton btnCambiar = new javax.swing.JButton("F5 - Cambiar");
+        javax.swing.JButton btnCambiar = new javax.swing.JButton("Cambiar");
         btnCambiar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
         btnCambiar.setPreferredSize(new java.awt.Dimension(100, 28));
         btnCambiar.setFocusPainted(false);
@@ -3376,9 +3620,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnPendiente.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
         smallButtonsPanel.add(btnPendiente);
         
-        javax.swing.JButton btnAsignarCliente = new javax.swing.JButton("Asignar Cliente");
+        javax.swing.JButton btnAsignarCliente = new javax.swing.JButton("F5 - Asignar Cliente");
         btnAsignarCliente.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
-        btnAsignarCliente.setPreferredSize(new java.awt.Dimension(110, 28));
+        btnAsignarCliente.setPreferredSize(new java.awt.Dimension(140, 28));
         btnAsignarCliente.setFocusPainted(false);
         btnAsignarCliente.setBackground(java.awt.Color.WHITE);
         btnAsignarCliente.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
@@ -3934,23 +4178,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             javax.swing.JOptionPane.showMessageDialog(this, "Función Artículo Común", "Artículo Común", javax.swing.JOptionPane.INFORMATION_MESSAGE);
         });
         actionButtonsPanel.add(btnArticuloComun);
-        
-        // Botón Buscar
-        javax.swing.JButton btnBuscar = new javax.swing.JButton("F10 Buscar");
-        btnBuscar.setPreferredSize(new java.awt.Dimension(105, btnHeight));
-        btnBuscar.setFont(btnFont);
-        btnBuscar.setFocusPainted(false);
-        btnBuscar.setBackground(btnBg);
-        btnBuscar.setForeground(btnFg);
-        btnBuscar.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
-            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
-        ));
-        btnBuscar.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnBuscar.addActionListener(e -> {
-            m_jListActionPerformed(null);
-        });
-        actionButtonsPanel.add(btnBuscar);
         
         // Botón Mayoreo
         javax.swing.JButton btnMayoreo = new javax.swing.JButton("F11 Mayoreo");
@@ -4618,6 +4845,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton btnReprint1;
     private javax.swing.JButton btnSplit;
+    // Sebastian - Botones personalizados para atajos
+    private javax.swing.JButton btnClienteCustom;
+    private javax.swing.JButton btnEntradasSalidasCustom;
     private javax.swing.Box.Filler filler2;
     private javax.swing.JButton jBtnCustomer;
     private javax.swing.JButton jCheckStock;
@@ -6272,6 +6502,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         txtMonto.setPreferredSize(new java.awt.Dimension(200, 25));
         panel.add(txtMonto, gbc);
         rowIndex++;
+        
+        // Hacer que el campo de monto tenga el foco inicial
+        txtMonto.requestFocusInWindow();
 
         // Notas
         gbc.gridx = 0;
@@ -6309,7 +6542,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         final javax.swing.JComboBox<String> cmbTipoFinal = cmbTipo;
         final String tipoFijoFinal = tipoFijo;
         
-        btnAceptar.addActionListener(e -> {
+        // Método auxiliar para guardar la entrada/salida
+        java.awt.event.ActionListener guardarEntradaSalida = e -> {
             try {
                 String tipo;
                 if (tipoFijoFinal != null) {
@@ -6325,15 +6559,33 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             "Por favor ingrese un monto",
                             "Error",
                             javax.swing.JOptionPane.WARNING_MESSAGE);
+                    txtMonto.requestFocusInWindow();
                     return;
                 }
 
-                double monto = Double.parseDouble(montoStr);
+                // Aceptar tanto coma como punto como separador decimal (formato mexicano)
+                // Reemplazar coma por punto para el parseo
+                montoStr = montoStr.replace(',', '.');
+                // Remover espacios y caracteres no numéricos excepto punto y signo negativo
+                montoStr = montoStr.replaceAll("[^0-9.\\-]", "");
+                
+                double monto;
+                try {
+                    monto = Double.parseDouble(montoStr);
+                } catch (NumberFormatException nfe) {
+                    javax.swing.JOptionPane.showMessageDialog(dialog,
+                            "El monto debe ser un número válido (ejemplo: 67,00 o 67.00)",
+                            "Error",
+                            javax.swing.JOptionPane.ERROR_MESSAGE);
+                    txtMonto.requestFocusInWindow();
+                    return;
+                }
                 if (monto <= 0) {
                     javax.swing.JOptionPane.showMessageDialog(dialog,
                             "El monto debe ser mayor a cero",
                             "Error",
                             javax.swing.JOptionPane.WARNING_MESSAGE);
+                    txtMonto.requestFocusInWindow();
                     return;
                 }
 
@@ -6359,26 +6611,28 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         "Entrada/Salida guardada: Tipo=" + reason + ", Monto=" + total +
                                 ", MONEY=" + payment[1] + ", ReceiptID=" + payment[0]);
 
-                javax.swing.JOptionPane.showMessageDialog(dialog,
-                        tipo + " de $" + String.format("%.2f", monto) + " registrada correctamente.\n" +
-                                "Nota: Cierra y reabre el panel de cierre para ver los cambios.",
-                        "Éxito",
-                        javax.swing.JOptionPane.INFORMATION_MESSAGE);
-
                 dialog.dispose();
             } catch (NumberFormatException ex) {
                 javax.swing.JOptionPane.showMessageDialog(dialog,
-                        "El monto debe ser un número válido",
+                        "El monto debe ser un número válido (ejemplo: 67,00 o 67.00)",
                         "Error",
                         javax.swing.JOptionPane.ERROR_MESSAGE);
+                txtMonto.requestFocusInWindow();
             } catch (com.openbravo.basic.BasicException ex) {
                 LOGGER.log(System.Logger.Level.ERROR, "Error al guardar entrada/salida: " + ex.getMessage(), ex);
                 javax.swing.JOptionPane.showMessageDialog(dialog,
                         "Error al guardar: " + ex.getMessage(),
                         "Error",
                         javax.swing.JOptionPane.ERROR_MESSAGE);
+                txtMonto.requestFocusInWindow();
             }
-        });
+        };
+        
+        // Agregar ActionListener al campo de monto para detectar Enter
+        txtMonto.addActionListener(guardarEntradaSalida);
+        
+        // Agregar ActionListener al botón Aceptar
+        btnAceptar.addActionListener(guardarEntradaSalida);
 
         dialog.setVisible(true);
     }

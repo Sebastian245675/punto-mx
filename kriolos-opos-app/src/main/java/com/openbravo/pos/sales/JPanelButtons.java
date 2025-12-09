@@ -145,6 +145,22 @@ public class JPanelButtons extends javax.swing.JPanel {
                             attributes.getValue("image"),
                             title);
 
+                    // Agregar atajo al texto del botón según su key
+                    String btnKey = attributes.getValue("key");
+                    if (btnKey != null) {
+                        String shortcut = getShortcutForButton(btnKey);
+                        if (shortcut != null && !shortcut.isEmpty()) {
+                            String currentText = btn.getText();
+                            if (currentText != null && !currentText.contains(shortcut)) {
+                                btn.setText(currentText + " (" + shortcut + ")");
+                            }
+                            String tooltip = btn.getToolTipText();
+                            if (tooltip != null && !tooltip.contains(shortcut)) {
+                                btn.setToolTipText(tooltip + " (" + shortcut + ")");
+                            }
+                        }
+                    }
+
                     //Resource is: template
                     final String template = attributes.getValue("template");
                     if (template != null) {
@@ -186,6 +202,26 @@ public class JPanelButtons extends javax.swing.JPanel {
 
         @Override
         public void characters(char[] ch, int start, int length) throws SAXException {
+        }
+    }
+
+    /**
+     * Obtiene el atajo de teclado para un botón según su key
+     */
+    private String getShortcutForButton(String btnKey) {
+        if (btnKey == null) return null;
+        
+        switch (btnKey) {
+            case "button.totaldiscount":
+                return "Ctrl+D";
+            case "button.print":
+                return "Ctrl+P";
+            case "button.opendrawer":
+                return "Ctrl+O";
+            case "button.keyboard":
+                return "Ctrl+K";
+            default:
+                return null;
         }
     }
 

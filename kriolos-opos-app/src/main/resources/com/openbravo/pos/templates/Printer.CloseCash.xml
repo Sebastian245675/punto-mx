@@ -27,88 +27,84 @@
         </line>
         <line></line>
         #if ($isDayClose && $allShifts && !$allShifts.isEmpty())
-        <!-- REPORTE POR TURNOS (CIERRE DEL DÍA) -->
+        <!-- REPORTE CORTE DEL DÍA (FORMATO TICKET) -->
         <line size="1">
-            <text align ="center" bold="true" length="42">REPORTE DEL DÍA POR TURNOS</text>
+            <text align ="center" bold="true" length="42">== CORTE DEL DÍA ==</text>
         </line>
         <line></line>
-        #foreach ($shift in $allShifts)
+        
+        <!-- GANANCIA X DEPTO -->
         <line size="1">
-            <text align ="center" bold="true" length="42">TURNO ${shift.sequence} - ${shift.printUserName()}</text>
+            <text align ="center" bold="true" length="42">== GANANCIA X DEPTO ==</text>
         </line>
-        <line>
-            <text align ="left" length="20">Inicio:</text>
-            <text align ="left" length="22">${shift.printDateStart()}</text>
-        </line>
-        <line>
-            <text align ="left" length="20">Fin:</text>
-            <text align ="left" length="22">${shift.printDateEnd()}</text>
-        </line>
-        <line><text>------------------------------------------</text></line>
-        <line>
-            <text align ="left" length="30" bold="true">Fondo Inicial:</text>
-            <text align ="right" length="12" bold="true">${shift.printInitialAmount()}</text>
-        </line>
-        <line>
-            <text align ="left" length="30" bold="true">Entradas:</text>
-            <text align ="right" length="12" bold="true">${shift.printCashIn()}</text>
-        </line>
-        <line>
-            <text align ="left" length="30" bold="true">Salidas:</text>
-            <text align ="right" length="12" bold="true">${shift.printCashOut()}</text>
-        </line>
-        <line><text>------------------------------------------</text></line>
-        <line>
-            <text align ="left" length="30" bold="true">Total Ventas Turno:</text>
-            <text align ="right" length="12" bold="true">${shift.printTotalSales()}</text>
-        </line>
-        <line></line>
-        <line></line>
+        #if ($deptProfitList && !$deptProfitList.isEmpty())
+        #foreach ($dept in $deptProfitList)
+        #set($deptName = $dept.printDeptName())
+        #set($deptProfit = $dept.printProfit())
+        #set($deptDisplay = $deptName)
+        #if($deptDisplay.length() > 30)
+            #set($deptDisplay = $deptDisplay.substring(0, 27) + "...")
         #end
-        <!-- RESUMEN TOTAL DEL DÍA -->
-        <line><text>==========================================</text></line>
-        <line size="1">
-            <text align ="center" bold="true" length="42">TOTAL DE TODOS LOS TURNOS</text>
-        </line>
-        <line><text>==========================================</text></line>
         <line>
-            <text align ="left" length="30" bold="true">Fondo Inicial:</text>
-            <text align ="right" length="12" bold="true">$initialAmount</text>
-        </line>
-        <line>
-            <text align ="left" length="30" bold="true">Total Ventas:</text>
-            <text align ="right" length="12" bold="true">$totalDaySales</text>
-        </line>
-        <line>
-            <text align ="left" length="30" bold="true">Total en Caja:</text>
-            <text align ="right" length="12" bold="true">$totalDayPayments</text>
-        </line>
-        <line><text>==========================================</text></line>
-        <line></line>
-        <!-- LISTA CONSOLIDADA DE VENTAS POR DEPARTAMENTO DEL DÍA -->
-        <line size="1">
-            <text align ="center" bold="true" length="42">VENTAS POR DEPARTAMENTO</text>
-        </line>
-        <line>
-           <text align ="left" bold="true" length="25">Departamento</text>
-           <text align ="right" bold="true" length="8">Cantidad</text>
-           <text align ="right" bold="true" length="9">Total</text>
-        </line>
-        <line><text>------------------------------------------</text></line>
-        #if ($consolidatedProducts && !$consolidatedProducts.isEmpty())
-        #foreach ($product in $consolidatedProducts)
-        <line>
-            <text align="left" length="25">$product.printName()</text>
-            <text align="right" length="8">$product.printUnits()</text>
-            <text align="right" length="9">$product.printTotal()</text>
+            <text align="left" length="42">$deptDisplay: $deptProfit</text>
         </line>
         #end
         #else
         <line>
-            <text align ="left" length="42">Sin ventas por departamento</text>
+            <text align ="left" length="42">- Sin ganancias por departamento -</text>
         </line>
         #end
-        <line><text>------------------------------------------</text></line>
+        <line></line>
+        
+        <!-- INGRESOS CONTADO -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== INGRESOS CONTADO ==</text>
+        </line>
+        <line>
+            <text align="left" length="20">VENTAS EFECTIVO:</text>
+            <text align="right" length="22">$totalDayCashSales</text>
+        </line>
+        <line>
+            <text align="left" length="20" bold="true">TOTAL INGRESOS</text>
+            <text align="right" length="22" bold="true">= $totalDayCashSales</text>
+        </line>
+        <line></line>
+        
+        <!-- ENTRADAS EFECTIVO -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== ENTRADAS EFECTIVO ==</text>
+        </line>
+        <line>
+            <text align="left" length="20" bold="true">TOTAL ENTRADAS</text>
+            <text align="right" length="22" bold="true">= $totalDayCashIn</text>
+        </line>
+        <line></line>
+        
+        <!-- SALIDAS EFECTIVO -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== SALIDAS EFECTIVO ==</text>
+        </line>
+        <line>
+            <text align="left" length="20" bold="true">TOTAL SALIDAS</text>
+            <text align="right" length="22" bold="true">= $totalDayCashOut</text>
+        </line>
+        <line></line>
+        
+        <!-- PAGOS DE CREDITOS -->
+        <line size="1">
+            <text align ="center" bold="true" length="42">== PAGOS DE CREDITOS ==</text>
+        </line>
+        #if ($totalDayCreditPayments && $totalDayCreditPayments != "0.00" && $totalDayCreditPayments != "$0.00")
+        <line>
+            <text align="left" length="20">Total Pagos:</text>
+            <text align="right" length="22">$totalDayCreditPayments</text>
+        </line>
+        #else
+        <line>
+            <text align ="left" length="42">- NO HUBO PAGOS DE CLIENTES -</text>
+        </line>
+        #end
+        <line></line>
         <line></line>
         #else
         <!-- REPORTE NORMAL (CIERRE DE TURNO) -->
