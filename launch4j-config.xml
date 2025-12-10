@@ -3,7 +3,7 @@
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
   <jar>kriolos-opos-app\target\kriolos-pos.jar</jar>
-  <outfile>dist\CONNECTING-POS.exe</outfile>
+  <outfile>D:\Descargas\CONNECTING-POS.exe</outfile>
   <errTitle>CONNECTING POS Error</errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>

@@ -24,9 +24,10 @@ public class UpdateManager {
     
     // URLs alternativas para descargar actualizaciones
     private static final String[] UPDATE_URLS = {
+        UPDATE_BASE_URL + "v{version}/kriolos-pos-release.jar",
         UPDATE_BASE_URL + "v{version}/kriolos-pos.jar",
-        "https://github.com/Sebastian245675/punto-mx/releases/latest/download/kriolos-pos.jar",
-        "https://raw.githubusercontent.com/Sebastian245675/punto-mx/main/kriolos-opos-app/target/kriolos-pos.jar"
+        "https://github.com/Sebastian245675/punto-mx/releases/latest/download/kriolos-pos-release.jar",
+        "https://github.com/Sebastian245675/punto-mx/releases/latest/download/kriolos-pos.jar"
     };
     
     /**

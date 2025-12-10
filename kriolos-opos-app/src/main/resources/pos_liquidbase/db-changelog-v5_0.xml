@@ -49,4 +49,18 @@
             </column>
         </addColumn>
     </changeSet>
+    
+    <!-- Sebastian - Actualizar template Printer.Ticket: eliminar logo y traducir todo al español -->
+    <changeSet author="sebastian (unicenta-pos)" id="20241210-01">
+        <comment>Actualizar template Printer.Ticket: eliminar logo y traducir completamente al español</comment>
+        <delete tableName="resources">
+            <where>name = 'Printer.Ticket'</where>
+        </delete>
+        <insert tableName="resources">
+            <column name="id" value="48"/>
+            <column name="name" value="Printer.Ticket"/>
+            <column name="restype" value="0"/>
+            <column name="content" valueBlobFile="../com/openbravo/pos/templates/Printer.Ticket.xml"/>
+        </insert>
+    </changeSet>
 </databaseChangeLog>

@@ -15,24 +15,52 @@ jobs:
     - uses: actions/checkout@v3
       with:
         submodules: recursive
+    
+    - name: Extract version from tag
+      id: get_version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "version=$VERSION" >> $GITHUB_OUTPUT
+        echo "Version extraída: $VERSION"
+    
+    - name: Update VERSION.txt
+      run: |
+        echo "${{ steps.get_version.outputs.version }}" > VERSION.txt
+        echo "VERSION.txt actualizado con: ${{ steps.get_version.outputs.version }}"
+        cat VERSION.txt
+    
     - name: Set up JDK 17
       uses: actions/setup-java@v3
       with:
         java-version: '17'
         distribution: 'adopt'
         cache: maven
+    
     - name: Build with Maven
       run: mvn package -Pdocs-gen,distribuition -B --file pom.xml
+    
+    - name: Copy JAR for release
+      run: |
+        # Copiar el JAR generado por Spring Boot (repackage)
+        if [ -f "kriolos-opos-app/target/kriolos-pos.jar" ]; then
+          cp kriolos-opos-app/target/kriolos-pos.jar kriolos-opos-app/target/kriolos-pos-release.jar
+          echo "JAR copiado para release"
+        else
+          echo "Advertencia: No se encontró kriolos-pos.jar"
+        fi
+    
     - name: Release Binary
       uses: "marvinpinto/action-automatic-releases@latest"
       with:
         repo_token: "${{ secrets.GITHUB_TOKEN }}"
         #automatic_release_tag: "latest"
-        title: "Latest Build"
+        title: "Release v${{ steps.get_version.outputs.version }}"
         prerelease: false
         files: |
           LICENSE.txt
           CHANGELOG.txt
+          VERSION.txt
+          kriolos-opos-app/target/kriolos-pos-release.jar
           kriolos-opos-app/target/*.zip
           docs/guide-comercial/target/generated-docs/pdf/kriolos-pos-*.pdf
           docs/guide-devel/target/generated-docs/pdf/kriolos-pos-*.pdf
