@@ -132,6 +132,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private int m_iNumberStatusInput;
     private int m_iNumberStatusPor;
     private StringBuffer m_sBarcode;
+    // Sebastian - Flag para evitar que el diálogo de granel se abra dos veces
+    private volatile boolean m_bGranelDialogOpen = false;
 
     private JTicketsBag m_ticketsbag;
     private TicketParser m_TTP;
@@ -1498,6 +1500,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private void incProduct(ProductInfoExt prod) {
 
         if (prod.isScale()) {
+            // Sebastian - Protección contra doble apertura del diálogo
+            if (m_bGranelDialogOpen) {
+                System.out.println("DEBUG: Diálogo de granel ya está abierto, ignorando segunda llamada");
+                return;
+            }
+            
             // Usar el diálogo estilo Eleventa para productos de granel
             System.out.println("DEBUG: Producto es granel, mostrando diálogo...");
             Window parentWindow = SwingUtilities.getWindowAncestor(this);
@@ -1510,15 +1518,23 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             System.out.println("DEBUG: Nombre producto: " + prod.getName());
             System.out.println("DEBUG: Precio: " + prod.getPriceSell());
 
-            Double peso = JGranelDialog.mostrarDialogo(
-                    parentWindow,
-                    prod.getName() != null ? prod.getName() : "Producto Granel",
-                    prod.getPriceSell());
+            // Marcar que el diálogo está abierto ANTES de mostrarlo
+            m_bGranelDialogOpen = true;
+            
+            try {
+                Double peso = JGranelDialog.mostrarDialogo(
+                        parentWindow,
+                        prod.getName() != null ? prod.getName() : "Producto Granel",
+                        prod.getPriceSell());
 
-            System.out.println("DEBUG: Peso retornado: " + peso);
+                System.out.println("DEBUG: Peso retornado: " + peso);
 
-            if (peso != null && peso > 0) {
-                incProduct(prod, peso);
+                if (peso != null && peso > 0) {
+                    incProduct(prod, peso);
+                }
+            } finally {
+                // Siempre liberar el flag, incluso si hay una excepción
+                m_bGranelDialogOpen = false;
             }
         } else {
             if (!prod.isVprice()) {

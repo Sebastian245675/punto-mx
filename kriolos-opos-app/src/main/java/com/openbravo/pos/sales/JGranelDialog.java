@@ -7,7 +7,11 @@
 package com.openbravo.pos.sales;
 
 import java.awt.*;
-import java.awt.event.*;
+import java.awt.event.FocusAdapter;
+import java.awt.event.FocusEvent;
+import java.awt.event.KeyAdapter;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
 import java.text.ParseException;
@@ -68,6 +72,15 @@ public class JGranelDialog extends JDialog {
     private void initComponents() {
         setDefaultCloseOperation(JDialog.DISPOSE_ON_CLOSE);
         setResizable(false);
+        
+        // Agregar WindowListener para manejar el cierre de forma explícita
+        addWindowListener(new java.awt.event.WindowAdapter() {
+            @Override
+            public void windowClosing(java.awt.event.WindowEvent e) {
+                aceptado = false;
+                cerrarDialogo();
+            }
+        });
         
         // NO establecer botón por defecto para evitar que Enter active el botón automáticamente
         getRootPane().setDefaultButton(null);
@@ -398,7 +411,12 @@ public class JGranelDialog extends JDialog {
         });
         
         // Eventos de botones
-        btnAceptar.addActionListener(e -> aceptar());
+        // Usar ActionListener con protección adicional para evitar doble ejecución
+        btnAceptar.addActionListener(e -> {
+            if (btnAceptar.isEnabled() && isVisible()) {
+                aceptar();
+            }
+        });
         btnCancelar.addActionListener(e -> cancelar());
         
         // Foco inicial en cantidad
@@ -760,8 +778,12 @@ public class JGranelDialog extends JDialog {
                 return;
             }
             
-            // Marcar como aceptado inmediatamente para evitar doble procesamiento
+            // Marcar como aceptado ANTES de procesar para evitar doble ejecución
             aceptado = true;
+            
+            // Deshabilitar botones inmediatamente para evitar doble clic
+            btnAceptar.setEnabled(false);
+            btnCancelar.setEnabled(false);
             
             try {
                 // Normalizar formato antes de parsear (reemplazar coma por punto)
@@ -770,6 +792,8 @@ public class JGranelDialog extends JDialog {
                 
                 if (cantidad <= 0) {
                     aceptado = false; // Permitir reintentar si hay error
+                    btnAceptar.setEnabled(true);
+                    btnCancelar.setEnabled(true);
                     JOptionPane.showMessageDialog(this, 
                         "La cantidad debe ser mayor a 0", 
                         "Error", 
@@ -778,10 +802,35 @@ public class JGranelDialog extends JDialog {
                 }
                 
                 cantidadFinal = cantidad;
-                dispose(); // Cerrar el diálogo
+                
+                // Cerrar el diálogo de forma inmediata y forzada
+                // Para diálogos modales, es crítico cerrar correctamente para que setVisible(true) retorne
+                // Desactivar todos los componentes primero para evitar interacciones
+                btnAceptar.setEnabled(false);
+                btnCancelar.setEnabled(false);
+                txtCantidad.setEnabled(false);
+                txtValor.setEnabled(false);
+                
+                // Desactivar modalidad primero para liberar el bloqueo del hilo
+                setModal(false);
+                // Ocultar el diálogo inmediatamente - esto hará que setVisible(true) retorne
+                setVisible(false);
+                // Liberar recursos
+                dispose();
+                
+                // Forzar actualización de la UI para asegurar que el diálogo desaparezca visualmente
+                // Esto se ejecuta en el hilo de eventos para asegurar que se procese correctamente
+                SwingUtilities.invokeLater(() -> {
+                    // Asegurar que el diálogo esté completamente cerrado
+                    if (isDisplayable()) {
+                        dispose();
+                    }
+                });
                 
             } catch (NumberFormatException ex) {
                 aceptado = false; // Permitir reintentar si hay error
+                btnAceptar.setEnabled(true);
+                btnCancelar.setEnabled(true);
                 JOptionPane.showMessageDialog(this, 
                     "Formato de cantidad inválido. Use punto (.) como separador decimal.", 
                     "Error", 
@@ -791,9 +840,25 @@ public class JGranelDialog extends JDialog {
         }
     }
     
+    /**
+     * Método auxiliar para cerrar el diálogo de forma correcta
+     * Similar al patrón usado en otros diálogos del código (JNumberDialog, JEditorTextDialog)
+     */
+    private void cerrarDialogo() {
+        // Desactivar modalidad primero para liberar el bloqueo del hilo
+        // Esto es crítico para que setVisible(false) funcione correctamente
+        setModal(false);
+        
+        // Ocultar el diálogo inmediatamente (patrón estándar en otros diálogos)
+        setVisible(false);
+        
+        // Liberar recursos y cerrar completamente
+        dispose();
+    }
+    
     private void cancelar() {
         aceptado = false;
-        dispose();
+        cerrarDialogo();
     }
     
     /**
@@ -897,7 +962,7 @@ public class JGranelDialog extends JDialog {
             (dialog.txtValor != null ? dialog.txtValor.getFont().getSize() : "null") + " puntos");
         
         // Asegurar que el diálogo sea visible
-        dialog.setAlwaysOnTop(true);
+        // No usar setAlwaysOnTop ya que puede causar problemas de cierre
         dialog.toFront();
         dialog.requestFocus();
         
