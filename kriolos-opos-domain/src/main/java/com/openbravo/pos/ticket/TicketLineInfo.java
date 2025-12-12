@@ -590,10 +590,20 @@ public class TicketLineInfo implements SerializableWrite, SerializableRead, Seri
     /**
      * Get Line Product Printer Attribute: product.printer
      *
-     * @return XML
+     * @return XML encoded string, or empty string if not set (never null)
      */
     public String printPrinter() {
-        return StringUtils.encodeXML(attributes.getProperty("product.printer"));
+        // #region agent log
+        String rawValue = attributes.getProperty("product.printer");
+        String encodedValue = StringUtils.encodeXML(rawValue);
+        try {
+            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+            fw.write("{\"location\":\"TicketLineInfo.java:596\",\"message\":\"printPrinter called\",\"data\":{\"rawValue\":" + (rawValue != null ? "\"" + rawValue.replace("\"", "\\\"") + "\"" : "null") + ",\"encodedValue\":" + (encodedValue != null ? "\"" + encodedValue.replace("\"", "\\\"") + "\"" : "null") + ",\"isNull\":" + (encodedValue == null) + ",\"productId\":" + (productid != null ? "\"" + productid + "\"" : "null") + "},\"timestamp\":" + System.currentTimeMillis() + ",\"sessionId\":\"debug-session\",\"runId\":\"post-fix\",\"hypothesisId\":\"A\"}\n");
+            fw.close();
+        } catch (Exception e) {}
+        // #endregion
+        // Fix: Return empty string instead of null to prevent NullPointerException in Velocity templates
+        return encodedValue != null ? encodedValue : "";
     }
 
     /**

@@ -411,6 +411,16 @@ public class JTicketLines extends javax.swing.JPanel {
         public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean isSelected, boolean hasFocus, int row, int column) {
 
+            // #region agent log
+            if (m_acolumns[column].name != null && m_acolumns[column].name.equals("label.printto")) {
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                    fw.write("{\"location\":\"JTicketLines.java:414\",\"message\":\"Rendering printto cell\",\"data\":{\"value\":" + (value != null ? "\"" + value.toString().replace("\"", "\\\"").replace("\n", "\\n") + "\"" : "null") + ",\"valueType\":" + (value != null ? "\"" + value.getClass().getName() + "\"" : "null") + ",\"isNull\":" + (value == null) + ",\"isEmpty\":" + (value != null && value.toString().isEmpty()) + "},\"timestamp\":" + System.currentTimeMillis() + ",\"sessionId\":\"debug-session\",\"runId\":\"run3\",\"hypothesisId\":\"C\"}\n");
+                    fw.close();
+                } catch (Exception e) {}
+            }
+            // #endregion
+            
             JLabel aux = (JLabel) super.getTableCellRendererComponent(table, value,
                     isSelected, hasFocus, row, column);
             aux.setVerticalAlignment(javax.swing.SwingConstants.TOP);
@@ -566,7 +576,18 @@ public class JTicketLines extends javax.swing.JPanel {
                 try {
                     ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
                     script.put("ticketline", oLine);
-                    row[i] = script.eval(m_acolumns[i].value).toString();
+                    String evalResult = script.eval(m_acolumns[i].value).toString();
+                    // #region agent log
+                    if (m_acolumns[i].name != null && m_acolumns[i].name.equals("label.printto")) {
+                        try {
+                            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                            fw.write("{\"location\":\"JTicketLines.java:569\",\"message\":\"Rendering printto column\",\"data\":{\"columnName\":\"" + m_acolumns[i].name + "\",\"evalResult\":" + (evalResult != null ? "\"" + evalResult.replace("\"", "\\\"").replace("\n", "\\n") + "\"" : "null") + ",\"printPrinterValue\":" + (oLine.printPrinter() != null ? "\"" + oLine.printPrinter() + "\"" : "null") + "},\"timestamp\":" + System.currentTimeMillis() + ",\"sessionId\":\"debug-session\",\"runId\":\"run2\",\"hypothesisId\":\"B\"}\n");
+                            fw.close();
+                        } catch (Exception e) {}
+                    }
+                    // #endregion
+                    // Fix: Replace "null" string with empty string to prevent displaying "null" text
+                    row[i] = (evalResult != null && evalResult.equals("null")) ? "" : evalResult;
                 } catch (ScriptException e) {
                     row[i] = null;
                 }
@@ -586,7 +607,9 @@ public class JTicketLines extends javax.swing.JPanel {
                 try {
                     ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
                     script.put("ticketline", oLine);
-                    row[i] = script.eval(m_acolumns[i].value).toString();
+                    String evalResult = script.eval(m_acolumns[i].value).toString();
+                    // Fix: Replace "null" string with empty string to prevent displaying "null" text
+                    row[i] = (evalResult != null && evalResult.equals("null")) ? "" : evalResult;
                 } catch (ScriptException e) {
                     row[i] = null;
                 }

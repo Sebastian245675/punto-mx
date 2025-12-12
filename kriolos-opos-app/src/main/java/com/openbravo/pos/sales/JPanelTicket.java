@@ -1212,6 +1212,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     protected void addTicketLine(TicketLineInfo oLine) {
         if (m_oTicket != null) {
+            boolean foundMatchingLine = false;
+            
             if (oLine.isProductCom()) {
                 int i = m_ticketlines.getSelectedIndex();
 
@@ -1230,39 +1232,96 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     Toolkit.getDefaultToolkit().beep();
                 }
             } else {
-                m_oTicket.addLine(oLine);
-                m_ticketlines.addTicketLine(oLine);
-
+                // #region agent log
                 try {
-                    int i = m_ticketlines.getSelectedIndex();
-                    TicketLineInfo line = m_oTicket.getLine(i);
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                    fw.write("{\"location\":\"JPanelTicket.java:1232\",\"message\":\"addTicketLine called\",\"data\":{\"productId\":" + (oLine.getProductID() != null ? "\"" + oLine.getProductID() + "\"" : "null") + ",\"attSetInstId\":" + (oLine.getProductAttSetInstId() != null ? "\"" + oLine.getProductAttSetInstId() + "\"" : "null") + ",\"price\":" + oLine.getPrice() + ",\"multiply\":" + oLine.getMultiply() + ",\"linesCount\":" + m_oTicket.getLinesCount() + "},\"timestamp\":" + System.currentTimeMillis() + ",\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                    fw.close();
+                } catch (Exception e) {}
+                // #endregion
+                
+                // Buscar si ya existe una línea con el mismo producto, atributos y precio
+                for (int i = 0; i < m_oTicket.getLinesCount(); i++) {
+                    TicketLineInfo existingLine = m_oTicket.getLine(i);
+                    // Solo consolidar si no es producto compuesto
+                    if (!existingLine.isProductCom()) {
+                        // Comparar productid (puede ser null, usar Objects.equals para seguridad)
+                        boolean sameProduct = java.util.Objects.equals(existingLine.getProductID(), oLine.getProductID());
+                        // Comparar attsetinstid (atributos de instancia, puede ser null)
+                        boolean sameAttribs = java.util.Objects.equals(existingLine.getProductAttSetInstId(), oLine.getProductAttSetInstId());
+                        // Comparar precio (usar tolerancia para números de punto flotante)
+                        boolean samePrice = Math.abs(existingLine.getPrice() - oLine.getPrice()) < 0.01;
+                        
+                        if (sameProduct && sameAttribs && samePrice) {
+                            // #region agent log
+                            try {
+                                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                                fw.write("{\"location\":\"JPanelTicket.java:1248\",\"message\":\"Matching line found, consolidating\",\"data\":{\"lineIndex\":" + i + ",\"oldMultiply\":" + existingLine.getMultiply() + ",\"newMultiply\":" + (existingLine.getMultiply() + oLine.getMultiply()) + "},\"timestamp\":" + System.currentTimeMillis() + ",\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                                fw.close();
+                            } catch (Exception e) {}
+                            // #endregion
+                            
+                            // Consolidar: incrementar la cantidad manteniendo el precio
+                            existingLine.setMultiply(existingLine.getMultiply() + oLine.getMultiply());
+                            // Actualizar la línea en el ticket y en la UI
+                            // paintTicketLine ya actualiza todo: setLine, setTicketLine, countArticles, visorTicketLine, printPartialTotals, etc.
+                            paintTicketLine(i, existingLine);
+                            foundMatchingLine = true;
+                            // Ejecutar el evento de cambio pero no las otras funciones (ya las ejecutó paintTicketLine)
+                            executeEvent(m_oTicket, m_oTicketExt, TicketConstants.EV_TICKET_CHANGE);
+                            return;
+                        }
+                    }
+                }
+                
+                // Si no se encontró una línea coincidente, agregar como nueva línea
+                if (!foundMatchingLine) {
+                    // #region agent log
+                    try {
+                        java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                        fw.write("{\"location\":\"JPanelTicket.java:1275\",\"message\":\"No matching line found, adding new line\",\"data\":{},\"timestamp\":" + System.currentTimeMillis() + ",\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                        fw.close();
+                    } catch (Exception e) {}
+                    // #endregion
+                    
+                    m_oTicket.addLine(oLine);
+                    m_ticketlines.addTicketLine(oLine);
 
-                    if (line.isProductVerpatrib()) {
+                    try {
+                        int i = m_ticketlines.getSelectedIndex();
+                        TicketLineInfo line = m_oTicket.getLine(i);
 
-                        JProductAttEdit2 attedit = JProductAttEdit2.getAttributesEditor(this, m_App.getSession());
-                        attedit.editAttributes(line.getProductAttSetId(), line.getProductAttSetInstId());
-                        attedit.setVisible(true);
+                        if (line.isProductVerpatrib()) {
 
-                        if (attedit.isOK()) {
-                            line.setProductAttSetInstId(attedit.getAttributeSetInst());
-                            line.setProductAttSetInstDesc(attedit.getAttributeSetInstDescription());
+                            JProductAttEdit2 attedit = JProductAttEdit2.getAttributesEditor(this, m_App.getSession());
+                            attedit.editAttributes(line.getProductAttSetId(), line.getProductAttSetInstId());
+                            attedit.setVisible(true);
+
+                            if (attedit.isOK()) {
+                                line.setProductAttSetInstId(attedit.getAttributeSetInst());
+                                line.setProductAttSetInstDesc(attedit.getAttributeSetInstDescription());
+                            }
+
+                            paintTicketLine(i, line);
                         }
 
-                        paintTicketLine(i, line);
+                    } catch (Exception ex) {
+                        LOGGER.log(System.Logger.Level.WARNING, "Exception on: ", ex);
+                        MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                                AppLocal.getIntString("message.cannotfindattributes"), ex);
+                        msg.show(this);
                     }
-
-                } catch (Exception ex) {
-                    LOGGER.log(System.Logger.Level.WARNING, "Exception on: ", ex);
-                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
-                            AppLocal.getIntString("message.cannotfindattributes"), ex);
-                    msg.show(this);
                 }
             }
 
-            visorTicketLine(oLine);
-            printPartialTotals();
-            stateToZero();
-            countArticles();
+            // Si se consolidó, ya retornamos antes, así que llegamos aquí solo si NO se consolidó
+            // Actualizar visor y funciones solo si no se consolidó (paintTicketLine ya lo hizo si se consolidó)
+            if (!foundMatchingLine || oLine.isProductCom()) {
+                visorTicketLine(oLine);
+                printPartialTotals();
+                stateToZero();
+                countArticles();
+            }
 
             executeEvent(m_oTicket, m_oTicketExt, TicketConstants.EV_TICKET_CHANGE);
         } else {
