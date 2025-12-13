@@ -208,7 +208,37 @@ public class JDialogInitialCash extends JDialog {
             if (text.isEmpty()) {
                 text = "0.00";
             }
-            initialAmount = Formats.CURRENCY.parseValue(text);
+            
+            // Sebastian - Intentar parsear primero como número simple (sin formato)
+            // Esto evita problemas cuando el usuario ingresa solo números (ej: "4545")
+            // y el formato de moneda usa punto como separador de miles
+            try {
+                // Remover todos los caracteres no numéricos excepto punto y coma
+                String cleanText = text.replaceAll("[^0-9.,]", "");
+                
+                // Si el texto limpio contiene solo números (sin punto ni coma), parsearlo directamente
+                if (cleanText.matches("^[0-9]+$")) {
+                    // Es un número entero sin formato, parsearlo directamente
+                    initialAmount = Double.parseDouble(cleanText);
+                } else {
+                    // Tiene punto o coma, intentar parsearlo como número decimal
+                    // Reemplazar coma por punto para parseo estándar
+                    String normalizedText = cleanText.replace(',', '.');
+                    // Si hay múltiples puntos, el último es el decimal
+                    int lastDotIndex = normalizedText.lastIndexOf('.');
+                    if (lastDotIndex > 0) {
+                        // Hay punto(s), el último es el decimal
+                        String beforeLastDot = normalizedText.substring(0, lastDotIndex).replace(".", "");
+                        String afterLastDot = normalizedText.substring(lastDotIndex + 1);
+                        normalizedText = beforeLastDot + "." + afterLastDot;
+                    }
+                    initialAmount = Double.parseDouble(normalizedText);
+                }
+            } catch (NumberFormatException e) {
+                // Si falla el parseo simple, intentar con el formato de moneda
+                initialAmount = Formats.CURRENCY.parseValue(text);
+            }
+            
             if (initialAmount < 0) {
                 // No permitir montos negativos
                 m_jInitialAmount.setText("0.00");

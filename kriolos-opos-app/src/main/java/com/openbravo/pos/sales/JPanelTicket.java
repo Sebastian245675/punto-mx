@@ -1506,6 +1506,118 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         double dTaxRate = tax == null ? 0.0 : tax.getRate();
         return dValue / (1.0 + dTaxRate);
     }
+    
+    /**
+     * Sebastian - Método para agregar un producto "Varios" con nombre y precio personalizado
+     */
+    private void agregarProductoVarios() {
+        // Verificar que haya un ticket activo
+        if (m_oTicket == null) {
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.noticket"));
+            msg.show(this);
+            return;
+        }
+        
+        // Crear diálogo para ingresar nombre y precio
+        javax.swing.JPanel panel = new javax.swing.JPanel(new java.awt.GridBagLayout());
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.insets = new java.awt.Insets(5, 5, 5, 5);
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+        
+        // Campo para nombre del producto
+        javax.swing.JLabel lblNombre = new javax.swing.JLabel("Nombre del producto:");
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        panel.add(lblNombre, gbc);
+        
+        javax.swing.JTextField txtNombre = new javax.swing.JTextField(20);
+        txtNombre.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 14));
+        gbc.gridx = 1;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        panel.add(txtNombre, gbc);
+        
+        // Campo para precio
+        javax.swing.JLabel lblPrecio = new javax.swing.JLabel("Precio:");
+        gbc.gridx = 0;
+        gbc.gridy = 1;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.weightx = 0.0;
+        panel.add(lblPrecio, gbc);
+        
+        javax.swing.JTextField txtPrecio = new javax.swing.JTextField(15);
+        txtPrecio.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 14));
+        txtPrecio.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
+        gbc.gridx = 1;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
+        panel.add(txtPrecio, gbc);
+        
+        // Mostrar diálogo
+        int result = javax.swing.JOptionPane.showConfirmDialog(
+            this,
+            panel,
+            "Agregar Producto Varios",
+            javax.swing.JOptionPane.OK_CANCEL_OPTION,
+            javax.swing.JOptionPane.PLAIN_MESSAGE
+        );
+        
+        if (result == javax.swing.JOptionPane.OK_OPTION) {
+            try {
+                String nombre = txtNombre.getText().trim();
+                if (nombre.isEmpty()) {
+                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, "Debe ingresar un nombre para el producto");
+                    msg.show(this);
+                    return;
+                }
+                
+                String precioStr = txtPrecio.getText().trim();
+                if (precioStr.isEmpty()) {
+                    precioStr = "0.00";
+                }
+                
+                // Parsear el precio
+                double precio = Formats.CURRENCY.parseValue(precioStr);
+                if (precio < 0) {
+                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, "El precio no puede ser negativo");
+                    msg.show(this);
+                    return;
+                }
+                
+                // Crear producto genérico
+                ProductInfoExt oProduct = new ProductInfoExt();
+                oProduct.setReference("0000");
+                oProduct.setCode("0000");
+                oProduct.setName(nombre);
+                
+                // Obtener categoría de impuestos por defecto
+                String taxCategoryID = ((TaxCategoryInfo) taxcategoriesmodel.getSelectedItem()).getID();
+                oProduct.setTaxCategoryID(taxCategoryID);
+                
+                // Ajustar precio según si incluye impuestos o no
+                double precioAjustado = includeTaxes(taxCategoryID, precio);
+                oProduct.setPriceSell(precioAjustado);
+                
+                // Marcar como servicio para que no afecte el inventario
+                oProduct.setService(true);
+                
+                // Agregar al ticket
+                addTicketLine(oProduct, 1.0, precioAjustado);
+                
+                // Limpiar campo de búsqueda y devolver foco
+                m_jKeyFactory.setText(null);
+                java.awt.EventQueue.invokeLater(() -> {
+                    m_jKeyFactory.requestFocus();
+                });
+                
+            } catch (Exception ex) {
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                    "Error al agregar producto: " + ex.getMessage());
+                msg.show(this);
+                LOGGER.log(System.Logger.Level.WARNING, "Error agregando producto varios", ex);
+            }
+        }
+    }
 
     /**
      * Scanner Input Value Get Price from a input field MUST be Public is used
@@ -4350,7 +4462,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         ));
         btnVarios.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnVarios.addActionListener(e -> {
-            javax.swing.JOptionPane.showMessageDialog(this, "Función Varios", "Varios", javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            agregarProductoVarios();
         });
         actionButtonsPanel.add(btnVarios);
         
@@ -4911,8 +5023,16 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     }// GEN-LAST:event_jBtnCustomerActionPerformed
 
     private void m_jEnterActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jEnterActionPerformed
-
-        stateTransition('\n');
+        // Sebastian - Procesar el texto del campo de búsqueda cuando se presiona el botón
+        String searchText = m_jKeyFactory.getText();
+        if (searchText != null && !searchText.trim().isEmpty()) {
+            // Limpiamos m_sBarcode y agregamos el texto completo
+            m_sBarcode = new StringBuffer(searchText.trim());
+            stateTransition('\n'); // Procesar como Enter para buscar y agregar producto
+        } else {
+            // Si no hay texto, solo hacer la transición de estado normal
+            stateTransition('\n');
+        }
     }// GEN-LAST:event_m_jEnterActionPerformed
 
     private void m_jKeyFactoryKeyTyped(java.awt.event.KeyEvent evt) {// GEN-FIRST:event_m_jKeyFactoryKeyTyped
