@@ -189,8 +189,8 @@ public class JAuthPanel extends javax.swing.JPanel {
         gbc.anchor = GridBagConstraints.CENTER;
         gbc.fill = GridBagConstraints.HORIZONTAL;
 
-        // Título "login" - Corporativo
-        JLabel titleLabel = new JLabel("login");
+        // Título "Iniciar Sesión" - Corporativo
+        JLabel titleLabel = new JLabel("Iniciar Sesión");
         titleLabel.setFont(new Font("Segoe UI", Font.PLAIN, 24));
         titleLabel.setForeground(new Color(50, 50, 50));
         titleLabel.setHorizontalAlignment(SwingConstants.CENTER);
@@ -200,8 +200,8 @@ public class JAuthPanel extends javax.swing.JPanel {
         gbc.insets = new Insets(0, 0, 30, 0);
         loginCard.add(titleLabel, gbc);
 
-        // Etiqueta "username" - Corporativo
-        JLabel lblUsername = new JLabel("username");
+        // Etiqueta "Usuario" - Corporativo
+        JLabel lblUsername = new JLabel("Usuario");
         lblUsername.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         lblUsername.setForeground(new Color(80, 80, 80));
         gbc.gridx = 0;
@@ -310,8 +310,8 @@ public class JAuthPanel extends javax.swing.JPanel {
             loginCard.add(txtUsername, gbc);
         }
 
-        // Etiqueta "password" - Corporativo
-        JLabel lblPassword = new JLabel("password");
+        // Etiqueta "Contraseña" - Corporativo
+        JLabel lblPassword = new JLabel("Contraseña");
         lblPassword.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         lblPassword.setForeground(new Color(80, 80, 80));
         gbc.gridx = 0;
@@ -365,7 +365,7 @@ public class JAuthPanel extends javax.swing.JPanel {
         loginCard.add(txtPassword, gbc);
 
         // Botón "sign in" corporativo - Simple y visible
-        btnLogin = new JButton("sign in");
+        btnLogin = new JButton("Iniciar Sesión");
         btnLogin.setFont(new Font("Segoe UI", Font.PLAIN, 16));
         btnLogin.setForeground(Color.WHITE);
         btnLogin.setBackground(new Color(59, 130, 246)); // Azul corporativo

@@ -2382,7 +2382,6 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
             xml.append("<output>\n");
             xml.append("  <ticket>\n");
-            xml.append("    <image>Printer.Ticket.Logo</image>\n");
             xml.append("    <line></line>\n");
             xml.append("    <line></line>\n");
             xml.append("    <line size=\"1\">\n");
