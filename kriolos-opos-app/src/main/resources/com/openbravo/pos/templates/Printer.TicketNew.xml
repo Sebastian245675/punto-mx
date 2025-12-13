@@ -59,9 +59,6 @@
             <text align="center" length="42">${ticket.printTicketHeaderLine6()}</text>
         </line>
         #end
-        <line>
-            <text align="center" length="42">Printer.TicketNew</text>
-        </line>
         <line></line>
         #if (${ticket.ticketType} == 0)
           <line>
