@@ -17,7 +17,6 @@ package com.openbravo.pos.printer;
 
 import com.openbravo.basic.BasicException;
 import com.openbravo.pos.forms.DataLogicSystem;
-import com.openbravo.pos.printer.escpos.DeviceDisplayLED8;
 import com.openbravo.pos.ticket.TicketInfo;
 import com.openbravo.pos.util.AudioUtils;
 import com.openbravo.pos.util.SAXParserUtils;
@@ -202,11 +201,25 @@ public class TicketParser extends DefaultHandler {
                 currentText = new StringBuilder();
                 break;
             case "ticket":
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_start\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"TicketParser.java:203\",\"message\":\"Ticket tag found, setting OUTPUT_TICKET\",\"data\":{\"outputType\":2,\"printer\":\"" + readString(attributes.getValue("printer"), "1") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"E\"}\n");
+                    fw.close();
+                } catch (Exception ex) {}
+                // #endregion
                 outputType = OUTPUT_TICKET;
                 outputPrinter = printer.getDevicePrinter(readString(attributes.getValue("printer"), "1"));
                 outputPrinter.beginReceipt();
                 break;
             case "display":
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_display_start\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"TicketParser.java:208\",\"message\":\"Display tag found, setting OUTPUT_DISPLAY\",\"data\":{\"outputType\":1,\"currentOutputTypeBefore\":" + outputType + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"E\"}\n");
+                    fw.close();
+                } catch (Exception ex) {}
+                // #endregion
                 outputType = OUTPUT_DISPLAY;
                 String animation = attributes.getValue("animation");
 
@@ -304,6 +317,13 @@ public class TicketParser extends DefaultHandler {
                 outputPrinter.endLine();
                 break;
             case "ticket":
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_end\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"TicketParser.java:320\",\"message\":\"Ticket tag closed, calling endReceipt\",\"data\":{\"outputTypeBefore\":2},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"E\"}\n");
+                    fw.close();
+                } catch (Exception ex) {}
+                // #endregion
                 outputPrinter.endReceipt();
                 outputType = OUTPUT_NONE;
                 outputPrinter = null;
@@ -375,8 +395,19 @@ public class TicketParser extends DefaultHandler {
                 } else {
                     visorLineBuilder.append(currentText);
                 }
-                if (this.textStyle > -1 && this.printer.getDeviceDisplay() instanceof DeviceDisplayLED8) {
-                    ((DeviceDisplayLED8) this.printer.getDeviceDisplay()).displayLight(this.textStyle);
+                // Verificar si es DeviceDisplayLED8 usando el nombre de clase para evitar dependencia directa
+                if (this.textStyle > -1) {
+                    DeviceDisplay display = this.printer.getDeviceDisplay();
+                    if (display != null && display.getClass().getName().equals("com.openbravo.pos.printer.escpos.DeviceDisplayLED8")) {
+                        try {
+                            // Usar reflexión para llamar al método displayLight sin importar la clase
+                            java.lang.reflect.Method displayLightMethod = display.getClass().getMethod("displayLight", int.class);
+                            displayLightMethod.invoke(display, this.textStyle);
+                        } catch (Exception ex) {
+                            // Si no se puede invocar el método, ignorar silenciosamente
+                            LOGGER.log(Level.FINEST, "Could not invoke displayLight method", ex);
+                        }
+                    }
                 }
                 currentText = null;
                 break;

@@ -187,7 +187,7 @@ public class JTicketLines extends javax.swing.JPanel {
     
     /**
      * Configura los listeners de mouse y teclado para eliminar líneas
-     * cuando se pasa el mouse sobre una fila y se presiona Delete
+     * cuando se pasa el mouse sobre una fila y se presiona Delete, o con doble clic
      */
     private void setupDeleteOnHover() {
         // Hacer la tabla focusable para recibir eventos de teclado
@@ -195,7 +195,7 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jTicketTable.setRequestFocusEnabled(true);
         
         // Listener de mouse para detectar cuando el mouse está sobre una fila
-        m_jTicketTable.addMouseMotionListener(new MouseAdapter() {
+        MouseAdapter mouseAdapter = new MouseAdapter() {
             @Override
             public void mouseMoved(MouseEvent e) {
                 Point point = e.getPoint();
@@ -215,7 +215,30 @@ public class JTicketLines extends javax.swing.JPanel {
             public void mouseExited(MouseEvent e) {
                 hoveredRow = -1;
             }
-        });
+            
+            @Override
+            public void mouseClicked(MouseEvent e) {
+                // Eliminar línea con doble clic
+                if (e.getClickCount() == 2) {
+                    Point point = e.getPoint();
+                    int row = m_jTicketTable.rowAtPoint(point);
+                    if (row >= 0 && row < m_jTableModel.getRowCount() && deleteLineCallback != null) {
+                        deleteLineCallback.onDeleteLine(row);
+                    }
+                }
+                // Seleccionar línea con un solo clic
+                else if (e.getClickCount() == 1) {
+                    Point point = e.getPoint();
+                    int row = m_jTicketTable.rowAtPoint(point);
+                    if (row >= 0 && row < m_jTableModel.getRowCount()) {
+                        m_jTicketTable.getSelectionModel().setSelectionInterval(row, row);
+                    }
+                }
+            }
+        };
+        
+        m_jTicketTable.addMouseMotionListener(mouseAdapter);
+        m_jTicketTable.addMouseListener(mouseAdapter);
         
         // Listener de teclado para detectar cuando se presiona Delete
         // Se agrega tanto a la tabla como al panel para capturar el evento en ambos casos
