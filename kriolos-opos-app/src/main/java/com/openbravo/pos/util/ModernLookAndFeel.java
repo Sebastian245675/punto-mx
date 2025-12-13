@@ -100,9 +100,23 @@ public class ModernLookAndFeel {
     }
     
     /**
+     * Configura los botones de JOptionPane en español
+     */
+    private static void configurarBotonesEspanol() {
+        // Configurar botones de JOptionPane en español
+        UIManager.put("OptionPane.yesButtonText", "Sí");
+        UIManager.put("OptionPane.noButtonText", "No");
+        UIManager.put("OptionPane.cancelButtonText", "Cancelar");
+        UIManager.put("OptionPane.okButtonText", "Aceptar");
+    }
+    
+    /**
      * Aplica propiedades modernas globales
      */
     private static void aplicarPropiedadesModernas() {
+        // Configurar botones en español
+        configurarBotonesEspanol();
+        
         // Habilitar anti-aliasing para texto más suave
         System.setProperty("awt.useSystemAAFontSettings", "on");
         System.setProperty("swing.aatext", "true");

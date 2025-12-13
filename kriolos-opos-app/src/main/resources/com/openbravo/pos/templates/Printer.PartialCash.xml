@@ -22,24 +22,24 @@
         <image>Printer.Ticket.Logo</image>
         <line></line>
         <line></line>
-        <line size="1"><text align="center" length="42" bold="true">Partial Cash Report</text></line>
+        <line size="1"><text align="center" length="42" bold="true">Reporte Parcial de Caja</text></line>
         <line></line>
 
 <!-- START OF SEQUENCE DETAIL -->
-        <line><text length="18" bold="true">Run by:</text><text>${payments.printUser()}</text></line>
+        <line><text length="18" bold="true">Ejecutado por:</text><text>${payments.printUser()}</text></line>
         <line><text length="18" bold="true">Terminal:</text><text>${payments.printHost()}</text></line>    
-        <line><text length="18" bold="true">Sequence:</text><text>${payments.printSequence()}</text></line> 
-        <line><text length="18" bold="true">Start Date:</text><text>${payments.printDateStart()}</text></line>  
-        <line><text length="18" bold="true">End Date:</text><text>${payments.printDateEnd()}</text></line>  
+        <line><text length="18" bold="true">Secuencia:</text><text>${payments.printSequence()}</text></line> 
+        <line><text length="18" bold="true">Fecha Inicio:</text><text>${payments.printDateStart()}</text></line>  
+        <line><text length="18" bold="true">Fecha Fin:</text><text>${payments.printDateEnd()}</text></line>  
         <line></line> 
 <!-- END OF SEQUENCE DETAIL -->
 
 <!-- START OF SALES -->
-        <line size="1"><text align="center" length="42" bold="true">Sales</text></line>
+        <line size="1"><text align="center" length="42" bold="true">Ventas</text></line>
         <line>
-            <text align ="left" length="16" bold="true">Name</text>
-            <text align ="right" length="6" bold="true">Sold</text>
-            <text align ="right" length="10" bold="true">Net</text>
+            <text align ="left" length="16" bold="true">Nombre</text>
+            <text align ="right" length="6" bold="true">Vendido</text>
+            <text align ="right" length="10" bold="true">Neto</text>
             <text align ="right" length="10" bold="true">Total</text>
         </line>
         <line><text>------------------------------------------</text></line>
@@ -62,10 +62,10 @@
 <!-- END OF SALES SUMMARY -->
 
 <!-- START OF CATEGORIES SUMMARY -->
-        <line size="1"><text align="center" length="42" bold="true">Product Categories</text></line>
+        <line size="1"><text align="center" length="42" bold="true">Categorías de Productos</text></line>
         <line>
-            <text align ="left" length="16" bold="true">Name</text>
-            <text align ="right" length="6" bold="true">Sold</text>
+            <text align ="left" length="16" bold="true">Nombre</text>
+            <text align ="right" length="6" bold="true">Vendido</text>
             <text align ="right" length="10" bold="true"></text>
             <text align ="right" length="10" bold="true">Total</text>
         </line>
@@ -88,11 +88,11 @@
 <!-- END OF CATEGORIES SUMMARY -->
 
 <!-- START OF VOIDS -->
-        <line size="1"><text align="center" length="42" bold="true">Line Voids</text></line>
+        <line size="1"><text align="center" length="42" bold="true">Líneas Anuladas</text></line>
         <line>
             <text align ="left" length="6" bold="true">Tkt</text>
-            <text align ="left" length="12" bold="true">User</text>
-            <text align ="left" length="19" bold="true">Product</text>
+            <text align ="left" length="12" bold="true">Usuario</text>
+            <text align ="left" length="19" bold="true">Producto</text>
             <text align ="right" length="5" bold="true">Total</text>
         </line>
         <line><text>------------------------------------------</text></line>
@@ -110,9 +110,9 @@
 <!-- END OF VOIDS -->
 
 <!-- START OF NO SALES -->
-        <line size="1"><text align="center" length="42" bold="true">No Sales</text></line>	
+        <line size="1"><text align="center" length="42" bold="true">Sin Ventas</text></line>	
         <line>
-            <text align ="left" length="34" bold="true">User</text>
+            <text align ="left" length="34" bold="true">Usuario</text>
             <text align ="right" length="8" bold="true">Ticket</text>
         </line>
         <line><text>------------------------------------------</text></line>
@@ -127,11 +127,11 @@
 <!-- END OF NO SALES -->
 
 <!-- START OF TAXES ANALYSIS -->
-        <line size="1"><text align="center" length="42" bold="true">Taxes</text></line>
+        <line size="1"><text align="center" length="42" bold="true">Impuestos</text></line>
         <line>
-            <text align ="left" length="12" bold="true">Name</text>
-            <text align ="right" length="10" bold="true">Net</text>	
-            <text align ="right" length="10" bold="true">Gross</text>
+            <text align ="left" length="12" bold="true">Nombre</text>
+            <text align ="right" length="10" bold="true">Neto</text>	
+            <text align ="right" length="10" bold="true">Bruto</text>
             <text align ="right" length="10" bold="true">Total</text>
         </line>
         <line><text>------------------------------------------</text></line>
@@ -149,9 +149,9 @@
 <!-- END OF TAXES ANALYSIS -->
 
 <!-- START OF PAYMENTS -->
-        <line size="1"><text align="center" length="42" bold="true">Payments</text></line>
+        <line size="1"><text align="center" length="42" bold="true">Pagos</text></line>
         <line>
-            <text align ="left" length="32" bold="true">Type</text>
+            <text align ="left" length="32" bold="true">Tipo</text>
             <text align ="right" length="10" bold="true">Total</text>
         </line>
         <line><text>------------------------------------------</text></line> 
@@ -172,24 +172,24 @@
 
 <!-- START OF TOTALS SUMMARY -->
         <line><text>******************************************</text></line>
-        <line size="1"><text align="center" length="42" bold="true">SUMMARY</text></line>
+        <line size="1"><text align="center" length="42" bold="true">RESUMEN</text></line>
         <line><text>******************************************</text></line>
         <line><text align ="left" length="30" bold="true">Tickets</text>
             <text align ="right" length="12" bold="true">${payments.printSales()}</text>
         </line>                
-        <line><text align ="left" length="30" bold="true">Ticket Lines</text>
+        <line><text align ="left" length="30" bold="true">Líneas de Ticket</text>
             <text align ="right" length="12" bold="true">${payments.printProductSalesRows()}</text>
         </line>
-        <line><text align ="left" length="30" bold="true">Payments</text>
+        <line><text align ="left" length="30" bold="true">Pagos</text>
             <text align ="right" length="12" bold="true">${payments.printPayments()}</text>
         </line>      
-        <line><text align ="left" length="30" bold="true">Net Sales</text>
+        <line><text align ="left" length="30" bold="true">Ventas Netas</text>
             <text align ="right" length="12" bold="true">${payments.printSalesBase()}</text>
         </line>
-        <line><text align ="left" length="30" bold="true">Tax</text>
+        <line><text align ="left" length="30" bold="true">Impuesto</text>
             <text align ="right" length="12" bold="true">${payments.printSalesTaxes()}</text>
         </line>
-        <line><text align ="left" length="30" bold="true">Gross Sales</text>
+        <line><text align ="left" length="30" bold="true">Ventas Brutas</text>
             <text align ="right" length="12" bold="true">${payments.printSalesTotal()}</text>
         </line>        
 <!-- END OF TOTALS SUMMARY -->

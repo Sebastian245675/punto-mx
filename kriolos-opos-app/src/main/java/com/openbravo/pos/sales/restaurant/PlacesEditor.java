@@ -228,11 +228,11 @@ public final class PlacesEditor extends JPanel implements EditorRecord {
         jLabel6.setPreferredSize(new java.awt.Dimension(0, 30));
 
         jLabel5.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel5.setText("Across");
+        jLabel5.setText("Ancho");
         jLabel5.setPreferredSize(new java.awt.Dimension(0, 30));
 
         jLabel3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLabel3.setText("Down");
+        jLabel3.setText("Alto");
         jLabel3.setPreferredSize(new java.awt.Dimension(0, 30));
 
         m_jX.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N

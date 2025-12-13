@@ -68,7 +68,7 @@ public class JPanelResetPickupId extends JPanel implements JPanelView {
         try {
             Session session = AppViewConnection.createSession(m_props);
             session.DB.resetSequenceSentence(session, "pickup_number").exec();
-            JOptionPane.showMessageDialog(this, "Reset complete.");
+            JOptionPane.showMessageDialog(this, "Reinicio completado.", "Reinicio", JOptionPane.INFORMATION_MESSAGE);
 
         } catch (BasicException | HeadlessException ex) {
             LOGGER.log(Level.WARNING, null, ex);

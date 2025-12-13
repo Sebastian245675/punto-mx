@@ -921,7 +921,7 @@ public final class JRViewer400 extends javax.swing.JPanel implements JRHyperlink
         pnlStatus.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 0, 0));
 
         lblStatus.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
-        lblStatus.setText("Page i of n");
+        lblStatus.setText("Página i de n");
         lblStatus.setMaximumSize(new java.awt.Dimension(59, 18));
         pnlStatus.add(lblStatus);
 

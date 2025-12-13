@@ -666,9 +666,9 @@ public class JTicketsBagRestaurantRes extends javax.swing.JPanel implements Edit
     private void jbtnShowCalendarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jbtnShowCalendarActionPerformed
         if (jCalendar.isShowing()) {
             jCalendar.setVisible(false);
-            jbtnShowCalendar.setText("Show Calendar");
+            jbtnShowCalendar.setText("Mostrar Calendario");
         }else{
-            jbtnShowCalendar.setText("Hide Calendar");            
+            jbtnShowCalendar.setText("Ocultar Calendario");            
             jCalendar.setVisible(true);
         }
     }//GEN-LAST:event_jbtnShowCalendarActionPerformed

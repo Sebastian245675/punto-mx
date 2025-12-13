@@ -188,7 +188,7 @@ public class JTicketsBagShared extends JTicketsBag {
 
     private void setActiveReprintTicket(String id) throws BasicException {
         TicketInfo ticket = dlSales.getReprintTicket(id);
-        JOptionPane.showMessageDialog(this, AppLocal.getIntString("NOT IMPLEMENTED YET"));
+        JOptionPane.showMessageDialog(this, "Aún no implementado", "Información", JOptionPane.INFORMATION_MESSAGE);
         LOGGER.log(System.Logger.Level.WARNING, "NOT IMPLEMENTED setActiveReprintTicket");
     }
 

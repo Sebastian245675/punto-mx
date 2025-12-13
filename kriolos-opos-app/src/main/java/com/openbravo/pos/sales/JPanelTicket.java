@@ -3674,7 +3674,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         leftContentPanel.add(infoPanel);
         leftContentPanel.add(javax.swing.Box.createVerticalStrut(5)); // Reducir espacio
         
-        // Panel de botones pequeños (F5 Cambiar, F6 Pendiente, Eliminar)
+        // Panel de botones pequeños (F5 Cambiar, Eliminar)
         javax.swing.JPanel smallButtonsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
         smallButtonsPanel.setOpaque(false);
         smallButtonsPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
@@ -3686,14 +3686,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnCambiar.setBackground(java.awt.Color.WHITE);
         btnCambiar.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
         smallButtonsPanel.add(btnCambiar);
-        
-        javax.swing.JButton btnPendiente = new javax.swing.JButton("F6 - Pendiente");
-        btnPendiente.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
-        btnPendiente.setPreferredSize(new java.awt.Dimension(110, 28));
-        btnPendiente.setFocusPainted(false);
-        btnPendiente.setBackground(java.awt.Color.WHITE);
-        btnPendiente.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
-        smallButtonsPanel.add(btnPendiente);
         
         javax.swing.JButton btnAsignarCliente = new javax.swing.JButton("F5 - Asignar Cliente");
         btnAsignarCliente.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
@@ -5635,61 +5627,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     }
 
     /**
-     * Sebastian - Método mejorado para mostrar ventas pendientes
-     */
-    private void mostrarVentasPendientes() {
-        try {
-            if (ventasActivas.isEmpty()) {
-                javax.swing.JOptionPane.showMessageDialog(this,
-                        "No hay ventas pendientes.\nUsa el botón verde para crear una nueva venta.",
-                        "Sin Ventas Pendientes", javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-
-            // Crear lista de opciones
-            String[] opciones = new String[ventasActivas.size()];
-            for (int i = 0; i < ventasActivas.size(); i++) {
-                TicketInfo ticket = ventasActivas.get(i);
-                String estado = (i == ventaActualIndex) ? " ← ACTUAL" : "";
-                opciones[i] = "Venta #" + (i + 1) + " (" + ticket.getLinesCount() + " productos)" + estado;
-            }
-
-            // Mostrar diálogo de selección
-            String seleccion = (String) javax.swing.JOptionPane.showInputDialog(
-                    this,
-                    "Selecciona la venta a la que quieres cambiar:",
-                    "Cambiar entre Ventas",
-                    javax.swing.JOptionPane.QUESTION_MESSAGE,
-                    null,
-                    opciones,
-                    opciones[ventaActualIndex]);
-
-            if (seleccion != null) {
-                // Encontrar el índice seleccionado
-                for (int i = 0; i < opciones.length; i++) {
-                    if (opciones[i].equals(seleccion)) {
-                        if (i != ventaActualIndex) {
-                            ventaActualIndex = i;
-                            setActiveTicket(ventasActivas.get(i), null);
-                            javax.swing.JOptionPane.showMessageDialog(this,
-                                    "✅ Cambiado a Venta #" + (i + 1),
-                                    "Venta Cambiada", javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                        }
-                        break;
-                    }
-                }
-            }
-
-        } catch (Exception e) {
-            System.err.println("Error al mostrar ventas pendientes: " + e.getMessage());
-            e.printStackTrace();
-            javax.swing.JOptionPane.showMessageDialog(this,
-                    "Error: " + e.getMessage(),
-                    "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    /**
      * Sebastian - Método para mostrar modal de ID cliente con tabla de clientes y buscador
      */
     private void mostrarModalIdCliente() {
@@ -6374,7 +6311,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     }
                     
                     // Confirmar cancelación
-                    int confirmacion = javax.swing.JOptionPane.showConfirmDialog(
+                    int confirmacion = javax.swing.JOptionPane.showOptionDialog(
                         dialog,
                         String.format(
                             "<html><center><h3>¿Cancelar esta venta?</h3>" +
@@ -6388,7 +6325,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         ),
                         "Confirmar Cancelación",
                         javax.swing.JOptionPane.YES_NO_OPTION,
-                        javax.swing.JOptionPane.WARNING_MESSAGE
+                        javax.swing.JOptionPane.WARNING_MESSAGE,
+                        null,
+                        new Object[]{"Sí", "No"},
+                        "No"
                     );
                     
                     if (confirmacion != javax.swing.JOptionPane.YES_OPTION) {
