@@ -699,6 +699,16 @@ public class StockManagement extends JPanel implements JPanelView {
     }
 
     private void addUnits(double dUnits) {
+        // #region agent log
+        try {
+            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_addUnits\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"StockManagement.java:701\",\"message\":\"addUnits called\",\"data\":{\"dUnits\":" + dUnits + ",\"selectedRow\":" + m_invlines.getSelectedRow() + ",\"linesCount\":" + m_invlines.getCount() + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+            fw.close();
+            System.out.println("DEBUG: addUnits called - dUnits=" + dUnits + ", selectedRow=" + m_invlines.getSelectedRow() + ", linesCount=" + m_invlines.getCount());
+        } catch (Exception ex) {
+            System.out.println("DEBUG: Error logging addUnits: " + ex.getMessage());
+        }
+        // #endregion
         int i = m_invlines.getSelectedRow();
         if (i >= 0) {
             InventoryLine inv = m_invlines.getLine(i);
@@ -708,9 +718,25 @@ public class StockManagement extends JPanel implements JPanelView {
             } else {
                 inv.setMultiply(inv.getMultiply() + dUnits);
                 m_invlines.setLine(i, inv);
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_addUnits_success\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"StockManagement.java:709\",\"message\":\"addUnits successful\",\"data\":{\"rowIndex\":" + i + ",\"oldMultiply\":" + (inv.getMultiply() - dUnits) + ",\"newMultiply\":" + inv.getMultiply() + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                    fw.close();
+                } catch (Exception ex) {}
+                // #endregion
             }
 
             sumStockTable();
+        } else {
+            // #region agent log
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_addUnits_no_selection\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"StockManagement.java:714\",\"message\":\"addUnits failed - no row selected\",\"data\":{\"selectedRow\":" + i + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                fw.close();
+                System.out.println("DEBUG: addUnits failed - no row selected in m_invlines");
+            } catch (Exception ex) {}
+            // #endregion
         }
     }
 
@@ -810,6 +836,16 @@ public class StockManagement extends JPanel implements JPanelView {
     }
 
     private void saveData() {
+        // #region agent log
+        try {
+            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_saveData\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"StockManagement.java:812\",\"message\":\"saveData called\",\"data\":{\"invlinesCount\":" + m_invlines.getCount() + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n");
+            fw.close();
+            System.out.println("DEBUG: saveData called - invlinesCount=" + m_invlines.getCount());
+        } catch (Exception ex) {
+            System.out.println("DEBUG: Error logging saveData: " + ex.getMessage());
+        }
+        // #endregion
         try {
 
             Date d = Formats.TIMESTAMP.parseValue(m_jdate.getText());
@@ -847,7 +883,23 @@ public class StockManagement extends JPanel implements JPanelView {
             
             // Recargar productos bajos después de guardar
             loadLowStockProducts();
+            // #region agent log
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_saveData_success\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"StockManagement.java:846\",\"message\":\"saveData completed successfully\",\"data\":{},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n");
+                fw.close();
+                System.out.println("DEBUG: saveData completed successfully");
+            } catch (Exception ex) {}
+            // #endregion
         } catch (BasicException eData) {
+            // #region agent log
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_saveData_error\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"StockManagement.java:850\",\"message\":\"saveData error\",\"data\":{\"error\":\"" + eData.getMessage() + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n");
+                fw.close();
+                System.out.println("DEBUG: saveData error: " + eData.getMessage());
+            } catch (Exception ex) {}
+            // #endregion
             MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
                     AppLocal.getIntString("message.cannotsaveinventorydata"), eData);
             msg.show(this);
@@ -979,6 +1031,14 @@ public class StockManagement extends JPanel implements JPanelView {
                 // Columna 1: Cantidad actual (Current)
                 if (column == 1) {
                     Double originalQuantity = productStock.getUnits();
+                    // #region agent log
+                    try {
+                        java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                        fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_setValueAt_qty\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"StockManagement.java:980\",\"message\":\"setValueAt quantity\",\"data\":{\"row\":" + row + ",\"originalQuantity\":" + originalQuantity + ",\"newValue\":" + newValue + ",\"productId\":\"" + productStock.getProductId() + "\",\"location\":\"" + productStock.getLocation() + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"C\"}\n");
+                        fw.close();
+                        System.out.println("DEBUG: setValueAt quantity - row=" + row + ", original=" + originalQuantity + ", new=" + newValue);
+                    } catch (Exception ex) {}
+                    // #endregion
                     
                     // Solo actualizar si hay cambio
                     if (originalQuantity != null && !originalQuantity.equals(newValue)) {
@@ -998,6 +1058,13 @@ public class StockManagement extends JPanel implements JPanelView {
                                 newValue,
                                 quantityDifference
                             );
+                            // #region agent log
+                            try {
+                                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_setValueAt_qty_saved\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"StockManagement.java:1000\",\"message\":\"setValueAt quantity saved to DB\",\"data\":{\"quantityDifference\":" + quantityDifference + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"C\"}\n");
+                                fw.close();
+                            } catch (Exception ex) {}
+                            // #endregion
                             
                             // Actualizar totales
                             sumStockTable();

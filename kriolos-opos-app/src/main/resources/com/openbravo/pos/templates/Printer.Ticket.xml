@@ -60,12 +60,7 @@
         <line><text align="left" length="15">Atendido por:</text><text>${ticket.printUser()}</text></line>
 
         #if ($ticket.getCustomer())
-            <line><text align="left" length="15">Cuenta #:</text><text>${ticket.getCustomer().printTaxCustomerID()}</text></line>
             <line><text align="left" length="15">Cliente:</text><text>${ticket.getCustomer().printName()}</text></line>
-            <line><text align="left" length="15">Dirección:</text><text>${ticket.getCustomer().printAddress()}</text></line>
-            <line><text align="left" length="15">Postal:</text><text>${ticket.getCustomer().printPostal()}</text></line>
-            <line><text align="left" length="15">Teléfono:</text><text>${ticket.getCustomer().printPhone()}</text></line>
-            <line><text align="left" length="15">Deuda Actual:</text><text>${ticket.getCustomer().printCurDebt()}</text></line>
         #end     
 
         #if (${tickettext.place} != ${place})
@@ -73,30 +68,31 @@
 	#end
 	<line></line>
         <line>
-            <text align ="left" length="17">Artículo</text>
-            <text align ="right" length="8">Precio</text>
-            <text align ="right" length="7">Cant</text>
-            <text align ="right" length="10">Importe</text>
+            <text align ="left" length="6">Código</text>
+            <text align ="left" length="11">Artículo</text>
+            <text align ="left" length="11">Precio</text>
+            <text align ="right" length="4">Cant</text>
+            <text align ="right" length="10">Valor</text>
         </line>
         <line><text align="left" length="42">------------------------------------------</text></line>
     
         #foreach ($ticketline in $ticket.getLines())
+        #set($codigo = $ticketline.printCode())
+        #if($codigo && $codigo.length() > 6)
+            #set($codigo = $codigo.substring(0, 6))
+        #end
+        #if(!$codigo)
+            #set($codigo = "")
+        #end
         <line>
+            <text align ="left" length="6">${codigo}</text>
             #if ($ticketline.isProductCom())
-                <text align ="left" length="17">*${ticketline.printName()}</text>
+                <text align ="left" length="11">*${ticketline.printName()}</text>
             #else
-                <text align ="left" length="17">${ticketline.printName()}</text>
+                <text align ="left" length="11">${ticketline.printName()}</text>
             #end
-<!-- Print line to show Prices pre-Tax
-            <text align ="right" length="8">${ticketline.printPrice()}</text>
-            <text align ="right" length="7">x${ticketline.printMultiply()}</text>
-            <text align ="right" length="8">${ticketline.printSubValue()}</text>
-         </line>
--->
-
-<!-- Print line to show Prices pre-Tax (precio unitario sin impuestos) -->
-            <text align ="right" length="12">${ticketline.printPrice()}</text>
-            <text align ="right" length="7">x${ticketline.printMultiply()}</text>
+            <text align ="left" length="11">${ticketline.printPriceTax()}</text>
+            <text align ="right" length="4">x${ticketline.printMultiply()}</text>
             <text align ="right" length="10">${ticketline.printValue()}</text>
          </line>
         
@@ -133,6 +129,20 @@
             <text align ="left" length="16" bold="true">Total a Pagar</text>
             <text align ="right" length="26" bold="true">${ticket.printTotal()}</text>
         </line>
+        #if ($ticket.getCustomer())
+            #if ($customerPoints && $customerPoints != "")
+            <line>
+                <text align ="left" length="16">Puntos Actuales:</text>
+                <text align ="right" length="26">${customerPoints}</text>
+            </line>
+            #end
+            #if ($customerPointsAfter && $customerPointsAfter != "")
+            <line>
+                <text align ="left" length="16">Puntos después:</text>
+                <text align ="right" length="26">${customerPointsAfter}</text>
+            </line>
+            #end
+        #end
         <line></line>
 
         #foreach ($taxinfo in $taxes)
