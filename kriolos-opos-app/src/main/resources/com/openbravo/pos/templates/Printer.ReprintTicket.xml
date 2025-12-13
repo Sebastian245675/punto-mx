@@ -25,7 +25,6 @@
     </display>
 
     <ticket>
-        <image>Printer.Ticket.Logo</image>
         <line></line>
         #if (${ticket.printTicketHeaderLine1()} != "")
             <line><text align="center" length="42">${ticket.printTicketHeaderLine1()}</text></line>

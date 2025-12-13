@@ -19,39 +19,35 @@
  
 <output>
     <ticket>
-        <image>Printer.Ticket.Logo</image>
         <line></line>
-        <line><text align="center" length="42">You can change Printer.Inventory template</text></line>
-        <line><text align="center" length="42">in the Resources panel</text></line>
-        <line></line>
-        <line><text align="center" bold="true" length="42">Inventory Record</text></line>
+        <line><text align="center" bold="true" length="42">Registro de Inventario</text></line>
         <line>
-            <text align ="left" bold="true" length="12">Date : </text>
+            <text align ="left" bold="true" length="12">Fecha: </text>
 	<text align ="left" length="30">${inventoryrecord.printDate()}</text></line>
-        <line><text  align ="left" bold="true" length="12">Reason : </text>
+        <line><text  align ="left" bold="true" length="12">Motivo: </text>
 	<text align ="left" length="30">${inventoryrecord.printReason()}</text></line>
-        <line><text  align ="left" bold="true" length="12">User : </text>
+        <line><text  align ="left" bold="true" length="12">Usuario: </text>
 	<text align ="left" length="30">${inventoryrecord.printUser()}</text></line>
-        <line><text  align ="left" bold="true" length="12">Location : </text>
+        <line><text  align ="left" bold="true" length="12">Ubicación: </text>
 	<text align ="left" length="30">${inventoryrecord.printLocation()}</text></line>
-        <line><text  align ="left" bold="true" length="12">Supplier : </text> 
+        <line><text  align ="left" bold="true" length="12">Proveedor: </text> 
 	<text align ="left" length="30">${inventoryrecord.printSupplier()}</text></line>
-        <line><text align ="left" bold="true" length="12">Document : </text>
+        <line><text align ="left" bold="true" length="12">Documento: </text>
 	<text align ="left" length="30">${inventoryrecord.printSupplierDoc()}</text></line>
 
         <line size="1">
             #if ($inventoryrecord.isInput())
-                <text align ="center" bold="true" length="42">In</text>
+                <text align ="center" bold="true" length="42">Entrada</text>
             #else
-                <text align ="center" bold="true" length="42">Out</text>
+                <text align ="center" bold="true" length="42">Salida</text>
             #end
         </line>
         <line></line>    
         <line>
-            <text align ="left" bold="true" length="17">Item</text>
-            <text align ="right" bold="true" length="10">Price</text>
-            <text align ="right" bold="true" length="5">Qty</text>
-            <text align ="right" bold="true" length="10">Amount</text>
+            <text align ="left" bold="true" length="17">Artículo</text>
+            <text align ="right" bold="true" length="10">Precio</text>
+            <text align ="right" bold="true" length="5">Cant</text>
+            <text align ="right" bold="true" length="10">Importe</text>
         </line>      
         <line>
             <text>------------------------------------------</text>
@@ -70,11 +66,11 @@
         <line><text>------------------------------------------</text></line>   
         <line></line>
         <line>
-            <text align ="left" bold="true" length="27">Totals :</text>
+            <text align ="left" bold="true" length="27">Total:</text>
             <text align ="right" bold="true" length="5">${inventoryrecord.printTotalArticles()}</text>
             <text align ="right" bold="true" length="10">${inventoryrecord.printSubTotal()}</text>
         </line>
         <line></line>            
-        <line><text align="center" length="42">Please keep this ticket</text></line>   
+        <line><text align="center" length="42">Conserve este ticket</text></line>   
     </ticket>
 </output>

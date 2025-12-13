@@ -207,6 +207,9 @@ public class StockManagement extends JPanel implements JPanelView {
      */
     @Override
     public void activate() throws BasicException {
+        // Actualizar el template en la base de datos desde el archivo XML
+        actualizarTemplateEnBD();
+        
         // Catálogo deshabilitado
         // m_cat.loadCatalog();
 
@@ -253,6 +256,41 @@ public class StockManagement extends JPanel implements JPanelView {
         // Mantener el teclado oculto
         // jNumberKeys.setVisible(false); // ELIMINADO - TECLADO NUMERICO
         // jPanel1.setVisible(false); // Mantener el panel del teclado oculto // ELIMINADO - TECLADO NUMERICO
+    }
+
+    /**
+     * Actualiza el template Printer.Inventory en la base de datos desde el archivo XML
+     */
+    private void actualizarTemplateEnBD() {
+        try {
+            // Leer el archivo XML desde el classpath
+            java.io.InputStream is = getClass().getResourceAsStream("/com/openbravo/pos/templates/Printer.Inventory.xml");
+            if (is == null) {
+                Logger.getLogger(StockManagement.class.getName()).log(Level.WARNING, "No se pudo encontrar el archivo Printer.Inventory.xml en el classpath");
+                return;
+            }
+            
+            // Leer todo el contenido del archivo
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesRead);
+            }
+            byte[] templateContent = baos.toByteArray();
+            is.close();
+            baos.close();
+            
+            // Actualizar el template en la base de datos
+            // Tipo 0 = texto/XML
+            m_dlSystem.setResource("Printer.Inventory", 0, templateContent);
+            Logger.getLogger(StockManagement.class.getName()).log(Level.INFO, "Template Printer.Inventory actualizado en la base de datos");
+            
+        } catch (java.io.IOException e) {
+            Logger.getLogger(StockManagement.class.getName()).log(Level.SEVERE, "Error leyendo el archivo Printer.Inventory.xml: " + e.getMessage(), e);
+        } catch (Exception e) {
+            Logger.getLogger(StockManagement.class.getName()).log(Level.SEVERE, "Error actualizando template en BD: " + e.getMessage(), e);
+        }
     }
 
     /**
