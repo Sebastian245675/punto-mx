@@ -42,6 +42,7 @@ import com.openbravo.format.Formats;
 import com.openbravo.pos.forms.*;
 import com.openbravo.pos.printer.TicketParser;
 import com.openbravo.pos.printer.TicketPrinterException;
+import com.openbravo.pos.printer.DeviceTicket;
 import com.openbravo.pos.scripting.ScriptEngine;
 import com.openbravo.pos.scripting.ScriptException;
 import com.openbravo.pos.scripting.ScriptFactory;
@@ -237,6 +238,56 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         actualizarTemplateEnBD();
         
         loadData();
+        
+        // Sebastian - Resetear posición de scroll para que la vista inicie desde arriba
+        resetScrollPositions();
+    }
+    
+    /**
+     * Sebastian - Resetea la posición de scroll de todos los paneles para que inicien desde arriba
+     */
+    private void resetScrollPositions() {
+        // Resetear scroll de la tabla de tickets
+        if (m_jScrollTableTicket != null) {
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                m_jScrollTableTicket.getViewport().setViewPosition(new java.awt.Point(0, 0));
+            });
+        }
+        
+        // Resetear scroll de la tabla de ventas
+        if (m_jScrollSales != null) {
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                m_jScrollSales.getViewport().setViewPosition(new java.awt.Point(0, 0));
+            });
+        }
+        
+        // Resetear scroll del HTML viewer si existe
+        if (m_htmlViewer != null && m_htmlViewer.getParent() instanceof JScrollPane) {
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                JScrollPane htmlScrollPane = (JScrollPane) m_htmlViewer.getParent();
+                htmlScrollPane.getViewport().setViewPosition(new java.awt.Point(0, 0));
+            });
+        }
+        
+        // Buscar y resetear cualquier otro scroll pane en el panel principal
+        resetScrollPaneRecursive(this);
+    }
+    
+    /**
+     * Sebastian - Busca recursivamente todos los JScrollPane y resetea su posición
+     */
+    private void resetScrollPaneRecursive(javax.swing.JComponent component) {
+        if (component instanceof JScrollPane) {
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                ((JScrollPane) component).getViewport().setViewPosition(new java.awt.Point(0, 0));
+            });
+        }
+        
+        for (java.awt.Component child : component.getComponents()) {
+            if (child instanceof javax.swing.JComponent) {
+                resetScrollPaneRecursive((javax.swing.JComponent) child);
+            }
+        }
     }
     
     /**
@@ -3788,18 +3839,6 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     }
     
     /**
-     * Escapa HTML para prevenir XSS
-     */
-    private String escapeHtml(String str) {
-        if (str == null) return "";
-        return str.replace("&", "&amp;")
-                  .replace("<", "&lt;")
-                  .replace(">", "&gt;")
-                  .replace("\"", "&quot;")
-                  .replace("'", "&#39;");
-    }
-    
-    /**
      * Crea el panel de encabezado con título y botones
      */
     private JPanel createHeaderPanel() {
@@ -5555,17 +5594,17 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * Muestra el reporte del día con todos los turnos cerrados
      */
     /**
-     * Método directo para "Corte del día": solo muestra el reporte sin validaciones ni cerrar turno
+     * Método directo para "Corte del día": muestra un resumen/preview antes de imprimir
      */
     private void performDayCloseReport() {
-        LOGGER.info("=== INICIO: Corte del día (solo reporte) ===");
+        LOGGER.info("=== INICIO: Corte del día (mostrar preview antes de imprimir) ===");
         Date dNow = new Date();
         
         try {
-            // Usar el sistema de preview de impresión como los tickets de venta
-            printPayments("Printer.CloseCash", true);
+            // Primero mostrar el preview del corte del día
+            showDayClosePreview();
             
-            LOGGER.info("=== FIN: Corte del día completado (solo reporte) ===");
+            LOGGER.info("=== FIN: Corte del día completado ===");
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error al generar reporte del corte del día", e);
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
@@ -5574,19 +5613,67 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         }
     }
     
+    /**
+     * Muestra un resumen del corte del día en pantalla completa (HTML) y permite al usuario decidir si imprimir
+     */
+    private void showDayClosePreview() {
+        try {
+            Date closeDate = m_PaymentsToClose != null ? m_PaymentsToClose.getDateEnd() : null;
+            if (closeDate == null) {
+                // Si no hay fecha de cierre, usar la fecha actual (para corte del día)
+                closeDate = new Date();
+                LOGGER.info("No se encontró fecha de cierre, usando fecha actual: " + Formats.DATE.formatValue(closeDate));
+            } else {
+                LOGGER.info("Usando fecha de cierre: " + Formats.DATE.formatValue(closeDate));
+            }
+            
+            // Usar el método showDayReport para generar y mostrar el HTML
+            // Pero modificarlo para que muestre botones de imprimir
+            showDayReportWithPrintOption(closeDate);
+            
+        } catch (Exception e) {
+            LOGGER.log(Level.SEVERE, "Error al mostrar resumen del corte del día", e);
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                    "Error al mostrar el resumen del corte del día", e);
+            msg.show(this);
+        }
+    }
+    
+    /**
+     * Muestra el reporte del día completo en HTML con opción de imprimir
+     */
+    private void showDayReportWithPrintOption(Date closeDate) {
+        // Simplemente llamar a showDayReport que ya tiene todo el código necesario
+        // El botón de imprimir ya fue modificado para imprimir el ticket
+        showDayReport(closeDate);
+    }
+    
+    /**
+     * Método auxiliar para escapar HTML (usado en showDayReport)
+     */
+    private String escapeHtml(String text) {
+        if (text == null) return "";
+        return text.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;").replace("\"", "&quot;").replace("'", "&#39;");
+    }
+    
     private void showDayReport(Date closeDate) {
         try {
             LOGGER.info("Generando reporte visual del corte del día directamente desde Java...");
+            LOGGER.info("Fecha del reporte: " + Formats.DATE.formatValue(closeDate));
             
             // Obtener todos los turnos del día
             java.util.List<ShiftData> allShifts = getAllShiftsForDay(closeDate);
+            LOGGER.info("Turnos encontrados: " + (allShifts != null ? allShifts.size() : 0));
+            
             if (allShifts == null || allShifts.isEmpty()) {
-                LOGGER.warning("No se encontraron turnos para el día");
+                LOGGER.warning("No se encontraron turnos para el día " + Formats.DATE.formatValue(closeDate));
                 MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
-                    "No se encontraron turnos para el día seleccionado.");
+                    "No se encontraron turnos cerrados para el día seleccionado (" + Formats.DATE.formatValue(closeDate) + ").\n\nPor favor, cierre primero al menos un turno antes de realizar el corte del día.");
                 msg.show(this);
                 return;
             }
+            
+            LOGGER.info("Mostrando diálogo con reporte HTML...");
             
             // Calcular totales del día
             double totalDayInitialAmount = 0.0;
@@ -6168,79 +6255,68 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             JScrollPane scrollPane = new JScrollPane(htmlViewer);
             panel.add(scrollPane, BorderLayout.CENTER);
             
-            // Panel de botones: Guardar HTML, Imprimir y Cerrar
+            // Panel de botones: Imprimir Ticket y Cerrar
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            JButton btnSaveHTML = new JButton("Guardar HTML");
-            JButton btnPrint = new JButton("Imprimir");
-            JButton btnClose = new JButton("Cerrar");
-            
-            final String htmlContent = html.toString(); // Para usar en el listener
-            
-            btnSaveHTML.addActionListener(e -> {
-                try {
-                    JFileChooser fileChooser = new JFileChooser();
-                    fileChooser.setDialogTitle("Guardar reporte como HTML");
-                    fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos HTML (*.html)", "html"));
-                    
-                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd");
-                    String defaultFileName = "Reporte_Caja_Cerrada_" + sdf.format(closeDate) + ".html";
-                    fileChooser.setSelectedFile(new java.io.File(defaultFileName));
-                    
-                    int userSelection = fileChooser.showSaveDialog(reportDialog);
-                    if (userSelection == JFileChooser.APPROVE_OPTION) {
-                        java.io.File fileToSave = fileChooser.getSelectedFile();
-                        String filePath = fileToSave.getAbsolutePath();
-                        
-                        if (!filePath.toLowerCase().endsWith(".html")) {
-                            filePath += ".html";
-                        }
-                        
-                        java.io.FileWriter writer = new java.io.FileWriter(filePath);
-                        writer.write(htmlContent);
-                        writer.close();
-                        
-                        JOptionPane.showMessageDialog(reportDialog,
-                            "Reporte guardado exitosamente en:\n" + filePath,
-                            "Éxito",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    }
-                } catch (java.io.IOException ex) {
-                    LOGGER.log(Level.SEVERE, "Error guardando HTML", ex);
-                    JOptionPane.showMessageDialog(reportDialog,
-                        "Error al guardar el HTML: " + ex.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                }
-            });
+            JButton btnPrint = new JButton("🖨️ Imprimir Ticket");
+            JButton btnClose = new JButton("Cancelar");
             
             btnPrint.addActionListener(e -> {
+                reportDialog.dispose();
+                // Imprimir el ticket del corte del día (no el HTML)
                 try {
-                    htmlViewer.print();
-                } catch (java.awt.print.PrinterException ex) {
-                    LOGGER.log(Level.SEVERE, "Error imprimiendo", ex);
-                    JOptionPane.showMessageDialog(reportDialog,
-                        "Error al imprimir: " + ex.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                    printPayments("Printer.CloseCash", true);
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Error al imprimir el corte del día", ex);
+                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                            "Error al imprimir el corte del día", ex);
+                    msg.show(this);
                 }
             });
             
             btnClose.addActionListener(e -> reportDialog.dispose());
             
-            buttonPanel.add(btnSaveHTML);
-            buttonPanel.add(btnPrint);
             buttonPanel.add(btnClose);
+            buttonPanel.add(btnPrint);
             panel.add(buttonPanel, BorderLayout.SOUTH);
             
             reportDialog.add(panel);
-            reportDialog.setVisible(true);
+            
+            // Asegurar que el diálogo se muestre en el hilo de eventos de Swing
+            if (SwingUtilities.isEventDispatchThread()) {
+                LOGGER.info("Ya estamos en el EDT, mostrando diálogo directamente...");
+                reportDialog.setVisible(true);
+                LOGGER.info("Diálogo JDialog mostrado exitosamente");
+            } else {
+                LOGGER.info("No estamos en el EDT, programando para EDT...");
+                SwingUtilities.invokeLater(() -> {
+                    try {
+                        LOGGER.info("Mostrando diálogo JDialog en EDT...");
+                        reportDialog.setVisible(true);
+                        LOGGER.info("Diálogo JDialog mostrado exitosamente");
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Error al mostrar el diálogo", e);
+                        e.printStackTrace();
+                        SwingUtilities.invokeLater(() -> {
+                            JOptionPane.showMessageDialog(this,
+                                "Error al mostrar el diálogo: " + e.getMessage(),
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        });
+                    }
+                });
+            }
+            
+            LOGGER.info("Reporte HTML generado y diálogo mostrado/programado");
             
         } catch (Exception e) {
             LOGGER.log(Level.SEVERE, "Error mostrando reporte del día", e);
-            JOptionPane.showMessageDialog(this,
-                "Error al mostrar el reporte: " + e.getMessage(),
-                "Error",
-                JOptionPane.ERROR_MESSAGE);
+            e.printStackTrace();
+            SwingUtilities.invokeLater(() -> {
+                JOptionPane.showMessageDialog(this,
+                    "Error al mostrar el reporte: " + e.getMessage(),
+                    "Error",
+                    JOptionPane.ERROR_MESSAGE);
+            });
         }
     }
     
@@ -6872,68 +6948,28 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             JScrollPane scrollPane = new JScrollPane(htmlViewer);
             panel.add(scrollPane, BorderLayout.CENTER);
             
-            // Panel de botones: Guardar HTML, Imprimir y Cerrar
+            // Panel de botones: Imprimir Ticket y Cerrar
             JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-            JButton btnSaveHTML = new JButton("Guardar HTML");
-            JButton btnPrint = new JButton("Imprimir");
-            JButton btnClose = new JButton("Cerrar");
-            
-            final String htmlContent = html.toString();
-            
-            btnSaveHTML.addActionListener(e -> {
-                try {
-                    JFileChooser fileChooser = new JFileChooser();
-                    fileChooser.setDialogTitle("Guardar reporte como HTML");
-                    fileChooser.setFileFilter(new FileNameExtensionFilter("Archivos HTML (*.html)", "html"));
-                    
-                    java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("yyyy-MM-dd_HHmmss");
-                    String defaultFileName = "Reporte_Turno_" + sdf.format(new Date()) + ".html";
-                    fileChooser.setSelectedFile(new java.io.File(defaultFileName));
-                    
-                    int userSelection = fileChooser.showSaveDialog(reportDialog);
-                    if (userSelection == JFileChooser.APPROVE_OPTION) {
-                        java.io.File fileToSave = fileChooser.getSelectedFile();
-                        String filePath = fileToSave.getAbsolutePath();
-                        
-                        if (!filePath.toLowerCase().endsWith(".html")) {
-                            filePath += ".html";
-                        }
-                        
-                        java.io.FileWriter writer = new java.io.FileWriter(filePath);
-                        writer.write(htmlContent);
-                        writer.close();
-                        
-                        JOptionPane.showMessageDialog(reportDialog,
-                            "Reporte guardado exitosamente en:\n" + filePath,
-                            "Éxito",
-                            JOptionPane.INFORMATION_MESSAGE);
-                    }
-                } catch (java.io.IOException ex) {
-                    LOGGER.log(Level.SEVERE, "Error guardando HTML", ex);
-                    JOptionPane.showMessageDialog(reportDialog,
-                        "Error al guardar el HTML: " + ex.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
-                }
-            });
+            JButton btnPrint = new JButton("🖨️ Imprimir Ticket");
+            JButton btnClose = new JButton("Cancelar");
             
             btnPrint.addActionListener(e -> {
+                reportDialog.dispose();
+                // Imprimir el ticket del corte del día (no el HTML)
                 try {
-                    htmlViewer.print();
-                } catch (java.awt.print.PrinterException ex) {
-                    LOGGER.log(Level.SEVERE, "Error imprimiendo", ex);
-                    JOptionPane.showMessageDialog(reportDialog,
-                        "Error al imprimir: " + ex.getMessage(),
-                        "Error",
-                        JOptionPane.ERROR_MESSAGE);
+                    printPayments("Printer.CloseCash", true);
+                } catch (Exception ex) {
+                    LOGGER.log(Level.SEVERE, "Error al imprimir el corte del día", ex);
+                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, 
+                            "Error al imprimir el corte del día", ex);
+                    msg.show(this);
                 }
             });
             
             btnClose.addActionListener(e -> reportDialog.dispose());
             
-            buttonPanel.add(btnSaveHTML);
-            buttonPanel.add(btnPrint);
             buttonPanel.add(btnClose);
+            buttonPanel.add(btnPrint);
             panel.add(buttonPanel, BorderLayout.SOUTH);
             
             reportDialog.add(panel);
