@@ -403,6 +403,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jStockCurrent.setEnabled(false);
         m_jStockMinimum.setEnabled(false);
         m_jdate.setEnabled(false);
+        if (m_jStockGeneral != null) {
+            m_jStockGeneral.setText("0");
+            m_jStockGeneral.setEnabled(false);
+        }
 
         // Tab Image
         m_jImage.setEnabled(false);
@@ -499,6 +503,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jstockvolume.setEnabled(true);
         m_jStockCurrent.setEnabled(true);
         m_jStockMinimum.setEnabled(true);
+        m_jStockCurrent.setEnabled(true);
+        m_jStockMinimum.setEnabled(true);
+        if (m_jStockGeneral != null) {
+            m_jStockGeneral.setText("0");
+            m_jStockGeneral.setEnabled(true);
+        }
         m_jdate.setEnabled(true);
 
         // Tab Image
@@ -834,6 +844,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jStockMinimum.setEnabled(false);
         m_jdate.setEnabled(false);
         m_jAccumulatesPoints.setEnabled(false);
+        if (m_jStockGeneral != null) {
+            m_jStockGeneral.setText("0");
+            m_jStockGeneral.setEnabled(false);
+        }
 
         // Tab Image
         m_jImage.setEnabled(false);
@@ -2017,6 +2031,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jLblDate = new javax.swing.JLabel();
         m_jbtndate = new javax.swing.JButton();
         m_jdate = new javax.swing.JTextField();
+        jLabelStockGeneral = new javax.swing.JLabel();
+        m_jStockGeneral = new javax.swing.JTextField();
         jPanel3 = new javax.swing.JPanel();
         jScrollPane1 = new javax.swing.JScrollPane();
         txtAttributes = new javax.swing.JTextArea();
@@ -2086,6 +2102,16 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jCodetype.setModel(
                 new javax.swing.DefaultComboBoxModel(new String[] { "EAN-13", "EAN-8", "CODE128", "Upc-A", "Upc-E" }));
         m_jCodetype.setPreferredSize(new java.awt.Dimension(80, 30));
+
+        jLabelStockGeneral.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelStockGeneral.setText(AppLocal.getIntString("label.prodstockcurrent")); // NOI18N
+        jLabelStockGeneral.setPreferredSize(new java.awt.Dimension(110, 30));
+
+        m_jStockGeneral.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        m_jStockGeneral.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        m_jStockGeneral.setEditable(false);
+        m_jStockGeneral.setFocusable(false);
+        m_jStockGeneral.setPreferredSize(new java.awt.Dimension(200, 30));
 
         jLabel2.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel2.setText(AppLocal.getIntString("label.prodnamem")); // NOI18N
@@ -2198,6 +2224,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                                                                         javax.swing.GroupLayout.PREFERRED_SIZE, 120,
                                                                         javax.swing.GroupLayout.PREFERRED_SIZE)
                                                                 .addGap(0, 0, Short.MAX_VALUE))
+                                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                                .addComponent(jLabelStockGeneral,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE, 150,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addGap(0, 0, Short.MAX_VALUE))
                                                         .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE,
                                                                 200, javax.swing.GroupLayout.PREFERRED_SIZE)
                                                         .addComponent(m_jCategory,
@@ -2226,7 +2257,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                                                         .addComponent(m_jAccumulatesPoints,
                                                                 javax.swing.GroupLayout.PREFERRED_SIZE,
                                                                 javax.swing.GroupLayout.DEFAULT_SIZE,
-                                                                javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addGroup(jPanel1Layout.createSequentialGroup()
+                                                                .addComponent(m_jStockGeneral,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE, 200,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addGap(0, 0, Short.MAX_VALUE)))))
                                 .addContainerGap()));
         jPanel1Layout.setVerticalGroup(
                 jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -2300,6 +2336,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                                                 javax.swing.GroupLayout.DEFAULT_SIZE,
                                                 javax.swing.GroupLayout.PREFERRED_SIZE)
                                         .addComponent(m_jAccumulatesPoints, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabelStockGeneral, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(m_jStockGeneral, javax.swing.GroupLayout.PREFERRED_SIZE,
                                                 javax.swing.GroupLayout.DEFAULT_SIZE,
                                                 javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
@@ -3549,6 +3593,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                     m_jStockCurrent.repaint();
                     m_jStockMinimum.revalidate();
                     m_jStockMinimum.repaint();
+                    if (m_jStockGeneral != null) {
+                        m_jStockGeneral.setText(stockCurrentText);
+                        m_jStockGeneral.revalidate();
+                        m_jStockGeneral.repaint();
+                    }
                 });
             } else {
                 LOGGER.log(Level.FINE, "showStockTableAutomatically: No hay stock, estableciendo a 0");
@@ -3559,6 +3608,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                     m_jStockCurrent.repaint();
                     m_jStockMinimum.revalidate();
                     m_jStockMinimum.repaint();
+                    if (m_jStockGeneral != null) {
+                        m_jStockGeneral.setText("0");
+                        m_jStockGeneral.revalidate();
+                        m_jStockGeneral.repaint();
+                    }
                 });
             }
         } catch (Exception e) {
@@ -3576,6 +3630,13 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                         m_jStockMinimum.setText("0");
                         m_jStockMinimum.revalidate();
                         m_jStockMinimum.repaint();
+                    });
+                }
+                if (m_jStockGeneral != null) {
+                    SwingUtilities.invokeLater(() -> {
+                        m_jStockGeneral.setText("0");
+                        m_jStockGeneral.revalidate();
+                        m_jStockGeneral.repaint();
                     });
                 }
             } catch (Exception ex) {
@@ -3741,6 +3802,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private javax.swing.JTextField m_jmargin;
     private javax.swing.JTextField m_jstockcost;
     private javax.swing.JTextField m_jstockvolume;
+    private javax.swing.JTextField m_jStockGeneral;
+    private javax.swing.JLabel jLabelStockGeneral;
     private javax.swing.JPanel pricePanel;
     private javax.swing.JTextArea txtAttributes;
     private javax.swing.JLabel webLabel1;
