@@ -430,7 +430,7 @@ public class JSupplierFinder extends javax.swing.JDialog implements EditorCreato
         m_jtxtSearchKey.setPreferredSize(new java.awt.Dimension(250, 30));
 
         jLblPostal.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jLblPostal.setText("Postal");
+        jLblPostal.setText("Postal:");
         jLblPostal.setMaximumSize(new java.awt.Dimension(60, 15));
         jLblPostal.setMinimumSize(new java.awt.Dimension(60, 15));
         jLblPostal.setPreferredSize(new java.awt.Dimension(110, 30));

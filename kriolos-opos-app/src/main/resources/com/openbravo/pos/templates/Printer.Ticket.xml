@@ -94,8 +94,8 @@
          </line>
 -->
 
-<!-- Print line to show Prices inc. Tax -->
-            <text align ="right" length="8">${ticketline.printPriceTax()}</text>
+<!-- Print line to show Prices pre-Tax (precio unitario sin impuestos) -->
+            <text align ="right" length="12">${ticketline.printPrice()}</text>
             <text align ="right" length="7">x${ticketline.printMultiply()}</text>
             <text align ="right" length="10">${ticketline.printValue()}</text>
          </line>
