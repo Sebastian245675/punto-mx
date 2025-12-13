@@ -1709,7 +1709,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             // Generar línea XML directamente
                             productosText.append("<line>\n");
                             productosText.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
-                            productosText.append("    <text align=\"right\" length=\"8\">").append(units).append("</text>\n");
+                            productosText.append("    <text align=\"left\" length=\"8\">").append(units).append("</text>\n");
                             productosText.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
                             productosText.append("</line>\n");
                         }
@@ -1738,7 +1738,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                                     
                                     productosPorTurnoText.append("<line>\n");
                                     productosPorTurnoText.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
-                                    productosPorTurnoText.append("    <text align=\"right\" length=\"8\">").append(units).append("</text>\n");
+                                    productosPorTurnoText.append("    <text align=\"left\" length=\"8\">").append(units).append("</text>\n");
                                     productosPorTurnoText.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
                                     productosPorTurnoText.append("</line>\n");
                                 }
@@ -1927,7 +1927,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             // Generar línea XML directamente
                             productosTextTurno.append("<line>\n");
                             productosTextTurno.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
-                            productosTextTurno.append("    <text align=\"right\" length=\"8\">").append(units).append("</text>\n");
+                            productosTextTurno.append("    <text align=\"left\" length=\"8\">").append(units).append("</text>\n");
                             productosTextTurno.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
                             productosTextTurno.append("</line>\n");
                         }

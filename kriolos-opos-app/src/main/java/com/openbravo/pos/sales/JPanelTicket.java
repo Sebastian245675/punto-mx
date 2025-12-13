@@ -753,7 +753,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         LOGGER.log(System.Logger.Level.INFO, "JPanelTicket.activate");
 
-        // Actualizar el template Printer.Ticket2 en la base de datos desde el archivo XML
+        // Actualizar los templates Printer.Ticket y Printer.Ticket2 en la base de datos desde los archivos XML
+        actualizarTemplateTicketEnBD();
         actualizarTemplateTicket2EnBD();
 
         // Aplicar fuentes grandes para campos numéricos (después de que Metal los
@@ -834,6 +835,101 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         SwingUtilities.invokeLater(() -> {
             aplicarFuentesGrandesVentas();
         });
+    }
+
+    /**
+     * Actualiza el template Printer.Ticket en la base de datos desde el archivo XML
+     */
+    private void actualizarTemplateTicketEnBD() {
+        try {
+            // #region agent log
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_update_start\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:843\",\"message\":\"Starting Printer.Ticket template update\",\"data\":{},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                fw.close();
+                System.out.println("DEBUG: Starting Printer.Ticket template update");
+            } catch (Exception ex) {
+                System.out.println("DEBUG: Error logging template update start: " + ex.getMessage());
+            }
+            // #endregion
+            
+            // Leer el archivo XML desde el classpath
+            java.io.InputStream is = getClass().getResourceAsStream("/com/openbravo/pos/templates/Printer.Ticket.xml");
+            if (is == null) {
+                LOGGER.log(System.Logger.Level.WARNING, "No se pudo encontrar el archivo Printer.Ticket.xml en el classpath");
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_not_found\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:847\",\"message\":\"Printer.Ticket.xml not found in classpath\",\"data\":{},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                    fw.close();
+                } catch (Exception ex) {}
+                // #endregion
+                return;
+            }
+            
+            // Leer todo el contenido del archivo
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesRead);
+            }
+            byte[] templateContent = baos.toByteArray();
+            is.close();
+            baos.close();
+            
+            // #region agent log
+            try {
+                String templateStr = new String(templateContent, "UTF-8");
+                boolean hasValor = templateStr.contains("Valor");
+                boolean hasImporte = templateStr.contains("length=\"10\">Importe");
+                boolean hasCode7 = templateStr.contains("length=\"7\">Código");
+                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_content_check\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:863\",\"message\":\"Printer.Ticket template content check\",\"data\":{\"length\":" + templateContent.length + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                fw.close();
+                System.out.println("DEBUG: Printer.Ticket template - hasValor=" + hasValor + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7);
+            } catch (Exception ex) {
+                System.out.println("DEBUG: Error logging template content check: " + ex.getMessage());
+            }
+            // #endregion
+            
+            // Actualizar el template en la base de datos
+            // Tipo 0 = texto/XML
+            dlSystem.setResource("Printer.Ticket", 0, templateContent);
+            LOGGER.log(System.Logger.Level.INFO, "Template Printer.Ticket actualizado en la base de datos");
+            
+            // #region agent log
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_updated\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:865\",\"message\":\"Printer.Ticket template updated in DB\",\"data\":{\"length\":" + templateContent.length + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                fw.close();
+                System.out.println("DEBUG: Printer.Ticket template updated in DB, length=" + templateContent.length);
+            } catch (Exception ex) {
+                System.out.println("DEBUG: Error logging template update: " + ex.getMessage());
+            }
+            // #endregion
+            
+        } catch (java.io.IOException e) {
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "Error desconocido";
+            LOGGER.log(System.Logger.Level.ERROR, "Error leyendo el archivo Printer.Ticket.xml: " + errorMsg);
+            // #region agent log
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_io_error\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:868\",\"message\":\"IO Error updating Printer.Ticket\",\"data\":{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                fw.close();
+            } catch (Exception ex) {}
+            // #endregion
+        } catch (Exception e) {
+            String errorMsg = e.getMessage() != null ? e.getMessage() : "Error desconocido";
+            LOGGER.log(System.Logger.Level.ERROR, "Error actualizando template Printer.Ticket en BD: " + errorMsg);
+            // #region agent log
+            try {
+                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_exception\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:872\",\"message\":\"Exception updating Printer.Ticket\",\"data\":{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                fw.close();
+            } catch (Exception ex) {}
+            // #endregion
+        }
     }
 
     /**
@@ -2637,6 +2733,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             // #endregion
                             if (paymentdialog.isPrintSelected() || warrantyPrint) {
                                 try {
+                                    // Actualizar el template Printer.Ticket antes de imprimir
+                                    actualizarTemplateTicketEnBD();
                                     printTicket("Printer.Ticket", ticket, ticketext);
                                     Notify(AppLocal.getIntString("notify.printing"));
                                 } catch (Exception ex) {
@@ -2723,10 +2821,16 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             int ticketIndex = sresource != null ? sresource.indexOf("<ticket>") : -1;
             int displayIndex = sresource != null ? sresource.indexOf("<display>") : -1;
             boolean ticketFirst = ticketIndex >= 0 && (displayIndex < 0 || ticketIndex < displayIndex);
+            boolean hasValor = sresource != null && sresource.contains(">Valor</text>");
+            boolean hasImporte = sresource != null && sresource.contains("length=\"10\">Importe</text>");
+            boolean hasCode7 = sresource != null && sresource.contains("length=\"7\">Código</text>");
+            boolean hasCode8 = sresource != null && sresource.contains("length=\"8\">Código</text>");
+            boolean hasArticulo12 = sresource != null && sresource.contains("length=\"12\">Artículo</text>");
+            boolean hasArticulo15 = sresource != null && sresource.contains("length=\"15\">Artículo</text>");
             java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_resource\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2706\",\"message\":\"Resource loaded from DB\",\"data\":{\"resource\":\"" + sresourcename + "\",\"isNull\":" + (sresource == null) + ",\"length\":" + (sresource != null ? sresource.length() : 0) + ",\"hasTicketTag\":" + (ticketIndex >= 0) + ",\"hasDisplayTag\":" + (displayIndex >= 0) + ",\"ticketIndex\":" + ticketIndex + ",\"displayIndex\":" + displayIndex + ",\"ticketFirst\":" + ticketFirst + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n");
+            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_resource\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2815\",\"message\":\"Resource loaded from DB\",\"data\":{\"resource\":\"" + sresourcename + "\",\"isNull\":" + (sresource == null) + ",\"length\":" + (sresource != null ? sresource.length() : 0) + ",\"hasTicketTag\":" + (ticketIndex >= 0) + ",\"hasDisplayTag\":" + (displayIndex >= 0) + ",\"ticketIndex\":" + ticketIndex + ",\"displayIndex\":" + displayIndex + ",\"ticketFirst\":" + ticketFirst + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + ",\"hasCode8\":" + hasCode8 + ",\"hasArticulo12\":" + hasArticulo12 + ",\"hasArticulo15\":" + hasArticulo15 + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n");
             fw.close();
-            System.out.println("DEBUG: Resource " + sresourcename + " loaded from DB, ticketFirst=" + ticketFirst + ", ticketIndex=" + ticketIndex + ", displayIndex=" + displayIndex);
+            System.out.println("DEBUG: Resource " + sresourcename + " loaded from DB - hasValor=" + hasValor + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7 + ", hasCode8=" + hasCode8 + ", hasArticulo12=" + hasArticulo12 + ", hasArticulo15=" + hasArticulo15);
         } catch (IOException ex) {
             System.out.println("DEBUG: Error logging resource load: " + ex.getMessage());
         }
@@ -2762,11 +2866,104 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 script.put("place", ticketext);
                 script.put("warranty", warrantyPrint);
                 script.put("pickupid", getPickupString(ticket));
+                
+                // Sebastian - Inicializar variables de puntos siempre (para evitar errores en Velocity)
+                script.put("customerPoints", null);
+                script.put("customerPointsAfter", null);
+                
+                // Sebastian - Agregar puntos del cliente al template si hay cliente
+                if (ticket.getCustomer() != null && puntosDataLogic != null) {
+                    try {
+                        int puntosCliente = puntosDataLogic.obtenerPuntos(ticket.getCustomer().getId());
+                        script.put("customerPoints", puntosCliente);
+                        
+                        // Calcular puntos después de la venta
+                        double totalAcumulable = 0.0;
+                        for (TicketLineInfo line : ticket.getLines()) {
+                            if (line.isProductAccumulatesPoints()) {
+                                totalAcumulable += line.getValue();
+                            }
+                        }
+                        
+                        PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
+                        int puntosNuevos = 0;
+                        if (config != null && config.isSistemaActivo() && totalAcumulable > 0) {
+                            puntosNuevos = config.calcularPuntos(totalAcumulable);
+                            
+                            // Verificar límite diario
+                            try {
+                                int puntosGanadosHoy = puntosDataLogic.getPuntosGanadosHoy(ticket.getCustomer().getId());
+                                int limiteDiario = config.getLimiteDiarioPuntos();
+                                
+                                // Ajustar puntos si exceden el límite
+                                if (puntosGanadosHoy >= limiteDiario) {
+                                    puntosNuevos = 0;
+                                } else if (puntosGanadosHoy + puntosNuevos > limiteDiario) {
+                                    puntosNuevos = limiteDiario - puntosGanadosHoy;
+                                }
+                            } catch (Exception e) {
+                                // Si hay error al obtener puntos ganados hoy, continuar con el cálculo normal
+                            }
+                        }
+                        
+                        int puntosDespues = puntosCliente + puntosNuevos;
+                        script.put("customerPointsAfter", puntosDespues);
+                        
+                        // #region agent log
+                        try {
+                            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_points_calc\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2905\",\"message\":\"Customer points calculated\",\"data\":{\"customerId\":\"" + ticket.getCustomer().getId() + "\",\"puntosActuales\":" + puntosCliente + ",\"puntosNuevos\":" + puntosNuevos + ",\"puntosDespues\":" + puntosDespues + ",\"totalAcumulable\":" + totalAcumulable + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
+                            fw.close();
+                            System.out.println("DEBUG: Puntos calculados - Actuales: " + puntosCliente + ", Nuevos: " + puntosNuevos + ", Después: " + puntosDespues);
+                        } catch (Exception ex2) {
+                            System.out.println("DEBUG: Error logging points calculation: " + ex2.getMessage());
+                        }
+                        // #endregion
+                    } catch (Exception ex) {
+                        // Si no se pueden obtener los puntos, no agregar la variable
+                        LOGGER.log(System.Logger.Level.WARNING, "Error obteniendo puntos del cliente para template: " + ex.getMessage());
+                        // #region agent log
+                        try {
+                            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_points_error\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2908\",\"message\":\"Error calculating customer points\",\"data\":{\"error\":\"" + ex.getMessage().replace("\"", "\\\"") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
+                            fw.close();
+                        } catch (Exception ex2) {}
+                        // #endregion
+                    }
+                } else {
+                    // #region agent log
+                    try {
+                        java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                        fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_no_customer_points\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2871\",\"message\":\"No customer or puntosDataLogic for points calculation\",\"data\":{\"hasCustomer\":" + (ticket.getCustomer() != null) + ",\"hasPuntosDataLogic\":" + (puntosDataLogic != null) + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
+                        fw.close();
+                    } catch (Exception ex2) {}
+                    // #endregion
+                }
 
                 // TODO - MUST present to the progress o printing processing
                 refreshTicket();
 
-                processTemaplated = script.eval(sresource).toString();
+                // #region agent log
+                try {
+                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_before_velocity_eval\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2777\",\"message\":\"Before Velocity eval\",\"data\":{\"resource\":\"" + sresourcename + "\",\"hasCustomer\":" + (ticket.getCustomer() != null) + ",\"customerId\":" + (ticket.getCustomer() != null ? "\"" + ticket.getCustomer().getId() + "\"" : "null") + ",\"hasPuntosDataLogic\":" + (puntosDataLogic != null) + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"H\"}\n");
+                    fw.close();
+                } catch (IOException ex) {}
+                // #endregion
+                
+                try {
+                    processTemaplated = script.eval(sresource).toString();
+                } catch (ScriptException ex) {
+                    // #region agent log
+                    try {
+                        java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                        fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_velocity_error\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2782\",\"message\":\"Velocity evaluation error\",\"data\":{\"resource\":\"" + sresourcename + "\",\"error\":\"" + ex.getMessage().replace("\"", "\\\"").replace("\n", "\\n") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"H\"}\n");
+                        fw.close();
+                        System.out.println("DEBUG: Velocity error: " + ex.getMessage());
+                    } catch (IOException ex2) {}
+                    // #endregion
+                    throw ex;
+                }
                 
                 // #region agent log
                 try {
