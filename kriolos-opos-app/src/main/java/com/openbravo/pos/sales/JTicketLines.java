@@ -443,7 +443,7 @@ public class JTicketLines extends javax.swing.JPanel {
                 } catch (Exception e) {}
             }
             // #endregion
-            
+
             JLabel aux = (JLabel) super.getTableCellRendererComponent(table, value,
                     isSelected, hasFocus, row, column);
             aux.setVerticalAlignment(javax.swing.SwingConstants.TOP);

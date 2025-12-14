@@ -44,7 +44,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private Icon menu_close;
 
     private final JRootMenu rMenu;
-    
+
     // Referencias a botones principales para atajos de teclado
     private javax.swing.JButton btnVentasRef;
     private javax.swing.JButton btnCierreRef;
@@ -956,7 +956,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         rightTopPanel.add(atendidoPanel, java.awt.BorderLayout.CENTER);
         
         artisticTopPanel.add(rightTopPanel, java.awt.BorderLayout.EAST);
-        
+
         // Sebastian - Agregar barra de menú horizontal arriba del título (con múltiples
         // filas automáticas)
         // Usar BoxLayout vertical para permitir que el panel de botones se expanda
@@ -1114,7 +1114,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         
         LOGGER.log(Level.INFO, "✅ Atajos de teclado globales configurados: F1=Ventas, F2=Cerrar Caja, F3=Stock, F4=Reportes");
     }
-    
+
     /**
      * Convierte el ID del rol (0, 1, 2, 3...) al nombre del rol (ADMIN, MANAGER,
      * Employee)

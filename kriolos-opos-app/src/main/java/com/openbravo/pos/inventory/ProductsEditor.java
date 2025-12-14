@@ -218,7 +218,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jTax.addActionListener(fm);
         m_jPriceSellTax.getDocument().addDocumentListener(new PriceTaxManager());
         m_jmargin.getDocument().addDocumentListener(new MarginManager());
-        m_jGrossProfit.getDocument().addDocumentListener(new MarginManager());
+        // No agregar listener a m_jGrossProfit ya que es solo lectura y se calcula automáticamente
 
         m_jdate.getDocument().addDocumentListener(dirty);
 
@@ -321,6 +321,23 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         reportlock = true;
 
         m_jTitle.setText(AppLocal.getIntString("label.recordeof"));
+        
+        // Actualizar título del formulario
+        if (jLabelProductTitle != null) {
+            jLabelProductTitle.setText("NUEVO PRODUCTO");
+        }
+        if (rbSellUnit != null) {
+            rbSellUnit.setSelected(true);
+        }
+        if (rbSellBulk != null) {
+            rbSellBulk.setSelected(false);
+        }
+        if (rbSellPackage != null) {
+            rbSellPackage.setSelected(false);
+        }
+        if (chkUseInventory != null) {
+            chkUseInventory.setSelected(true); // Por defecto usa inventario
+        }
 
         // Tab General
         productId = null;
@@ -745,6 +762,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         m_jTitle.setText(Formats.STRING.formatValue((String) myprod[1])
                 + " - " + Formats.STRING.formatValue((String) myprod[4]));
+        
+        // Actualizar título del formulario
+        if (jLabelProductTitle != null) {
+            jLabelProductTitle.setText("EDITAR PRODUCTO");
+        }
         productId = (String) myprod[0];
         m_jRef.setText(Formats.STRING.formatValue((String) myprod[1]));
         m_jCode.setText(Formats.STRING.formatValue((String) myprod[2]));
@@ -762,6 +784,22 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jComment.setSelected(((Boolean) myprod[13]));
         m_jScale.setSelected(((Boolean) myprod[14]));
         m_jConstant.setSelected(((Boolean) myprod[15]));
+        
+        // Actualizar radio buttons de tipo de venta
+        if (rbSellBulk != null && rbSellPackage != null && rbSellUnit != null) {
+            if (m_jScale.isSelected()) {
+                rbSellBulk.setSelected(true);
+            } else if (m_jConstant.isSelected()) {
+                rbSellPackage.setSelected(true);
+            } else {
+                rbSellUnit.setSelected(true);
+            }
+        }
+        
+        // Actualizar checkbox de inventario
+        if (chkUseInventory != null) {
+            chkUseInventory.setSelected(!m_jService.isSelected());
+        }
         m_jPrintKB.setSelected(((Boolean) myprod[16]));
         m_jSendStatus.setSelected(((Boolean) myprod[17]));
         m_jService.setSelected(((Boolean) myprod[18]));
@@ -794,6 +832,9 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         // Cargar valores de stock
         showStockTableAutomatically();
+        
+        // Calcular ganancia después de cargar los valores
+        calculateGP();
     }
 
     /**
@@ -1503,10 +1544,13 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             Double dPriceBuy = readCurrency(m_jPriceBuy.getText());
             Double dPriceSell = readCurrency(m_jPriceSell.getText());
 
-            if (dPriceBuy == null || dPriceSell == null) {
+            if (dPriceBuy == null || dPriceSell == null || dPriceBuy <= 0.0 || dPriceSell <= 0.0) {
                 m_jGrossProfit.setText(null);
             } else {
-                m_jGrossProfit.setText(Formats.PERCENT.formatValue((dPriceSell - dPriceBuy) / dPriceSell));
+                // Calcular porcentaje de ganancia (margen sobre venta): ((venta - costo) / venta) * 100
+                // Ejemplo: costo=100, venta=150 -> ganancia = (150-100)/150 * 100 = 33.33%
+                double ganancia = ((dPriceSell - dPriceBuy) / dPriceSell) * 100.0;
+                m_jGrossProfit.setText(String.format("%.2f%%", ganancia));
             }
             reportlock = false;
         }
@@ -2059,7 +2103,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         colourChooser = new javax.swing.JButton();
 
         setPreferredSize(new java.awt.Dimension(1000, 600));
-        setLayout(null);
+        // Usar BorderLayout para que el panel combinado se muestre correctamente
+        setLayout(new java.awt.BorderLayout());
 
         jTabbedPane1.setToolTipText("");
         jTabbedPane1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
@@ -2351,7 +2396,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                                         javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 
-        jTabbedPane1.addTab(AppLocal.getIntString("label.prodgeneral"), jPanel1); // NOI18N
+        // NO AGREGAR A PESTAÑAS - SE COMBINARÁ EN UN SOLO PANEL AL FINAL
+        // jTabbedPane1.addTab(AppLocal.getIntString("label.prodgeneral"), jPanel1); // NOI18N
 
         m_jmargin.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jmargin.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
@@ -3101,7 +3147,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         m_jService.getAccessibleContext().setAccessibleDescription("null");
 
-        jTabbedPane1.addTab(AppLocal.getIntString("label.prodstock"), jPanel2); // NOI18N
+        // NO AGREGAR A PESTAÑAS - SE COMBINARÁ EN UN SOLO PANEL AL FINAL
+        // jTabbedPane1.addTab(AppLocal.getIntString("label.prodstock"), jPanel2); // NOI18N
 
         jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         jPanel3.setToolTipText(bundle.getString("tooltip.product.properties.tab")); // NOI18N
@@ -3449,22 +3496,315 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         jTabbedPane1.addTab(AppLocal.getIntString("label.button"), jPanel4); // NOI18N
 
-        add(jTabbedPane1);
-        jTabbedPane1.setBounds(0, 10, 1200, 700);
-        jTabbedPane1.getAccessibleContext().setAccessibleName("Product Editor Tab");
-
-        // Agregar listener para mostrar automáticamente la tabla de stock cuando se
-        // seleccione la pestaña Stock
-        jTabbedPane1.addChangeListener(new javax.swing.event.ChangeListener() {
-            @Override
-            public void stateChanged(javax.swing.event.ChangeEvent evt) {
-                // Verificar si la pestaña Stock está seleccionada (índice 1: General=0,
-                // Stock=1)
-                if (jTabbedPane1.getSelectedIndex() == 1 && productId != null) {
-                    showStockTableAutomatically();
-                }
-            }
-        });
+        // === CREAR PANEL COMBINADO GENERAL + STOCK (SIN PESTAÑAS) ===
+        // Remover cualquier componente existente ANTES de crear el nuevo panel
+        removeAll();
+        // Crear panel principal con scroll
+        mainCombinedPanel = new javax.swing.JPanel();
+        mainCombinedPanel.setLayout(new java.awt.BorderLayout());
+        mainCombinedPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 20, 20, 20));
+        mainCombinedPanel.setBackground(java.awt.Color.WHITE);
+        
+        // Panel de contenido con el diseño combinado
+        javax.swing.JPanel contentPanel = new javax.swing.JPanel();
+        contentPanel.setLayout(new javax.swing.BoxLayout(contentPanel, javax.swing.BoxLayout.Y_AXIS));
+        contentPanel.setBackground(java.awt.Color.WHITE);
+        contentPanel.setPreferredSize(new java.awt.Dimension(900, 800)); // Dar un tamaño preferido
+        contentPanel.setMinimumSize(new java.awt.Dimension(900, 600));
+        
+        // Título "NUEVO PRODUCTO" o "EDITAR PRODUCTO" en naranja
+        jLabelProductTitle = new javax.swing.JLabel("NUEVO PRODUCTO");
+        jLabelProductTitle.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+        jLabelProductTitle.setForeground(new java.awt.Color(255, 140, 0)); // Naranja
+        jLabelProductTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 15, 5, 0));
+        contentPanel.add(jLabelProductTitle);
+        
+        // Panel principal con todos los campos en un solo GridBagLayout ordenado
+        javax.swing.JPanel mainFieldsPanel = new javax.swing.JPanel();
+        mainFieldsPanel.setLayout(new java.awt.GridBagLayout());
+        mainFieldsPanel.setBackground(java.awt.Color.WHITE);
+        java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
+        gbc.insets = new java.awt.Insets(5, 15, 5, 15);
+        
+        int row = 0;
+        
+        // Producto (m_jRef)
+        gbc.gridx = 0; gbc.gridy = row;
+        javax.swing.JLabel lblProducto = new javax.swing.JLabel("Producto:");
+        lblProducto.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblProducto.setPreferredSize(new java.awt.Dimension(140, 25));
+        mainFieldsPanel.add(lblProducto, gbc);
+        gbc.gridx = 1;
+        m_jRef.setPreferredSize(new java.awt.Dimension(300, 30));
+        m_jRef.setMaximumSize(new java.awt.Dimension(300, 30));
+        m_jRef.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jRef.getParent() != null) m_jRef.getParent().remove(m_jRef);
+        mainFieldsPanel.add(m_jRef, gbc);
+        row++;
+        
+        // Código de Barras
+        gbc.gridx = 0; gbc.gridy = row;
+        javax.swing.JLabel lblCodigo = new javax.swing.JLabel("Código de Barras:");
+        lblCodigo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblCodigo.setPreferredSize(new java.awt.Dimension(140, 25));
+        mainFieldsPanel.add(lblCodigo, gbc);
+        gbc.gridx = 1;
+        m_jCode.setPreferredSize(new java.awt.Dimension(300, 30));
+        m_jCode.setMaximumSize(new java.awt.Dimension(300, 30));
+        m_jCode.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jCode.getParent() != null) m_jCode.getParent().remove(m_jCode);
+        mainFieldsPanel.add(m_jCode, gbc);
+        row++;
+        
+        // Descripción (usar m_jName)
+        gbc.gridx = 0; gbc.gridy = row;
+        javax.swing.JLabel lblDescripcion = new javax.swing.JLabel("Descripción:");
+        lblDescripcion.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblDescripcion.setPreferredSize(new java.awt.Dimension(140, 25));
+        mainFieldsPanel.add(lblDescripcion, gbc);
+        gbc.gridx = 1;
+        m_jName.setPreferredSize(new java.awt.Dimension(300, 30));
+        m_jName.setMaximumSize(new java.awt.Dimension(300, 30));
+        m_jName.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jName.getParent() != null) m_jName.getParent().remove(m_jName);
+        mainFieldsPanel.add(m_jName, gbc);
+        row++;
+        
+        // Radio buttons "Se vende"
+        gbc.gridx = 0; gbc.gridy = row;
+        javax.swing.JLabel lblSeVende = new javax.swing.JLabel("Se vende:");
+        lblSeVende.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblSeVende.setPreferredSize(new java.awt.Dimension(140, 25));
+        mainFieldsPanel.add(lblSeVende, gbc);
+        gbc.gridx = 1;
+        javax.swing.ButtonGroup sellTypeGroup = new javax.swing.ButtonGroup();
+        rbSellUnit = new javax.swing.JRadioButton("Por Unidad/Pza", true);
+        rbSellBulk = new javax.swing.JRadioButton("A Granel (Usa Decimales)", false);
+        rbSellPackage = new javax.swing.JRadioButton("Como paquete (kit)", false);
+        rbSellUnit.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        rbSellBulk.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        rbSellPackage.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        sellTypeGroup.add(rbSellUnit);
+        sellTypeGroup.add(rbSellBulk);
+        sellTypeGroup.add(rbSellPackage);
+        javax.swing.JPanel radioPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 0));
+        radioPanel.setBackground(java.awt.Color.WHITE);
+        radioPanel.add(rbSellUnit);
+        radioPanel.add(rbSellBulk);
+        radioPanel.add(rbSellPackage);
+        rbSellBulk.addActionListener(e -> m_jScale.setSelected(true));
+        rbSellPackage.addActionListener(e -> m_jConstant.setSelected(true));
+        rbSellUnit.addActionListener(e -> { m_jScale.setSelected(false); m_jConstant.setSelected(false); });
+        mainFieldsPanel.add(radioPanel, gbc);
+        row++;
+        
+        // Precio Costo
+        gbc.gridx = 0; gbc.gridy = row;
+        jLabel3.setText("Precio Costo:");
+        jLabel3.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        jLabel3.setPreferredSize(new java.awt.Dimension(140, 25));
+        if (jLabel3.getParent() != null) jLabel3.getParent().remove(jLabel3);
+        mainFieldsPanel.add(jLabel3, gbc);
+        gbc.gridx = 1;
+        m_jPriceBuy.setPreferredSize(new java.awt.Dimension(160, 30));
+        m_jPriceBuy.setMaximumSize(new java.awt.Dimension(160, 30));
+        m_jPriceBuy.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jPriceBuy.getParent() != null) m_jPriceBuy.getParent().remove(m_jPriceBuy);
+        mainFieldsPanel.add(m_jPriceBuy, gbc);
+        row++;
+        
+        // Precio Venta
+        gbc.gridx = 0; gbc.gridy = row;
+        jLabel4.setText("Precio Venta:");
+        jLabel4.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        jLabel4.setPreferredSize(new java.awt.Dimension(140, 25));
+        if (jLabel4.getParent() != null) jLabel4.getParent().remove(jLabel4);
+        mainFieldsPanel.add(jLabel4, gbc);
+        gbc.gridx = 1;
+        m_jPriceSell.setPreferredSize(new java.awt.Dimension(160, 30));
+        m_jPriceSell.setMaximumSize(new java.awt.Dimension(160, 30));
+        m_jPriceSell.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jPriceSell.getParent() != null) m_jPriceSell.getParent().remove(m_jPriceSell);
+        mainFieldsPanel.add(m_jPriceSell, gbc);
+        row++;
+        
+        // Ganancia (calculada automáticamente)
+        gbc.gridx = 0; gbc.gridy = row;
+        javax.swing.JLabel lblGanancia = new javax.swing.JLabel("Ganancia:");
+        lblGanancia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblGanancia.setPreferredSize(new java.awt.Dimension(140, 25));
+        mainFieldsPanel.add(lblGanancia, gbc);
+        gbc.gridx = 1;
+        if (m_jGrossProfit.getParent() != null) m_jGrossProfit.getParent().remove(m_jGrossProfit);
+        m_jGrossProfit.setPreferredSize(new java.awt.Dimension(160, 30));
+        m_jGrossProfit.setMaximumSize(new java.awt.Dimension(160, 30));
+        m_jGrossProfit.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        m_jGrossProfit.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
+        m_jGrossProfit.setEnabled(false);
+        m_jGrossProfit.setDisabledTextColor(java.awt.Color.BLACK);
+        mainFieldsPanel.add(m_jGrossProfit, gbc);
+        row++;
+        
+        // Precio Mayoreo
+        gbc.gridx = 0; gbc.gridy = row;
+        javax.swing.JLabel lblMayoreo = new javax.swing.JLabel("Precio Mayoreo:");
+        lblMayoreo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblMayoreo.setPreferredSize(new java.awt.Dimension(140, 25));
+        mainFieldsPanel.add(lblMayoreo, gbc);
+        gbc.gridx = 1;
+        m_jPriceSellTax.setPreferredSize(new java.awt.Dimension(160, 30));
+        m_jPriceSellTax.setMaximumSize(new java.awt.Dimension(160, 30));
+        m_jPriceSellTax.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jPriceSellTax.getParent() != null) m_jPriceSellTax.getParent().remove(m_jPriceSellTax);
+        mainFieldsPanel.add(m_jPriceSellTax, gbc);
+        row++;
+        
+        // Checkbox "Acumula Puntos"
+        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
+        if (m_jAccumulatesPoints.getParent() != null) m_jAccumulatesPoints.getParent().remove(m_jAccumulatesPoints);
+        m_jAccumulatesPoints.setText(AppLocal.getIntString("label.prodaccumulatespoints"));
+        m_jAccumulatesPoints.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        m_jAccumulatesPoints.setBackground(java.awt.Color.WHITE);
+        mainFieldsPanel.add(m_jAccumulatesPoints, gbc);
+        gbc.gridwidth = 1; gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
+        row++;
+        
+        // Departamento
+        gbc.gridx = 0; gbc.gridy = row;
+        javax.swing.JLabel lblDept = new javax.swing.JLabel("Departamento:");
+        lblDept.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblDept.setPreferredSize(new java.awt.Dimension(140, 25));
+        mainFieldsPanel.add(lblDept, gbc);
+        gbc.gridx = 1;
+        m_jCategory.setPreferredSize(new java.awt.Dimension(240, 30));
+        m_jCategory.setMaximumSize(new java.awt.Dimension(240, 30));
+        m_jCategory.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jCategory.getParent() != null) m_jCategory.getParent().remove(m_jCategory);
+        mainFieldsPanel.add(m_jCategory, gbc);
+        row++;
+        
+        // Categoría de Impuesto
+        gbc.gridx = 0; gbc.gridy = row;
+        jLabel7.setText("Categoría de Impuesto:");
+        jLabel7.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        jLabel7.setPreferredSize(new java.awt.Dimension(140, 25));
+        if (jLabel7.getParent() != null) jLabel7.getParent().remove(jLabel7);
+        mainFieldsPanel.add(jLabel7, gbc);
+        gbc.gridx = 1;
+        m_jTax.setPreferredSize(new java.awt.Dimension(240, 30));
+        m_jTax.setMaximumSize(new java.awt.Dimension(240, 30));
+        m_jTax.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jTax.getParent() != null) m_jTax.getParent().remove(m_jTax);
+        mainFieldsPanel.add(m_jTax, gbc);
+        row++;
+        
+        // Línea separadora naranja
+        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        gbc.insets = new java.awt.Insets(20, 15, 12, 15);
+        javax.swing.JSeparator separator = new javax.swing.JSeparator();
+        separator.setForeground(new java.awt.Color(255, 140, 0));
+        separator.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 2));
+        mainFieldsPanel.add(separator, gbc);
+        gbc.gridwidth = 1; gbc.fill = java.awt.GridBagConstraints.NONE; gbc.weightx = 0.0;
+        row++;
+        
+        // Título "Inventario" con líneas decorativas
+        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridwidth = 2; gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        gbc.insets = new java.awt.Insets(3, 15, 10, 15);
+        javax.swing.JPanel inventarioTitlePanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 12, 0));
+        inventarioTitlePanel.setBackground(java.awt.Color.WHITE);
+        javax.swing.JSeparator sep1 = new javax.swing.JSeparator();
+        sep1.setPreferredSize(new java.awt.Dimension(60, 2));
+        sep1.setForeground(new java.awt.Color(255, 140, 0));
+        javax.swing.JLabel lblInventario = new javax.swing.JLabel("Inventario");
+        lblInventario.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 15));
+        lblInventario.setForeground(new java.awt.Color(255, 140, 0));
+        javax.swing.JSeparator sep2 = new javax.swing.JSeparator();
+        sep2.setPreferredSize(new java.awt.Dimension(60, 2));
+        sep2.setForeground(new java.awt.Color(255, 140, 0));
+        inventarioTitlePanel.add(sep1);
+        inventarioTitlePanel.add(lblInventario);
+        inventarioTitlePanel.add(sep2);
+        mainFieldsPanel.add(inventarioTitlePanel, gbc);
+        gbc.gridwidth = 1; gbc.anchor = java.awt.GridBagConstraints.WEST;
+        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
+        row++;
+        
+        // Checkbox "Este producto SI utiliza inventario"
+        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
+        chkUseInventory = new javax.swing.JCheckBox("Este producto SI utiliza inventario.", !m_jService.isSelected());
+        chkUseInventory.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        chkUseInventory.setBackground(java.awt.Color.WHITE);
+        chkUseInventory.addActionListener(e -> m_jService.setSelected(!chkUseInventory.isSelected()));
+        mainFieldsPanel.add(chkUseInventory, gbc);
+        gbc.gridwidth = 1; gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
+        row++;
+        
+        // Cantidad Actual
+        gbc.gridx = 0; gbc.gridy = row;
+        jLabelStockCurrent.setText("Cantidad Actual:");
+        jLabelStockCurrent.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        jLabelStockCurrent.setPreferredSize(new java.awt.Dimension(140, 25));
+        if (jLabelStockCurrent.getParent() != null) jLabelStockCurrent.getParent().remove(jLabelStockCurrent);
+        mainFieldsPanel.add(jLabelStockCurrent, gbc);
+        gbc.gridx = 1;
+        m_jStockCurrent.setPreferredSize(new java.awt.Dimension(160, 30));
+        m_jStockCurrent.setMaximumSize(new java.awt.Dimension(160, 30));
+        m_jStockCurrent.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jStockCurrent.getParent() != null) m_jStockCurrent.getParent().remove(m_jStockCurrent);
+        mainFieldsPanel.add(m_jStockCurrent, gbc);
+        row++;
+        
+        // Mínimo
+        gbc.gridx = 0; gbc.gridy = row;
+        jLabelStockMinimum.setText("Mínimo:");
+        jLabelStockMinimum.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        jLabelStockMinimum.setPreferredSize(new java.awt.Dimension(140, 25));
+        if (jLabelStockMinimum.getParent() != null) jLabelStockMinimum.getParent().remove(jLabelStockMinimum);
+        mainFieldsPanel.add(jLabelStockMinimum, gbc);
+        gbc.gridx = 1;
+        m_jStockMinimum.setPreferredSize(new java.awt.Dimension(160, 30));
+        m_jStockMinimum.setMaximumSize(new java.awt.Dimension(160, 30));
+        m_jStockMinimum.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        if (m_jStockMinimum.getParent() != null) m_jStockMinimum.getParent().remove(m_jStockMinimum);
+        mainFieldsPanel.add(m_jStockMinimum, gbc);
+        
+        contentPanel.add(mainFieldsPanel);
+        
+        // Scroll pane para el contenido
+        javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(contentPanel);
+        scrollPane.setBorder(null);
+        scrollPane.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        mainCombinedPanel.add(scrollPane, java.awt.BorderLayout.CENTER);
+        
+        // Agregar el panel combinado en lugar del tabbed pane
+        // Ocultar las pestañas y mostrar solo el panel combinado
+        jTabbedPane1.setVisible(false);
+        jTabbedPane1.setEnabled(false);
+        // Agregar el panel combinado al centro con BorderLayout
+        add(mainCombinedPanel, java.awt.BorderLayout.CENTER);
+        // Asegurar que el panel combinado sea visible y tenga el tamaño correcto
+        mainCombinedPanel.setVisible(true);
+        mainCombinedPanel.setOpaque(true);
+        // Establecer tamaño preferido del panel principal para que el contenido se muestre
+        mainCombinedPanel.setPreferredSize(new java.awt.Dimension(1000, 700));
+        revalidate();
+        repaint();
+        
+        // Cargar tabla de stock automáticamente cuando hay un producto
+        if (productId != null) {
+            showStockTableAutomatically();
+        }
     }// </editor-fold>//GEN-END:initComponents
 
     private void jButtonHTMLActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonHTMLActionPerformed
@@ -3761,6 +4101,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
     private javax.swing.JTabbedPane jTabbedPane1;
+    private javax.swing.JPanel mainCombinedPanel; // Panel combinado sin pestañas
     private javax.swing.JTable jTableProductStock;
     private javax.swing.JLabel jLabelStockCurrent;
     private javax.swing.JTextField m_jStockCurrent;
@@ -3807,6 +4148,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     private javax.swing.JPanel pricePanel;
     private javax.swing.JTextArea txtAttributes;
     private javax.swing.JLabel webLabel1;
+    private javax.swing.JLabel jLabelProductTitle; // Título del formulario de producto
+    private javax.swing.JRadioButton rbSellUnit; // Radio button "Por Unidad"
+    private javax.swing.JRadioButton rbSellBulk; // Radio button "A Granel"
+    private javax.swing.JRadioButton rbSellPackage; // Radio button "Como paquete"
+    private javax.swing.JCheckBox chkUseInventory; // Checkbox "Este producto SI utiliza inventario"
     // End of variables declaration//GEN-END:variables
 
 }

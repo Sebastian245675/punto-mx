@@ -1481,9 +1481,9 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         // Métrica 1: Ventas Totales
         JPanel salesTotalPanel = createMetricCell("Ventas Totales");
         if (lblSalesTotal == null) {
-            lblSalesTotal = new JLabel("$0.00");
-            lblSalesTotal.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            lblSalesTotal.setForeground(new Color(50, 50, 50));
+        lblSalesTotal = new JLabel("$0.00");
+        lblSalesTotal.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblSalesTotal.setForeground(new Color(50, 50, 50));
         }
         salesTotalPanel.add(lblSalesTotal, BorderLayout.CENTER);
         firstRow.add(salesTotalPanel);
@@ -1491,9 +1491,9 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         // Métrica 2: Ganancia
         JPanel profitPanel = createMetricCell("Ganancia");
         if (lblTotalProfit == null) {
-            lblTotalProfit = new JLabel("$0.00");
-            lblTotalProfit.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            lblTotalProfit.setForeground(new Color(50, 50, 50));
+        lblTotalProfit = new JLabel("$0.00");
+        lblTotalProfit.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblTotalProfit.setForeground(new Color(50, 50, 50));
         }
         profitPanel.add(lblTotalProfit, BorderLayout.CENTER);
         firstRow.add(profitPanel);
@@ -1505,9 +1505,9 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         // Métrica 3: Número de Ventas
         JPanel numberSalesPanel = createMetricCell("Número de Ventas");
         if (lblNumberOfSales == null) {
-            lblNumberOfSales = new JLabel("0");
-            lblNumberOfSales.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            lblNumberOfSales.setForeground(new Color(50, 50, 50));
+        lblNumberOfSales = new JLabel("0");
+        lblNumberOfSales.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblNumberOfSales.setForeground(new Color(50, 50, 50));
         }
         numberSalesPanel.add(lblNumberOfSales, BorderLayout.CENTER);
         secondRow.add(numberSalesPanel);
@@ -1515,9 +1515,9 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         // Métrica 4: Venta Promedio
         JPanel averageSalePanel = createMetricCell("Venta Promedio");
         if (lblAverageSale == null) {
-            lblAverageSale = new JLabel("$0.00");
-            lblAverageSale.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            lblAverageSale.setForeground(new Color(50, 50, 50));
+        lblAverageSale = new JLabel("$0.00");
+        lblAverageSale.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblAverageSale.setForeground(new Color(50, 50, 50));
         }
         averageSalePanel.add(lblAverageSale, BorderLayout.CENTER);
         secondRow.add(averageSalePanel);
@@ -1525,9 +1525,9 @@ public class JPanelGraphics extends JPanel implements JPanelView, BeanFactoryApp
         // Métrica 5: Margen de utilidad promedio
         JPanel profitMarginPanel = createMetricCell("Margen de utilidad promedio");
         if (lblProfitMargin == null) {
-            lblProfitMargin = new JLabel("0.00%");
-            lblProfitMargin.setFont(new Font("Segoe UI", Font.BOLD, 14));
-            lblProfitMargin.setForeground(new Color(50, 50, 50));
+        lblProfitMargin = new JLabel("0.00%");
+        lblProfitMargin.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        lblProfitMargin.setForeground(new Color(50, 50, 50));
         }
         profitMarginPanel.add(lblProfitMargin, BorderLayout.CENTER);
         secondRow.add(profitMarginPanel);

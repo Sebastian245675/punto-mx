@@ -16,7 +16,6 @@
 
 package com.openbravo.pos.inventory;
 
-import com.openbravo.data.gui.ListCellRendererBasic;
 import com.openbravo.data.loader.ComparatorCreator;
 import com.openbravo.data.loader.TableDefinition;
 import com.openbravo.data.loader.Vectorer;
@@ -27,6 +26,16 @@ import com.openbravo.data.user.DefaultSaveProvider;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.forms.DataLogicSales;
 import com.openbravo.pos.panels.JPanelTable;
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.awt.FlowLayout;
+import java.awt.Font;
+import javax.swing.BorderFactory;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JTextField;
 import javax.swing.ListCellRenderer;
 
 /**
@@ -39,6 +48,7 @@ public class CategoriesPanel extends JPanelTable {
     
     private TableDefinition tcategories;
     private CategoriesEditor jeditor;
+    private JTextField searchField;
     
     /** Creates a new instance of JPanelCategories */
     public CategoriesPanel() {        
@@ -96,7 +106,7 @@ public class CategoriesPanel extends JPanelTable {
      */
     @Override
     public ListCellRenderer getListCellRenderer() {
-        return new ListCellRendererBasic(tcategories.getRenderStringBasic(new int[]{1}));
+        return new DepartamentoRenderer();
     }
     
     /**
@@ -106,6 +116,49 @@ public class CategoriesPanel extends JPanelTable {
     @Override
     public EditorRecord getEditor() {
         return jeditor;
+    }
+    
+    /**
+     * Panel de filtro personalizado con título "DEPARTAMENTOS" y campo de búsqueda
+     */
+    @Override
+    public Component getFilter() {
+        JPanel filterPanel = new JPanel(new BorderLayout());
+        filterPanel.setBackground(new Color(240, 240, 240));
+        filterPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        filterPanel.setPreferredSize(new Dimension(300, 80));
+        
+        // Título "DEPARTAMENTOS" en amarillo
+        JLabel titleLabel = new JLabel("DEPARTAMENTOS");
+        titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        titleLabel.setForeground(new Color(255, 200, 0)); // Amarillo
+        titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
+        filterPanel.add(titleLabel, BorderLayout.NORTH);
+        
+        // Panel para el campo de búsqueda
+        JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
+        searchPanel.setOpaque(false);
+        
+        // Campo de búsqueda con placeholder
+        searchField = new JTextField(20);
+        searchField.setFont(new Font("Arial", Font.PLAIN, 14));
+        searchField.setBorder(BorderFactory.createCompoundBorder(
+            BorderFactory.createLineBorder(new Color(200, 200, 200)),
+            BorderFactory.createEmptyBorder(5, 30, 5, 5)
+        ));
+        searchField.putClientProperty("JTextField.placeholderText", "Buscar...");
+        searchField.setPreferredSize(new Dimension(250, 30));
+        
+        // Icono de búsqueda (usando un símbolo de texto por ahora)
+        JLabel searchIcon = new JLabel("🔍");
+        searchIcon.setFont(new Font("Arial", Font.PLAIN, 14));
+        searchIcon.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
+        searchPanel.add(searchIcon);
+        searchPanel.add(searchField);
+        
+        filterPanel.add(searchPanel, BorderLayout.CENTER);
+        
+        return filterPanel;
     }
     
     /**

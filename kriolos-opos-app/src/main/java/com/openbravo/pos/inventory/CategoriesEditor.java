@@ -122,6 +122,7 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
     public void writeValueEOF() {
         m_id = null;
         m_jName.setText(null);
+        jLblDepartamentoTitle.setText(""); // Limpiar título
         m_CategoryModel.setSelectedKey(null);
         m_jImage.setImage(null);
         m_jName.setEnabled(false);
@@ -145,6 +146,7 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
     public void writeValueInsert() {
         m_id = UUID.randomUUID().toString();
         m_jName.setText(null);
+        jLblDepartamentoTitle.setText(""); // Limpiar título al insertar
         m_CategoryModel.setSelectedKey(null);
         m_jImage.setImage(null);
         m_jName.setEnabled(true);
@@ -196,7 +198,12 @@ public final class CategoriesEditor extends JPanel implements EditorRecord {
     public void writeValueEdit(Object value) {
         Object[] cat = (Object[]) value;
         m_id = (String) cat[0];
-        m_jName.setText(Formats.STRING.formatValue((String)cat[1]));
+        String name = Formats.STRING.formatValue((String)cat[1]);
+        m_jName.setText(name);
+        
+        // Actualizar título del departamento en amarillo
+        jLblDepartamentoTitle.setText(name != null && !name.isEmpty() ? name : "");
+        
         m_CategoryModel.setSelectedKey(cat[2]);
         m_jImage.setImage((BufferedImage) cat[3]);
         m_jTextTip.setText(Formats.STRING.formatValue((String)cat[4])); 
@@ -365,10 +372,19 @@ public void resetTranxTable() {
         jScrollPane2 = new javax.swing.JScrollPane();
         jTableCategoryStock = new javax.swing.JTable();
 
+        // Título del departamento seleccionado
+        jLblDepartamentoTitle = new javax.swing.JLabel();
+
         jInternalFrame1.setVisible(true);
 
         setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        setPreferredSize(new java.awt.Dimension(500, 500));
+        setPreferredSize(new java.awt.Dimension(500, 200));
+        setLayout(new java.awt.BorderLayout());
+        
+        // Título del departamento en amarillo
+        jLblDepartamentoTitle.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+        jLblDepartamentoTitle.setForeground(new java.awt.Color(255, 200, 0)); // Amarillo
+        jLblDepartamentoTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
         jLblName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLblName.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/info.png"))); // NOI18N
@@ -484,86 +500,50 @@ public void resetTranxTable() {
             jTableCategoryStock.getColumnModel().getColumn(0).setPreferredWidth(250);
         }
 
-        javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
-        this.setLayout(layout);
-        layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jLblInCat, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(webSwtch_InCatalog, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                            .addGroup(layout.createSequentialGroup()
-                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                                .addComponent(jLblName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                                .addComponent(jLblCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                            .addComponent(jLblTextTip, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                            .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(m_jTextTip, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                            .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addComponent(jLblCatShowName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addGap(18, 18, 18)
-                                        .addComponent(m_jCatNameShow, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                                        .addComponent(jLblCatOrder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(m_jCatOrder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                    .addGroup(layout.createSequentialGroup()
-                                        .addComponent(jBtnShowTrans, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                        .addComponent(jLblProdCount, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                                .addGap(0, 0, Short.MAX_VALUE)))
-                        .addComponent(m_jImage, javax.swing.GroupLayout.PREFERRED_SIZE, 263, javax.swing.GroupLayout.PREFERRED_SIZE))))
-        );
-        layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addContainerGap()
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(m_jName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLblName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(m_jCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLblCategory, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(m_jTextTip, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jLblTextTip, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLblInCat, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(webSwtch_InCatalog, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLblCatShowName, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(m_jCatNameShow, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                                .addComponent(jLblCatOrder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addComponent(m_jCatOrder, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jLblProdCount, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jBtnShowTrans, javax.swing.GroupLayout.DEFAULT_SIZE, 32, Short.MAX_VALUE)))
-                    .addComponent(m_jImage, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane2, javax.swing.GroupLayout.DEFAULT_SIZE, 231, Short.MAX_VALUE)
-                .addContainerGap())
-        );
+        // Layout simplificado estilo Eleventa
+        // Panel principal con BorderLayout
+        javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        // Panel superior con título
+        javax.swing.JPanel titlePanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        titlePanel.setOpaque(false);
+        titlePanel.add(jLblDepartamentoTitle, java.awt.BorderLayout.WEST);
+        mainPanel.add(titlePanel, java.awt.BorderLayout.NORTH);
+        
+        // Panel central con campo Nombre
+        javax.swing.JPanel centerPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 20));
+        centerPanel.setOpaque(false);
+        
+        // Label "Nombre"
+        jLblName.setText("Nombre");
+        jLblName.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 14));
+        jLblName.setIcon(null); // Sin icono
+        centerPanel.add(jLblName);
+        
+        // Campo de texto Nombre
+        m_jName.setPreferredSize(new java.awt.Dimension(300, 30));
+        centerPanel.add(m_jName);
+        
+        mainPanel.add(centerPanel, java.awt.BorderLayout.CENTER);
+        
+        // Ocultar todos los campos que no se usan
+        jLblCategory.setVisible(false);
+        m_jCategory.setVisible(false);
+        jLblTextTip.setVisible(false);
+        m_jTextTip.setVisible(false);
+        jLblCatShowName.setVisible(false);
+        m_jCatNameShow.setVisible(false);
+        jLblCatOrder.setVisible(false);
+        m_jCatOrder.setVisible(false);
+        jLblInCat.setVisible(false);
+        webSwtch_InCatalog.setVisible(false);
+        m_jImage.setVisible(false);
+        jBtnShowTrans.setVisible(false);
+        jLblProdCount.setVisible(false);
+        jScrollPane2.setVisible(false);
+        
+        add(mainPanel, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
     private void webSwtch_InCatalogActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_webSwtch_InCatalogActionPerformed
@@ -642,6 +622,7 @@ public void resetTranxTable() {
     private javax.swing.JTextField m_jName;
     private javax.swing.JTextField m_jTextTip;
     private javax.swing.JCheckBox webSwtch_InCatalog;
+    private javax.swing.JLabel jLblDepartamentoTitle; // Título del departamento
     // End of variables declaration//GEN-END:variables
     
 }
