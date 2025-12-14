@@ -370,9 +370,23 @@ public class JRootApp extends JPanel implements AppView {
             Object[] valcash = sActiveCashIndex == null
                     ? null
                     : m_dlSystem.findActiveCash(sActiveCashIndex);
-            if (valcash == null || !appFileProperties.getHost().equals(valcash[0])) {
-                // Sebastian - Solo inicializar caja sin monto inicial (se pedirá después del
-                // login)
+            
+            // Verificar si la caja existe, pertenece al host correcto y está ABIERTA (sin DATEEND)
+            boolean cashExists = valcash != null;
+            boolean cashBelongsToHost = cashExists && valcash.length > 0 && appFileProperties.getHost().equals(valcash[0]);
+            boolean cashIsOpen = cashExists && valcash.length > 3 && valcash[3] == null; // DATEEND es null = caja abierta
+            
+            if (!cashExists || !cashBelongsToHost || !cashIsOpen) {
+                // La caja no existe, no pertenece a este host, o está cerrada - crear nueva
+                if (cashExists && !cashIsOpen) {
+                    LOGGER.log(Level.INFO, "🔒 Sebastian - La caja está cerrada (tiene DATEEND), creando nueva caja");
+                } else if (!cashExists) {
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - No se encontró caja activa, creando nueva");
+                } else if (!cashBelongsToHost) {
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - La caja no pertenece a este host, creando nueva");
+                }
+                
+                // Sebastian - Solo inicializar caja sin monto inicial (se pedirá después del login)
                 setActiveCash(UUID.randomUUID().toString(),
                         m_dlSystem.getSequenceCash(appFileProperties.getHost()) + 1, new Date(), null, 0.0);
                 m_dlSystem.execInsertCash(
@@ -383,6 +397,7 @@ public class JRootApp extends JPanel implements AppView {
                 needsInitialCashSetup = true; // Sebastian - Marcar que necesita configuración de fondo
                 return false; // Continuar normalmente
             } else {
+                // La caja existe, pertenece al host y está ABIERTA - recuperarla
                 // Sebastian - Recuperar fondo inicial guardado (si existe)
                 LOGGER.log(Level.INFO, "🔍 Sebastian - Datos de caja recuperados - Array length: " + valcash.length);
                 for (int i = 0; i < valcash.length; i++) {
@@ -394,14 +409,20 @@ public class JRootApp extends JPanel implements AppView {
                 setActiveCash(sActiveCashIndex,
                         (Integer) valcash[1],
                         (Date) valcash[2],
-                        (Date) valcash[3],
+                        (Date) valcash[3], // DATEEND debería ser null si está abierta
                         savedInitialAmount);
 
                 LOGGER.log(Level.INFO,
-                        "💰 Sebastian POS - Caja activa recuperada con fondo inicial: $" + savedInitialAmount);
+                        "💰 Sebastian POS - Caja activa recuperada con fondo inicial: $" + savedInitialAmount + 
+                        " (Caja " + (valcash[3] == null ? "ABIERTA" : "CERRADA") + ")");
 
                 // Sebastian - Solo necesita configuración si el fondo inicial es 0 o null
+                // IMPORTANTE: Si la caja está abierta y tiene fondo inicial, NO pedir de nuevo
                 needsInitialCashSetup = (savedInitialAmount <= 0.0);
+                
+                if (!needsInitialCashSetup) {
+                    LOGGER.log(Level.INFO, "✅ Sebastian - Caja abierta con fondo inicial configurado, NO se pedirá fondo inicial");
+                }
 
                 return false; // Continuar normalmente
             }
@@ -838,20 +859,16 @@ public class JRootApp extends JPanel implements AppView {
                     return true;
                 }
             } else {
-                // Si no hay tickets, verificar si el fondo inicial es 0 (caja nueva)
+                // Si no hay tickets, NO podemos determinar el usuario
+                // NO asumamos que pertenece a otro usuario solo porque tiene fondo inicial
+                // Esto es válido cuando se selecciona "Mantener Turno" - la caja puede estar abierta
+                // sin tickets pero con fondo inicial ya configurado
                 userCheckRs.close();
                 userCheckStmt.close();
                 
-                double initialAmount = getActiveCashInitialAmount();
-                if (initialAmount <= 0.0) {
-                    LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets y fondo inicial es 0, " +
-                               "se puede usar para nuevo usuario");
-                    return false; // No pertenece a otro usuario, puede usar esta caja
-                } else {
-                    LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets pero tiene fondo inicial, " +
-                               "asumiendo que pertenece a usuario anterior");
-                    return true; // Probablemente pertenece a otro usuario
-                }
+                LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets. " +
+                           "No se puede determinar el usuario, asumiendo que es del usuario actual (caja mantenida abierta)");
+                return false; // No pertenece a otro usuario, puede usar esta caja
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error verificando si la caja pertenece a otro usuario: " + e.getMessage(), e);
@@ -995,8 +1012,38 @@ public class JRootApp extends JPanel implements AppView {
                 // Si canceló el diálogo de cierre, no hacer nada (no cerrar la aplicación)
                 return;
             } else if (opcion == JOptionPane.NO_OPTION || opcion == JOptionPane.CLOSED_OPTION) {
-                // El usuario eligió "Mantener Turno" o cerró el diálogo, cerrar la aplicación
-                // normalmente
+                // El usuario eligió "Mantener Turno" o cerró el diálogo
+                // IMPORTANTE: Asegurar que la caja se mantenga abierta (sin DATEEND) y con su fondo inicial
+                LOGGER.log(Level.INFO, "💾 Sebastian - Manteniendo turno abierto. Guardando estado de caja...");
+                
+                // Asegurar que la caja activa esté guardada correctamente en las propiedades
+                // y que tenga su fondo inicial preservado en la BD
+                try {
+                    // Verificar que la caja en la BD tenga DATEEND = null (abierta)
+                    String activeCashIndex = getActiveCashIndex();
+                    double initialAmount = getActiveCashInitialAmount();
+                    
+                    // Actualizar la caja en la BD para asegurar que esté abierta y con fondo inicial
+                    java.sql.Connection con = session.getConnection();
+                    java.sql.PreparedStatement updateStmt = con.prepareStatement(
+                        "UPDATE closedcash SET DATEEND = NULL, initial_amount = ? WHERE MONEY = ? AND HOST = ?"
+                    );
+                    updateStmt.setDouble(1, initialAmount);
+                    updateStmt.setString(2, activeCashIndex);
+                    updateStmt.setString(3, appFileProperties.getHost());
+                    int rowsUpdated = updateStmt.executeUpdate();
+                    updateStmt.close();
+                    
+                    if (rowsUpdated > 0) {
+                        LOGGER.log(Level.INFO, "✅ Sebastian - Caja mantenida abierta con fondo inicial: $" + initialAmount);
+                    } else {
+                        LOGGER.log(Level.WARNING, "⚠️ Sebastian - No se pudo actualizar la caja en BD, pero continuando...");
+                    }
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error al guardar estado de caja al mantener turno: " + e.getMessage(), e);
+                }
+                
+                // Cerrar la aplicación normalmente
                 if (closeAppView()) {
                     releaseResources();
                     if (session != null) {

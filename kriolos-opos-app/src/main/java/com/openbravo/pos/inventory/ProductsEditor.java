@@ -656,6 +656,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jAccumulatesPoints.setEnabled(true);
         m_jStockCurrent.setEnabled(true);
         m_jStockMinimum.setEnabled(true);
+        // Actualizar si los campos de stock son editables basándose en si usa inventario
+        boolean usesInventory = !m_jService.isSelected();
+        m_jStockCurrent.setEditable(usesInventory);
+        m_jStockMinimum.setEditable(usesInventory);
         // Siempre cargar valores de stock desde la base de datos cuando se abre el
         // editor
         showStockTableAutomatically();
@@ -796,13 +800,17 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             }
         }
         
-        // Actualizar checkbox de inventario
-        if (chkUseInventory != null) {
-            chkUseInventory.setSelected(!m_jService.isSelected());
-        }
         m_jPrintKB.setSelected(((Boolean) myprod[16]));
         m_jSendStatus.setSelected(((Boolean) myprod[17]));
         m_jService.setSelected(((Boolean) myprod[18]));
+        // Actualizar checkbox de inventario y campos de stock después de establecer m_jService
+        boolean usesInventory = !m_jService.isSelected();
+        if (chkUseInventory != null) {
+            chkUseInventory.setSelected(usesInventory);
+        }
+        // Asegurar que los campos de stock sean editables si usa inventario
+        m_jStockCurrent.setEditable(usesInventory);
+        m_jStockMinimum.setEditable(usesInventory);
         txtAttributes.setText(Formats.BYTEA.formatValue((byte[]) myprod[19]));
         m_jDisplay.setText(Formats.STRING.formatValue((String) myprod[20]));
         m_jVprice.setSelected(((Boolean) myprod[21]));
@@ -3509,14 +3517,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         javax.swing.JPanel contentPanel = new javax.swing.JPanel();
         contentPanel.setLayout(new javax.swing.BoxLayout(contentPanel, javax.swing.BoxLayout.Y_AXIS));
         contentPanel.setBackground(java.awt.Color.WHITE);
-        contentPanel.setPreferredSize(new java.awt.Dimension(900, 800)); // Dar un tamaño preferido
-        contentPanel.setMinimumSize(new java.awt.Dimension(900, 600));
+        contentPanel.setPreferredSize(new java.awt.Dimension(900, 600)); // Tamaño optimizado para scroll suave
+        contentPanel.setMinimumSize(new java.awt.Dimension(900, 500));
         
         // Título "NUEVO PRODUCTO" o "EDITAR PRODUCTO" en naranja
         jLabelProductTitle = new javax.swing.JLabel("NUEVO PRODUCTO");
-        jLabelProductTitle.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+        jLabelProductTitle.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 16));
         jLabelProductTitle.setForeground(new java.awt.Color(255, 140, 0)); // Naranja
-        jLabelProductTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 15, 5, 0));
+        jLabelProductTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 15, 3, 0));
         contentPanel.add(jLabelProductTitle);
         
         // Panel principal con todos los campos en un solo GridBagLayout ordenado
@@ -3525,7 +3533,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         mainFieldsPanel.setBackground(java.awt.Color.WHITE);
         java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
         gbc.anchor = java.awt.GridBagConstraints.WEST;
-        gbc.insets = new java.awt.Insets(5, 15, 5, 15);
+        gbc.insets = new java.awt.Insets(3, 15, 3, 15);
         
         int row = 0;
         
@@ -3663,7 +3671,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // Checkbox "Acumula Puntos"
         gbc.gridx = 0; gbc.gridy = row;
         gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
+        gbc.insets = new java.awt.Insets(3, 15, 3, 15);
         if (m_jAccumulatesPoints.getParent() != null) m_jAccumulatesPoints.getParent().remove(m_jAccumulatesPoints);
         m_jAccumulatesPoints.setText(AppLocal.getIntString("label.prodaccumulatespoints"));
         m_jAccumulatesPoints.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
@@ -3705,7 +3713,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // Línea separadora naranja
         gbc.gridx = 0; gbc.gridy = row;
         gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
-        gbc.insets = new java.awt.Insets(20, 15, 12, 15);
+        gbc.insets = new java.awt.Insets(12, 15, 8, 15);
         javax.swing.JSeparator separator = new javax.swing.JSeparator();
         separator.setForeground(new java.awt.Color(255, 140, 0));
         separator.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 2));
@@ -3716,7 +3724,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // Título "Inventario" con líneas decorativas
         gbc.gridx = 0; gbc.gridy = row;
         gbc.gridwidth = 2; gbc.anchor = java.awt.GridBagConstraints.CENTER;
-        gbc.insets = new java.awt.Insets(3, 15, 10, 15);
+        gbc.insets = new java.awt.Insets(3, 15, 6, 15);
         javax.swing.JPanel inventarioTitlePanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 12, 0));
         inventarioTitlePanel.setBackground(java.awt.Color.WHITE);
         javax.swing.JSeparator sep1 = new javax.swing.JSeparator();
@@ -3733,17 +3741,39 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         inventarioTitlePanel.add(sep2);
         mainFieldsPanel.add(inventarioTitlePanel, gbc);
         gbc.gridwidth = 1; gbc.anchor = java.awt.GridBagConstraints.WEST;
-        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
+        gbc.insets = new java.awt.Insets(3, 15, 3, 15);
         row++;
         
         // Checkbox "Este producto SI utiliza inventario"
         gbc.gridx = 0; gbc.gridy = row;
         gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
-        gbc.insets = new java.awt.Insets(6, 15, 6, 15);
-        chkUseInventory = new javax.swing.JCheckBox("Este producto SI utiliza inventario.", !m_jService.isSelected());
+        gbc.insets = new java.awt.Insets(3, 15, 3, 15);
+        boolean initialUsesInventory = !m_jService.isSelected();
+        chkUseInventory = new javax.swing.JCheckBox("Este producto SI utiliza inventario.", initialUsesInventory);
         chkUseInventory.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         chkUseInventory.setBackground(java.awt.Color.WHITE);
-        chkUseInventory.addActionListener(e -> m_jService.setSelected(!chkUseInventory.isSelected()));
+        // Listener para actualizar m_jService y campos de stock cuando cambia el checkbox
+        chkUseInventory.addActionListener(e -> {
+            boolean useInventory = chkUseInventory.isSelected();
+            m_jService.setSelected(!useInventory);
+            // Actualizar estado de campos de stock basado en si usa inventario
+            // Los campos solo son editables si el producto usa inventario
+            m_jStockCurrent.setEditable(useInventory);
+            m_jStockMinimum.setEditable(useInventory);
+        });
+        // También escuchar cambios en m_jService directamente para mantener sincronización
+        java.awt.event.ActionListener serviceListener = e -> {
+            boolean useInventory = !m_jService.isSelected();
+            if (chkUseInventory != null && chkUseInventory.isSelected() != useInventory) {
+                chkUseInventory.setSelected(useInventory);
+            }
+            // Actualizar estado de campos de stock
+            m_jStockCurrent.setEditable(useInventory);
+            m_jStockMinimum.setEditable(useInventory);
+        };
+        // Agregar el listener solo si no existe ya uno que haga esto
+        // (evitar duplicar listeners)
+        m_jService.addActionListener(serviceListener);
         mainFieldsPanel.add(chkUseInventory, gbc);
         gbc.gridwidth = 1; gbc.fill = java.awt.GridBagConstraints.NONE;
         gbc.insets = new java.awt.Insets(6, 15, 6, 15);
@@ -3757,10 +3787,16 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         if (jLabelStockCurrent.getParent() != null) jLabelStockCurrent.getParent().remove(jLabelStockCurrent);
         mainFieldsPanel.add(jLabelStockCurrent, gbc);
         gbc.gridx = 1;
+        if (m_jStockCurrent.getParent() != null) m_jStockCurrent.getParent().remove(m_jStockCurrent);
         m_jStockCurrent.setPreferredSize(new java.awt.Dimension(160, 30));
         m_jStockCurrent.setMaximumSize(new java.awt.Dimension(160, 30));
         m_jStockCurrent.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jStockCurrent.getParent() != null) m_jStockCurrent.getParent().remove(m_jStockCurrent);
+        m_jStockCurrent.setHorizontalAlignment(javax.swing.JTextField.RIGHT); // Mantener alineación derecha
+        // Configurar estado inicial basado en si usa inventario
+        // Los campos son editables solo si el producto usa inventario (m_jService no está seleccionado)
+        m_jStockCurrent.setEditable(initialUsesInventory);
+        m_jStockCurrent.setEnabled(true); // Siempre habilitado visualmente, pero editable solo si usa inventario
+        m_jStockCurrent.setFocusable(true); // Asegurar que pueda recibir foco
         mainFieldsPanel.add(m_jStockCurrent, gbc);
         row++;
         
@@ -3772,19 +3808,66 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         if (jLabelStockMinimum.getParent() != null) jLabelStockMinimum.getParent().remove(jLabelStockMinimum);
         mainFieldsPanel.add(jLabelStockMinimum, gbc);
         gbc.gridx = 1;
+        if (m_jStockMinimum.getParent() != null) m_jStockMinimum.getParent().remove(m_jStockMinimum);
         m_jStockMinimum.setPreferredSize(new java.awt.Dimension(160, 30));
         m_jStockMinimum.setMaximumSize(new java.awt.Dimension(160, 30));
         m_jStockMinimum.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jStockMinimum.getParent() != null) m_jStockMinimum.getParent().remove(m_jStockMinimum);
+        m_jStockMinimum.setHorizontalAlignment(javax.swing.JTextField.RIGHT); // Mantener alineación derecha
+        // Configurar estado inicial basado en si usa inventario
+        m_jStockMinimum.setEditable(initialUsesInventory);
+        m_jStockMinimum.setEnabled(true); // Siempre habilitado visualmente, pero editable solo si usa inventario
+        m_jStockMinimum.setFocusable(true); // Asegurar que pueda recibir foco
         mainFieldsPanel.add(m_jStockMinimum, gbc);
         
         contentPanel.add(mainFieldsPanel);
         
-        // Scroll pane para el contenido
+        // Scroll pane para el contenido con scroll suave
         javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(contentPanel);
         scrollPane.setBorder(null);
         scrollPane.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
         scrollPane.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+        // Configurar scroll suave y unidades de scroll más pequeñas para navegación con teclado
+        scrollPane.getVerticalScrollBar().setUnitIncrement(12); // Scroll más suave con flechas (menor = más suave)
+        scrollPane.getVerticalScrollBar().setBlockIncrement(50); // Scroll por bloque más pequeño
+        scrollPane.setWheelScrollingEnabled(true);
+        // Permitir scroll con flechas del teclado y rueda del mouse
+        // NO hacer el scrollPane focusable para evitar que robe el foco de los campos
+        scrollPane.setFocusable(false);
+        scrollPane.setRequestFocusEnabled(false);
+        // Habilitar scroll con teclado (flechas arriba/abajo, Page Up/Down) en el scroll pane
+        scrollPane.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                javax.swing.JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
+                int currentValue = verticalBar.getValue();
+                int unitIncrement = verticalBar.getUnitIncrement();
+                int blockIncrement = verticalBar.getBlockIncrement();
+                
+                if (keyCode == java.awt.event.KeyEvent.VK_UP || keyCode == java.awt.event.KeyEvent.VK_KP_UP) {
+                    verticalBar.setValue(currentValue - unitIncrement);
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_DOWN || keyCode == java.awt.event.KeyEvent.VK_KP_DOWN) {
+                    verticalBar.setValue(currentValue + unitIncrement);
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_PAGE_UP) {
+                    verticalBar.setValue(currentValue - blockIncrement);
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_PAGE_DOWN) {
+                    verticalBar.setValue(currentValue + blockIncrement);
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_HOME) {
+                    verticalBar.setValue(0);
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_END) {
+                    verticalBar.setValue(verticalBar.getMaximum());
+                    e.consume();
+                }
+            }
+        });
+        // NO hacer el contentPanel focusable para evitar que intercepte el foco de los campos
+        contentPanel.setFocusable(false);
+        
         mainCombinedPanel.add(scrollPane, java.awt.BorderLayout.CENTER);
         
         // Agregar el panel combinado en lugar del tabbed pane
@@ -3797,15 +3880,50 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         mainCombinedPanel.setVisible(true);
         mainCombinedPanel.setOpaque(true);
         // Establecer tamaño preferido del panel principal para que el contenido se muestre
-        mainCombinedPanel.setPreferredSize(new java.awt.Dimension(1000, 700));
+        mainCombinedPanel.setPreferredSize(new java.awt.Dimension(1000, 650));
         revalidate();
         repaint();
+        
+        // Configurar scroll automático cuando los campos reciben foco (después de revalidate)
+        java.util.List<javax.swing.JComponent> focusableComponents = new java.util.ArrayList<>();
+        collectFocusableComponents(mainFieldsPanel, focusableComponents);
+        for (javax.swing.JComponent comp : focusableComponents) {
+            comp.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusGained(java.awt.event.FocusEvent e) {
+                    // Hacer scroll para que el componente sea visible
+                    java.awt.Rectangle rect = comp.getBounds();
+                    java.awt.Point loc = javax.swing.SwingUtilities.convertPoint(comp.getParent(), rect.getLocation(), contentPanel);
+                    rect.setLocation(loc);
+                    rect.setSize(comp.getSize());
+                    // Agregar un margen para mejor visibilidad
+                    rect.grow(0, 20);
+                    contentPanel.scrollRectToVisible(rect);
+                    // NO robar el foco del componente - dejar que el usuario edite el campo
+                }
+            });
+        }
         
         // Cargar tabla de stock automáticamente cuando hay un producto
         if (productId != null) {
             showStockTableAutomatically();
         }
     }// </editor-fold>//GEN-END:initComponents
+    
+    // Método helper para recolectar componentes que pueden recibir foco
+    private void collectFocusableComponents(java.awt.Container container, java.util.List<javax.swing.JComponent> list) {
+        for (java.awt.Component comp : container.getComponents()) {
+            if (comp instanceof javax.swing.JComponent) {
+                javax.swing.JComponent jcomp = (javax.swing.JComponent) comp;
+                if (jcomp.isFocusable() && jcomp.isEnabled() && jcomp.isVisible()) {
+                    list.add(jcomp);
+                }
+            }
+            if (comp instanceof java.awt.Container) {
+                collectFocusableComponents((java.awt.Container) comp, list);
+            }
+        }
+    }
 
     private void jButtonHTMLActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonHTMLActionPerformed
         setButtonHTML();
