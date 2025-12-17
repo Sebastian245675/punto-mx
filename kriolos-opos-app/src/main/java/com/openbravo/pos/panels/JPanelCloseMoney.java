@@ -1750,18 +1750,18 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     if (!consolidatedProductList.isEmpty()) {
                         for (ConsolidatedProduct product : consolidatedProductList) {
                             String name = StringUtils.encodeXML(product.getName());
-                            // Limitar nombre a 25 caracteres
-                            if (name.length() > 25) {
-                                name = name.substring(0, 22) + "...";
+                            // Limitar nombre a 20 caracteres para que quepa en el campo
+                            if (name.length() > 20) {
+                                name = name.substring(0, 17) + "...";
                             }
                             String units = Formats.DOUBLE.formatValue(product.getTotalUnits());
                             String total = Formats.CURRENCY.formatValue(product.getTotalValue());
                             
                             // Generar línea XML directamente
                             productosText.append("<line>\n");
-                            productosText.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
-                            productosText.append("    <text align=\"left\" length=\"8\">").append(units).append("</text>\n");
-                            productosText.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
+                            productosText.append("    <text align=\"left\" length=\"20\">").append(name).append("</text>\n");
+                            productosText.append("    <text align=\"right\" length=\"7\">").append(units).append("</text>\n");
+                            productosText.append("    <text align=\"right\" length=\"15\">").append(total).append("</text>\n");
                             productosText.append("</line>\n");
                         }
                     } else {
@@ -1781,16 +1781,17 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             if (!shift.getProductLines().isEmpty()) {
                                 for (PaymentsModel.ProductSalesLine product : shift.getProductLines()) {
                                     String name = StringUtils.encodeXML(product.printProductName());
-                                    if (name.length() > 25) {
-                                        name = name.substring(0, 22) + "...";
+                                    // Limitar nombre a 20 caracteres para que quepa en el campo
+                                    if (name.length() > 20) {
+                                        name = name.substring(0, 17) + "...";
                                     }
                                     String units = product.printProductUnits();
                                     String total = product.printProductSubValue();
                                     
                                     productosPorTurnoText.append("<line>\n");
-                                    productosPorTurnoText.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
-                                    productosPorTurnoText.append("    <text align=\"left\" length=\"8\">").append(units).append("</text>\n");
-                                    productosPorTurnoText.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
+                                    productosPorTurnoText.append("    <text align=\"left\" length=\"20\">").append(name).append("</text>\n");
+                                    productosPorTurnoText.append("    <text align=\"right\" length=\"7\">").append(units).append("</text>\n");
+                                    productosPorTurnoText.append("    <text align=\"right\" length=\"15\">").append(total).append("</text>\n");
                                     productosPorTurnoText.append("</line>\n");
                                 }
                             } else {
@@ -1968,18 +1969,18 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         LOGGER.info("Cierre de turno: " + currentShiftProducts.size() + " productos del turno actual");
                         for (PaymentsModel.ProductSalesLine product : currentShiftProducts) {
                             String name = StringUtils.encodeXML(product.printProductName());
-                            // Limitar nombre a 25 caracteres
-                            if (name.length() > 25) {
-                                name = name.substring(0, 22) + "...";
+                            // Limitar nombre a 20 caracteres para que quepa en el campo
+                            if (name.length() > 20) {
+                                name = name.substring(0, 17) + "...";
                             }
                             String units = product.printProductUnits();
                             String total = product.printProductSubValue();
                             
                             // Generar línea XML directamente
                             productosTextTurno.append("<line>\n");
-                            productosTextTurno.append("    <text align=\"left\" length=\"25\">").append(name).append("</text>\n");
-                            productosTextTurno.append("    <text align=\"left\" length=\"8\">").append(units).append("</text>\n");
-                            productosTextTurno.append("    <text align=\"right\" length=\"9\">").append(total).append("</text>\n");
+                            productosTextTurno.append("    <text align=\"left\" length=\"20\">").append(name).append("</text>\n");
+                            productosTextTurno.append("    <text align=\"right\" length=\"7\">").append(units).append("</text>\n");
+                            productosTextTurno.append("    <text align=\"right\" length=\"15\">").append(total).append("</text>\n");
                             productosTextTurno.append("</line>\n");
                         }
                     } else {
@@ -2006,7 +2007,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         StringBuilder productosXMLConsolidados = new StringBuilder();
                         for (ConsolidatedProduct product : consolidatedProductList) {
                             String name = product.printName();
-                            if (name.length() > 25) name = name.substring(0, 22) + "...";
+                            // Limitar nombre a 20 caracteres para que quepa en el campo
+                            if (name.length() > 20) name = name.substring(0, 17) + "...";
                             productosXMLConsolidados.append("        <line>\n");
                             productosXMLConsolidados.append("            <text align =\"left\" length=\"25\">" + StringUtils.encodeXML(name) + "</text>\n");
                             productosXMLConsolidados.append("            <text align =\"right\" length=\"8\">" + product.printUnits() + "</text>\n");
@@ -2148,13 +2150,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     StringBuilder productosTurnoXML = new StringBuilder();
                     for (PaymentsModel.ProductSalesLine product : currentShiftProducts) {
                         String name = product.printProductName();
-                        if (name.length() > 25) {
-                            name = name.substring(0, 22) + "...";
+                        // Limitar nombre a 20 caracteres para que quepa en el campo
+                        if (name.length() > 20) {
+                            name = name.substring(0, 17) + "...";
                         }
                         productosTurnoXML.append("        <line>\n");
-                        productosTurnoXML.append("            <text align =\"left\" length=\"25\">" + StringUtils.encodeXML(name) + "</text>\n");
-                        productosTurnoXML.append("            <text align =\"right\" length=\"8\">" + product.printProductUnits() + "</text>\n");
-                        productosTurnoXML.append("            <text align =\"right\" length=\"9\">" + product.printProductSubValue() + "</text>\n");
+                        productosTurnoXML.append("            <text align =\"left\" length=\"20\">" + StringUtils.encodeXML(name) + "</text>\n");
+                        productosTurnoXML.append("            <text align =\"right\" length=\"7\">" + product.printProductUnits() + "</text>\n");
+                        productosTurnoXML.append("            <text align =\"right\" length=\"15\">" + product.printProductSubValue() + "</text>\n");
                         productosTurnoXML.append("        </line>\n");
                     }
                     if (placeholderIndex >= 0) {
@@ -2885,15 +2888,23 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 // Obtener productos vendidos del turno
                 // Usar la misma consulta que PaymentsModel para consistencia
                 try {
+                    // Agrupar productos solo por nombre, sumando cantidades y totales
+                    // Calcular el total directamente sumando todos los valores (precio + impuesto) * cantidad
+                    // Usar JOINs explícitos para evitar duplicación de filas
+                    // Calcular precio promedio sin impuesto para compatibilidad con la clase
                     java.util.List<PaymentsModel.ProductSalesLine> products = new StaticSentence(session,
-                        "SELECT products.NAME, SUM(ticketlines.UNITS), ticketlines.PRICE, taxes.RATE " +
-                        "FROM ticketlines, tickets, receipts, products, taxes " +
-                        "WHERE ticketlines.PRODUCT = products.ID " +
-                        "AND ticketlines.TICKET = tickets.ID " +
-                        "AND tickets.ID = receipts.ID " +
-                        "AND ticketlines.TAXID = taxes.ID " +
-                        "AND receipts.MONEY = ? " +
-                        "GROUP BY products.NAME, ticketlines.PRICE, taxes.RATE",
+                        "SELECT products.NAME, " +
+                        "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
+                        "SUM(ticketlines.PRICE * ticketlines.UNITS) / SUM(ticketlines.UNITS) as AVG_PRICE, " +
+                        "AVG(taxes.RATE) as AVG_TAX_RATE, " +
+                        "SUM(ticketlines.PRICE * ticketlines.UNITS * (1.0 + taxes.RATE)) as TOTAL_VALUE " +
+                        "FROM ticketlines " +
+                        "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                        "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                        "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                        "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                        "WHERE receipts.MONEY = ? " +
+                        "GROUP BY products.NAME",
                         SerializerWriteString.INSTANCE,
                         new SerializerReadClass(PaymentsModel.ProductSalesLine.class))
                         .list(money);
@@ -2904,12 +2915,19 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         LOGGER.info("Productos obtenidos: " + products.size());
                         if (!products.isEmpty()) {
                             shift.getProductLines().addAll(products);
-                            // Calcular total de ventas
+                            // Calcular total de ventas usando el total real de cada producto
                             double totalSales = 0.0;
                             int productIndex = 0;
                             for (PaymentsModel.ProductSalesLine psl : products) {
-                                double priceWithTax = psl.getProductPrice() * (1.0 + psl.getTaxRate());
-                                totalSales += priceWithTax * psl.getProductUnits();
+                                // Usar el método getTotalValue() que retorna el total real calculado desde la BD
+                                Double productTotal = psl.getTotalValue();
+                                if (productTotal != null) {
+                                    totalSales += productTotal;
+                                } else {
+                                    // Fallback: calcular como antes si no hay total real
+                                    double priceWithTax = psl.getProductPrice() * (1.0 + psl.getTaxRate());
+                                    totalSales += priceWithTax * psl.getProductUnits();
+                                }
                                 LOGGER.info("  Producto " + (++productIndex) + ": " + psl.printProductName() + 
                                            " - Cantidad: " + psl.printProductUnits() + 
                                            " - Total: " + psl.printProductSubValue());

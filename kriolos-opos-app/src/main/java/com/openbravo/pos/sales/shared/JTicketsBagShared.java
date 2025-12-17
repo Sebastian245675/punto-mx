@@ -96,14 +96,37 @@ public class JTicketsBagShared extends JTicketsBag {
 
     @Override
     public void deleteTicket() {
-
-        dlSystem.execTicketRemoved(
+        // Obtener el ticket actual antes de eliminarlo
+        TicketInfo currentTicket = m_panelticket.getActiveTicket();
+        
+        // Si el ticket tiene productos, registrar cada uno antes de eliminarlo
+        if (currentTicket != null && currentTicket.getLinesCount() > 0) {
+            String ticketId = currentTicket.getId() != null ? currentTicket.getId() : "Void";
+            String userName = currentTicket.getUser() != null ? currentTicket.getUser().getName() : 
+                             (m_App.getAppUserView().getUser() != null ? m_App.getAppUserView().getUser().getName() : "System");
+            
+            // Registrar cada producto del ticket antes de eliminarlo
+            for (int i = 0; i < currentTicket.getLinesCount(); i++) {
+                if (currentTicket.getLine(i).getProductID() != null && currentTicket.getLine(i).getProductName() != null) {
+                    dlSystem.execLineRemoved(new Object[]{
+                        userName,
+                        ticketId,
+                        currentTicket.getLine(i).getProductID(),
+                        currentTicket.getLine(i).getProductName(),
+                        currentTicket.getLine(i).getMultiply()
+                    });
+                }
+            }
+        } else {
+            // Si no hay productos, registrar solo la eliminación del ticket (para compatibilidad)
+            dlSystem.execTicketRemoved(
                 new Object[]{
                     m_App.getAppUserView().getUser().getName(),
                     "Void",
                     "Ticket Deleted",
                     0.0
                 });
+        }
         updateCount();
     }
 

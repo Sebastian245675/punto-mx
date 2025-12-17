@@ -68,32 +68,36 @@
 	#end
 	<line></line>
         <line>
-            <text align ="left" length="6">Código</text>
-            <text align ="left" length="11">Artículo</text>
-            <text align ="left" length="11">Precio</text>
-            <text align ="right" length="4">Cant</text>
-            <text align ="right" length="10">Valor</text>
+            <text align ="left" length="5">Cód</text>
+            <text align ="left" length="10">Artículo</text>
+            <text align ="right" length="11">Precio</text>
+            <text align ="right" length="5">Cant</text>
+            <text align ="right" length="11">Valor</text>
         </line>
         <line><text align="left" length="42">------------------------------------------</text></line>
     
         #foreach ($ticketline in $ticket.getLines())
         #set($codigo = $ticketline.printCode())
-        #if($codigo && $codigo.length() > 6)
-            #set($codigo = $codigo.substring(0, 6))
+        #if($codigo && $codigo.length() > 5)
+            #set($codigo = $codigo.substring(0, 5))
         #end
         #if(!$codigo)
             #set($codigo = "")
         #end
+        #set($nombre = $ticketline.printName())
+        #if($nombre && $nombre.length() > 10)
+            #set($nombre = $nombre.substring(0, 7) + "...")
+        #end
         <line>
-            <text align ="left" length="6">${codigo}</text>
+            <text align ="left" length="5">${codigo}</text>
             #if ($ticketline.isProductCom())
-                <text align ="left" length="11">*${ticketline.printName()}</text>
+                <text align ="left" length="10">*${nombre}</text>
             #else
-                <text align ="left" length="11">${ticketline.printName()}</text>
+                <text align ="left" length="10">${nombre}</text>
             #end
-            <text align ="left" length="11">${ticketline.printPriceTax()}</text>
-            <text align ="right" length="4">x${ticketline.printMultiply()}</text>
-            <text align ="right" length="10">${ticketline.printValue()}</text>
+            <text align ="right" length="11">${ticketline.printPriceTax()}</text>
+            <text align ="right" length="5">x${ticketline.printMultiply()}</text>
+            <text align ="right" length="11">${ticketline.printValue()}</text>
          </line>
         
 <!-- un-comment line below if you want to add a product's properties -->
