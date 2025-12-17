@@ -2043,6 +2043,29 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 // para poder mostrar el mensaje de confirmación. Si se llama deleteTicket desde otro lugar,
                 // se debe manejar el descuento de puntos manualmente antes de esta llamada.
 
+                // Registrar todos los productos del ticket en lineremoved antes de eliminarlo
+                // Esto permite que el reporte muestre qué productos se anularon
+                String ticketId = ticket.getId() != null ? ticket.getId() : "Void";
+                String userName = ticket.getUser() != null ? ticket.getUser().getName() : "System";
+                
+                // Registrar cada producto del ticket antes de eliminarlo
+                for (int i = 0; i < ticket.getLinesCount(); i++) {
+                    if (ticket.getLine(i).getProductID() != null && ticket.getLine(i).getProductName() != null) {
+                        // Insertar directamente en lineremoved usando SQL
+                        new StaticSentence(s,
+                                "INSERT INTO lineremoved (NAME, TICKETID, PRODUCTID, PRODUCTNAME, UNITS) VALUES (?, ?, ?, ?, ?)",
+                                new SerializerWriteBasic(new Datas[]{
+                                    Datas.STRING, Datas.STRING, Datas.STRING, Datas.STRING, Datas.DOUBLE
+                                })).exec(new Object[]{
+                                    userName,
+                                    ticketId,
+                                    ticket.getLine(i).getProductID(),
+                                    ticket.getLine(i).getProductName(),
+                                    ticket.getLine(i).getMultiply()
+                                });
+                    }
+                }
+
                 // and delete the receipt
                 new StaticSentence(s,
                         "DELETE FROM taxlines WHERE RECEIPT = ?",

@@ -73,19 +73,23 @@
 	<line></line>
 
         <line>
-            <text align ="left" length="17">Artículo</text>
-            <text align ="right" length="12">Precio</text>
-            <text align ="right" length="7">Cant</text>
-            <text align ="right" length="10">Importe</text>
+            <text align ="left" length="13">Artículo</text>
+            <text align ="right" length="11">Precio</text>
+            <text align ="right" length="6">Cant</text>
+            <text align ="right" length="12">Importe</text>
         </line>
         <line><text align="left" length="42">------------------------------------------</text></line>
     
         #foreach ($ticketline in $ticket.getLines())
+        #set($nombre = $ticketline.printName())
+        #if($nombre && $nombre.length() > 13)
+            #set($nombre = $nombre.substring(0, 10) + "...")
+        #end
             <line>
             #if ($ticketline.isProductCom())
-                <text align ="left" length="17">*${ticketline.printName()}</text>
+                <text align ="left" length="13">*${nombre}</text>
             #else
-                <text align ="left" length="17">${ticketline.printName()}</text>
+                <text align ="left" length="13">${nombre}</text>
             #end
             <!-- Print line to show Prices pre-Tax
                 <text align ="right" length="8">${ticketline.printPrice()}</text>
@@ -95,9 +99,9 @@
             -->
 
             <!-- Print line to show Prices pre-Tax (precio unitario sin impuestos) -->
-                <text align ="right" length="12">${ticketline.printPrice()}</text>
-                <text align ="right" length="7">x${ticketline.printMultiply()}</text>
-                <text align ="right" length="10">${ticketline.printValue()}</text>
+                <text align ="right" length="11">${ticketline.printPrice()}</text>
+                <text align ="right" length="6">x${ticketline.printMultiply()}</text>
+                <text align ="right" length="12">${ticketline.printValue()}</text>
             </line>
         
 <!-- un-comment line below if you want to add a product's properties -->

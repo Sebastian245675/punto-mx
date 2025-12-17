@@ -29,6 +29,7 @@ import com.openbravo.pos.payment.PaymentInfo;
 import com.openbravo.pos.payment.PaymentInfoMagcard;
 import com.openbravo.pos.payment.PaymentInfoTicket;
 import com.openbravo.pos.util.StringUtils;
+import com.openbravo.pos.util.RoundUtils;
 import java.io.*;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -395,7 +396,8 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         sum = m_aLines.stream().map((line)
                 -> line.getSubValue()).reduce(sum, (accumulator, _item)
                 -> accumulator + _item);
-        return sum;
+        // Redondear el subtotal a 2 decimales para evitar errores de precisión
+        return RoundUtils.round(sum);
     }
 
     public double getTax() {
@@ -411,12 +413,18 @@ public final class TicketInfo implements SerializableRead, Externalizable {
                     -> line.getTax()).reduce(sum, (accumulator, _item)
                     -> accumulator + _item);
         }
-        return sum;
+        // Redondear los impuestos a 2 decimales para evitar errores de precisión
+        return RoundUtils.round(sum);
     }
 
     public double getTotal() {
-        return getSubTotal() + getTax();
-
+        // Redondear el subtotal y los impuestos antes de sumarlos
+        double subtotal = RoundUtils.round(getSubTotal());
+        double tax = RoundUtils.round(getTax());
+        double total = subtotal + tax;
+        // Redondear el total final a 2 decimales para evitar errores de precisión
+        // Esto asegura que $50.00 se muestre como $50.00 y no como $50.01
+        return RoundUtils.round(total);
     }
 
     public double getServiceCharge() {
@@ -548,7 +556,31 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     }
 
     public String printDate() {
-        return Formats.TIMESTAMP.formatValue(m_dDate);
+        // Usar formato personalizado que evita caracteres problemáticos en impresoras
+        // Formato: dd/MM/yyyy, h:mm:ss a.m./p.m. (formato 12 horas con texto explícito)
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(m_dDate);
+        int hour = cal.get(Calendar.HOUR_OF_DAY);
+        int minute = cal.get(Calendar.MINUTE);
+        int second = cal.get(Calendar.SECOND);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+        int month = cal.get(Calendar.MONTH) + 1; // Calendar.MONTH es 0-based
+        int year = cal.get(Calendar.YEAR);
+        
+        // Convertir a formato 12 horas
+        int hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+        String amPm = hour < 12 ? "a.m." : "p.m.";
+        
+        // Formatear la fecha sin usar SimpleDateFormat para evitar caracteres problemáticos
+        String formattedDate = String.format("%02d/%02d/%04d, %d:%02d:%02d %s", 
+            day, month, year, hour12, minute, second, amPm);
+        
+        // Limpiar cualquier carácter especial o invisible que pueda causar problemas
+        formattedDate = formattedDate.replaceAll("[\\p{Cntrl}]", "");
+        formattedDate = formattedDate.replaceAll("\\u200B", ""); // Zero-width space
+        formattedDate = formattedDate.replaceAll("\\uFEFF", ""); // Zero-width no-break space
+        
+        return formattedDate;
     }
 
     public String printUser() {

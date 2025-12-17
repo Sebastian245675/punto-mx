@@ -53,8 +53,18 @@ public abstract class Formats<T> {
     //Support those format up
     private static NumberFormat m_integerformat = NumberFormat.getIntegerInstance();
     private static NumberFormat m_doubleformat = NumberFormat.getNumberInstance();
-    private static NumberFormat m_currencyformat = NumberFormat.getCurrencyInstance();
+    private static NumberFormat m_currencyformat = createCurrencyFormat();
     private static NumberFormat m_percentformat = NumberFormat.getCurrencyInstance(); //new DecimalFormat(DEFAULT_PERCENT_FORMAT);
+    
+    /**
+     * Crea un formato de moneda con exactamente 2 decimales
+     */
+    private static NumberFormat createCurrencyFormat() {
+        NumberFormat format = NumberFormat.getCurrencyInstance();
+        format.setMinimumFractionDigits(2);
+        format.setMaximumFractionDigits(2);
+        return format;
+    }
     private static DateFormat m_dateformat = DateFormat.getDateInstance();
     private static DateFormat m_timeformat = DateFormat.getTimeInstance();
     private static DateFormat m_datetimeformat = DateFormat.getDateTimeInstance();
@@ -111,8 +121,14 @@ public abstract class Formats<T> {
     public static void setCurrencyPattern(String pattern) {
         if (pattern == null || pattern.equals("")) {
             m_currencyformat = NumberFormat.getCurrencyInstance();
+            // Asegurar que siempre muestre exactamente 2 decimales
+            m_currencyformat.setMinimumFractionDigits(2);
+            m_currencyformat.setMaximumFractionDigits(2);
         } else {
             m_currencyformat = new DecimalFormat(pattern);
+            // Asegurar que siempre muestre exactamente 2 decimales
+            m_currencyformat.setMinimumFractionDigits(2);
+            m_currencyformat.setMaximumFractionDigits(2);
         }
     }
 

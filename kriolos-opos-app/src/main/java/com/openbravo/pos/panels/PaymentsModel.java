@@ -23,6 +23,7 @@ import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.util.StringUtils;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 import javax.swing.table.AbstractTableModel;
@@ -275,11 +276,20 @@ public class PaymentsModel {
         // removed lines list
         SimpleDateFormat ndf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         String startDateFormatted = ndf.format(app.getActiveCashDateStart());
+        // Agrupar productos por nombre y usuario, sumando las cantidades de todos los tickets
+        // Esto evita duplicados cuando el mismo producto se anuló en diferentes facturas
+        // Si hay múltiples tickets, se muestra el primero; si es solo uno, se muestra ese
         List removedLines = new StaticSentence(app.getSession(),
-                 "SELECT lineremoved.NAME, lineremoved.TICKETID, lineremoved.PRODUCTNAME, SUM(lineremoved.UNITS) AS TOTAL_UNITS  "
-                + "FROM lineremoved "
+                 "SELECT lineremoved.NAME, " +
+                 "CASE " +
+                 "  WHEN COUNT(DISTINCT lineremoved.TICKETID) > 1 THEN 'Varios' " +
+                 "  ELSE MAX(lineremoved.TICKETID) " +
+                 "END as TICKETID, " +
+                 "lineremoved.PRODUCTNAME, " +
+                 "SUM(lineremoved.UNITS) AS TOTAL_UNITS " +
+                 "FROM lineremoved "
                 + "WHERE lineremoved.REMOVEDDATE > ? "
-                + "GROUP BY lineremoved.NAME, lineremoved.TICKETID, lineremoved.PRODUCTNAME",
+                + "GROUP BY lineremoved.NAME, lineremoved.PRODUCTNAME",
                  SerializerWriteString.INSTANCE,
                  new SerializerReadClass(PaymentsModel.RemovedProductLines.class)) //new SerializerReadBasic(new Datas[] {Datas.STRING, Datas.DOUBLE}))
                 .list(startDateFormatted);
@@ -334,15 +344,23 @@ public class PaymentsModel {
             p.m_dProductSalesTotal = (Double) valproductsales[2];
         }
 
+        // Agrupar productos solo por nombre, sumando cantidades y totales
+        // Calcular el total directamente sumando todos los valores (precio + impuesto) * cantidad
+        // Usar JOINs explícitos para evitar duplicación de filas
+        // Calcular precio promedio sin impuesto para compatibilidad con la clase
         List products = new StaticSentence(app.getSession(),
-                 "SELECT products.NAME, SUM(ticketlines.UNITS), ticketlines.PRICE, taxes.RATE "
-                + "FROM ticketlines, tickets, receipts, products, taxes "
-                + "WHERE ticketlines.PRODUCT = products.ID "
-                + "AND ticketlines.TICKET = tickets.ID "
-                + "AND tickets.ID = receipts.ID "
-                + "AND ticketlines.TAXID = taxes.ID "
-                + "AND receipts.MONEY = ? "
-                + "GROUP BY products.NAME, ticketlines.PRICE, taxes.RATE",
+                 "SELECT products.NAME, " +
+                 "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
+                 "SUM(ticketlines.PRICE * ticketlines.UNITS) / SUM(ticketlines.UNITS) as AVG_PRICE, " +
+                 "AVG(taxes.RATE) as AVG_TAX_RATE, " +
+                 "SUM(ticketlines.PRICE * ticketlines.UNITS * (1.0 + taxes.RATE)) as TOTAL_VALUE " +
+                 "FROM ticketlines " +
+                 "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
+                 "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                 "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                 "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                 "WHERE receipts.MONEY = ? " +
+                 "GROUP BY products.NAME",
                  SerializerWriteString.INSTANCE,
                  new SerializerReadClass(PaymentsModel.ProductSalesLine.class))
                 .list(app.getActiveCashIndex());
@@ -469,7 +487,37 @@ public class PaymentsModel {
      * @return
      */
     public String printDateStart() {
-        return Formats.TIMESTAMP.formatValue(m_dDateStart);
+        if (m_dDateStart == null) {
+            return "";
+        }
+        // Usar formato personalizado que evita caracteres problemáticos en impresoras
+        // Formato: dd/MM/yyyy, h:mm:ss a.m./p.m. (formato 12 horas con texto explícito)
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(m_dDateStart);
+        int hour = cal.get(Calendar.HOUR_OF_DAY);
+        int minute = cal.get(Calendar.MINUTE);
+        int second = cal.get(Calendar.SECOND);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+        int month = cal.get(Calendar.MONTH) + 1; // Calendar.MONTH es 0-based
+        int year = cal.get(Calendar.YEAR);
+        
+        // Convertir a formato 12 horas
+        int hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+        String amPm = hour < 12 ? "a.m." : "p.m.";
+        
+        // Formatear la fecha sin usar SimpleDateFormat para evitar caracteres problemáticos
+        // Formato más corto: dd/MM/yyyy, h:mm a.m./p.m. (sin segundos para ahorrar espacio)
+        String formattedDate = String.format("%02d/%02d/%04d, %d:%02d %s", 
+            day, month, year, hour12, minute, amPm);
+        
+        // Limpiar cualquier carácter especial o invisible que pueda causar problemas
+        formattedDate = formattedDate.replaceAll("[\\p{Cntrl}]", "");
+        formattedDate = formattedDate.replaceAll("\\u200B", ""); // Zero-width space
+        formattedDate = formattedDate.replaceAll("\\uFEFF", ""); // Zero-width no-break space
+        // Asegurar que no haya espacios al final que puedan causar problemas
+        formattedDate = formattedDate.trim();
+        
+        return formattedDate;
     }
 
     /**
@@ -477,7 +525,37 @@ public class PaymentsModel {
      * @return
      */
     public String printDateEnd() {
-        return Formats.TIMESTAMP.formatValue(m_dDateEnd);
+        if (m_dDateEnd == null) {
+            return "";
+        }
+        // Usar formato personalizado que evita caracteres problemáticos en impresoras
+        // Formato: dd/MM/yyyy, h:mm:ss a.m./p.m. (formato 12 horas con texto explícito)
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(m_dDateEnd);
+        int hour = cal.get(Calendar.HOUR_OF_DAY);
+        int minute = cal.get(Calendar.MINUTE);
+        int second = cal.get(Calendar.SECOND);
+        int day = cal.get(Calendar.DAY_OF_MONTH);
+        int month = cal.get(Calendar.MONTH) + 1; // Calendar.MONTH es 0-based
+        int year = cal.get(Calendar.YEAR);
+        
+        // Convertir a formato 12 horas
+        int hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+        String amPm = hour < 12 ? "a.m." : "p.m.";
+        
+        // Formatear la fecha sin usar SimpleDateFormat para evitar caracteres problemáticos
+        // Formato más corto: dd/MM/yyyy, h:mm a.m./p.m. (sin segundos para ahorrar espacio)
+        String formattedDate = String.format("%02d/%02d/%04d, %d:%02d %s", 
+            day, month, year, hour12, minute, amPm);
+        
+        // Limpiar cualquier carácter especial o invisible que pueda causar problemas
+        formattedDate = formattedDate.replaceAll("[\\p{Cntrl}]", "");
+        formattedDate = formattedDate.replaceAll("\\u200B", ""); // Zero-width space
+        formattedDate = formattedDate.replaceAll("\\uFEFF", ""); // Zero-width no-break space
+        // Asegurar que no haya espacios al final que puedan causar problemas
+        formattedDate = formattedDate.trim();
+        
+        return formattedDate;
     }
 
     /**
@@ -864,6 +942,7 @@ public class PaymentsModel {
         private Double m_TaxRate;
         private Double m_ProductPriceTax;
         private Double m_ProductPriceNet;  //JG 7 June 2014
+        private Double m_TotalValue; // Total real calculado directamente desde la BD
 
         @Override
         public void readValues(DataRead dr) throws BasicException {
@@ -871,9 +950,27 @@ public class PaymentsModel {
             m_ProductUnits = dr.getDouble(2);
             m_ProductPrice = dr.getDouble(3);
             m_TaxRate = dr.getDouble(4);
-
+            
+            // Calcular precio con impuesto
             m_ProductPriceTax = m_ProductPrice + m_ProductPrice * m_TaxRate;
             m_ProductPriceNet = m_ProductPrice * m_TaxRate;
+            
+            // Leer el total real calculado desde la base de datos (campo 5: TOTAL_VALUE)
+            // Este valor es la suma directa de todos los valores (precio + impuesto) * cantidad
+            try {
+                m_TotalValue = dr.getDouble(5);
+                // Si el valor es null o cero, calcularlo usando el precio promedio con impuesto
+                // Esto solo debería ocurrir si hay un problema con la consulta SQL
+                if (m_TotalValue == null || m_TotalValue == 0.0) {
+                    // Fallback: usar precio promedio con impuesto * cantidad total
+                    // Nota: Este cálculo puede ser inexacto si hay diferentes precios o tasas de impuesto
+                    m_TotalValue = m_ProductPriceTax * m_ProductUnits;
+                }
+            } catch (Exception e) {
+                // Si hay un error al leer el campo 5, usar el cálculo de fallback
+                // Esto puede ocurrir si la consulta SQL no incluye el campo TOTAL_VALUE
+                m_TotalValue = m_ProductPriceTax * m_ProductUnits;
+            }
         }
 
         public String printProductName() {
@@ -913,7 +1010,23 @@ public class PaymentsModel {
         }
 
         public String printProductSubValue() {
-            return Formats.CURRENCY.formatValue(m_ProductPriceTax * m_ProductUnits);
+            // Usar el total real si está disponible, sino calcularlo
+            if (m_TotalValue != null) {
+                return Formats.CURRENCY.formatValue(m_TotalValue);
+            } else {
+                return Formats.CURRENCY.formatValue(m_ProductPriceTax * m_ProductUnits);
+            }
+        }
+        
+        /**
+         * Obtiene el valor total real del producto (suma de todos los valores con impuesto)
+         */
+        public Double getTotalValue() {
+            if (m_TotalValue != null) {
+                return m_TotalValue;
+            } else {
+                return m_ProductPriceTax * m_ProductUnits;
+            }
         }
 
         /**
