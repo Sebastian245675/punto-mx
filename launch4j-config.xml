@@ -2,8 +2,8 @@
 <launch4jConfig>
   <dontWrapJar>false</dontWrapJar>
   <headerType>gui</headerType>
-  <jar>kriolos-opos-app\target\kriolos-pos.jar</jar>
-  <outfile>D:\Descargas\CONNECTING-POS.exe</outfile>
+  <jar>D:\punto-mx\kriolos-opos-app\target\kriolos-pos.jar</jar>
+  <outfile>D:\punto-mx\target\CONNECTING-POS.exe</outfile>
   <errTitle>CONNECTING POS Error</errTitle>
   <cmdLine></cmdLine>
   <chdir>.</chdir>

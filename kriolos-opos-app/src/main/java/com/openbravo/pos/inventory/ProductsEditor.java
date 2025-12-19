@@ -20,6 +20,7 @@ import com.openbravo.beans.DateUtils;
 import com.openbravo.data.gui.ComboBoxValModel;
 import com.openbravo.data.loader.Datas;
 import com.openbravo.data.loader.PreparedSentence;
+import com.openbravo.data.loader.SerializerWriteBasic;
 import com.openbravo.data.loader.SerializerWriteBasicExt;
 import com.openbravo.data.loader.SerializerReadString;
 import com.openbravo.data.loader.SerializerReadDouble;
@@ -297,15 +298,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 // actualizado
                 showStockTableAutomatically();
 
-                // Actualizar el valor inicial después de recargar
-                try {
-                    if (m_jStockCurrent != null && m_jStockCurrent.getText() != null
-                            && !m_jStockCurrent.getText().trim().isEmpty()) {
-                        initialStockValue = Formats.DOUBLE.parseValue(m_jStockCurrent.getText());
-                    }
-                } catch (BasicException e) {
-                    initialStockValue = null;
-                }
+                // NO actualizar initialStockValue aquí porque esto se llama después de guardar
+                // y actualizar el valor inicial haría que el siguiente producto no detecte cambios
+                // initialStockValue solo debe actualizarse cuando se carga un NUEVO producto en setValues()
+                // o cuando se muestra la tabla de stock por primera vez en showStockTableAutomatically()
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error al recargar stock en refresh", e);
@@ -607,6 +603,20 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         System.out.println("DEBUG createValue: ACCUMULATES_POINTS = " + myprod[32] + " (checkbox state: "
                 + m_jAccumulatesPoints.isSelected() + ")");
 
+        // IMPORTANTE: Guardar el stock ANTES de retornar el objeto
+        // Esto asegura que el stock se guarde siempre, incluso si refresh() no se llama
+        // o si initialStockValue se actualizó incorrectamente
+        if (productId != null && appView != null) {
+            try {
+                LOGGER.log(Level.INFO, "createValue: Llamando saveStockValues() para asegurar que el stock se guarde");
+                saveStockValues();
+                LOGGER.log(Level.INFO, "createValue: saveStockValues() completado");
+            } catch (BasicException e) {
+                LOGGER.log(Level.WARNING, "createValue: Error al guardar stock: " + e.getMessage(), e);
+                // No lanzar excepción para no bloquear el guardado del producto
+            }
+        }
+
         return myprod;
     }
 
@@ -838,6 +848,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                             + myprod.length + ")");
         }
 
+        // RESETEAR initialStockValue cuando se carga un nuevo producto
+        // Esto asegura que se detecten cambios correctamente para cada producto
+        initialStockValue = null;
+        LOGGER.log(Level.INFO, "setValues: Reseteado initialStockValue para nuevo producto: " + productId);
+        
         // Cargar valores de stock
         showStockTableAutomatically();
         
@@ -1865,62 +1880,98 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // debemos ajustar: 60 - 49 = 11, no 60 - 50 = 10
         double actualDifference = currentStock - stockInDB;
 
-        LOGGER.log(Level.FINE,
-                "saveStockValues: currentStock=" + currentStock + ", referenceStock=" + referenceStock + ", stockInDB="
-                        + stockInDB + ", initialStockValue=" + initialStockValue + ", quantityDifference="
-                        + quantityDifference + ", actualDifference=" + actualDifference);
+        LOGGER.log(Level.INFO,
+                "═══════════════════════════════════════════════════════════");
+        LOGGER.log(Level.INFO,
+                "saveStockValues: INICIO - Product: " + productId);
+        LOGGER.log(Level.INFO,
+                "saveStockValues: currentStock (campo UI)=" + currentStock);
+        LOGGER.log(Level.INFO,
+                "saveStockValues: stockInDB (BD actual)=" + stockInDB);
+        LOGGER.log(Level.INFO,
+                "saveStockValues: initialStockValue (al abrir)=" + initialStockValue);
+        LOGGER.log(Level.INFO,
+                "saveStockValues: referenceStock=" + referenceStock);
+        LOGGER.log(Level.INFO,
+                "saveStockValues: quantityDifference=" + quantityDifference);
+        LOGGER.log(Level.INFO,
+                "saveStockValues: actualDifference=" + actualDifference);
+        LOGGER.log(Level.INFO,
+                "saveStockValues: Math.abs(quantityDifference) > 0.0001 = " + (Math.abs(quantityDifference) > 0.0001));
 
-        // Actualizar o insertar en stockcurrent - AJUSTAR en lugar de sobrescribir para
-        // preservar cambios de ventas
-        // Solo actualizar si hay una diferencia significativa (el usuario cambió el
-        // valor)
-        // Y usar el stock actual de la BD como base, no el valor inicial
-        if (Math.abs(quantityDifference) > 0.0001) {
+        // Actualizar o insertar en stockcurrent - CONSOLIDAR todos los registros primero
+        // para evitar problemas con múltiples registros (con y sin atributos)
+        // IMPORTANTE: Siempre actualizar si el usuario especificó un valor diferente al que está en BD
+        // Esto asegura que el stock se actualice incluso si initialStockValue no se estableció correctamente
+        // o si el stock en BD cambió después de abrir el editor
+        boolean shouldUpdate = Math.abs(actualDifference) > 0.0001;
+        
+        LOGGER.log(Level.INFO,
+                "saveStockValues: shouldUpdate=" + shouldUpdate);
+        LOGGER.log(Level.INFO,
+                "saveStockValues: quantityDifference=" + quantityDifference + " (UI vs inicial)");
+        LOGGER.log(Level.INFO,
+                "saveStockValues: actualDifference=" + actualDifference + " (UI vs BD actual)");
+        LOGGER.log(Level.INFO,
+                "saveStockValues: Decisión: " + (shouldUpdate ? "SÍ actualizar (hay diferencia con BD)" : "NO actualizar (sin diferencia)"));
+        
+        if (shouldUpdate) {
             try {
-                if (stockInDB != null && stockInDB >= 0) {
-                    // Si ya existe stock, ajustar con la diferencia real respecto a la BD actual
-                    // Esto preserva los cambios de ventas que ocurrieron después de abrir el editor
-                    PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
-                            "UPDATE stockcurrent SET UNITS = (UNITS + ?) WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
-                            new SerializerWriteBasicExt(new Datas[] { Datas.DOUBLE, Datas.STRING, Datas.STRING },
-                                    new int[] { 0, 1, 2 }));
-
-                    int rowsAffected = updateStmt.exec(new Object[] { actualDifference, locationId, productId });
-
-                    if (rowsAffected == 0) {
-                        // Si no se actualizó, insertar con el valor nuevo
-                        PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
-                                "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
-                                new SerializerWriteBasicExt(new Datas[] { Datas.STRING, Datas.STRING, Datas.DOUBLE },
-                                        new int[] { 0, 1, 2 }));
-                        insertStmt.exec(new Object[] { locationId, productId, currentStock });
-                    }
+                LOGGER.log(Level.INFO, "saveStockValues: Consolidando stock antes de actualizar. Product: " + productId + ", Location: " + locationId);
+                LOGGER.log(Level.INFO, "saveStockValues: currentStock=" + currentStock + ", stockInDB=" + stockInDB + ", actualDifference=" + actualDifference);
+                
+                // PASO 1: Obtener la suma de TODOS los registros de stock (con y sin atributos)
+                Double totalStockAll = (Double) new PreparedSentence(dlSales.getSession(),
+                        "SELECT SUM(UNITS) FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ?",
+                        new SerializerWriteBasic(new Datas[] { Datas.STRING, Datas.STRING }),
+                        SerializerReadDouble.INSTANCE)
+                        .find(locationId, productId);
+                
+                if (totalStockAll == null) {
+                    totalStockAll = 0.0;
+                }
+                
+                LOGGER.log(Level.INFO, "saveStockValues: Stock total encontrado (todos los registros): " + totalStockAll);
+                
+                // PASO 2: Eliminar TODOS los registros existentes (con y sin atributos)
+                int deletedRows = new PreparedSentence(dlSales.getSession(),
+                        "DELETE FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ?",
+                        new SerializerWriteBasic(new Datas[] { Datas.STRING, Datas.STRING }))
+                        .exec(new Object[] { locationId, productId });
+                
+                LOGGER.log(Level.INFO, "saveStockValues: Registros eliminados: " + deletedRows);
+                
+                // PASO 3: Insertar un ÚNICO registro consolidado con el valor que el usuario especificó
+                // El usuario quiere que el stock sea exactamente `currentStock`, no un ajuste
+                PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
+                        "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
+                        new SerializerWriteBasicExt(new Datas[] { Datas.STRING, Datas.STRING, Datas.DOUBLE },
+                                new int[] { 0, 1, 2 }));
+                insertStmt.exec(new Object[] { locationId, productId, currentStock });
+                
+                LOGGER.log(Level.INFO, "saveStockValues: ✓ Stock consolidado INSERTADO con valor: " + currentStock);
+                
+                // PASO 4: Verificar que se insertó correctamente
+                Double verifyStock = dlSales.findProductStock(locationId, productId, null);
+                LOGGER.log(Level.INFO, "saveStockValues: ✓ Verificación POST-INSERT: Stock en BD = " + verifyStock);
+                
+                if (verifyStock != null && Math.abs(verifyStock - currentStock) > 0.01) {
+                    LOGGER.log(Level.SEVERE, "saveStockValues: ⚠️⚠️⚠️ PROBLEMA DETECTADO: Stock en BD (" + verifyStock + ") no coincide con stock esperado (" + currentStock + ") ⚠️⚠️⚠️");
                 } else {
-                    // Si no existe stock previo, insertar con el valor nuevo
-                    PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
-                            "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
-                            new SerializerWriteBasicExt(new Datas[] { Datas.STRING, Datas.STRING, Datas.DOUBLE },
-                                    new int[] { 0, 1, 2 }));
-                    insertStmt.exec(new Object[] { locationId, productId, currentStock });
+                    LOGGER.log(Level.INFO, "saveStockValues: ✓✓✓ Stock guardado CORRECTAMENTE: " + verifyStock);
                 }
+                
             } catch (BasicException e) {
-                // Si falla, intentar insertar
-                try {
-                    PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
-                            "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
-                            new SerializerWriteBasicExt(new Datas[] { Datas.STRING, Datas.STRING, Datas.DOUBLE },
-                                    new int[] { 0, 1, 2 }));
-                    insertStmt.exec(new Object[] { locationId, productId, currentStock });
-                } catch (BasicException ex2) {
-                    // Si ya existe, ajustar con la diferencia real
-                    PreparedSentence updateStmt = new PreparedSentence(dlSales.getSession(),
-                            "UPDATE stockcurrent SET UNITS = (UNITS + ?) WHERE LOCATION = ? AND PRODUCT = ? AND (ATTRIBUTESETINSTANCE_ID IS NULL OR ATTRIBUTESETINSTANCE_ID = '')",
-                            new SerializerWriteBasicExt(new Datas[] { Datas.DOUBLE, Datas.STRING, Datas.STRING },
-                                    new int[] { 0, 1, 2 }));
-                    updateStmt.exec(new Object[] { actualDifference, locationId, productId });
-                }
+                LOGGER.log(Level.SEVERE, "saveStockValues: ✗ ERROR al consolidar y actualizar stock: " + e.getMessage(), e);
+                e.printStackTrace();
+                throw e;
             }
+        } else {
+            LOGGER.log(Level.INFO, "saveStockValues: NO se actualiza stock (no hay diferencia significativa)");
         }
+        
+        LOGGER.log(Level.INFO,
+                "═══════════════════════════════════════════════════════════");
         // Si no hay diferencia, no actualizar el stock (preserva el stock actual,
         // incluyendo descuentos de ventas)
 
@@ -4036,11 +4087,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 LOGGER.log(Level.FINE,
                         "showStockTableAutomatically: Total Current: " + totalCurrent + ", Text: " + stockCurrentText);
 
-                // Guardar el valor inicial del stock (solo la primera vez que se carga)
+                // Guardar el valor inicial del stock (solo la primera vez que se carga para este producto)
+                // IMPORTANTE: Solo establecer si es null (fue reseteado en setValues() para un nuevo producto)
                 if (initialStockValue == null) {
                     initialStockValue = totalCurrent;
-                    LOGGER.log(Level.FINE,
-                            "showStockTableAutomatically: Guardado valor inicial del stock: " + initialStockValue);
+                    LOGGER.log(Level.INFO,
+                            "showStockTableAutomatically: Guardado valor inicial del stock: " + initialStockValue + " para producto: " + productId);
                 }
 
                 // Forzar actualización del campo de texto

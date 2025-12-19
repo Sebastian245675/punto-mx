@@ -405,7 +405,53 @@ public class JRootApp extends JPanel implements AppView {
                             + (valcash[i] != null ? valcash[i].getClass().getSimpleName() : "null") + ")");
                 }
 
-                double savedInitialAmount = valcash.length > 5 ? (Double) valcash[5] : 0.0;
+                // Sebastian - Manejar correctamente el fondo inicial, incluso si es null
+                double savedInitialAmount = 0.0;
+                if (valcash.length > 5 && valcash[5] != null) {
+                    // Si el valor existe y no es null, convertirlo a double
+                    if (valcash[5] instanceof Number) {
+                        savedInitialAmount = ((Number) valcash[5]).doubleValue();
+                    } else if (valcash[5] instanceof Double) {
+                        savedInitialAmount = (Double) valcash[5];
+                    } else {
+                        try {
+                            savedInitialAmount = Double.parseDouble(valcash[5].toString());
+                        } catch (NumberFormatException e) {
+                            LOGGER.log(Level.WARNING, "⚠️ Sebastian - No se pudo convertir initial_amount a double: " + valcash[5], e);
+                            savedInitialAmount = 0.0;
+                        }
+                    }
+                } else {
+                    // Si no existe o es null, verificar directamente en la BD
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - initial_amount no encontrado en array, consultando BD directamente...");
+                    try {
+                        Session s = getSession();
+                        java.sql.Connection con = s.getConnection();
+                        String sql = "SELECT initial_amount FROM closedcash WHERE MONEY = ? AND DATEEND IS NULL";
+                        java.sql.PreparedStatement pstmt = con.prepareStatement(sql);
+                        pstmt.setString(1, sActiveCashIndex);
+                        java.sql.ResultSet rs = pstmt.executeQuery();
+                        if (rs.next()) {
+                            double dbAmount = rs.getDouble("initial_amount");
+                            if (!rs.wasNull()) {
+                                savedInitialAmount = dbAmount;
+                                LOGGER.log(Level.INFO, "✅ Sebastian - Fondo inicial recuperado desde BD: $" + savedInitialAmount);
+                            } else {
+                                LOGGER.log(Level.WARNING, "⚠️ Sebastian - initial_amount es NULL en BD para MONEY: " + sActiveCashIndex);
+                                savedInitialAmount = 0.0;
+                            }
+                        } else {
+                            LOGGER.log(Level.WARNING, "⚠️ Sebastian - No se encontró registro en BD para MONEY: " + sActiveCashIndex);
+                            savedInitialAmount = 0.0;
+                        }
+                        rs.close();
+                        pstmt.close();
+                    } catch (Exception e) {
+                        LOGGER.log(Level.WARNING, "⚠️ Sebastian - Error consultando initial_amount desde BD: " + e.getMessage(), e);
+                        savedInitialAmount = 0.0;
+                    }
+                }
+                
                 setActiveCash(sActiveCashIndex,
                         (Integer) valcash[1],
                         (Date) valcash[2],
@@ -416,12 +462,14 @@ public class JRootApp extends JPanel implements AppView {
                         "💰 Sebastian POS - Caja activa recuperada con fondo inicial: $" + savedInitialAmount + 
                         " (Caja " + (valcash[3] == null ? "ABIERTA" : "CERRADA") + ")");
 
-                // Sebastian - Solo necesita configuración si el fondo inicial es 0 o null
+                // Sebastian - Solo necesita configuración si el fondo inicial es 0 o menor
                 // IMPORTANTE: Si la caja está abierta y tiene fondo inicial, NO pedir de nuevo
                 needsInitialCashSetup = (savedInitialAmount <= 0.0);
                 
-                if (!needsInitialCashSetup) {
-                    LOGGER.log(Level.INFO, "✅ Sebastian - Caja abierta con fondo inicial configurado, NO se pedirá fondo inicial");
+                if (needsInitialCashSetup) {
+                    LOGGER.log(Level.INFO, "🔧 Sebastian - Caja necesita configuración de fondo inicial (valor actual: $" + savedInitialAmount + ")");
+                } else {
+                    LOGGER.log(Level.INFO, "✅ Sebastian - Caja abierta con fondo inicial configurado: $" + savedInitialAmount + ", NO se pedirá fondo inicial");
                 }
 
                 return false; // Continuar normalmente
@@ -859,16 +907,44 @@ public class JRootApp extends JPanel implements AppView {
                     return true;
                 }
             } else {
-                // Si no hay tickets, NO podemos determinar el usuario
-                // NO asumamos que pertenece a otro usuario solo porque tiene fondo inicial
+                // Si no hay tickets, verificar la fecha de creación de la caja
+                // Si la caja fue creada hoy, probablemente es del mismo usuario
                 // Esto es válido cuando se selecciona "Mantener Turno" - la caja puede estar abierta
                 // sin tickets pero con fondo inicial ya configurado
                 userCheckRs.close();
                 userCheckStmt.close();
                 
-                LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets. " +
-                           "No se puede determinar el usuario, asumiendo que es del usuario actual (caja mantenida abierta)");
-                return false; // No pertenece a otro usuario, puede usar esta caja
+                // Verificar la fecha de inicio de la caja
+                Date cashDateStart = getActiveCashDateStart();
+                Date today = new Date();
+                java.util.Calendar calCash = java.util.Calendar.getInstance();
+                java.util.Calendar calToday = java.util.Calendar.getInstance();
+                calCash.setTime(cashDateStart);
+                calToday.setTime(today);
+                
+                boolean sameDay = calCash.get(java.util.Calendar.YEAR) == calToday.get(java.util.Calendar.YEAR) &&
+                                 calCash.get(java.util.Calendar.DAY_OF_YEAR) == calToday.get(java.util.Calendar.DAY_OF_YEAR);
+                
+                if (sameDay) {
+                    // La caja fue creada hoy, probablemente es del mismo usuario
+                    // No hay evidencia de que pertenezca a otro usuario (no hay tickets)
+                    LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets pero fue creada hoy, " +
+                               "asumiendo que pertenece al usuario actual (caja mantenida abierta). No se pedirá fondo inicial de nuevo.");
+                    return false; // No pertenece a otro usuario, puede usar esta caja
+                } else {
+                    // La caja fue creada en otro día, podría ser de otro usuario
+                    // Pero solo si tiene fondo inicial significativo (mayor a 0)
+                    double initialAmount = getActiveCashInitialAmount();
+                    if (initialAmount > 0.0) {
+                        LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets, fue creada en otro día " +
+                                   "y tiene fondo inicial, podría pertenecer a otro usuario");
+                        return true; // Probablemente pertenece a otro usuario
+                    } else {
+                        LOGGER.log(Level.INFO, "🔍 Sebastian - Caja activa no tiene tickets, fue creada en otro día " +
+                                   "pero no tiene fondo inicial, se puede usar para nuevo usuario");
+                        return false; // No pertenece a otro usuario, puede usar esta caja
+                    }
+                }
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error verificando si la caja pertenece a otro usuario: " + e.getMessage(), e);
