@@ -3091,6 +3091,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 // Sebastian - Inicializar variables de puntos siempre (para evitar errores en Velocity)
                 script.put("customerPoints", null);
                 script.put("customerPointsAfter", null);
+                script.put("puntosPorCompra", 0);
+                script.put("limiteAlcanzado", false);
                 
                 // Sebastian - Agregar puntos del cliente al template si hay cliente
                 if (ticket.getCustomer() != null && puntosDataLogic != null) {
@@ -3098,34 +3100,77 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         int puntosCliente = puntosDataLogic.obtenerPuntos(ticket.getCustomer().getId());
                         script.put("customerPoints", puntosCliente);
                         
-                        // Calcular puntos después de la venta
-                        double totalAcumulable = 0.0;
-                        for (TicketLineInfo line : ticket.getLines()) {
-                            if (line.isProductAccumulatesPoints()) {
-                                totalAcumulable += line.getValue();
-                            }
+                        // Obtener los puntos realmente otorgados para este ticket desde el historial
+                        // Esto es más preciso que recalcular porque los puntos ya se otorgaron
+                        int puntosOtorgadosTicket = -1;
+                        try {
+                            String ticketId = String.valueOf(ticket.getTicketId());
+                            puntosOtorgadosTicket = puntosDataLogic.getPuntosOtorgadosPorTicket(ticketId, ticket.getCustomer().getId());
+                        } catch (Exception e) {
+                            System.out.println("⚠️ DEBUG - Error obteniendo puntos del ticket: " + e.getMessage());
                         }
                         
                         PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
                         int puntosNuevos = 0;
-                        if (config != null && config.isSistemaActivo() && totalAcumulable > 0) {
+                        boolean limiteAlcanzado = false;
+                        
+                        if (puntosOtorgadosTicket >= 0) {
+                            // Se encontraron puntos en el historial para este ticket, usarlos directamente
+                            puntosNuevos = puntosOtorgadosTicket;
+                            // Verificar si ya alcanzó el límite (500 puntos ganados hoy en total)
+                            try {
+                                int puntosGanadosHoy = puntosDataLogic.getPuntosGanadosHoy(ticket.getCustomer().getId());
+                                int limiteDiario = config != null ? config.getLimiteDiarioPuntos() : 500;
+                                if (puntosGanadosHoy >= limiteDiario && puntosOtorgadosTicket == 0) {
+                                    // Ya alcanzó el límite y no se otorgaron puntos en esta compra
+                                    limiteAlcanzado = true;
+                                    System.out.println("🚫 DEBUG - Límite diario alcanzado (total hoy: " + puntosGanadosHoy + ")");
+                                } else {
+                                    limiteAlcanzado = false;
+                                    System.out.println("✅ DEBUG - Puntos otorgados para este ticket: " + puntosOtorgadosTicket);
+                                }
+                            } catch (Exception e) {
+                                limiteAlcanzado = false;
+                            }
+                        } else if (config != null && config.isSistemaActivo() && ticket.getTotal() > 0) {
+                            // No se encontraron puntos en el historial, calcular normalmente (caso raro)
+                            double totalAcumulable = ticket.getTotal();
                             puntosNuevos = config.calcularPuntos(totalAcumulable);
+                            System.out.println("⚠️ DEBUG - No se encontraron puntos en historial, calculando: " + puntosNuevos);
                             
                             // Verificar límite diario
                             try {
                                 int puntosGanadosHoy = puntosDataLogic.getPuntosGanadosHoy(ticket.getCustomer().getId());
                                 int limiteDiario = config.getLimiteDiarioPuntos();
                                 
-                                // Ajustar puntos si exceden el límite
                                 if (puntosGanadosHoy >= limiteDiario) {
                                     puntosNuevos = 0;
-                                } else if (puntosGanadosHoy + puntosNuevos > limiteDiario) {
-                                    puntosNuevos = limiteDiario - puntosGanadosHoy;
+                                    limiteAlcanzado = true;
+                                } else {
+                                    int puntosDisponibles = limiteDiario - puntosGanadosHoy;
+                                    if (puntosNuevos > puntosDisponibles) {
+                                        puntosNuevos = puntosDisponibles;
+                                    }
+                                    limiteAlcanzado = false;
                                 }
                             } catch (Exception e) {
-                                // Si hay error al obtener puntos ganados hoy, continuar con el cálculo normal
+                                limiteAlcanzado = false;
                             }
+                        } else {
+                            if (config == null) {
+                                System.out.println("⚠️ DEBUG - Configuración de puntos es null");
+                            } else if (!config.isSistemaActivo()) {
+                                System.out.println("⚠️ DEBUG - Sistema de puntos desactivado");
+                            }
+                            puntosNuevos = 0;
+                            limiteAlcanzado = false;
                         }
+                        
+                        System.out.println("✅ DEBUG - Puntos finales por compra: " + puntosNuevos);
+                        
+                        // Agregar puntos por compra y límite alcanzado al script
+                        script.put("puntosPorCompra", puntosNuevos);
+                        script.put("limiteAlcanzado", limiteAlcanzado);
                         
                         int puntosDespues = puntosCliente + puntosNuevos;
                         script.put("customerPointsAfter", puntosDespues);
@@ -3133,7 +3178,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         // #region agent log
                         try {
                             java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_points_calc\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2905\",\"message\":\"Customer points calculated\",\"data\":{\"customerId\":\"" + ticket.getCustomer().getId() + "\",\"puntosActuales\":" + puntosCliente + ",\"puntosNuevos\":" + puntosNuevos + ",\"puntosDespues\":" + puntosDespues + ",\"totalAcumulable\":" + totalAcumulable + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
+                            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_points_calc\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2905\",\"message\":\"Customer points calculated\",\"data\":{\"customerId\":\"" + ticket.getCustomer().getId() + "\",\"puntosActuales\":" + puntosCliente + ",\"puntosNuevos\":" + puntosNuevos + ",\"puntosDespues\":" + puntosDespues + ",\"totalTicket\":" + ticket.getTotal() + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
                             fw.close();
                             System.out.println("DEBUG: Puntos calculados - Actuales: " + puntosCliente + ", Nuevos: " + puntosNuevos + ", Después: " + puntosDespues);
                         } catch (Exception ex2) {

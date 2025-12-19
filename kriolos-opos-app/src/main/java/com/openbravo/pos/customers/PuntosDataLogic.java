@@ -361,6 +361,43 @@ public class PuntosDataLogic {
     }
     
     /**
+     * Sebastian - Obtiene los puntos otorgados para un ticket específico desde el historial
+     * @param ticketId ID del ticket
+     * @param clienteId ID del cliente
+     * @return Puntos otorgados para este ticket, o -1 si no se encontraron
+     */
+    public int getPuntosOtorgadosPorTicket(String ticketId, String clienteId) throws BasicException {
+        try {
+            String descripcionBusqueda = "Venta automática #" + ticketId;
+            String query = "SELECT COALESCE(SUM(PUNTOS_OTORGADOS), 0) " +
+                          "FROM PUNTOS_HISTORIAL " +
+                          "WHERE CLIENTE_ID = ? AND DESCRIPCION LIKE ?";
+            
+            PreparedSentence sentencia = new PreparedSentence(s, query,
+                new SerializerWrite<Object[]>() {
+                    public void writeValues(DataWrite dp, Object[] obj) throws BasicException {
+                        dp.setString(1, (String) obj[0]); // CLIENTE_ID
+                        dp.setString(2, (String) obj[1]); // DESCRIPCION LIKE
+                    }
+                },
+                SerializerReadInteger.INSTANCE);
+            
+            String pattern = "%" + descripcionBusqueda + "%";
+            Integer resultado = (Integer) sentencia.find(new Object[]{clienteId, pattern});
+            
+            int puntosTicket = resultado != null ? resultado : 0;
+            if (puntosTicket > 0) {
+                System.out.println("🎫 Puntos otorgados para ticket #" + ticketId + ": " + puntosTicket);
+            }
+            return puntosTicket;
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error obteniendo puntos del ticket #" + ticketId + ": " + e.getMessage());
+            return -1; // Retornar -1 para indicar error
+        }
+    }
+    
+    /**
      * Inicializa las tablas de puntos si no existen
      */
     public void initTables() throws BasicException {

@@ -87,18 +87,19 @@ public class PuntosConfiguracion {
     
     /**
      * Calcula cuántos puntos corresponden a un monto dado
-     * Sebastian - Modificado para funcionar por tramos/escalones, no proporcional
+     * Sebastian - Modificado para cálculo proporcional
+     * Ejemplo: Si montoPorPunto = $400 y puntosOtorgados = 10
+     * $200 = 5 puntos, $400 = 10 puntos, $800 = 20 puntos, $1200 = 30 puntos
      */
     public int calcularPuntos(double monto) {
         if (!sistemaActivo || montoPorPunto <= 0) {
             return 0;
         }
         
-        // Calcular por tramos: cada montoPorPunto completo = puntosOtorgados
-        // Ejemplo: Si montoPorPunto = $400 y puntosOtorgados = 40
-        // $0-$399 = 0 puntos, $400-$799 = 40 puntos, $800-$1199 = 80 puntos, etc.
-        int tramosCompletos = (int) Math.floor(monto / montoPorPunto);
-        return tramosCompletos * puntosOtorgados;
+        // Cálculo proporcional: (monto / montoPorPunto) * puntosOtorgados
+        // Redondeamos hacia abajo para obtener un número entero de puntos
+        double puntosDecimales = (monto / montoPorPunto) * puntosOtorgados;
+        return (int) Math.floor(puntosDecimales);
     }
     
     /**
