@@ -217,6 +217,25 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 removeTicketLine(rowIndex);
             }
         });
+        
+        // Sebastian - Callback para incrementar/decrementar cantidad con + y -
+        m_ticketlines.setIncrementLineCallback((int rowIndex, double amount) -> {
+            if (m_oTicket != null && rowIndex >= 0 && rowIndex < m_oTicket.getLinesCount()) {
+                TicketLineInfo line = m_oTicket.getLine(rowIndex);
+                double newMultiply = line.getMultiply() + amount;
+                
+                // No permitir cantidades negativas o cero
+                if (newMultiply > 0) {
+                    line.setMultiply(newMultiply);
+                    m_ticketlines.setTicketLine(rowIndex, line);
+                    m_ticketlines.setSelectedIndex(rowIndex);
+                    
+                    // Actualizar totales
+                    printPartialTotals();
+                    stateToZero();
+                }
+            }
+        });
         // Configurar fondo blanco para la tabla de ventas
         m_ticketlines.setBackground(java.awt.Color.WHITE);
         // Sebastian - Eliminar cualquier espacio alrededor de la tabla

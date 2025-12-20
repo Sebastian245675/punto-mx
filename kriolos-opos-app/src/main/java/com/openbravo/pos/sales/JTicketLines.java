@@ -65,6 +65,7 @@ public class JTicketLines extends javax.swing.JPanel {
     private final TicketTableModel m_jTableModel;
     private Boolean sendStatus;
     private DeleteLineCallback deleteLineCallback;
+    private IncrementLineCallback incrementLineCallback;
     private int hoveredRow = -1;
 
     /**
@@ -177,12 +178,24 @@ public class JTicketLines extends javax.swing.JPanel {
         void onDeleteLine(int rowIndex);
     }
     
+    public interface IncrementLineCallback {
+        void onIncrementLine(int rowIndex, double amount);
+    }
+    
     /**
      * Establece el callback para eliminar líneas
      * @param callback El callback que se llamará cuando se presione Delete sobre una fila
      */
     public void setDeleteLineCallback(DeleteLineCallback callback) {
         this.deleteLineCallback = callback;
+    }
+    
+    /**
+     * Establece el callback para incrementar/decrementar cantidad de líneas
+     * @param callback El callback que se llamará cuando se presione + o - sobre una fila
+     */
+    public void setIncrementLineCallback(IncrementLineCallback callback) {
+        this.incrementLineCallback = callback;
     }
     
     /**
@@ -240,38 +253,48 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jTicketTable.addMouseMotionListener(mouseAdapter);
         m_jTicketTable.addMouseListener(mouseAdapter);
         
-        // Listener de teclado para detectar cuando se presiona Delete
+        // Listener de teclado para detectar cuando se presiona Delete, + o -
         // Se agrega tanto a la tabla como al panel para capturar el evento en ambos casos
-        KeyAdapter deleteKeyListener = new KeyAdapter() {
+        KeyAdapter keyboardListener = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
+                // Obtener la fila actual (hover o seleccionada)
+                int currentRow = -1;
+                if (hoveredRow >= 0 && hoveredRow < m_jTableModel.getRowCount()) {
+                    currentRow = hoveredRow;
+                } else {
+                    int selectedRow = m_jTicketTable.getSelectedRow();
+                    if (selectedRow >= 0 && selectedRow < m_jTableModel.getRowCount()) {
+                        currentRow = selectedRow;
+                    }
+                }
+                
+                // Manejar tecla DELETE
                 if (e.getKeyCode() == KeyEvent.VK_DELETE || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
-                    int rowToDelete = -1;
-                    
-                    // Si hay una fila bajo el mouse, usar esa
-                    if (hoveredRow >= 0 && hoveredRow < m_jTableModel.getRowCount()) {
-                        rowToDelete = hoveredRow;
-                    } 
-                    // Si no, usar la fila seleccionada
-                    else {
-                        int selectedRow = m_jTicketTable.getSelectedRow();
-                        if (selectedRow >= 0 && selectedRow < m_jTableModel.getRowCount()) {
-                            rowToDelete = selectedRow;
-                        }
+                    if (currentRow >= 0 && deleteLineCallback != null) {
+                        deleteLineCallback.onDeleteLine(currentRow);
+                        e.consume();
                     }
-                    
-                    // Si hay una fila válida para eliminar, llamar al callback
-                    if (rowToDelete >= 0 && deleteLineCallback != null) {
-                        deleteLineCallback.onDeleteLine(rowToDelete);
-                        e.consume(); // Consumir el evento para evitar comportamiento por defecto
-                    }
+                }
+                // Manejar tecla + (incrementar cantidad)
+                else if ((e.getKeyCode() == KeyEvent.VK_PLUS || e.getKeyCode() == KeyEvent.VK_ADD || 
+                          (e.getKeyCode() == KeyEvent.VK_EQUALS && e.isShiftDown())) && 
+                         currentRow >= 0 && incrementLineCallback != null) {
+                    incrementLineCallback.onIncrementLine(currentRow, 1.0);
+                    e.consume();
+                }
+                // Manejar tecla - (decrementar cantidad)
+                else if ((e.getKeyCode() == KeyEvent.VK_MINUS || e.getKeyCode() == KeyEvent.VK_SUBTRACT) && 
+                         currentRow >= 0 && incrementLineCallback != null) {
+                    incrementLineCallback.onIncrementLine(currentRow, -1.0);
+                    e.consume();
                 }
             }
         };
         
-        m_jTicketTable.addKeyListener(deleteKeyListener);
+        m_jTicketTable.addKeyListener(keyboardListener);
         // También agregar al panel para capturar eventos cuando la tabla no tiene foco
-        this.addKeyListener(deleteKeyListener);
+        this.addKeyListener(keyboardListener);
         this.setFocusable(true);
     }
 
