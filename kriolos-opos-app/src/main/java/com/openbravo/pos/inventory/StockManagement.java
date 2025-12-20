@@ -461,6 +461,16 @@ public class StockManagement extends JPanel implements JPanelView {
                 stockModel = new StockManagement.ProductStockTableModel(getProductOfName(pId));
 
                 jTableProductStock.setModel((TableModel) stockModel);
+                
+                // Verificar si el usuario es empleado (rol 3)
+                boolean isEmployee = false;
+                try {
+                    String userRole = m_App.getAppUserView().getUser().getRole();
+                    isEmployee = "3".equals(userRole);
+                } catch (Exception ex) {
+                    // Si hay error al obtener el rol, asumir que no es empleado
+                }
+                
                 if (stockModel.getRowCount() > 0) {
                     jTableProductStock.setVisible(true);
                     
@@ -468,28 +478,39 @@ public class StockManagement extends JPanel implements JPanelView {
                     resetTranxTable();
                     sumStockTable();
                     
-                    // Mostrar mensaje informativo
-                    JOptionPane.showMessageDialog(null,
-                            "<html><body style='width: 300px; padding: 10px;'>" +
-                            "<b>Información de Stock</b><br><br>" +
-                            "• Doble clic en las columnas <b>Actual</b>, <b>Mínimo</b> o <b>Máximo</b> para editar<br>" +
-                            "• Los cambios se guardan automáticamente al presionar Enter<br>" +
-                            "• Actual: Cantidad en inventario<br>" +
-                            "• Mínimo: Stock de seguridad<br>" +
-                            "• Máximo: Stock máximo permitido" +
-                            "</body></html>",
-                            "Tabla de Stock",
-                            JOptionPane.INFORMATION_MESSAGE);
+                    // Solo mostrar mensaje informativo si NO es empleado
+                    if (!isEmployee) {
+                        // Mostrar mensaje informativo
+                        JOptionPane.showMessageDialog(null,
+                                "<html><body style='width: 300px; padding: 10px;'>" +
+                                "<b>Información de Stock</b><br><br>" +
+                                "• Doble clic en las columnas <b>Actual</b>, <b>Mínimo</b> o <b>Máximo</b> para editar<br>" +
+                                "• Los cambios se guardan automáticamente al presionar Enter<br>" +
+                                "• Actual: Cantidad en inventario<br>" +
+                                "• Mínimo: Stock de seguridad<br>" +
+                                "• Máximo: Stock máximo permitido" +
+                                "</body></html>",
+                                "Tabla de Stock",
+                                JOptionPane.INFORMATION_MESSAGE);
+                    }
                 } else {
                     jTableProductStock.setVisible(false);
-                    JOptionPane.showMessageDialog(null,
-                            "<html><body style='width: 250px; padding: 10px;'>" +
-                            "<b>No hay stock en ubicaciones</b><br><br>" +
-                            "El producto seleccionado no tiene stock registrado en ninguna ubicación.<br><br>" +
-                            "Por favor agregue el producto a una ubicación primero." +
-                            "</body></html>",
-                            "Sin Stock",
-                            JOptionPane.WARNING_MESSAGE);
+                    // Mensaje simple para empleados, detallado para otros usuarios
+                    if (isEmployee) {
+                        JOptionPane.showMessageDialog(null,
+                                "No hay stock",
+                                "Sin Stock",
+                                JOptionPane.WARNING_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(null,
+                                "<html><body style='width: 250px; padding: 10px;'>" +
+                                "<b>No hay stock en ubicaciones</b><br><br>" +
+                                "El producto seleccionado no tiene stock registrado en ninguna ubicación.<br><br>" +
+                                "Por favor agregue el producto a una ubicación primero." +
+                                "</body></html>",
+                                "Sin Stock",
+                                JOptionPane.WARNING_MESSAGE);
+                    }
                 }
             } catch (Exception e) {
                 JOptionPane.showMessageDialog(null,
