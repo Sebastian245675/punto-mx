@@ -132,7 +132,7 @@
         #if ($ticket.getCustomer())
             #if ($customerPoints && $customerPoints != "")
             <line>
-                <text align ="left" length="16">Puntos Actuales:</text>
+                <text align ="left" length="16">Puntos acumulados:</text>
                 <text align ="right" length="26">${customerPoints}</text>
             </line>
             #end
