@@ -25,8 +25,16 @@ import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.forms.AppView;
 import com.openbravo.pos.forms.BeanFactoryException;
 import com.openbravo.pos.forms.DataLogicSales;
+import com.openbravo.pos.forms.DataLogicSystem;
 import com.openbravo.pos.util.StringUtils;
 import com.openbravo.pos.customers.PuntosDataLogic; // Sebastian - Importar lógica de puntos
+import com.openbravo.pos.scripting.ScriptFactory;
+import com.openbravo.pos.scripting.ScriptEngine;
+import com.openbravo.pos.scripting.ScriptException;
+import com.openbravo.pos.printer.TicketParser;
+import com.openbravo.pos.printer.TicketPrinterException;
+import com.openbravo.pos.ticket.TicketInfo;
+import com.openbravo.pos.ticket.UserInfo;
 import java.awt.Component;
 import java.awt.Desktop;
 import java.awt.image.BufferedImage;
@@ -69,7 +77,9 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
 
     private DirtyManager m_Dirty;
     private DataLogicSales dlSales;
+    private DataLogicSystem dlSystem; // Sebastian - Para templates
     private PuntosDataLogic puntosLogic; // Sebastian - Lógica de puntos
+    private TicketParser ticketParser; // Sebastian - Para imprimir tickets
 
     //HS updates to get last added Customer 06.03.2014
     private AppView appView;
@@ -85,11 +95,15 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         try {
             appView = app;
             dlSales = (DataLogicSales) app.getBean("com.openbravo.pos.forms.DataLogicSales");
+            dlSystem = (DataLogicSystem) app.getBean("com.openbravo.pos.forms.DataLogicSystem");
             puntosLogic = new PuntosDataLogic(dlSales); // Sebastian - Inicializar lógica de puntos con dlSales
+            ticketParser = new TicketParser(app.getDeviceTicket(), dlSystem); // Sebastian - Inicializar parser de tickets
 
             initComponents();
             // Sebastian - Aplicar mejoras de diseño modernas
             aplicarMejorasVisuales();
+            // Sebastian - Actualizar template XML en BD
+            actualizarTemplatePuntosRedimidosEnBD();
 
             m_sentcat = dlSales.getTaxCustCategoriesList();
             m_CategoryModel = new ComboBoxValModel();
@@ -226,6 +240,9 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         mejorarBoton(btnAgregarPuntos, colorExito, Color.WHITE);
         mejorarBoton(btnQuitarPuntos, colorPeligro, Color.WHITE);
         mejorarBoton(btnActualizarPuntos, colorAdvertencia, new Color(52, 58, 64));
+        if (btnImprimirCopiaPuntos != null) {
+            mejorarBoton(btnImprimirCopiaPuntos, new Color(0, 123, 255), Color.WHITE); // Sebastian - Botón azul para imprimir copia
+        }
     }
     
     /**
@@ -444,6 +461,9 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         btnAgregarPuntos.setEnabled(false);
         btnQuitarPuntos.setEnabled(false);
         btnActualizarPuntos.setEnabled(false);
+        if (btnImprimirCopiaPuntos != null) {
+            btnImprimirCopiaPuntos.setEnabled(false);
+        }
 
         repaint();
         refresh();
@@ -530,6 +550,15 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         btnAgregarPuntos.setEnabled(true);
         btnQuitarPuntos.setEnabled(true);
         btnActualizarPuntos.setEnabled(true);
+        if (btnImprimirCopiaPuntos != null && m_oId != null) {
+            try {
+                // Habilitar si hay historial de puntos redimidos
+                java.util.List<PuntosDataLogic.PuntosRedimidos> historial = puntosLogic.getHistorialPuntosRedimidos(m_oId);
+                btnImprimirCopiaPuntos.setEnabled(historial != null && !historial.isEmpty());
+            } catch (Exception e) {
+                btnImprimirCopiaPuntos.setEnabled(false);
+            }
+        }
 
         repaint();
         refresh();
@@ -671,6 +700,15 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         btnAgregarPuntos.setEnabled(true);
         btnQuitarPuntos.setEnabled(true);
         btnActualizarPuntos.setEnabled(true);
+        if (btnImprimirCopiaPuntos != null && m_oId != null) {
+            try {
+                // Habilitar si hay historial de puntos redimidos
+                java.util.List<PuntosDataLogic.PuntosRedimidos> historial = puntosLogic.getHistorialPuntosRedimidos(m_oId);
+                btnImprimirCopiaPuntos.setEnabled(historial != null && !historial.isEmpty());
+            } catch (Exception e) {
+                btnImprimirCopiaPuntos.setEnabled(false);
+            }
+        }
 
         jTableCustomerTransactions.setVisible(false);
         jTableCustomerTransactions.setEnabled(true);
@@ -966,6 +1004,7 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         btnAgregarPuntos = new javax.swing.JButton();
         btnQuitarPuntos = new javax.swing.JButton();
         btnActualizarPuntos = new javax.swing.JButton();
+        btnImprimirCopiaPuntos = new javax.swing.JButton();
 
         setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         setPreferredSize(new java.awt.Dimension(700, 400));
@@ -1762,6 +1801,15 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
                 btnActualizarPuntosActionPerformed(evt);
             }
         });
+        
+        btnImprimirCopiaPuntos.setFont(new java.awt.Font("Arial", 0, 12));
+        btnImprimirCopiaPuntos.setText("Imprimir Copia");
+        btnImprimirCopiaPuntos.setPreferredSize(new java.awt.Dimension(120, 30));
+        btnImprimirCopiaPuntos.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnImprimirCopiaPuntosActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout jPanelPuntajeLayout = new javax.swing.GroupLayout(jPanelPuntaje);
         jPanelPuntaje.setLayout(jPanelPuntajeLayout);
@@ -1783,7 +1831,10 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
                         .addGap(18, 18, 18)
                         .addComponent(btnAgregarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(btnQuitarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
+                        .addComponent(btnQuitarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(jPanelPuntajeLayout.createSequentialGroup()
+                        .addGap(30, 30, 30)
+                        .addComponent(btnImprimirCopiaPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanelPuntajeLayout.setVerticalGroup(
@@ -1800,6 +1851,8 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
                     .addComponent(txtAjustarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btnAgregarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btnQuitarPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(20, 20, 20)
+                .addComponent(btnImprimirCopiaPuntos, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
 
@@ -1982,16 +2035,45 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
                 if (puntosAQuitar > 0) {
                     int puntosActuales = puntosLogic.obtenerPuntos(m_oId);
                     if (puntosActuales >= puntosAQuitar) {
+                        // Sebastian - Confirmar antes de redimir puntos
+                        String nombreCliente = m_jName.getText().trim();
+                        int confirmacion = JOptionPane.showConfirmDialog(this, 
+                            "¿Confirmar redención de " + puntosAQuitar + " puntos?\n\n" +
+                            "Cliente: " + nombreCliente + "\n" +
+                            "Puntos actuales: " + puntosActuales + "\n" +
+                            "Puntos después: " + (puntosActuales - puntosAQuitar) + "\n\n" +
+                            "Se imprimirá un ticket con la información de redención.",
+                            "Confirmar Redención de Puntos",
+                            JOptionPane.YES_NO_OPTION,
+                            JOptionPane.QUESTION_MESSAGE);
+                        
+                        if (confirmacion != JOptionPane.YES_OPTION) {
+                            return; // El usuario canceló
+                        }
+                        
+                        // Redimir los puntos
                         puntosLogic.actualizarPuntos(m_oId, puntosActuales - puntosAQuitar);
                         actualizarPuntosVisuales();
+                        
+                        // Sebastian - Registrar en historial de puntos redimidos
+                        puntosLogic.registrarPuntosRedimidos(m_oId, nombreCliente, puntosAQuitar);
+                        
+                        // Habilitar botón de reimpresión
+                        if (btnImprimirCopiaPuntos != null) {
+                            btnImprimirCopiaPuntos.setEnabled(true);
+                        }
+                        
+                        // Imprimir ticket de puntos redimidos
+                        imprimirTicketPuntosRedimidos(nombreCliente, puntosAQuitar, false);
+                        
                         txtAjustarPuntos.setText("0");
                         JOptionPane.showMessageDialog(this, 
-                            "Se quitaron " + puntosAQuitar + " puntos exitosamente.", 
-                            "Puntos Quitados", 
+                            "Se redimieron " + puntosAQuitar + " puntos exitosamente.", 
+                            "Puntos Redimidos", 
                             JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         JOptionPane.showMessageDialog(this, 
-                            "No se pueden quitar más puntos de los disponibles (" + puntosActuales + ").", 
+                            "No se pueden redimir más puntos de los disponibles (" + puntosActuales + ").", 
                             "Error", 
                             JOptionPane.WARNING_MESSAGE);
                     }
@@ -2008,10 +2090,194 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
                     JOptionPane.ERROR_MESSAGE);
             } catch (BasicException ex) {
                 JOptionPane.showMessageDialog(this, 
-                    "Error al quitar puntos: " + ex.getMessage(), 
+                    "Error al redimir puntos: " + ex.getMessage(), 
                     "Error", 
                     JOptionPane.ERROR_MESSAGE);
+            } catch (Exception ex) {
+                LOGGER.log(System.Logger.Level.WARNING, "Error al imprimir ticket de puntos redimidos: ", ex);
+                JOptionPane.showMessageDialog(this, 
+                    "Puntos redimidos, pero hubo un error al imprimir el ticket: " + ex.getMessage(), 
+                    "Advertencia", 
+                    JOptionPane.WARNING_MESSAGE);
             }
+        }
+    }
+    
+    /**
+     * Sebastian - Imprime un ticket de puntos redimidos
+     * @param nombreCliente Nombre del cliente que redimió los puntos
+     * @param puntosRedimidos Cantidad de puntos redimidos
+     * @param esCopia true si es una copia del ticket, false si es el original
+     */
+    private void imprimirTicketPuntosRedimidos(String nombreCliente, int puntosRedimidos, boolean esCopia) {
+        try {
+            // Sebastian - Forzar actualización del template antes de usarlo
+            actualizarTemplatePuntosRedimidosEnBD();
+            
+            // Obtener el template actualizado desde la base de datos
+            String template = dlSystem.getResourceAsXML("Printer.PuntosRedimidos");
+            
+            if (template == null || template.trim().isEmpty()) {
+                throw new RuntimeException("No se pudo cargar el template Printer.PuntosRedimidos");
+            }
+            
+            // Crear un TicketInfo mínimo para el template
+            TicketInfo ticket = new TicketInfo();
+            ticket.setDate(new java.util.Date());
+            
+            // Convertir AppUser a UserInfo
+            com.openbravo.pos.forms.AppUser appUser = appView.getAppUserView().getUser();
+            if (appUser != null) {
+                UserInfo userInfo = new UserInfo(appUser.getId(), appUser.getName());
+                ticket.setUser(userInfo);
+            }
+            
+            // Crear script de Velocity
+            ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
+            script.put("ticket", ticket);
+            script.put("customerName", nombreCliente != null ? nombreCliente : "");
+            script.put("puntosRedimidos", puntosRedimidos);
+            script.put("esCopia", esCopia);
+            
+            // Evaluar el template y imprimir
+            String ticketText = script.eval(template).toString();
+            ticketParser.printTicket(ticketText, ticket);
+            
+        } catch (Exception ex) {
+            LOGGER.log(System.Logger.Level.WARNING, "Error imprimiendo ticket de puntos redimidos: ", ex);
+            throw new RuntimeException("Error al imprimir ticket: " + ex.getMessage(), ex);
+        }
+    }
+    
+    /**
+     * Sebastian - Actualiza el template Printer.PuntosRedimidos en la base de datos desde el archivo XML
+     */
+    private void actualizarTemplatePuntosRedimidosEnBD() {
+        try {
+            // Leer el archivo XML desde el classpath
+            java.io.InputStream is = getClass().getResourceAsStream("/com/openbravo/pos/templates/Printer.PuntosRedimidos.xml");
+            if (is == null) {
+                LOGGER.log(System.Logger.Level.WARNING, "No se pudo encontrar el archivo Printer.PuntosRedimidos.xml en el classpath");
+                return;
+            }
+            
+            // Leer todo el contenido del archivo
+            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            while ((bytesRead = is.read(buffer)) != -1) {
+                baos.write(buffer, 0, bytesRead);
+            }
+            byte[] templateContent = baos.toByteArray();
+            is.close();
+            baos.close();
+            
+            // Verificar que el contenido no esté vacío
+            if (templateContent == null || templateContent.length == 0) {
+                LOGGER.log(System.Logger.Level.WARNING, "El archivo Printer.PuntosRedimidos.xml está vacío");
+                return;
+            }
+            
+            // Verificar que el contenido contiene el texto corregido (sin la sintaxis problemática)
+            String templateStr = new String(templateContent, java.nio.charset.StandardCharsets.UTF_8);
+            if (templateStr.contains("!\"\"}")) {
+                LOGGER.log(System.Logger.Level.WARNING, "El template todavía contiene la sintaxis problemática. Verificando archivo fuente...");
+                return; // No actualizar si todavía tiene el error
+            }
+            
+            // Sebastian - Eliminar el recurso existente primero para asegurar que se actualice correctamente
+            try {
+                // Acceder a la sesión usando reflexión
+                java.lang.reflect.Field sessionField = dlSystem.getClass().getDeclaredField("session");
+                sessionField.setAccessible(true);
+                com.openbravo.data.loader.Session session = (com.openbravo.data.loader.Session) sessionField.get(dlSystem);
+                
+                // Eliminar el recurso existente
+                com.openbravo.data.loader.SentenceExec deleteResource = new com.openbravo.data.loader.PreparedSentenceExec(
+                    session,
+                    "DELETE FROM resources WHERE NAME = ?",
+                    com.openbravo.data.loader.SerializerWriteString.INSTANCE
+                );
+                deleteResource.exec("Printer.PuntosRedimidos");
+                LOGGER.log(System.Logger.Level.INFO, "Recurso Printer.PuntosRedimidos eliminado de la BD antes de actualizar");
+            } catch (Exception e) {
+                // Si no existe o hay error, no hay problema, continuamos con el UPDATE/INSERT
+                LOGGER.log(System.Logger.Level.DEBUG, "No se pudo eliminar el recurso existente (continuando con UPDATE): " + e.getMessage());
+            }
+            
+            // Insertar el template actualizado en la base de datos
+            // Tipo 0 = texto/XML - setResource hace UPDATE si existe, INSERT si no existe
+            dlSystem.setResource("Printer.PuntosRedimidos", 0, templateContent);
+            LOGGER.log(System.Logger.Level.INFO, "Template Printer.PuntosRedimidos actualizado en la base de datos (" + templateContent.length + " bytes)");
+            
+        } catch (java.io.IOException e) {
+            LOGGER.log(System.Logger.Level.WARNING, "Error leyendo el archivo Printer.PuntosRedimidos.xml: " + e.getMessage(), e);
+        } catch (Exception e) {
+            LOGGER.log(System.Logger.Level.ERROR, "Error actualizando template Printer.PuntosRedimidos en BD: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Sebastian - Reimprime el último ticket de puntos redimidos o muestra historial
+     */
+    private void btnImprimirCopiaPuntosActionPerformed(java.awt.event.ActionEvent evt) {
+        if (m_oId == null) {
+            JOptionPane.showMessageDialog(this, 
+                "Seleccione un cliente primero.", 
+                "Información", 
+                JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+        
+        try {
+            // Obtener historial de puntos redimidos del cliente
+            java.util.List<PuntosDataLogic.PuntosRedimidos> historial = puntosLogic.getHistorialPuntosRedimidos(m_oId);
+            
+            if (historial == null || historial.isEmpty()) {
+                JOptionPane.showMessageDialog(this, 
+                    "No hay tickets de puntos redimidos para este cliente.", 
+                    "Información", 
+                    JOptionPane.INFORMATION_MESSAGE);
+                return;
+            }
+            
+            // Crear diálogo para seleccionar qué ticket reimprimir
+            String[] opciones = new String[historial.size()];
+            for (int i = 0; i < historial.size(); i++) {
+                PuntosDataLogic.PuntosRedimidos redimido = historial.get(i);
+                java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm");
+                opciones[i] = sdf.format(redimido.getFecha()) + " - " + redimido.getPuntosRedimidos() + " puntos";
+            }
+            
+            String seleccionado = (String) JOptionPane.showInputDialog(
+                this,
+                "Seleccione el ticket a reimprimir:",
+                "Reimprimir Ticket de Puntos Redimidos",
+                JOptionPane.QUESTION_MESSAGE,
+                null,
+                opciones,
+                opciones[0]
+            );
+            
+            if (seleccionado != null) {
+                // Encontrar el índice seleccionado
+                int indice = java.util.Arrays.asList(opciones).indexOf(seleccionado);
+                if (indice >= 0 && indice < historial.size()) {
+                    PuntosDataLogic.PuntosRedimidos redimido = historial.get(indice);
+                    imprimirTicketPuntosRedimidos(redimido.getNombreCliente(), redimido.getPuntosRedimidos(), true);
+                    JOptionPane.showMessageDialog(this, 
+                        "Copia del ticket de puntos redimidos impresa exitosamente.", 
+                        "Copia Impresa", 
+                        JOptionPane.INFORMATION_MESSAGE);
+                }
+            }
+            
+        } catch (Exception ex) {
+            LOGGER.log(System.Logger.Level.WARNING, "Error al obtener historial de puntos redimidos: ", ex);
+            JOptionPane.showMessageDialog(this, 
+                "Error al obtener historial: " + ex.getMessage(), 
+                "Error", 
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -2109,6 +2375,7 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
     private javax.swing.JButton btnAgregarPuntos;
     private javax.swing.JButton btnQuitarPuntos;
     private javax.swing.JButton btnActualizarPuntos;
+    private javax.swing.JButton btnImprimirCopiaPuntos; // Sebastian - Botón para reimprimir ticket de puntos
     // End of variables declaration//GEN-END:variables
 
 }

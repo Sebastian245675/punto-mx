@@ -27,7 +27,6 @@ import com.openbravo.pos.forms.AppConfig;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.payment.PaymentInfo;
 import com.openbravo.pos.payment.PaymentInfoMagcard;
-import com.openbravo.pos.payment.PaymentInfoTicket;
 import com.openbravo.pos.util.StringUtils;
 import com.openbravo.pos.util.RoundUtils;
 import java.io.*;
@@ -63,20 +62,14 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     private java.util.Date m_dDate;
     private Properties attributes;
     private UserInfo m_User;
-    private Double multiply;
     private CustomerInfoExt m_Customer;
     private String m_sActiveCash;
     private List<TicketLineInfo> m_aLines;
     private List<PaymentInfo> payments;
     private List<TicketTaxInfo> taxes;
-    private final String m_sResponse;
     private String loyaltyCardNumber;
     private Boolean oldTicket;
     private boolean tip;
-    private PaymentInfoTicket m_paymentInfo;
-    private boolean m_isProcessed;
-    private final String m_locked;
-    private Double nsum;
     private int ticketstatus;
 
     /**
@@ -94,13 +87,10 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_aLines = new ArrayList<>();
         payments = new ArrayList<>();
         taxes = null;
-        m_sResponse = null;
         oldTicket = false;
 
         AppConfig config = AppConfig.getInstance();
         tip = Boolean.valueOf(config.getProperty("machine.showTip"));
-        m_isProcessed = false;
-        m_locked = null;
         ticketstatus = 0;
     }
 
@@ -125,7 +115,9 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         m_Customer = (CustomerInfoExt) in.readObject();
         m_dDate = (Date) in.readObject();
         attributes = (Properties) in.readObject();
-        m_aLines = (List<TicketLineInfo>) in.readObject();
+        @SuppressWarnings("unchecked")
+        List<TicketLineInfo> lines = (List<TicketLineInfo>) in.readObject();
+        m_aLines = lines;
         m_User = null;
         m_sActiveCash = null;
         payments = new ArrayList<>(); // JG June 2102 diamond inference
@@ -221,11 +213,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     }
 
     public void setTicketStatus(int ticketstatus) {
-        if (m_iTicketId > 0) {
-            this.ticketstatus = m_iTicketId;
-        } else {
-            this.ticketstatus = ticketstatus;
-        }
+        this.ticketstatus = ticketstatus;
     }
 
     public void setPickupId(int iTicketId) {
@@ -281,7 +269,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     public String getHost() {
         String machineHostname = (AppConfig.getInstance().getProperty("machine.hostname"));
-        return machineHostname;
+        return machineHostname != null ? machineHostname : "";
     }
 
     public UserInfo getUser() {
@@ -406,7 +394,6 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         if (hasTaxesCalculated()) {
             for (TicketTaxInfo tax : taxes) {
                 sum += tax.getTax(); // Taxes are already rounded...
-                nsum = sum;
             }
         } else {
             sum = m_aLines.stream().map((line)
@@ -491,10 +478,6 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     public boolean hasTip() {
         return tip;
-    }
-
-    public void setIsProcessed(boolean isP) {
-        m_isProcessed = isP;
     }
 
     public TicketTaxInfo getTaxLine(TaxInfo tax) {

@@ -389,7 +389,9 @@ public class DeviceTicket {
      * @return Barcode bar inter-spacing
      */
     public static String alignBarCode(String sLine, int iSize) {
-
+        if (sLine == null) {
+            sLine = "";
+        }
         if (sLine.length() > iSize) {
             return sLine.substring(sLine.length() - iSize);
         } else {
@@ -415,7 +417,9 @@ public class DeviceTicket {
      * @return Reduce spacing
      */
     public static String alignLeft(String sLine, int iSize) {
-
+        if (sLine == null) {
+            sLine = "";
+        }
         if (sLine.length() > iSize) {
             return sLine.substring(0, iSize);
         } else {
@@ -430,7 +434,9 @@ public class DeviceTicket {
      * @return Add spacing
      */
     public static String alignRight(String sLine, int iSize) {
-
+        if (sLine == null) {
+            sLine = "";
+        }
         if (sLine.length() > iSize) {
             return sLine.substring(sLine.length() - iSize);
         } else {
@@ -445,7 +451,9 @@ public class DeviceTicket {
      * @return Adjusts Left/Right spacing
      */
     public static String alignCenter(String sLine, int iSize) {
-
+        if (sLine == null) {
+            sLine = "";
+        }
         if (sLine.length() > iSize) {
             return alignRight(sLine.substring(0, (sLine.length() + iSize) / 2), iSize);
         } else {

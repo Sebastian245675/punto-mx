@@ -77,20 +77,42 @@ public class CustomersPanel extends JPanelTable {
             System.err.println("Error inicializando sistema de puntos: " + e.getMessage());
         }
     }
+    
+    /**
+     * Sebastian - Asegura que dlCustomers esté inicializado
+     */
+    private void ensureDlCustomersInitialized() {
+        if (this.dlCustomers == null && app != null) {
+            try {
+                this.dlCustomers = (DataLogicCustomers) app.getBean("com.openbravo.pos.customers.DataLogicCustomers");
+            } catch (Exception e) {
+                System.err.println("Error inicializando dlCustomers: " + e.getMessage());
+            }
+        }
+    }
 
     @Override
     public void activate() throws BasicException {     
         super.activate();
+        ensureDlCustomersInitialized(); // Asegurar inicialización antes de usar
         jeditor.activate();     
     }
 
     @Override
     public ListProvider getListProvider() {
+        ensureDlCustomersInitialized(); // Asegurar inicialización antes de usar
+        if (dlCustomers == null) {
+            throw new IllegalStateException("DataLogicCustomers no está inicializado");
+        }
         return new ListProviderCreator(dlCustomers.getTableCustomers());
     }
 
     @Override
     public SaveProvider getSaveProvider() {
+        ensureDlCustomersInitialized(); // Asegurar inicialización antes de usar
+        if (dlCustomers == null) {
+            throw new IllegalStateException("DataLogicCustomers no está inicializado");
+        }
         return dlCustomers.getCustomerSaveProvider();
         /*return new DefaultSaveProvider(dlCustomers.getTableCustomers(), new int[] {
             0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14,            
@@ -100,16 +122,28 @@ public class CustomersPanel extends JPanelTable {
 
     @Override
     public Vectorer getVectorer() {
+        ensureDlCustomersInitialized(); // Asegurar inicialización antes de usar
+        if (dlCustomers == null) {
+            throw new IllegalStateException("DataLogicCustomers no está inicializado");
+        }
         return dlCustomers.getTableCustomers().getVectorerBasic(new int[]{1, 2, 3, 4});
     }
 
     @Override
     public ComparatorCreator getComparatorCreator() {
+        ensureDlCustomersInitialized(); // Asegurar inicialización antes de usar
+        if (dlCustomers == null) {
+            throw new IllegalStateException("DataLogicCustomers no está inicializado");
+        }
         return dlCustomers.getTableCustomers().getComparatorCreator(new int[] {1, 2, 3, 4});
     }
 
     @Override
     public ListCellRenderer getListCellRenderer() {
+        ensureDlCustomersInitialized(); // Asegurar inicialización antes de usar
+        if (dlCustomers == null) {
+            throw new IllegalStateException("DataLogicCustomers no está inicializado");
+        }
         return new ListCellRendererBasic(dlCustomers.getTableCustomers().getRenderStringBasic(new int[]{3}));
     }
     

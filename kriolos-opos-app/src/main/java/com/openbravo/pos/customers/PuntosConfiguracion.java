@@ -8,10 +8,6 @@ import com.openbravo.data.loader.DataRead;
 import com.openbravo.data.loader.DataWrite;
 import com.openbravo.data.loader.SerializerRead;
 import com.openbravo.data.loader.SerializerWrite;
-import com.openbravo.data.loader.Session;
-import com.openbravo.data.loader.StaticSentence;
-import com.openbravo.format.Formats;
-import java.sql.SQLException;
 import java.util.Date;
 import java.util.UUID;
 
@@ -105,10 +101,10 @@ public class PuntosConfiguracion {
     /**
      * Serializer para leer desde la base de datos
      */
-    public static SerializerRead getSerializerRead() {
-        return new SerializerRead() {
+    public static SerializerRead<PuntosConfiguracion> getSerializerRead() {
+        return new SerializerRead<PuntosConfiguracion>() {
             @Override
-            public Object readValues(DataRead dr) throws BasicException {
+            public PuntosConfiguracion readValues(DataRead dr) throws BasicException {
                 PuntosConfiguracion config = new PuntosConfiguracion();
                 config.id = dr.getString(1);
                 config.montoPorPunto = dr.getDouble(2);
@@ -126,11 +122,10 @@ public class PuntosConfiguracion {
     /**
      * Serializer para escribir a la base de datos
      */
-    public static SerializerWrite getSerializerWrite() {
-        return new SerializerWrite() {
+    public static SerializerWrite<PuntosConfiguracion> getSerializerWrite() {
+        return new SerializerWrite<PuntosConfiguracion>() {
             @Override
-            public void writeValues(DataWrite dp, Object obj) throws BasicException {
-                PuntosConfiguracion config = (PuntosConfiguracion) obj;
+            public void writeValues(DataWrite dp, PuntosConfiguracion config) throws BasicException {
                 dp.setString(1, config.getId());
                 dp.setDouble(2, config.getMontoPorPunto());
                 dp.setInt(3, config.getPuntosOtorgados());

@@ -290,9 +290,12 @@ public class TicketParser extends DefaultHandler {
                 break;
             case "image":
                 try {
-                    BufferedImage image = dataLogicSystem.getResourceAsImage(currentText.toString());
-                    if (image != null) {
-                        outputPrinter.printImage(image);
+                    String imageName = (currentText != null) ? currentText.toString() : "";
+                    if (!imageName.isEmpty()) {
+                        BufferedImage image = dataLogicSystem.getResourceAsImage(imageName);
+                        if (image != null) {
+                            outputPrinter.printImage(image);
+                        }
                     }
                 } catch (Exception ex) {
                     LOGGER.log(Level.SEVERE, "Failed to load image resource.", ex);
@@ -300,16 +303,18 @@ public class TicketParser extends DefaultHandler {
                 currentText = null;
                 break;
             case "barcode":
+                String barcodeContent = (currentText != null) ? currentText.toString() : "";
                 outputPrinter.printBarCode(barcodeType,
                         barcodePosition,
-                        currentText.toString());
+                        barcodeContent);
                 currentText = null;
                 break;
             case "text":
+                String textContent = (currentText != null) ? currentText.toString() : "";
                 if (textLength > 0) {
-                    outputPrinter.printText(textStyle, DeviceTicket.alignText(textAlignment, currentText.toString(), textLength));
+                    outputPrinter.printText(textStyle, DeviceTicket.alignText(textAlignment, textContent, textLength));
                 } else {
-                    outputPrinter.printText(textStyle, currentText.toString());
+                    outputPrinter.printText(textStyle, textContent);
                 }
                 currentText = null;
                 break;
@@ -380,20 +385,21 @@ public class TicketParser extends DefaultHandler {
                 visorLineBuilder = null;
                 break;
             case "text":
+                String displayTextContent = (currentText != null) ? currentText.toString() : "";
                 if (textLength > 0) {
                     switch (textAlignment) {
                         case DevicePrinter.ALIGN_RIGHT:
-                            visorLineBuilder.append(DeviceTicket.alignRight(currentText.toString(), textLength));
+                            visorLineBuilder.append(DeviceTicket.alignRight(displayTextContent, textLength));
                             break;
                         case DevicePrinter.ALIGN_CENTER:
-                            visorLineBuilder.append(DeviceTicket.alignCenter(currentText.toString(), textLength));
+                            visorLineBuilder.append(DeviceTicket.alignCenter(displayTextContent, textLength));
                             break;
                         default: // DevicePrinter.ALIGN_LEFT
-                            visorLineBuilder.append(DeviceTicket.alignLeft(currentText.toString(), textLength));
+                            visorLineBuilder.append(DeviceTicket.alignLeft(displayTextContent, textLength));
                             break;
                     }
                 } else {
-                    visorLineBuilder.append(currentText);
+                    visorLineBuilder.append(displayTextContent);
                 }
                 // Verificar si es DeviceDisplayLED8 usando el nombre de clase para evitar dependencia directa
                 if (this.textStyle > -1) {

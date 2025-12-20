@@ -3114,13 +3114,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         int puntosNuevos = 0;
                         boolean limiteAlcanzado = false;
                         
-                        if (puntosOtorgadosTicket >= 0) {
+                        if (puntosOtorgadosTicket >= 0 && config != null) {
                             // Se encontraron puntos en el historial para este ticket, usarlos directamente
                             puntosNuevos = puntosOtorgadosTicket;
-                            // Verificar si ya alcanzó el límite (500 puntos ganados hoy en total)
+                            // Verificar si ya alcanzó el límite diario (usando la configuración del sistema)
                             try {
                                 int puntosGanadosHoy = puntosDataLogic.getPuntosGanadosHoy(ticket.getCustomer().getId());
-                                int limiteDiario = config != null ? config.getLimiteDiarioPuntos() : 500;
+                                int limiteDiario = config.getLimiteDiarioPuntos();
                                 if (puntosGanadosHoy >= limiteDiario && puntosOtorgadosTicket == 0) {
                                     // Ya alcanzó el límite y no se otorgaron puntos en esta compra
                                     limiteAlcanzado = true;

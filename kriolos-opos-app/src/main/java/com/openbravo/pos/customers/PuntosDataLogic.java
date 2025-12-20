@@ -899,6 +899,142 @@ public class PuntosDataLogic {
     }
     
     /**
+     * Sebastian - Clase para representar puntos redimidos
+     */
+    public static class PuntosRedimidos {
+        private String clienteId;
+        private String nombreCliente;
+        private int puntosRedimidos;
+        private java.util.Date fecha;
+        
+        public PuntosRedimidos(String clienteId, String nombreCliente, int puntosRedimidos, java.util.Date fecha) {
+            this.clienteId = clienteId;
+            this.nombreCliente = nombreCliente;
+            this.puntosRedimidos = puntosRedimidos;
+            this.fecha = fecha;
+        }
+        
+        public String getClienteId() { return clienteId; }
+        public String getNombreCliente() { return nombreCliente; }
+        public int getPuntosRedimidos() { return puntosRedimidos; }
+        public java.util.Date getFecha() { return fecha; }
+    }
+    
+    /**
+     * Sebastian - Registra puntos redimidos en el historial
+     */
+    public void registrarPuntosRedimidos(String clienteId, String nombreCliente, int puntosRedimidos) throws BasicException {
+        try {
+            // Verificar si existe la tabla, si no crearla
+            try {
+                new StaticSentence(s, "SELECT COUNT(*) FROM PUNTOS_REDIMIDOS").exec();
+            } catch (Exception e) {
+                // Crear tabla si no existe
+                String createTable = 
+                    "CREATE TABLE PUNTOS_REDIMIDOS (" +
+                    "ID VARCHAR(36) NOT NULL PRIMARY KEY, " +
+                    "CLIENTE_ID VARCHAR(36) NOT NULL, " +
+                    "NOMBRE_CLIENTE VARCHAR(255) NOT NULL, " +
+                    "PUNTOS_REDIMIDOS INTEGER NOT NULL, " +
+                    "FECHA_REDENCION TIMESTAMP NOT NULL)";
+                new StaticSentence(s, createTable).exec();
+                System.out.println("✅ Tabla PUNTOS_REDIMIDOS creada exitosamente");
+            }
+            
+            String insertQuery = "INSERT INTO PUNTOS_REDIMIDOS (ID, CLIENTE_ID, NOMBRE_CLIENTE, PUNTOS_REDIMIDOS, FECHA_REDENCION) " +
+                               "VALUES (?, ?, ?, ?, ?)";
+            
+            String id = java.util.UUID.randomUUID().toString();
+            java.sql.Timestamp ahora = new java.sql.Timestamp(System.currentTimeMillis());
+            
+            PreparedSentence sentencia = new PreparedSentence(s, insertQuery, 
+                new SerializerWrite<Object[]>() {
+                    public void writeValues(DataWrite dp, Object[] obj) throws BasicException {
+                        dp.setString(1, (String) obj[0]); // ID
+                        dp.setString(2, (String) obj[1]); // CLIENTE_ID
+                        dp.setString(3, (String) obj[2]); // NOMBRE_CLIENTE
+                        dp.setInt(4, (Integer) obj[3]);   // PUNTOS_REDIMIDOS
+                        dp.setTimestamp(5, (java.sql.Timestamp) obj[4]); // FECHA_REDENCION
+                    }
+                });
+            
+            Object[] params = {id, clienteId, nombreCliente, puntosRedimidos, ahora};
+            sentencia.exec(params);
+            
+            System.out.println("✅ Puntos redimidos registrados: " + puntosRedimidos + " puntos para cliente " + nombreCliente);
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error registrando puntos redimidos: " + e.getMessage());
+            throw new BasicException("Error registrando puntos redimidos: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
+     * Sebastian - Obtiene el historial de puntos redimidos de un cliente
+     */
+    public java.util.List<PuntosRedimidos> getHistorialPuntosRedimidos(String clienteId) throws BasicException {
+        try {
+            java.util.List<PuntosRedimidos> historial = new java.util.ArrayList<>();
+            
+            // Verificar si existe la tabla
+            try {
+                new StaticSentence(s, "SELECT COUNT(*) FROM PUNTOS_REDIMIDOS").exec();
+            } catch (Exception e) {
+                // Tabla no existe, retornar lista vacía
+                return historial;
+            }
+            
+            String query = "SELECT CLIENTE_ID, NOMBRE_CLIENTE, PUNTOS_REDIMIDOS, FECHA_REDENCION " +
+                          "FROM PUNTOS_REDIMIDOS " +
+                          "WHERE CLIENTE_ID = ? " +
+                          "ORDER BY FECHA_REDENCION DESC";
+            
+            PreparedSentence sentencia = new PreparedSentence(s, query, 
+                SerializerWriteString.INSTANCE,
+                new SerializerRead<PuntosRedimidos>() {
+                    @Override
+                    public PuntosRedimidos readValues(DataRead dr) throws BasicException {
+                        String clienteId = dr.getString(1);
+                        String nombreCliente = dr.getString(2);
+                        int puntos = dr.getInt(3);
+                        // Leer la fecha - puede ser Timestamp, Date o null
+                        Object fechaObj = dr.getObject(4);
+                        java.util.Date fecha;
+                        if (fechaObj != null) {
+                            if (fechaObj instanceof java.sql.Timestamp) {
+                                java.sql.Timestamp ts = (java.sql.Timestamp) fechaObj;
+                                fecha = new java.util.Date(ts.getTime());
+                            } else if (fechaObj instanceof java.util.Date) {
+                                fecha = (java.util.Date) fechaObj;
+                            } else if (fechaObj instanceof java.sql.Date) {
+                                java.sql.Date sqlDate = (java.sql.Date) fechaObj;
+                                fecha = new java.util.Date(sqlDate.getTime());
+                            } else {
+                                fecha = new java.util.Date();
+                            }
+                        } else {
+                            fecha = new java.util.Date();
+                        }
+                        return new PuntosRedimidos(clienteId, nombreCliente, puntos, fecha);
+                    }
+                });
+            
+            java.util.List resultados = sentencia.list(clienteId);
+            if (resultados != null) {
+                for (Object obj : resultados) {
+                    historial.add((PuntosRedimidos) obj);
+                }
+            }
+            
+            return historial;
+            
+        } catch (Exception e) {
+            System.err.println("⚠️ Error obteniendo historial de puntos redimidos: " + e.getMessage());
+            throw new BasicException("Error obteniendo historial: " + e.getMessage(), e);
+        }
+    }
+    
+    /**
      * Sebastian - Verifica si las tablas del sistema de puntos ya existen
      */
     private boolean tablasYaExisten() {
