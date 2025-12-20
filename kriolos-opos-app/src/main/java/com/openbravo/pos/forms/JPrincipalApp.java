@@ -242,19 +242,20 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
     @Override
     public void exitToLogin() {
-        // Sebastian - Verificar si hay turno abierto
+        // Sebastian - Verificar si hay turno abierto - OBLIGATORIO cerrar el turno antes de salir
         if (m_appview.getActiveCashDateEnd() == null && m_appview.getActiveCashIndex() != null) {
+            // Mostrar mensaje informativo
             int opcion = JOptionPane.showOptionDialog(
                     this,
-                    "Tienes un turno abierto.\n¿Deseas cerrar el turno antes de salir?",
+                    "Tienes un turno abierto.\nDebes cerrar el turno antes de salir.",
                     "Cerrar Sesión",
-                    JOptionPane.YES_NO_CANCEL_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE,
                     null,
-                    new Object[] { "Cerrar Turno", "Solo Salir", "Cancelar" },
+                    new Object[] { "Cerrar Turno", "Cancelar" },
                     "Cerrar Turno");
 
-            if (opcion == 0) { // Cerrar Turno
+            if (opcion == JOptionPane.OK_OPTION) { // Cerrar Turno
                 java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
                 java.awt.Frame parentFrame = null;
                 if (parentWindow instanceof java.awt.Frame) {
@@ -267,17 +268,17 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 dialog.setVisible(true);
 
                 if (dialog.isClosed() && dialog.shouldCloseShift()) {
+                    // El turno fue cerrado exitosamente, ahora permitir salir
                     m_appview.closeAppView();
                 }
+                // Si canceló el cierre del turno, no hacer nada (no permitir salir)
                 return;
-
-            } else if (opcion == 1) { // Solo Salir
-                m_appview.closeAppView();
             }
-            // Cancelar -> No hacer nada
+            // Si canceló, no hacer nada (no permitir salir)
             return;
         }
 
+        // No hay turno abierto, permitir salir normalmente
         m_appview.closeAppView();
     }
 

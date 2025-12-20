@@ -462,12 +462,36 @@ public class JRootApp extends JPanel implements AppView {
                         "💰 Sebastian POS - Caja activa recuperada con fondo inicial: $" + savedInitialAmount + 
                         " (Caja " + (valcash[3] == null ? "ABIERTA" : "CERRADA") + ")");
 
-                // Sebastian - Solo necesita configuración si el fondo inicial es 0 o menor
-                // IMPORTANTE: Si la caja está abierta y tiene fondo inicial, NO pedir de nuevo
-                needsInitialCashSetup = (savedInitialAmount <= 0.0);
+                // Sebastian - Verificar si hay tickets para determinar si el turno está en uso
+                boolean hasTickets = false;
+                try {
+                    java.sql.Connection con = session.getConnection();
+                    java.sql.PreparedStatement checkStmt = con.prepareStatement(
+                        "SELECT COUNT(*) as ticket_count FROM receipts WHERE MONEY = ?"
+                    );
+                    checkStmt.setString(1, sActiveCashIndex);
+                    java.sql.ResultSet rs = checkStmt.executeQuery();
+                    if (rs.next()) {
+                        hasTickets = rs.getInt("ticket_count") > 0;
+                    }
+                    rs.close();
+                    checkStmt.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error verificando tickets: " + e.getMessage(), e);
+                }
+                
+                // Sebastian - Necesita configuración si:
+                // 1. El fondo inicial es 0 o menor
+                // 2. Y no hay tickets (significa que es un turno nuevo sin usar o de otro usuario)
+                // Si tiene tickets pero fondo inicial es 0, podría ser un problema pero no se pedirá de nuevo
+                needsInitialCashSetup = (savedInitialAmount <= 0.0 && !hasTickets);
                 
                 if (needsInitialCashSetup) {
-                    LOGGER.log(Level.INFO, "🔧 Sebastian - Caja necesita configuración de fondo inicial (valor actual: $" + savedInitialAmount + ")");
+                    LOGGER.log(Level.INFO, "🔧 Sebastian - Caja necesita configuración de fondo inicial (valor actual: $" + savedInitialAmount + 
+                               ", sin tickets - turno nuevo o de otro usuario)");
+                } else if (savedInitialAmount <= 0.0 && hasTickets) {
+                    LOGGER.log(Level.WARNING, "⚠️ Sebastian - Caja tiene fondo inicial 0 pero tiene tickets. " +
+                               "Esto podría indicar un problema, pero no se pedirá fondo inicial de nuevo.");
                 } else {
                     LOGGER.log(Level.INFO, "✅ Sebastian - Caja abierta con fondo inicial configurado: $" + savedInitialAmount + ", NO se pedirá fondo inicial");
                 }
@@ -681,6 +705,185 @@ public class JRootApp extends JPanel implements AppView {
     private void openAppView(AppUser user) {
 
         LOGGER.log(Level.WARNING, "INFO :: showMainAppPanel");
+        
+        // Sebastian - Verificar si hay un turno abierto antes de permitir el login del nuevo usuario
+        // IMPORTANTE: Verificar ANTES de cerrar la vista para poder acceder a m_principalapp
+        boolean belongsToOtherUser = false;
+        AppUser previousUser = null;
+        
+        if (m_principalapp != null) {
+            previousUser = m_principalapp.getUser();
+            if (previousUser != null && !previousUser.getName().equals(user.getName())) {
+                belongsToOtherUser = true;
+                LOGGER.log(Level.INFO, "🔒 Sebastian - Detectado cambio de usuario: " + previousUser.getName() + 
+                           " -> " + user.getName());
+            }
+        }
+        
+        // Sebastian - LÓGICA SIMPLE: Verificar si hay un turno y si tiene fondo inicial configurado
+        String activeCashIndex = getActiveCashIndex();
+        Date activeCashDateEnd = getActiveCashDateEnd();
+        double activeCashInitialAmount = getActiveCashInitialAmount();
+        
+        if (activeCashIndex != null) {
+            if (activeCashDateEnd == null) {
+                // Turno ABIERTO - verificar si tiene fondo inicial configurado
+                LOGGER.log(Level.INFO, "🔒 Sebastian - Hay un turno abierto. Fondo inicial: $" + activeCashInitialAmount);
+                
+                // Si NO tiene fondo inicial, simplemente pedir el fondo inicial (es un turno recién creado)
+                if (activeCashInitialAmount <= 0.0) {
+                    LOGGER.log(Level.INFO, "✅ Sebastian - Turno abierto SIN fondo inicial. Se pedirá fondo inicial.");
+                    // No hacer nada, el sistema pedirá fondo inicial más adelante
+                    belongsToOtherUser = false;
+                } else {
+                    // Tiene fondo inicial - verificar si pertenece al mismo usuario
+                    // Solo verificar si hay un usuario anterior diferente o si hay tickets de otro usuario
+                    if (previousUser != null && !previousUser.getName().equals(user.getName())) {
+                        // Cambio de usuario detectado - verificar si el turno tiene tickets
+                        belongsToOtherUser = checkIfCashBelongsToOtherUser(user);
+                        if (belongsToOtherUser) {
+                            LOGGER.log(Level.INFO, "🔒 Sebastian - Turno abierto pertenece a otro usuario (" + 
+                                       previousUser.getName() + "). Forzando cierre.");
+                        }
+                    } else {
+                        // Mismo usuario o primer login - permitir continuar
+                        LOGGER.log(Level.INFO, "✅ Sebastian - Turno abierto pertenece al mismo usuario o es primer login.");
+                        belongsToOtherUser = false;
+                    }
+                }
+            }
+            
+            if (belongsToOtherUser) {
+                // Forzar el cierre del turno antes de permitir el login del nuevo usuario
+                LOGGER.log(Level.INFO, "🔒 Sebastian - Forzando cierre de turno del usuario anterior antes de permitir login del nuevo usuario");
+                
+                java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
+                Frame parentFrame = null;
+                if (parentWindow instanceof Frame) {
+                    parentFrame = (Frame) parentWindow;
+                } else if (parentWindow instanceof Dialog) {
+                    parentFrame = (Frame) ((Dialog) parentWindow).getParent();
+                }
+                
+                // Obtener el nombre del usuario del turno abierto
+                String turnoUserName = getUserNameFromActiveCash();
+                if (turnoUserName == null && previousUser != null) {
+                    turnoUserName = previousUser.getName();
+                }
+                if (turnoUserName == null) {
+                    turnoUserName = "otro usuario";
+                }
+                
+                // Mostrar mensaje informativo con el nombre del usuario
+                String mensajeUsuario = "Hay un turno abierto del usuario '" + turnoUserName + "'.\n" +
+                        "Debes cerrar el turno antes de iniciar sesión con otro usuario.\n\n" +
+                        "¿Deseas cerrar el turno ahora?";
+                
+                int opcion = JOptionPane.showOptionDialog(
+                        parentFrame,
+                        mensajeUsuario,
+                        "Turno Abierto",
+                        JOptionPane.YES_NO_OPTION,
+                        JOptionPane.WARNING_MESSAGE,
+                        null,
+                        new Object[] { "Cerrar Turno", "Cancelar" },
+                        "Cerrar Turno");
+                
+                if (opcion == JOptionPane.YES_OPTION) {
+                    // Crear una vista temporal del usuario anterior solo para cerrar el turno
+                    AppUser userToCloseShift = null;
+                    try {
+                        if (turnoUserName != null && !turnoUserName.equals("otro usuario")) {
+                            userToCloseShift = m_dlSystem.findPeopleByName(turnoUserName);
+                        }
+                        if (userToCloseShift == null && previousUser != null) {
+                            userToCloseShift = previousUser;
+                        }
+                        
+                        // Si tenemos un usuario, crear una vista temporal solo para cerrar el turno
+                        if (userToCloseShift != null) {
+                            // Guardar el estado actual de m_principalapp
+                            JPrincipalApp previousPrincipalApp = m_principalapp;
+                            
+                            try {
+                                // Crear una vista temporal del usuario anterior solo para cerrar el turno
+                                JPrincipalApp tempApp = new JPrincipalApp(this, userToCloseShift);
+                                
+                                // Asignar temporalmente la vista temporal a m_principalapp para que getAppUserView() funcione
+                                m_principalapp = tempApp;
+                                
+                                // Mostrar diálogo completo de cierre de turno usando this (JRootApp) como AppView
+                                JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, this);
+                                dialog.setVisible(true);
+                                
+                                if (!dialog.isClosed() || !dialog.shouldCloseShift()) {
+                                    // El usuario canceló el cierre del turno, no permitir el login
+                                    LOGGER.log(Level.INFO, "🔒 Sebastian - El usuario canceló el cierre del turno. No se permite el login.");
+                                    return;
+                                }
+                                
+                                LOGGER.log(Level.INFO, "✅ Sebastian - Turno cerrado exitosamente. Continuando con el login del nuevo usuario.");
+                            } finally {
+                                // Restaurar el estado original de m_principalapp
+                                m_principalapp = previousPrincipalApp;
+                            }
+                        } else {
+                            // No se pudo obtener el usuario, mostrar mensaje de error
+                            JOptionPane.showMessageDialog(
+                                    parentFrame,
+                                    "No se pudo obtener la información del usuario del turno abierto.\n" +
+                                    "Por favor, cierra el turno manualmente antes de iniciar sesión.",
+                                    "Error",
+                                    JOptionPane.ERROR_MESSAGE);
+                            LOGGER.log(Level.WARNING, "🔒 Sebastian - No se pudo obtener el usuario del turno. No se permite el login.");
+                            return;
+                        }
+                    } catch (Exception e) {
+                        LOGGER.log(Level.SEVERE, "Error cerrando turno: " + e.getMessage(), e);
+                        JOptionPane.showMessageDialog(
+                                parentFrame,
+                                "Error al cerrar el turno: " + e.getMessage() + "\n" +
+                                "Por favor, cierra el turno manualmente antes de iniciar sesión.",
+                                "Error",
+                                JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+                } else {
+                    // El usuario canceló, no permitir el login
+                    LOGGER.log(Level.INFO, "🔒 Sebastian - El usuario canceló. No se permite el login sin cerrar el turno.");
+                    return;
+                }
+            } else if (activeCashDateEnd != null) {
+                // Turno CERRADO - SIEMPRE crear un nuevo turno y pedir fondo inicial
+                // No importa si pertenece al mismo usuario o a otro, un turno cerrado requiere un nuevo turno
+                LOGGER.log(Level.INFO, "🔒 Sebastian - Hay un turno cerrado. Creando nuevo turno para " + user.getName() + "...");
+                
+                // Verificar si el turno cerrado pertenece a otro usuario (solo para logging)
+                String turnoUserName = getUserNameFromActiveCash();
+                if (turnoUserName != null && !turnoUserName.equals(user.getName())) {
+                    LOGGER.log(Level.INFO, "🔒 Sebastian - Turno cerrado pertenece a otro usuario (" + turnoUserName + 
+                               "). Creando nuevo turno para " + user.getName());
+                } else {
+                    LOGGER.log(Level.INFO, "✅ Sebastian - Turno cerrado. Creando nuevo turno para " + user.getName());
+                }
+                
+                // Crear nuevo turno
+                try {
+                    setActiveCash(UUID.randomUUID().toString(),
+                            m_dlSystem.getSequenceCash(appFileProperties.getHost()) + 1, new Date(), null, 0.0);
+                    m_dlSystem.execInsertCash(
+                            new Object[] { getActiveCashIndex(), appFileProperties.getHost(),
+                                    getActiveCashSequence(),
+                                    getActiveCashDateStart(),
+                                    getActiveCashDateEnd(), 0.0 });
+                    needsInitialCashSetup = true; // SIEMPRE pedir fondo inicial para un nuevo turno
+                    LOGGER.log(Level.INFO, "✅ Sebastian - Nuevo turno creado. Se solicitará fondo inicial.");
+                } catch (BasicException e) {
+                    LOGGER.log(Level.SEVERE, "Error creando nuevo turno: " + e.getMessage(), e);
+                }
+            }
+        }
+        
         if (closeAppView()) {
 
             m_principalapp = new JPrincipalApp(this, user);
@@ -874,6 +1077,43 @@ public class JRootApp extends JPanel implements AppView {
     }
 
     /**
+     * Sebastian - Obtener el nombre del usuario del turno abierto
+     */
+    private String getUserNameFromActiveCash() {
+        try {
+            String activeCashIndex = getActiveCashIndex();
+            if (activeCashIndex == null) {
+                return null;
+            }
+            
+            // Buscar el primer ticket de la caja activa para obtener el usuario
+            java.sql.Connection con = session.getConnection();
+            java.sql.PreparedStatement userCheckStmt = con.prepareStatement(
+                "SELECT people.NAME FROM tickets " +
+                "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                "INNER JOIN people ON tickets.PERSON = people.ID " +
+                "WHERE receipts.MONEY = ? " +
+                "ORDER BY receipts.DATENEW ASC " +
+                "LIMIT 1"
+            );
+            userCheckStmt.setString(1, activeCashIndex);
+            java.sql.ResultSet userCheckRs = userCheckStmt.executeQuery();
+            
+            if (userCheckRs.next()) {
+                String ticketUserName = userCheckRs.getString("NAME");
+                userCheckRs.close();
+                userCheckStmt.close();
+                return ticketUserName;
+            }
+            userCheckRs.close();
+            userCheckStmt.close();
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error obteniendo nombre del usuario del turno: " + e.getMessage(), e);
+        }
+        return null;
+    }
+
+    /**
      * Sebastian - Verificar si la caja activa pertenece a otro usuario
      */
     private boolean checkIfCashBelongsToOtherUser(AppUser currentUser) {
@@ -1040,18 +1280,18 @@ public class JRootApp extends JPanel implements AppView {
 
         // Verificar si hay un turno abierto antes de cerrar
         if (m_principalapp != null && getActiveCashDateEnd() == null && getActiveCashIndex() != null) {
-            // Hay un turno abierto, mostrar diálogo simple primero
+            // Sebastian - Hay un turno abierto, OBLIGATORIO cerrar el turno antes de salir
             int opcion = JOptionPane.showOptionDialog(
                     this,
-                    "Tienes un turno abierto.\n¿Qué deseas hacer?",
+                    "Tienes un turno abierto.\nDebes cerrar el turno antes de salir.",
                     "Turno Abierto",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE,
+                    JOptionPane.OK_CANCEL_OPTION,
+                    JOptionPane.WARNING_MESSAGE,
                     null,
-                    new Object[] { "Cerrar Turno", "Mantener Turno" },
+                    new Object[] { "Cerrar Turno", "Cancelar" },
                     "Cerrar Turno");
 
-            if (opcion == JOptionPane.YES_OPTION) {
+            if (opcion == JOptionPane.OK_OPTION) {
                 // El usuario eligió "Cerrar Turno" - mostrar diálogo completo con información y
                 // dinero físico
                 java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
@@ -1087,59 +1327,8 @@ public class JRootApp extends JPanel implements AppView {
                 }
                 // Si canceló el diálogo de cierre, no hacer nada (no cerrar la aplicación)
                 return;
-            } else if (opcion == JOptionPane.NO_OPTION || opcion == JOptionPane.CLOSED_OPTION) {
-                // El usuario eligió "Mantener Turno" o cerró el diálogo
-                // IMPORTANTE: Asegurar que la caja se mantenga abierta (sin DATEEND) y con su fondo inicial
-                LOGGER.log(Level.INFO, "💾 Sebastian - Manteniendo turno abierto. Guardando estado de caja...");
-                
-                // Asegurar que la caja activa esté guardada correctamente en las propiedades
-                // y que tenga su fondo inicial preservado en la BD
-                try {
-                    // Verificar que la caja en la BD tenga DATEEND = null (abierta)
-                    String activeCashIndex = getActiveCashIndex();
-                    double initialAmount = getActiveCashInitialAmount();
-                    
-                    // Actualizar la caja en la BD para asegurar que esté abierta y con fondo inicial
-                    java.sql.Connection con = session.getConnection();
-                    java.sql.PreparedStatement updateStmt = con.prepareStatement(
-                        "UPDATE closedcash SET DATEEND = NULL, initial_amount = ? WHERE MONEY = ? AND HOST = ?"
-                    );
-                    updateStmt.setDouble(1, initialAmount);
-                    updateStmt.setString(2, activeCashIndex);
-                    updateStmt.setString(3, appFileProperties.getHost());
-                    int rowsUpdated = updateStmt.executeUpdate();
-                    updateStmt.close();
-                    
-                    if (rowsUpdated > 0) {
-                        LOGGER.log(Level.INFO, "✅ Sebastian - Caja mantenida abierta con fondo inicial: $" + initialAmount);
-                    } else {
-                        LOGGER.log(Level.WARNING, "⚠️ Sebastian - No se pudo actualizar la caja en BD, pero continuando...");
-                    }
-                } catch (Exception e) {
-                    LOGGER.log(Level.WARNING, "Error al guardar estado de caja al mantener turno: " + e.getMessage(), e);
-                }
-                
-                // Cerrar la aplicación normalmente
-                if (closeAppView()) {
-                    releaseResources();
-                    if (session != null) {
-                        try {
-                            session.close();
-                        } catch (SQLException ex) {
-                            LOGGER.log(Level.WARNING, "", ex);
-                        }
-                    }
-                    java.awt.Window parent = SwingUtilities.getWindowAncestor(this);
-                    if (parent != null) {
-                        parent.dispose();
-                    } else {
-                        this.setVisible(false);
-                        this.setEnabled(false);
-                    }
-                }
-                return;
             }
-            // Si canceló, no hacer nada
+            // Si canceló, no hacer nada (no cerrar la aplicación)
             return;
         }
 

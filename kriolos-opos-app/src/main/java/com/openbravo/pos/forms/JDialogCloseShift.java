@@ -358,6 +358,7 @@ public class JDialogCloseShift extends JDialog {
             // Cerrar el turno
             Date dNow = new Date();
             
+            // Sebastian - Actualizar el turno existente en lugar de insertar uno nuevo
             if (m_App.getActiveCashDateEnd() == null) {
                 com.openbravo.data.loader.StaticSentence<Object[], Integer> sentence = 
                     new com.openbravo.data.loader.StaticSentence<>(
@@ -381,49 +382,23 @@ public class JDialogCloseShift extends JDialog {
                     m_App.getProperties().getHost(),
                     oldCashIndex
                 });
+                LOGGER.log(Level.INFO, "✅ Sebastian - Turno cerrado correctamente (UPDATE): " + oldCashIndex);
+            } else {
+                // El turno ya estaba cerrado, solo actualizar NOSALES si es necesario
+                LOGGER.log(Level.INFO, "⚠️ Sebastian - El turno ya estaba cerrado: " + oldCashIndex);
             }
             
-            // Crear registro de cierre del turno anterior (si no existe ya)
-            try {
-                m_dlSystem.execInsertCash(
-                    new Object[] {
-                        oldCashIndex,
-                        m_App.getProperties().getHost(),
-                        oldSequence,
-                        oldDateStart,
-                        dNow,
-                        0.0
-                    }
-                );
-            } catch (Exception e) {
-                // Si ya existe, no importa
-                LOGGER.log(Level.FINE, "Registro de cierre ya existe o error al crear: " + e.getMessage());
-            }
-            
-            // Crear nuevo turno con saldo inicial en 0.0 (se pedirá al iniciar)
-            String newCashIndex = UUID.randomUUID().toString();
-            int newSequence = oldSequence + 1;
-            
-            // Crear registro del nuevo turno con saldo inicial en 0.0
-            m_dlSystem.execInsertCash(
-                new Object[] {
-                    newCashIndex,
-                    m_App.getProperties().getHost(),
-                    newSequence,
-                    dNow,
-                    null,
-                    0.0  // Saldo inicial en 0.0 - se pedirá al iniciar la próxima vez
-                }
-            );
-            
-            // Establecer el nuevo turno como activo
+            // Sebastian - Establecer el turno como cerrado en las propiedades (con DATEEND)
+            // El próximo usuario detectará que el turno está cerrado y creará su propio turno
             m_App.setActiveCash(
-                newCashIndex,
-                newSequence,
-                dNow,
-                null,
-                0.0  // Saldo inicial en 0.0 para que se pida al iniciar
+                oldCashIndex,  // Mantener el índice del turno cerrado
+                oldSequence,
+                oldDateStart,
+                dNow,  // DATEEND = ahora (turno cerrado)
+                0.0
             );
+            LOGGER.log(Level.INFO, "✅ Sebastian - Turno cerrado y guardado en propiedades (DATEEND=" + dNow + "). " +
+                       "El próximo usuario detectará el turno cerrado y creará su propio turno.");
             
             // Registrar apertura de cajón
             m_dlSystem.execDrawerOpened(
