@@ -130,18 +130,18 @@
             <text align ="right" length="26" bold="true">${ticket.printTotal()}</text>
         </line>
         #if ($ticket.getCustomer())
-            #if ($customerPoints && $customerPoints != "")
             <line>
                 <text align ="left" length="16">Puntos acumulados:</text>
                 <text align ="right" length="26">${customerPoints}</text>
             </line>
-            #end
-            #if ($customerPointsAfter && $customerPointsAfter != "")
             <line>
-                <text align ="left" length="16">Puntos después:</text>
-                <text align ="right" length="26">${customerPointsAfter}</text>
+                <text align ="left" length="16">Puntos compra:</text>
+                #if ($limiteAlcanzado)
+                <text align ="right" length="26">Límite diario alcanzado</text>
+                #else
+                <text align ="right" length="26">${puntosPorCompra}</text>
+                #end
             </line>
-            #end
         #end
         <line></line>
 
