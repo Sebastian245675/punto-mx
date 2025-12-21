@@ -1567,7 +1567,12 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 script.put("nosales",result.toString());
                 
                 // Si es cierre del día, obtener todos los turnos del día con sus productos
-                Date closeDate = m_PaymentsToClose.getDateEnd();
+                Date closeDate = m_PaymentsToClose != null ? m_PaymentsToClose.getDateEnd() : null;
+                // Si es cierre del día pero no hay fecha, usar la fecha actual
+                if (isDayClose && closeDate == null) {
+                    closeDate = new Date();
+                    LOGGER.info("Cierre del día detectado pero closeDate es null, usando fecha actual: " + Formats.DATE.formatValue(closeDate));
+                }
                 // Variables para almacenar datos de productos (fuera del bloque para poder usarlas después)
                 String productosXML = "";
                 java.util.List<ConsolidatedProduct> consolidatedProductList = new java.util.ArrayList<>();
@@ -1899,41 +1904,72 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             }
                         }
                         
+                        LOGGER.info("Obteniendo ganancias por departamento para " + moneyList.size() + " turnos");
+                        
                         if (!moneyList.isEmpty()) {
                             StringBuilder placeholders = new StringBuilder();
                             for (int i = 0; i < moneyList.size(); i++) {
                                 if (i > 0) placeholders.append(",");
                                 placeholders.append("?");
                             }
+                            // Consulta mejorada: calcular ganancia correctamente y mostrar todos los departamentos con ventas
+                            // Nota: CATORDER puede ser VARCHAR, por lo que usamos CAST o simplemente lo omitimos del ORDER BY
                             String sql = "SELECT COALESCE(categories.NAME, 'Sin Departamento') as CATEGORY_NAME, " +
-                                       "COALESCE(categories.CATORDER, 0) as CAT_ORDER, " +
-                                       "SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) as TOTAL_PROFIT " +
+                                       "SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) as TOTAL_PROFIT, " +
+                                       "SUM(ticketlines.PRICE * ticketlines.UNITS) as TOTAL_SALES, " +
+                                       "SUM(COALESCE(products.PRICEBUY, 0) * ticketlines.UNITS) as TOTAL_COST " +
                                        "FROM ticketlines " +
                                        "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
                                        "INNER JOIN receipts ON tickets.ID = receipts.ID " +
                                        "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
                                        "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
                                        "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
-                                       "GROUP BY COALESCE(categories.NAME, 'Sin Departamento'), COALESCE(categories.CATORDER, 0) " +
-                                       "HAVING SUM((ticketlines.PRICE - COALESCE(products.PRICEBUY, 0)) * ticketlines.UNITS) > 0 " +
-                                       "ORDER BY COALESCE(categories.CATORDER, 0), CATEGORY_NAME";
+                                       "AND ticketlines.PRODUCT IS NOT NULL " +
+                                       "GROUP BY COALESCE(categories.NAME, 'Sin Departamento') " +
+                                       "HAVING SUM(ticketlines.PRICE * ticketlines.UNITS) > 0 " +
+                                       "ORDER BY CATEGORY_NAME";
                             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
                             for (int i = 0; i < moneyList.size(); i++) {
                                 pstmt.setString(i + 1, moneyList.get(i));
                             }
                             java.sql.ResultSet rs = pstmt.executeQuery();
+                            int rowCount = 0;
                             while (rs.next()) {
+                                rowCount++;
                                 String deptName = rs.getString("CATEGORY_NAME");
                                 double profit = rs.getDouble("TOTAL_PROFIT");
+                                double sales = rs.getDouble("TOTAL_SALES");
+                                double cost = rs.getDouble("TOTAL_COST");
+                                
+                                // Verificar si los valores son NULL
+                                if (rs.wasNull()) {
+                                    LOGGER.warning("Valor NULL encontrado para departamento: " + deptName);
+                                    continue;
+                                }
+                                
+                                LOGGER.info("Departamento encontrado: " + deptName + 
+                                          " - Ventas: " + sales + 
+                                          " - Costo: " + cost + 
+                                          " - Ganancia: " + profit);
+                                
+                                // Agregar incluso si la ganancia es 0 o negativa (para debugging)
+                                // Pero solo mostrar en el ticket si hay ganancia positiva
                                 if (profit > 0) {
                                     deptProfitList.add(new DeptProfitData(deptName, profit));
+                                    LOGGER.info("✓ Departamento agregado a la lista: " + deptName + " con ganancia: " + profit);
+                                } else {
+                                    LOGGER.warning("Departamento " + deptName + " tiene ganancia <= 0: " + profit + " (Ventas: " + sales + ", Costo: " + cost + ")");
                                 }
                             }
                             rs.close();
                             pstmt.close();
+                            LOGGER.info("Total departamentos encontrados en BD: " + rowCount + ", departamentos con ganancia > 0: " + deptProfitList.size());
+                        } else {
+                            LOGGER.warning("No hay turnos (moneyList) para calcular ganancias por departamento");
                         }
                     } catch (Exception e) {
-                        LOGGER.log(Level.WARNING, "Error obteniendo ganancias por departamento: " + e.getMessage(), e);
+                        LOGGER.log(Level.SEVERE, "Error obteniendo ganancias por departamento: " + e.getMessage(), e);
+                        e.printStackTrace();
                     }
                     
                     script.put("totalDayCashIn", Formats.CURRENCY.formatValue(totalDayCashIn));
@@ -1944,6 +1980,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     LOGGER.info("Totales del día - Ventas: " + totalDaySales + ", Pagos: " + totalDayPayments);
                     LOGGER.info("Productos consolidados: " + consolidatedProductList.size());
                     LOGGER.info("Turnos procesados: " + (allShifts != null ? allShifts.size() : 0));
+                    LOGGER.info("Ganancias por departamento encontradas: " + deptProfitList.size());
+                    if (!deptProfitList.isEmpty()) {
+                        for (DeptProfitData dept : deptProfitList) {
+                            LOGGER.info("  - " + dept.getDeptName() + ": " + Formats.CURRENCY.formatValue(dept.getProfit()));
+                        }
+                    } else {
+                        LOGGER.warning("⚠️ No se encontraron ganancias por departamento para mostrar en el ticket");
+                    }
                     LOGGER.info("Texto de productos consolidados generado:\n" + productosXML);
                     LOGGER.info("Texto de productos por turno generado:\n" + productosPorTurnoText.toString());
                     if (!consolidatedProductList.isEmpty()) {
@@ -4884,25 +4928,70 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     }//GEN-LAST:event_m_jPrintCashPreviewActionPerformed
 
     private void m_jPrintCash1ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jPrintCash1ActionPerformed
-        // Detectar si es cierre del día verificando si hay múltiples turnos del día
-        Date closeDate = m_PaymentsToClose.getDateEnd();
+        // Detectar si es cierre del día verificando si hay turnos cerrados del día
+        Date closeDate = m_PaymentsToClose != null ? m_PaymentsToClose.getDateEnd() : null;
         boolean isDayClose = false;
         
-        if (closeDate != null) {
-            try {
+        // Siempre buscar turnos del día actual primero (para corte del día después de que todos los turnos están cerrados)
+        Date today = new Date();
+        try {
+            java.util.List<ShiftData> todayShifts = getAllShiftsForDay(today);
+            LOGGER.info("Turnos encontrados para el día actual: " + (todayShifts != null ? todayShifts.size() : 0));
+            
+            // Si hay al menos un turno cerrado del día actual, es cierre del día
+            if (todayShifts != null && todayShifts.size() > 0) {
+                isDayClose = true;
+                closeDate = today; // Usar la fecha actual
+                LOGGER.info("Detectado cierre del día: " + todayShifts.size() + " turnos encontrados para el día actual");
+            } else if (closeDate != null) {
+                // Si no hay turnos del día actual, intentar con la fecha de m_PaymentsToClose
                 java.util.List<ShiftData> allShifts = getAllShiftsForDay(closeDate);
+                LOGGER.info("Turnos encontrados para la fecha de cierre: " + (allShifts != null ? allShifts.size() : 0));
+                
                 // Si hay más de un turno, es cierre del día
                 if (allShifts != null && allShifts.size() > 1) {
                     isDayClose = true;
-                    LOGGER.info("Detectado cierre del día: " + allShifts.size() + " turnos encontrados");
+                    LOGGER.info("Detectado cierre del día: " + allShifts.size() + " turnos encontrados para la fecha de cierre");
                 }
+            } else {
+                LOGGER.warning("No se encontraron turnos para ninguna fecha");
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error detectando si es cierre del día: " + e.getMessage(), e);
+        }
+        
+        // Si es cierre del día y closeDate es null, asegurar que se use la fecha actual
+        if (isDayClose && closeDate == null) {
+            closeDate = new Date();
+            LOGGER.info("Estableciendo fecha actual para el corte del día");
+        }
+        
+        // Si es cierre del día, temporalmente establecer la fecha en m_PaymentsToClose para que printPayments la use
+        Date originalDateEnd = null;
+        if (isDayClose && closeDate != null && m_PaymentsToClose != null) {
+            originalDateEnd = m_PaymentsToClose.getDateEnd();
+            try {
+                m_PaymentsToClose.setDateEnd(closeDate);
+                LOGGER.info("Fecha de cierre establecida temporalmente en m_PaymentsToClose para el corte del día");
             } catch (Exception e) {
-                LOGGER.log(Level.WARNING, "Error detectando si es cierre del día: " + e.getMessage(), e);
+                LOGGER.log(Level.WARNING, "Error estableciendo fecha en m_PaymentsToClose: " + e.getMessage(), e);
             }
         }
         
-        // Usar el mismo template pero con isDayClose para que use el formato correcto
-        printPayments("Printer.CloseCash", isDayClose);
+        try {
+            // Usar el mismo template pero con isDayClose para que use el formato correcto
+            printPayments("Printer.CloseCash", isDayClose);
+        } finally {
+            // Restaurar la fecha original si se modificó
+            if (isDayClose && originalDateEnd != null && m_PaymentsToClose != null) {
+                try {
+                    m_PaymentsToClose.setDateEnd(originalDateEnd);
+                    LOGGER.info("Fecha de cierre restaurada en m_PaymentsToClose");
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING, "Error restaurando fecha en m_PaymentsToClose: " + e.getMessage(), e);
+                }
+            }
+        }
     }//GEN-LAST:event_m_jPrintCash1ActionPerformed
 
     private void m_jReprintCashActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jReprintCashActionPerformed

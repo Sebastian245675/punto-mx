@@ -2720,9 +2720,11 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         jLabel20.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel20.setText(bundle.getString("label.variableprice")); // NOI18N
         jLabel20.setPreferredSize(new java.awt.Dimension(130, 30));
+        jLabel20.setVisible(false); // Ocultar etiqueta de precio variable (mayoreo)
 
         m_jVprice.setFont(new java.awt.Font("Tahoma", 0, 12)); // NOI18N
         m_jVprice.setPreferredSize(new java.awt.Dimension(30, 30));
+        m_jVprice.setVisible(false); // Ocultar checkbox de precio variable (mayoreo)
 
         jLabelAccumPoints.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabelAccumPoints.setText(bundle.getString("label.prodaccumulatespoints")); // NOI18N
@@ -3705,19 +3707,19 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         mainFieldsPanel.add(m_jGrossProfit, gbc);
         row++;
         
-        // Precio Mayoreo
-        gbc.gridx = 0; gbc.gridy = row;
-        javax.swing.JLabel lblMayoreo = new javax.swing.JLabel("Precio Mayoreo:");
-        lblMayoreo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        lblMayoreo.setPreferredSize(new java.awt.Dimension(140, 25));
-        mainFieldsPanel.add(lblMayoreo, gbc);
-        gbc.gridx = 1;
-        m_jPriceSellTax.setPreferredSize(new java.awt.Dimension(160, 30));
-        m_jPriceSellTax.setMaximumSize(new java.awt.Dimension(160, 30));
-        m_jPriceSellTax.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jPriceSellTax.getParent() != null) m_jPriceSellTax.getParent().remove(m_jPriceSellTax);
-        mainFieldsPanel.add(m_jPriceSellTax, gbc);
-        row++;
+        // Precio Mayoreo - OCULTADO
+        // gbc.gridx = 0; gbc.gridy = row;
+        // javax.swing.JLabel lblMayoreo = new javax.swing.JLabel("Precio Mayoreo:");
+        // lblMayoreo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        // lblMayoreo.setPreferredSize(new java.awt.Dimension(140, 25));
+        // mainFieldsPanel.add(lblMayoreo, gbc);
+        // gbc.gridx = 1;
+        // m_jPriceSellTax.setPreferredSize(new java.awt.Dimension(160, 30));
+        // m_jPriceSellTax.setMaximumSize(new java.awt.Dimension(160, 30));
+        // m_jPriceSellTax.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        // if (m_jPriceSellTax.getParent() != null) m_jPriceSellTax.getParent().remove(m_jPriceSellTax);
+        // mainFieldsPanel.add(m_jPriceSellTax, gbc);
+        // row++;
         
         // Checkbox "Acumula Puntos"
         gbc.gridx = 0; gbc.gridy = row;
