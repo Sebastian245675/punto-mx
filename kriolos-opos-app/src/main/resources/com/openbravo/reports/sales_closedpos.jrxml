@@ -15,20 +15,21 @@ CLOSEDCASH.HOSTSEQUENCE,
 CLOSEDCASH.MONEY,
 CLOSEDCASH.DATESTART,
 CLOSEDCASH.DATEEND,
+COALESCE(CLOSEDCASH.INITIAL_AMOUNT, 0.0) AS INITIAL_AMOUNT,
 PAYMENTS.PAYMENT,
 SUM(PAYMENTS.TOTAL) AS TOTAL
 FROM CLOSEDCASH, PAYMENTS
 WHERE CLOSEDCASH.MONEY = PAYMENTS.MONEY
-GROUP BY CLOSEDCASH.HOST, CLOSEDCASH.MONEY, CLOSEDCASH.DATESTART, CLOSEDCASH.DATEEND, PAYMENTS.PAYMENT
+GROUP BY CLOSEDCASH.HOST, CLOSEDCASH.HOSTSEQUENCE, CLOSEDCASH.MONEY, CLOSEDCASH.DATESTART, CLOSEDCASH.DATEEND, CLOSEDCASH.INITIAL_AMOUNT, PAYMENTS.PAYMENT
 ORDER BY CLOSEDCASH.HOST, CLOSEDCASH.DATESTART]]></query>
-	<field name="TOTAL" class="java.lang.Double"/>
 	<field name="HOST" class="java.lang.String"/>
+	<field name="HOSTSEQUENCE" class="java.lang.Integer"/>
 	<field name="MONEY" class="java.lang.String"/>
 	<field name="DATESTART" class="java.util.Date"/>
 	<field name="DATEEND" class="java.util.Date"/>
 	<field name="INITIAL_AMOUNT" class="java.lang.Double"/>
 	<field name="PAYMENT" class="java.lang.String"/>
-	<field name="HOSTSEQUENCE" class="java.lang.Integer"/>
+	<field name="TOTAL" class="java.lang.Double"/>
 	<variable name="BIGTOTAL" calculation="Sum" class="java.lang.Double">
 		<expression><![CDATA[$F{TOTAL}]]></expression>
 		<initialValueExpression><![CDATA[new Double(0.0)]]></initialValueExpression>
@@ -195,7 +196,13 @@ ORDER BY CLOSEDCASH.HOST, CLOSEDCASH.DATESTART]]></query>
 	<title height="52">
 		<element kind="textField" uuid="bf6bf711-bd6c-42bc-b392-cd31a3c74797" key="textField-8" mode="Transparent" x="50" y="33" width="110" height="15" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="true" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Right" vTextAlign="Middle">
 			<paragraph lineSpacing="Single"/>
-			<expression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[1])]]></expression>
+			<expression><![CDATA[($P{ARG} != null && ((Object[])$P{ARG}).length > 0) ? 
+				((((Object[])$P{ARG})[0] instanceof java.util.Date) ? 
+					com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])$P{ARG})[0]) : 
+					((((Object[])$P{ARG}).length > 1 && ((Object[])$P{ARG})[1] instanceof java.util.Date) ? 
+						com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])$P{ARG})[1]) : 
+						"")) : 
+				""]]></expression>
 			<box>
 				<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
@@ -205,7 +212,13 @@ ORDER BY CLOSEDCASH.HOST, CLOSEDCASH.DATESTART]]></query>
 		</element>
 		<element kind="textField" uuid="873a60a6-3c44-4e3a-90eb-b0d1b28400a1" key="textField-9" mode="Transparent" x="170" y="33" width="110" height="15" rotation="None" fontName="SansSerif" fontSize="10.0" pdfFontName="Helvetica" pdfEncoding="Cp1252" pattern="" blankWhenNull="true" bold="false" underline="false" pdfEmbedded="false" strikeThrough="false" italic="false" hTextAlign="Left" vTextAlign="Middle">
 			<paragraph lineSpacing="Single"/>
-			<expression><![CDATA[com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])((Object[])$P{ARG})[0])[3])]]></expression>
+			<expression><![CDATA[($P{ARG} != null && ((Object[])$P{ARG}).length > 1) ? 
+				((((Object[])$P{ARG})[1] instanceof java.util.Date) ? 
+					com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])$P{ARG})[1]) : 
+					((((Object[])$P{ARG}).length > 3 && ((Object[])$P{ARG})[3] instanceof java.util.Date) ? 
+						com.openbravo.format.Formats.TIMESTAMP.formatValue((java.util.Date)((Object[])$P{ARG})[3]) : 
+						"")) : 
+				""]]></expression>
 			<box>
 				<topPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>
 				<leftPen lineWidth="0.0" lineStyle="Solid" lineColor="#000000"/>

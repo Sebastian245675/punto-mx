@@ -4980,23 +4980,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         java.awt.Color btnBorder = new java.awt.Color(220, 220, 220);
         java.awt.Font btnFont = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11);
         int btnHeight = 36;
-
-        // Botón Varios
-        javax.swing.JButton btnVarios = new javax.swing.JButton("INS Varios");
-        btnVarios.setPreferredSize(new java.awt.Dimension(108, btnHeight));
-        btnVarios.setFont(btnFont);
-        btnVarios.setFocusPainted(false);
-        btnVarios.setBackground(btnBg);
-        btnVarios.setForeground(btnFg);
-        btnVarios.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-                javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
-                javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)));
-        btnVarios.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
-        btnVarios.addActionListener(e -> {
-            agregarProductoVarios();
-        });
-        actionButtonsPanel.add(btnVarios);
-
         // Botón Artículo Común
         javax.swing.JButton btnArticuloComun = new javax.swing.JButton("CTRL+P Art. Común");
         btnArticuloComun.setPreferredSize(new java.awt.Dimension(145, btnHeight));

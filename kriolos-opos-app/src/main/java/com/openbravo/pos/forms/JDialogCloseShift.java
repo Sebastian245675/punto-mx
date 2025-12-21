@@ -561,6 +561,7 @@ public class JDialogCloseShift extends JDialog {
                         "closedcash.MONEY, " +
                         "closedcash.DATESTART, " +
                         "closedcash.DATEEND, " +
+                        "COALESCE(closedcash.INITIAL_AMOUNT, 0.0) AS INITIAL_AMOUNT, " +
                         "COALESCE(payments.PAYMENT, 'Sin ventas') AS PAYMENT, " +
                         "COALESCE(SUM(payments.TOTAL), 0.0) AS TOTAL " +
                         "FROM closedcash " +
@@ -570,7 +571,7 @@ public class JDialogCloseShift extends JDialog {
                         "AND closedcash.DATEEND >= ? " +
                         "AND closedcash.DATEEND <= ? " +
                         "AND closedcash.HOST = ? " +
-                        "GROUP BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.MONEY, closedcash.DATESTART, closedcash.DATEEND, COALESCE(payments.PAYMENT, 'Sin ventas') " +
+                        "GROUP BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.MONEY, closedcash.DATESTART, closedcash.DATEEND, closedcash.INITIAL_AMOUNT, COALESCE(payments.PAYMENT, 'Sin ventas') " +
                         "ORDER BY closedcash.HOST, closedcash.HOSTSEQUENCE, closedcash.DATEEND DESC";
                     
                     // Crear sentence con parámetros
@@ -580,13 +581,13 @@ public class JDialogCloseShift extends JDialog {
                         new SerializerWriteBasic(new Datas[] {Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.STRING}),
                         new SerializerReadBasic(new Datas[] {
                             Datas.STRING, Datas.INT, Datas.STRING, 
-                            Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.STRING, Datas.DOUBLE
+                            Datas.TIMESTAMP, Datas.TIMESTAMP, Datas.DOUBLE, Datas.STRING, Datas.DOUBLE
                         })
                     );
                     
                     // Crear campos del reporte
                     ReportFields reportFields = new ReportFieldsArray(
-                        new String[] {"HOST", "HOSTSEQUENCE", "MONEY", "DATESTART", "DATEEND", "PAYMENT", "TOTAL"}
+                        new String[] {"HOST", "HOSTSEQUENCE", "MONEY", "DATESTART", "DATEEND", "INITIAL_AMOUNT", "PAYMENT", "TOTAL"}
                     );
                     
                     // Crear fuente de datos
