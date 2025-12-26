@@ -947,14 +947,14 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 boolean hasValor = templateStr.contains("Valor");
                 boolean hasImporte = templateStr.contains("length=\"10\">Importe");
                 boolean hasCode7 = templateStr.contains("length=\"7\">Código");
-                boolean hasPuntosAcumulados = templateStr.contains("Puntos acumulados:");
-                boolean hasPuntosAcumulado = templateStr.contains("Puntos acumulado");
+                boolean hasPuntosAntes = templateStr.contains("Puntos antes de la compra:");
+                boolean hasPuntosDespues = templateStr.contains("Puntos después de la compra:");
                 java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_content_check\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:863\",\"message\":\"Printer.Ticket template content check\",\"data\":{\"length\":" + templateContent.length + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + ",\"hasPuntosAcumulados\":" + hasPuntosAcumulados + ",\"hasPuntosAcumulado\":" + hasPuntosAcumulado + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_content_check\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:863\",\"message\":\"Printer.Ticket template content check\",\"data\":{\"length\":" + templateContent.length + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + ",\"hasPuntosAntes\":" + hasPuntosAntes + ",\"hasPuntosDespues\":" + hasPuntosDespues + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
                 fw.close();
-                System.out.println("DEBUG: Printer.Ticket template - hasValor=" + hasValor + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7 + ", hasPuntosAcumulados=" + hasPuntosAcumulados + ", hasPuntosAcumulado=" + hasPuntosAcumulado);
-                if (!hasPuntosAcumulados || hasPuntosAcumulado) {
-                    System.err.println("⚠️ ADVERTENCIA: El template Printer.Ticket no tiene 'Puntos acumulados:' correcto!");
+                System.out.println("DEBUG: Printer.Ticket template - hasValor=" + hasValor + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7 + ", hasPuntosAntes=" + hasPuntosAntes + ", hasPuntosDespues=" + hasPuntosDespues);
+                if (!hasPuntosAntes || !hasPuntosDespues) {
+                    System.err.println("⚠️ ADVERTENCIA: El template Printer.Ticket no tiene los textos de puntos correctos!");
                 }
             } catch (Exception ex) {
                 System.out.println("DEBUG: Error logging template content check: " + ex.getMessage());
@@ -1035,21 +1035,21 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 int ticketIndex = templateStr.indexOf("<ticket>");
                 int displayIndex = templateStr.indexOf("<display>");
                 boolean ticketFirst = ticketIndex >= 0 && (displayIndex < 0 || ticketIndex < displayIndex);
-                boolean hasPuntosAcumulados = templateStr.contains("Puntos acumulados:");
-                boolean hasPuntosAcumulado = templateStr.contains("Puntos acumulado");
+                boolean hasPuntosAntes = templateStr.contains("Puntos antes de la compra:");
+                boolean hasPuntosDespues = templateStr.contains("Puntos después de la compra:");
                 java.io.FileWriter fw = new java.io.FileWriter(
                         "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
                 fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_template_updated\",\"timestamp\":"
                         + System.currentTimeMillis()
                         + ",\"location\":\"JPanelTicket.java:864\",\"message\":\"Template Printer.Ticket2 updated in DB\",\"data\":{\"length\":"
                         + templateContent.length + ",\"hasTicket\":" + (ticketIndex >= 0) + ",\"hasDisplay\":"
-                        + (displayIndex >= 0) + ",\"ticketFirst\":" + ticketFirst + ",\"hasPuntosAcumulados\":"
-                        + hasPuntosAcumulados + ",\"hasPuntosAcumulado\":" + hasPuntosAcumulado
+                        + (displayIndex >= 0) + ",\"ticketFirst\":" + ticketFirst + ",\"hasPuntosAntes\":"
+                        + hasPuntosAntes + ",\"hasPuntosDespues\":" + hasPuntosDespues
                         + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"F\"}\n");
                 fw.close();
-                System.out.println("DEBUG: Template Printer.Ticket2 updated in DB, ticketFirst=" + ticketFirst + ", hasPuntosAcumulados=" + hasPuntosAcumulados + ", hasPuntosAcumulado=" + hasPuntosAcumulado);
-                if (!hasPuntosAcumulados || hasPuntosAcumulado) {
-                    System.err.println("⚠️ ADVERTENCIA: El template Printer.Ticket2 no tiene 'Puntos acumulados:' correcto!");
+                System.out.println("DEBUG: Template Printer.Ticket2 updated in DB, ticketFirst=" + ticketFirst + ", hasPuntosAntes=" + hasPuntosAntes + ", hasPuntosDespues=" + hasPuntosDespues);
+                if (!hasPuntosAntes || !hasPuntosDespues) {
+                    System.err.println("⚠️ ADVERTENCIA: El template Printer.Ticket2 no tiene los textos de puntos correctos!");
                 }
             } catch (Exception ex) {
                 System.out.println("DEBUG: Error logging template update: " + ex.getMessage());
