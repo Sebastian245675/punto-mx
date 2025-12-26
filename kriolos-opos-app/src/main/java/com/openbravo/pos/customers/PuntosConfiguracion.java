@@ -83,15 +83,22 @@ public class PuntosConfiguracion {
     
     /**
      * Calcula cuántos puntos corresponden a un monto dado
-     * Sebastian - Modificado para cálculo proporcional
+     * Si el monto es menor al montoPorPunto, no otorga puntos
+     * Si el monto es mayor o igual, calcula proporcionalmente
      * Ejemplo: Si montoPorPunto = $400 y puntosOtorgados = 10
-     * $200 = 5 puntos, $400 = 10 puntos, $800 = 20 puntos, $1200 = 30 puntos
+     * $0-399 = 0 puntos, $400 = 10 puntos, $800 = 20 puntos, $1200 = 30 puntos
      */
     public int calcularPuntos(double monto) {
         if (!sistemaActivo || montoPorPunto <= 0) {
             return 0;
         }
         
+        // Si el monto es menor al monto requerido, no otorga puntos
+        if (monto < montoPorPunto) {
+            return 0;
+        }
+        
+        // Si el monto es mayor o igual, calcula proporcionalmente
         // Cálculo proporcional: (monto / montoPorPunto) * puntosOtorgados
         // Redondeamos hacia abajo para obtener un número entero de puntos
         double puntosDecimales = (monto / montoPorPunto) * puntosOtorgados;

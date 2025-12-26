@@ -244,18 +244,18 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     public void exitToLogin() {
         // Sebastian - Verificar si hay turno abierto - OBLIGATORIO cerrar el turno antes de salir
         if (m_appview.getActiveCashDateEnd() == null && m_appview.getActiveCashIndex() != null) {
-            // Mostrar mensaje informativo
-            int opcion = JOptionPane.showOptionDialog(
-                    this,
-                    "Tienes un turno abierto.\nDebes cerrar el turno antes de salir.",
-                    "Cerrar Sesión",
-                    JOptionPane.OK_CANCEL_OPTION,
-                    JOptionPane.WARNING_MESSAGE,
-                    null,
-                    new Object[] { "Cerrar Turno", "Cancelar" },
-                    "Cerrar Turno");
-
-            if (opcion == JOptionPane.OK_OPTION) { // Cerrar Turno
+            // Verificar si el usuario es empleado (rol "3")
+            boolean isEmployee = false;
+            try {
+                if (m_appuser != null && m_appuser.getRole() != null) {
+                    isEmployee = "3".equals(m_appuser.getRole());
+                }
+            } catch (Exception e) {
+                // Si hay error al obtener el rol, asumir que no es empleado
+            }
+            
+            // Para empleados: abrir directamente el diálogo de cierre sin opción de cancelar
+            if (isEmployee) {
                 java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
                 java.awt.Frame parentFrame = null;
                 if (parentWindow instanceof java.awt.Frame) {
@@ -264,22 +264,74 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     parentFrame = (java.awt.Frame) ((java.awt.Dialog) parentWindow).getParent();
                 }
 
-                JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_appview);
+                // Mostrar mensaje informativo para empleados
+                JOptionPane.showMessageDialog(
+                    this,
+                    "Tienes un turno abierto.\nDebes cerrar el turno antes de salir del perfil.",
+                    "Cierre de Caja Obligatorio",
+                    JOptionPane.WARNING_MESSAGE);
+
+                JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_appview, isEmployee);
                 dialog.setVisible(true);
 
                 if (dialog.isClosed() && dialog.shouldCloseShift()) {
                     // El turno fue cerrado exitosamente, ahora permitir salir
-                    m_appview.closeAppView();
+                    // Cerrar la vista de usuario ANTES de mostrar login
+                    if (m_appview.closeAppView()) {
+                        // Mostrar panel de login después de cerrar la vista
+                        ((JRootApp) m_appview).showLoginPanelPublic();
+                    }
+                } else {
+                    // Si canceló el cierre del turno, no permitir salir
+                    // El diálogo ya se cerró pero no se completó el cierre
+                    return;
                 }
-                // Si canceló el cierre del turno, no hacer nada (no permitir salir)
+            } else {
+                // Para otros roles: mostrar mensaje pero también hacer obligatorio el cierre
+                int opcion = JOptionPane.showOptionDialog(
+                        this,
+                        "Tienes un turno abierto.\nDebes cerrar el turno antes de salir del perfil.",
+                        "Cerrar Sesión",
+                        JOptionPane.OK_CANCEL_OPTION,
+                        JOptionPane.WARNING_MESSAGE,
+                        null,
+                        new Object[] { "Cerrar Turno", "Cancelar" },
+                        "Cerrar Turno");
+
+                if (opcion == JOptionPane.OK_OPTION) { // Cerrar Turno
+                    java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
+                    java.awt.Frame parentFrame = null;
+                    if (parentWindow instanceof java.awt.Frame) {
+                        parentFrame = (java.awt.Frame) parentWindow;
+                    } else if (parentWindow instanceof java.awt.Dialog) {
+                        parentFrame = (java.awt.Frame) ((java.awt.Dialog) parentWindow).getParent();
+                    }
+
+                    JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_appview);
+                    dialog.setVisible(true);
+
+                    if (dialog.isClosed() && dialog.shouldCloseShift()) {
+                        // El turno fue cerrado exitosamente, ahora permitir salir
+                        // Cerrar la vista de usuario ANTES de mostrar login
+                        if (m_appview.closeAppView()) {
+                            // Mostrar panel de login después de cerrar la vista
+                            ((JRootApp) m_appview).showLoginPanelPublic();
+                        }
+                    }
+                    // Si canceló el cierre del turno, no hacer nada (no permitir salir)
+                    return;
+                }
+                // Si canceló, no hacer nada (no permitir salir)
                 return;
             }
-            // Si canceló, no hacer nada (no permitir salir)
-            return;
         }
 
         // No hay turno abierto, permitir salir normalmente
-        m_appview.closeAppView();
+        // Cerrar la vista de usuario ANTES de mostrar login
+        if (m_appview.closeAppView()) {
+            // Mostrar panel de login después de cerrar la vista
+            ((JRootApp) m_appview).showLoginPanelPublic();
+        }
     }
 
     private void addView(JComponent component, String sView) {

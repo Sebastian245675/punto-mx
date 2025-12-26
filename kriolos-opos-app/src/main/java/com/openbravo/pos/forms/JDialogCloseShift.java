@@ -64,15 +64,23 @@ public class JDialogCloseShift extends JDialog {
     private AppView m_App;
     private DataLogicSystem m_dlSystem;
     private PaymentsModel m_PaymentsToClose;
+    private Frame parentFrame; // Guardar el frame padre para usarlo en el reporte
     
     private JTextField txtDineroFisico;
     private JLabel lblDiferencia;
     private JButton btnCerrarTurno;
     private JButton btnCancelar;
+    private boolean isEmployee = false;
     
     public JDialogCloseShift(Frame parent, AppView app) {
+        this(parent, app, false);
+    }
+    
+    public JDialogCloseShift(Frame parent, AppView app, boolean isEmployee) {
         super(parent, true);
+        this.parentFrame = parent; // Guardar el frame padre
         this.m_App = app;
+        this.isEmployee = isEmployee;
         
         try {
             m_dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
@@ -89,6 +97,15 @@ public class JDialogCloseShift extends JDialog {
         
         initComponents();
         loadData();
+        
+        // Para empleados: deshabilitar cancelar y hacer el diálogo no cancelable
+        if (isEmployee) {
+            if (btnCancelar != null) {
+                btnCancelar.setEnabled(false);
+                btnCancelar.setVisible(false);
+            }
+            setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
+        }
     }
     
     private void initComponents() {
@@ -425,10 +442,9 @@ public class JDialogCloseShift extends JDialog {
                     JOptionPane.QUESTION_MESSAGE);
                 
                 if (option == JOptionPane.YES_OPTION) {
-                    // Mostrar reporte del día automáticamente
-                    SwingUtilities.invokeLater(() -> {
-                        showDayReport(dNow);
-                    });
+                    // Mostrar reporte del día de forma síncrona (bloquea hasta que se cierre)
+                    // Esto asegura que el reporte se muestre ANTES de cerrar el diálogo principal
+                    showDayReport(dNow);
                 }
             } else {
                 JOptionPane.showMessageDialog(this,
@@ -437,6 +453,7 @@ public class JDialogCloseShift extends JDialog {
                     JOptionPane.INFORMATION_MESSAGE);
             }
             
+            // Solo marcar como cerrado y cerrar el diálogo DESPUÉS de que todos los diálogos se hayan cerrado
             closed = true;
             shouldCloseShift = true;
             dispose();
@@ -511,8 +528,22 @@ public class JDialogCloseShift extends JDialog {
      */
     private void showDayReport(Date closeDate) {
         try {
-            // Crear diálogo para mostrar el reporte
-            JDialog reportDialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this), 
+            // Usar el frame padre guardado en el constructor
+            // Si no está disponible, intentar obtenerlo del window ancestor
+            Frame frameToUse = this.parentFrame;
+            if (frameToUse == null) {
+                Window parentWindow = SwingUtilities.getWindowAncestor(this);
+                if (parentWindow instanceof Frame) {
+                    frameToUse = (Frame) parentWindow;
+                } else if (parentWindow instanceof Dialog) {
+                    frameToUse = (Frame) ((Dialog) parentWindow).getParent();
+                }
+            }
+            
+            // Crear diálogo para mostrar el reporte (modal, bloquea hasta que se cierre)
+            // IMPORTANTE: Este diálogo debe mostrarse ANTES de que el diálogo principal se cierre
+            // El diálogo es modal, por lo que setVisible(true) bloqueará hasta que se cierre
+            JDialog reportDialog = new JDialog(frameToUse, 
                 "Reporte de Caja Cerrada - Día Completo", true);
             reportDialog.setSize(1000, 700);
             reportDialog.setLocationRelativeTo(this);

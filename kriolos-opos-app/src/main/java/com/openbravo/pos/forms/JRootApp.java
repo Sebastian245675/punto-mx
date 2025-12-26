@@ -1386,6 +1386,11 @@ public class JRootApp extends JPanel implements AppView {
         }
         showView("login");
     }
+    
+    // Método público para mostrar el panel de login desde otras clases
+    public void showLoginPanelPublic() {
+        showLoginPanel();
+    }
 
     private void setStatusBarPanel() {
         String sWareHouse;
