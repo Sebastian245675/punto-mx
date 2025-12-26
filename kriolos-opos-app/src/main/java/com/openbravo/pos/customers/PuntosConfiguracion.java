@@ -83,10 +83,14 @@ public class PuntosConfiguracion {
     
     /**
      * Calcula cuántos puntos corresponden a un monto dado
-     * Si el monto es menor al montoPorPunto, no otorga puntos
-     * Si el monto es mayor o igual, calcula proporcionalmente
-     * Ejemplo: Si montoPorPunto = $400 y puntosOtorgados = 10
-     * $0-399 = 0 puntos, $400 = 10 puntos, $800 = 20 puntos, $1200 = 30 puntos
+     * Solo otorga puntos completos cuando se alcanza cada umbral completo
+     * No otorga fracciones de puntos
+     * Ejemplo: Si montoPorPunto = $800 y puntosOtorgados = 10
+     * $0-799 = 0 puntos, $800-1599 = 10 puntos, $1600-2399 = 20 puntos, etc.
+     * 
+     * IMPORTANTE: Solo se otorgan puntos cuando se alcanza cada umbral completo.
+     * Si el monto es $1200 y el umbral es $800, solo se otorgan 10 puntos (1 umbral completo),
+     * no 15 puntos proporcionales.
      */
     public int calcularPuntos(double monto) {
         if (!sistemaActivo || montoPorPunto <= 0) {
@@ -98,11 +102,14 @@ public class PuntosConfiguracion {
             return 0;
         }
         
-        // Si el monto es mayor o igual, calcula proporcionalmente
-        // Cálculo proporcional: (monto / montoPorPunto) * puntosOtorgados
-        // Redondeamos hacia abajo para obtener un número entero de puntos
-        double puntosDecimales = (monto / montoPorPunto) * puntosOtorgados;
-        return (int) Math.floor(puntosDecimales);
+        // Calcular cuántos tramos completos se han alcanzado
+        // Ejemplo: monto = 1200, montoPorPunto = 800
+        // tramosCompletos = floor(1200/800) = floor(1.5) = 1
+        // puntos = 1 * 10 = 10 puntos (solo 1 umbral completo)
+        int tramosCompletos = (int) Math.floor(monto / montoPorPunto);
+        
+        // Los puntos son el número de tramos completos multiplicado por los puntos otorgados
+        return tramosCompletos * puntosOtorgados;
     }
     
     /**

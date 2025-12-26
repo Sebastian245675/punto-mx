@@ -316,12 +316,16 @@ public class PuntosDataLogic {
         }
         
         // Actualizar el acumulable diario (SIEMPRE, incluso si no se otorgaron puntos)
+        // IMPORTANTE: Este acumulable restante se guarda para que las próximas compras del día
+        // puedan seguir acumulando desde donde quedó
         try {
             actualizarAcumulableDiario(clienteId, nuevoAcumulableRestante);
-            System.out.println("✅ Acumulable actualizado exitosamente: $" + nuevoAcumulableRestante);
+            System.out.println("✅ Acumulable diario guardado: $" + nuevoAcumulableRestante + 
+                             " (este valor se usará en la próxima compra del día)");
         } catch (Exception e) {
             System.err.println("❌ ERROR actualizando acumulable: " + e.getMessage());
             e.printStackTrace();
+            // No lanzar excepción para no interrumpir la venta, pero registrar el error
         }
     }
     
@@ -1107,22 +1111,25 @@ public class PuntosDataLogic {
                 // Si la fecha es diferente a hoy, resetear el acumulable
                 if (!mismoDia) {
                     System.out.println("🔄 Nuevo día detectado para cliente " + clienteId + 
-                                     ", reseteando acumulable");
+                                     ", reseteando acumulable (fecha anterior: " + fechaActualizacion + ")");
                     actualizarAcumulableDiario(clienteId, 0.0);
                     return 0.0;
                 }
                 
-                System.out.println("✅ Acumulable recuperado: $" + montoAcumulado + 
-                                 " (fecha: " + fechaActualizacion + ")");
+                System.out.println("✅ Acumulable recuperado del día: $" + montoAcumulado + 
+                                 " (fecha última actualización: " + fechaActualizacion + ")");
                 return montoAcumulado;
             } else {
                 // No existe registro, crear uno con acumulable 0
+                System.out.println("ℹ️ No existe registro de acumulable para cliente " + clienteId + 
+                                 ", creando nuevo registro con acumulable = $0.00");
                 actualizarAcumulableDiario(clienteId, 0.0);
                 return 0.0;
             }
             
         } catch (Exception e) {
             System.err.println("⚠️ Error obteniendo acumulable diario para cliente " + clienteId + ": " + e.getMessage());
+            e.printStackTrace();
             // Si hay error (tabla no existe), retornar 0 y la tabla se creará en la próxima actualización
             return 0.0;
         }
@@ -1150,7 +1157,7 @@ public class PuntosDataLogic {
                                    "WHERE CLIENTE_ID = ?";
                 
                 System.out.println("🔄 ACTUALIZANDO acumulable existente - Cliente: " + clienteId + 
-                                 ", Nuevo monto: $" + nuevoMonto);
+                                 ", Nuevo monto: $" + nuevoMonto + ", Fecha: " + ahora);
                 
                 PreparedSentence updateSentencia = new PreparedSentence(s, updateQuery,
                     new SerializerWrite<Object[]>() {
@@ -1164,7 +1171,7 @@ public class PuntosDataLogic {
                 
                 Object[] params = {nuevoMonto, ahora, clienteId};
                 updateSentencia.exec(params);
-                System.out.println("✅ Acumulable actualizado en BD: $" + nuevoMonto);
+                System.out.println("✅ Acumulable actualizado en BD: $" + nuevoMonto + " (fecha: " + ahora + ")");
             } else {
                 // Insertar nuevo registro
                 String insertQuery = "INSERT INTO PUNTOS_ACUMULABLE_DIARIO " +
@@ -1186,7 +1193,7 @@ public class PuntosDataLogic {
                 
                 Object[] params = {clienteId, nuevoMonto, ahora};
                 insertSentencia.exec(params);
-                System.out.println("✅ Acumulable insertado en BD: $" + nuevoMonto);
+                System.out.println("✅ Acumulable insertado en BD: $" + nuevoMonto + " (fecha: " + ahora + ")");
             }
             
         } catch (Exception e) {

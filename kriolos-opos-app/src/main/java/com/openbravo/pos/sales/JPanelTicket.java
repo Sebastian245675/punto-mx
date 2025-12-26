@@ -138,9 +138,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private StringBuffer m_sBarcode;
     // Sebastian - Flag para evitar que el diálogo de granel se abra dos veces
     private volatile boolean m_bGranelDialogOpen = false;
-    // Sebastian - Flag para evitar que el mensaje de stock insuficiente se muestre dos veces
-    private volatile boolean m_bStockMessageShown = false;
-    private String m_sLastStockProductId = null;
 
     private JTicketsBag m_ticketsbag;
     private TicketParser m_TTP;
@@ -947,15 +944,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 boolean hasValor = templateStr.contains("Valor");
                 boolean hasImporte = templateStr.contains("length=\"10\">Importe");
                 boolean hasCode7 = templateStr.contains("length=\"7\">Código");
-                boolean hasPuntosAntes = templateStr.contains("Puntos antes de la compra:");
-                boolean hasPuntosDespues = templateStr.contains("Puntos después de la compra:");
                 java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_content_check\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:863\",\"message\":\"Printer.Ticket template content check\",\"data\":{\"length\":" + templateContent.length + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + ",\"hasPuntosAntes\":" + hasPuntosAntes + ",\"hasPuntosDespues\":" + hasPuntosDespues + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_content_check\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:863\",\"message\":\"Printer.Ticket template content check\",\"data\":{\"length\":" + templateContent.length + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
                 fw.close();
-                System.out.println("DEBUG: Printer.Ticket template - hasValor=" + hasValor + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7 + ", hasPuntosAntes=" + hasPuntosAntes + ", hasPuntosDespues=" + hasPuntosDespues);
-                if (!hasPuntosAntes || !hasPuntosDespues) {
-                    System.err.println("⚠️ ADVERTENCIA: El template Printer.Ticket no tiene los textos de puntos correctos!");
-                }
+                System.out.println("DEBUG: Printer.Ticket template - hasValor=" + hasValor + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7);
             } catch (Exception ex) {
                 System.out.println("DEBUG: Error logging template content check: " + ex.getMessage());
             }
@@ -1035,22 +1027,16 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 int ticketIndex = templateStr.indexOf("<ticket>");
                 int displayIndex = templateStr.indexOf("<display>");
                 boolean ticketFirst = ticketIndex >= 0 && (displayIndex < 0 || ticketIndex < displayIndex);
-                boolean hasPuntosAntes = templateStr.contains("Puntos antes de la compra:");
-                boolean hasPuntosDespues = templateStr.contains("Puntos después de la compra:");
                 java.io.FileWriter fw = new java.io.FileWriter(
                         "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
                 fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_template_updated\",\"timestamp\":"
                         + System.currentTimeMillis()
                         + ",\"location\":\"JPanelTicket.java:864\",\"message\":\"Template Printer.Ticket2 updated in DB\",\"data\":{\"length\":"
                         + templateContent.length + ",\"hasTicket\":" + (ticketIndex >= 0) + ",\"hasDisplay\":"
-                        + (displayIndex >= 0) + ",\"ticketFirst\":" + ticketFirst + ",\"hasPuntosAntes\":"
-                        + hasPuntosAntes + ",\"hasPuntosDespues\":" + hasPuntosDespues
+                        + (displayIndex >= 0) + ",\"ticketFirst\":" + ticketFirst
                         + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"F\"}\n");
                 fw.close();
-                System.out.println("DEBUG: Template Printer.Ticket2 updated in DB, ticketFirst=" + ticketFirst + ", hasPuntosAntes=" + hasPuntosAntes + ", hasPuntosDespues=" + hasPuntosDespues);
-                if (!hasPuntosAntes || !hasPuntosDespues) {
-                    System.err.println("⚠️ ADVERTENCIA: El template Printer.Ticket2 no tiene los textos de puntos correctos!");
-                }
+                System.out.println("DEBUG: Template Printer.Ticket2 updated in DB, ticketFirst=" + ticketFirst);
             } catch (Exception ex) {
                 System.out.println("DEBUG: Error logging template update: " + ex.getMessage());
             }
@@ -1365,36 +1351,35 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private void addTicketLine(ProductInfoExt oProduct, double dMul, double dPrice) {
 
         LOGGER.log(System.Logger.Level.INFO, "Product onoProduct.isVprice: ", oProduct.isVprice());
-        
-        // Verificar stock UNA SOLA VEZ al inicio del método (evita duplicación)
-        try {
-            if (!oProduct.isService() && dMul > 0.0) {
-                ProductStock checkProduct = dlSales.getProductStockState(oProduct.getID(),
-                        m_App.getInventoryLocation());
-                if (checkProduct == null) {
-                    MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
-                            AppLocal.getIntString("message.location.current"));
-                    msg.show(this);
-                    return;
-                } else {
-                    double unitsAvailable = checkProduct.getUnits();
-                    if (unitsAvailable < dMul || unitsAvailable <= 0) {
-                        // Show actionable dialog to manage stock
-                        showInsufficientStockDialog(oProduct);
-                        return;
-                    }
-                }
-            }
-        } catch (BasicException ex) {
-            LOGGER.log(System.Logger.Level.WARNING, "Could not check product stock", ex);
-            // Allow adding if stock check fails - backend also checks it on save
-        }
-        
         if (oProduct.isVprice()) {
             TaxInfo tax = taxeslogic.getTaxInfo(oProduct.getTaxCategoryID(), m_oTicket.getCustomer());
 
             if (m_jaddtax.isSelected()) {
                 dPrice /= (1 + tax.getRate());
+            }
+
+            // Check stock for variable price product as well
+            try {
+                if (!oProduct.isService() && dMul > 0.0) {
+                    ProductStock checkProduct = dlSales.getProductStockState(oProduct.getID(),
+                            m_App.getInventoryLocation());
+                    if (checkProduct == null) {
+                        MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                                AppLocal.getIntString("message.location.current"));
+                        msg.show(this);
+                        return;
+                    } else {
+                        double unitsAvailable = checkProduct.getUnits();
+                        if (unitsAvailable < dMul || unitsAvailable <= 0) {
+                            // Show actionable dialog to manage stock
+                            showInsufficientStockDialog(oProduct);
+                            return;
+                        }
+                    }
+                }
+            } catch (BasicException ex) {
+                LOGGER.log(System.Logger.Level.WARNING, "Could not check product stock", ex);
+                // Allow adding if stock check fails - backend also checks it on save
             }
 
             addTicketLine(new TicketLineInfo(oProduct, dMul, dPrice, tax,
@@ -1413,6 +1398,31 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             Properties props = new Properties();
             if (oProduct.getProperties() != null && !oProduct.getProperties().isEmpty()) {
                 props = (java.util.Properties) oProduct.getProperties().clone();
+            }
+
+            // Check stock before adding to the ticket (avoid negative stock at UI level)
+            try {
+                if (!oProduct.isService() && dMul > 0.0) {
+                    ProductStock checkProduct = dlSales.getProductStockState(oProduct.getID(),
+                            m_App.getInventoryLocation());
+                    if (checkProduct == null) {
+                        // No stock assigned to this location
+                        MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                                AppLocal.getIntString("message.location.current"));
+                        msg.show(this);
+                        return;
+                    } else {
+                        double unitsAvailable = checkProduct.getUnits();
+                        if (unitsAvailable < dMul || unitsAvailable <= 0) {
+                            // Show actionable dialog to manage stock
+                            showInsufficientStockDialog(oProduct);
+                            return;
+                        }
+                    }
+                }
+            } catch (BasicException ex) {
+                LOGGER.log(System.Logger.Level.WARNING, "Could not check product stock", ex);
+                // Allow adding if stock check fails - backend also checks it on save
             }
 
             addTicketLine(new TicketLineInfo(oProduct, dMul, dPrice, tax, props));
@@ -1588,73 +1598,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      * @param oProduct
      */
     private void showInsufficientStockDialog(ProductInfoExt oProduct) {
-        // Protección contra mensajes duplicados - verificar si ya se mostró para este producto
-        String productId = oProduct != null ? oProduct.getID() : null;
-        if (m_bStockMessageShown && productId != null && productId.equals(m_sLastStockProductId)) {
-            // Ya se mostró el mensaje para este producto, no mostrar de nuevo
-            return;
-        }
-        
-        // Verificar si el usuario es empleado (rol 3)
-        boolean isEmployee = false;
-        try {
-            String userRole = m_App.getAppUserView().getUser().getRole();
-            isEmployee = "3".equals(userRole);
-        } catch (Exception ex) {
-            // Si hay error al obtener el rol, asumir que no es empleado
-        }
-        
-        if (isEmployee) {
-            // Marcar que se mostró el mensaje antes de mostrarlo
-            m_bStockMessageShown = true;
-            m_sLastStockProductId = productId;
-            
-            // Para empleados: mensaje simple sin opciones
-            JOptionPane.showMessageDialog(this,
-                    "No hay stock disponible",
-                    "Sin Stock",
-                    JOptionPane.WARNING_MESSAGE);
-            
-            // Resetear el flag después de mostrar (usar un pequeño delay para evitar llamadas muy rápidas)
-            new Thread(() -> {
-                try {
-                    Thread.sleep(500); // 500ms de protección
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                } finally {
-                    m_bStockMessageShown = false;
-                    m_sLastStockProductId = null;
-                }
-            }).start();
-            
-            return;
-        }
-        
-        // Para otros usuarios, también marcar para evitar duplicados
-        m_bStockMessageShown = true;
-        m_sLastStockProductId = productId;
-        
-        // Para otros usuarios: mostrar diálogo con opción de gestionar stock
         String msgTemplate = AppLocal.getIntString("message.stockinsufficient_action");
         String title = AppLocal.getIntString("message.stockinsufficient_title");
-        String message = MessageFormat.format(msgTemplate, oProduct != null ? oProduct.getName() : "producto");
+        String message = MessageFormat.format(msgTemplate, oProduct.getName());
         Object[] options = new Object[] { AppLocal.getIntString("message.manage.stock"),
                 AppLocal.getIntString("button.cancel") };
         int res = JOptionPane.showOptionDialog(this, message, title, JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE, null, options, options[0]);
-        
-        // Resetear el flag después de mostrar el diálogo
-        new Thread(() -> {
-            try {
-                Thread.sleep(500); // 500ms de protección
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            } finally {
-                m_bStockMessageShown = false;
-                m_sLastStockProductId = null;
-            }
-        }).start();
-        
         if (res == 0) { // Manage stock
             // Open Stock Management view and attempt to select the product in the stock
             // view
@@ -2907,6 +2857,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
                                 // Sebastian - Otorgar puntos automáticamente después de guardar el ticket
                                 procesarPuntosAutomaticos(ticket);
+                                
+                                // Sebastian - Actualizar visualización de puntos después de procesarlos
+                                updateCustomerPointsDisplay();
 
                                 /*
                                  * // Check low stock for products after the ticket is saved and notify the user
@@ -2961,35 +2914,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 // dialog
                                 String message = ex.getMessage();
                                 if (message != null && message.contains("Insufficient stock for product")) {
-                                    // Verificar si el usuario es empleado (rol 3)
-                                    // Para empleados, no mostrar el mensaje aquí porque ya se mostró al intentar agregar el producto
-                                    boolean isEmployee = false;
-                                    try {
-                                        String userRole = m_App.getAppUserView().getUser().getRole();
-                                        isEmployee = "3".equals(userRole);
-                                    } catch (Exception e) {
-                                        // Si hay error al obtener el rol, asumir que no es empleado
-                                    }
-                                    
-                                    if (!isEmployee) {
-                                        // Solo mostrar mensaje para no-empleados
-                                        // Try to extract ID from message: pattern (id=PRODUCT_ID)
-                                        java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\(id=(.*?)\\)");
-                                        java.util.regex.Matcher m = p.matcher(message);
-                                        if (m.find()) {
-                                            String pid = m.group(1);
-                                            try {
-                                                ProductInfoExt prod = dlSales.getProductInfo(pid);
-                                                showInsufficientStockDialog(prod);
-                                                return false;
-                                            } catch (Exception e) {
-                                                // fallback to default message
-                                            }
+                                    // Try to extract ID from message: pattern (id=PRODUCT_ID)
+                                    java.util.regex.Pattern p = java.util.regex.Pattern.compile("\\(id=(.*?)\\)");
+                                    java.util.regex.Matcher m = p.matcher(message);
+                                    if (m.find()) {
+                                        String pid = m.group(1);
+                                        try {
+                                            ProductInfoExt prod = dlSales.getProductInfo(pid);
+                                            showInsufficientStockDialog(prod);
+                                            return false;
+                                        } catch (Exception e) {
+                                            // fallback to default message
                                         }
-                                    } else {
-                                        // Para empleados, no mostrar mensaje adicional (ya se mostró al intentar agregar)
-                                        // Simplemente retornar false sin mostrar nada
-                                        return false;
                                     }
                                 }
                                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
@@ -4980,6 +4916,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         java.awt.Color btnBorder = new java.awt.Color(220, 220, 220);
         java.awt.Font btnFont = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11);
         int btnHeight = 36;
+
         // Botón Artículo Común
         javax.swing.JButton btnArticuloComun = new javax.swing.JButton("CTRL+P Art. Común");
         btnArticuloComun.setPreferredSize(new java.awt.Dimension(145, btnHeight));
