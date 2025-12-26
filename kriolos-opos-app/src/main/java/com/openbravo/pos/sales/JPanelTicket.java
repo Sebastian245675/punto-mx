@@ -5869,26 +5869,33 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      * puntos)
      */
     private void procesarPuntosAutomaticos(TicketInfo ticket) {
+        System.out.println("🔵 procesarPuntosAutomaticos INICIADO - Ticket ID: " + ticket.getTicketId());
         try {
             // Verificar que hay un cliente asignado al ticket
             CustomerInfo cliente = ticket.getCustomer();
             if (cliente == null || cliente.getId() == null) {
+                System.out.println("⚠️ procesarPuntosAutomaticos: No hay cliente asignado al ticket");
                 LOGGER.log(System.Logger.Level.DEBUG, "No hay cliente asignado al ticket, no se otorgan puntos");
                 return;
             }
+            System.out.println("✅ procesarPuntosAutomaticos: Cliente encontrado: " + cliente.getId());
 
             // Verificar que el sistema de puntos está activo
             if (puntosDataLogic == null) {
+                System.out.println("⚠️ procesarPuntosAutomaticos: Sistema de puntos no inicializado");
                 LOGGER.log(System.Logger.Level.WARNING, "Sistema de puntos no inicializado");
                 return;
             }
+            System.out.println("✅ procesarPuntosAutomaticos: Sistema de puntos inicializado");
 
             // Obtener configuración activa del sistema de puntos
             PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
             if (config == null || !config.isSistemaActivo()) {
+                System.out.println("⚠️ procesarPuntosAutomaticos: Sistema de puntos desactivado o sin configuración");
                 LOGGER.log(System.Logger.Level.DEBUG, "Sistema de puntos desactivado");
                 return;
             }
+            System.out.println("✅ procesarPuntosAutomaticos: Configuración activa - Monto: $" + config.getMontoPorPunto() + ", Puntos: " + config.getPuntosOtorgados());
 
             // Calcular total solo de productos que acumulan puntos
             double totalAcumulable = 0.0;
@@ -5966,12 +5973,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
 
             // Para ventas normales, continuar con la lógica de otorgar puntos
-            if (totalAcumulable <= 0) {
-                LOGGER.log(System.Logger.Level.DEBUG, "Total acumulable <= 0, no se otorgan puntos");
-                return;
-            }
+            // IMPORTANTE: NO salir si totalAcumulable <= 0, porque debemos considerar
+            // el acumulable restante del día que puede hacer que se otorguen puntos
+            System.out.println("💰 procesarPuntosAutomaticos: Total acumulable de esta compra: $" + totalAcumulable);
 
-            // Calcular puntos según la configuración sobre el monto acumulable
+            // Calcular puntos según la configuración sobre el monto acumulable (solo para referencia)
             int puntosAOtorgar = config.calcularPuntos(totalAcumulable);
 
             // Sebastian - Debug adicional para comparar
@@ -5993,9 +5999,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     config.getMoneda());
 
             // IMPORTANTE: SIEMPRE llamar a agregarPuntosPorCompra, incluso si
-            // puntosAOtorgar <= 0
+            // puntosAOtorgar <= 0 o totalAcumulable <= 0
             // porque este método maneja el acumulable diario y puede otorgar puntos cuando
-            // el acumulable total del día alcanza el umbral
+            // el acumulable total del día (restante + nueva compra) alcanza el umbral
             String clienteId = cliente.getId();
             System.out.println(
                     "🔄 LLAMANDO agregarPuntosPorCompra - Cliente: " + clienteId + ", Monto: $" + totalAcumulable);

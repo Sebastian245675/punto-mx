@@ -219,6 +219,7 @@ public class PuntosDataLogic {
     /**
      * Agrega puntos a un cliente por una compra usando acumulable diario
      * Sebastian - Modificado para acumular montos del día y otorgar puntos cuando se alcance el umbral
+     * ACTUALIZADO: Corregida la lógica para que funcione correctamente en tiempo real
      */
     public void agregarPuntosPorCompra(String clienteId, double montoCompra, String descripcion) throws BasicException {
         System.out.println("🚀 agregarPuntosPorCompra INICIADO - Cliente: " + clienteId + ", Monto: $" + montoCompra);
@@ -232,61 +233,62 @@ public class PuntosDataLogic {
         System.out.println("✅ Configuración activa - Monto por punto: $" + config.getMontoPorPunto() + 
                          ", Puntos otorgados: " + config.getPuntosOtorgados());
         
-        // Obtener o inicializar el acumulable del día
+        // Obtener o inicializar el acumulable del día (este ya es el restante de compras anteriores)
         double acumulableActual = obtenerAcumulableDiario(clienteId);
         
         System.out.println("🔍 DEBUG INICIAL - Cliente: " + clienteId + 
-                         ", Acumulable actual: $" + acumulableActual + 
+                         ", Acumulable actual (restante): $" + acumulableActual + 
                          ", Monto compra: $" + montoCompra);
         
-        // Sumar el monto de la compra actual al acumulable
-        double nuevoAcumulable = acumulableActual + montoCompra;
+        // Sumar el monto de la compra actual al acumulable restante
+        double nuevoAcumulableTotal = acumulableActual + montoCompra;
         
-        System.out.println("💰 ACUMULABLE: Cliente " + clienteId + 
-                         " - Anterior: $" + acumulableActual + 
-                         " + Compra: $" + montoCompra + 
-                         " = Nuevo: $" + nuevoAcumulable);
+        System.out.println("💰 ACUMULABLE TOTAL: Cliente " + clienteId + 
+                         " - Restante anterior: $" + acumulableActual + 
+                         " + Compra nueva: $" + montoCompra + 
+                         " = Total acumulado: $" + nuevoAcumulableTotal);
         
-        // Calcular cuántos puntos se deben otorgar con el nuevo acumulable
-        int puntosAOtorgar = config.calcularPuntos(nuevoAcumulable);
-        
-        // Calcular cuántos puntos ya se habían otorgado con el acumulable anterior
-        int puntosYaOtorgados = config.calcularPuntos(acumulableActual);
-        
-        // Los puntos nuevos a otorgar son la diferencia
-        int puntosNuevos = puntosAOtorgar - puntosYaOtorgados;
-        
-        System.out.println("🎯 PUNTOS: Acumulable anterior otorgaba " + puntosYaOtorgados + 
-                         " puntos, nuevo acumulable otorga " + puntosAOtorgar + 
-                         " puntos → Puntos nuevos: " + puntosNuevos);
-        
-        // SIEMPRE actualizar el acumulable, incluso si no hay puntos nuevos
-        // Calcular el acumulable restante después de otorgar puntos
+        // Calcular el acumulable restante y los puntos de forma más precisa
         double montoPorPunto = config.getMontoPorPunto();
-        int tramosCompletos = (int) Math.floor(nuevoAcumulable / montoPorPunto);
-        double montoUsado = tramosCompletos * montoPorPunto;
-        double nuevoAcumulableRestante = nuevoAcumulable - montoUsado;
         
-        System.out.println("📊 CÁLCULO ACUMULABLE RESTANTE: " + 
-                         "Acumulable total: $" + nuevoAcumulable + 
-                         " - Tramos completos: " + tramosCompletos + 
-                         " × $" + montoPorPunto + 
-                         " = Monto usado: $" + montoUsado + 
-                         " → Nuevo acumulable restante: $" + nuevoAcumulableRestante);
+        // Calcular cuántos tramos completos se pueden formar con el nuevo acumulable total
+        int tramosCompletosNuevo = (int) Math.floor(nuevoAcumulableTotal / montoPorPunto);
+        int tramosCompletosAnterior = (int) Math.floor(acumulableActual / montoPorPunto);
         
+        // Los puntos nuevos son la diferencia de tramos completos multiplicado por puntos otorgados
+        int tramosNuevos = tramosCompletosNuevo - tramosCompletosAnterior;
+        int puntosNuevos = tramosNuevos * config.getPuntosOtorgados();
+        
+        // Calcular el acumulable restante después de otorgar puntos
+        // Esto es lo que quedará para la próxima compra del día
+        double montoUsadoParaPuntos = tramosCompletosNuevo * montoPorPunto;
+        double nuevoAcumulableRestante = nuevoAcumulableTotal - montoUsadoParaPuntos;
+        
+        System.out.println("🎯 CÁLCULO DE PUNTOS:");
+        System.out.println("   - Acumulable anterior (restante): $" + acumulableActual + " → " + tramosCompletosAnterior + " tramos completos");
+        System.out.println("   - Acumulable nuevo (total): $" + nuevoAcumulableTotal + " → " + tramosCompletosNuevo + " tramos completos");
+        System.out.println("   - Tramos nuevos: " + tramosNuevos + " × " + config.getPuntosOtorgados() + " puntos = " + puntosNuevos + " puntos nuevos");
+        
+        System.out.println("📊 CÁLCULO ACUMULABLE RESTANTE:");
+        System.out.println("   - Total acumulado: $" + nuevoAcumulableTotal);
+        System.out.println("   - Tramos completos: " + tramosCompletosNuevo + " × $" + montoPorPunto + " = $" + montoUsadoParaPuntos);
+        System.out.println("   - Nuevo acumulable restante: $" + nuevoAcumulableRestante);
+        
+        // Verificar límite diario antes de otorgar puntos
+        int puntosGanadosHoy = getPuntosGanadosHoy(clienteId);
+        int limiteDiario = config.getLimiteDiarioPuntos();
+        
+        System.out.println("🔍 VERIFICANDO LÍMITE DIARIO:");
+        System.out.println("   - Puntos ganados hoy: " + puntosGanadosHoy);
+        System.out.println("   - Límite diario: " + limiteDiario);
+        System.out.println("   - Puntos nuevos a otorgar: " + puntosNuevos);
+        
+        // Si hay puntos nuevos para otorgar
         if (puntosNuevos > 0) {
-            // Verificar límite diario antes de otorgar puntos
-            int puntosGanadosHoy = getPuntosGanadosHoy(clienteId);
-            int limiteDiario = config.getLimiteDiarioPuntos();
-            
-            System.out.println("🔍 VERIFICANDO LÍMITE: Cliente " + clienteId + 
-                             " - Puntos hoy: " + puntosGanadosHoy + 
-                             " - Límite diario: " + limiteDiario + 
-                             " - Puntos nuevos a otorgar: " + puntosNuevos);
-            
             if (puntosGanadosHoy >= limiteDiario) {
                 System.out.println("🚫 LÍMITE DIARIO ALCANZADO: Cliente " + clienteId + 
                                  " ya ganó " + puntosGanadosHoy + " puntos hoy (límite: " + limiteDiario + ")");
+                System.out.println("   - No se otorgan puntos, pero se actualiza el acumulable restante");
                 // Aún así actualizamos el acumulable aunque no otorguemos puntos
                 actualizarAcumulableDiario(clienteId, nuevoAcumulableRestante);
                 return;
@@ -295,9 +297,9 @@ public class PuntosDataLogic {
             // Si otorgar los puntos excedería el límite, ajustar la cantidad
             int puntosDisponibles = limiteDiario - puntosGanadosHoy;
             if (puntosNuevos > puntosDisponibles) {
+                System.out.println("⚠️ AJUSTANDO PUNTOS: Se otorgarían " + puntosNuevos + 
+                                 " pero solo hay " + puntosDisponibles + " disponibles");
                 puntosNuevos = puntosDisponibles;
-                System.out.println("⚠️ PUNTOS AJUSTADOS: Otorgando " + puntosNuevos + 
-                                 " puntos para no exceder límite diario");
             }
             
             if (puntosNuevos > 0) {
@@ -313,14 +315,15 @@ public class PuntosDataLogic {
                                  " puntos (total hoy: " + (puntosGanadosHoy + puntosNuevos) + 
                                  "/" + limiteDiario + ")");
             }
+        } else {
+            System.out.println("ℹ️ No hay puntos nuevos para otorgar en esta compra");
         }
         
-        // Actualizar el acumulable diario (SIEMPRE, incluso si no se otorgaron puntos)
-        // IMPORTANTE: Este acumulable restante se guarda para que las próximas compras del día
-        // puedan seguir acumulando desde donde quedó
+        // IMPORTANTE: SIEMPRE actualizar el acumulable diario restante, incluso si no se otorgaron puntos
+        // Este valor se guarda para que las próximas compras del día puedan seguir acumulando desde donde quedó
         try {
             actualizarAcumulableDiario(clienteId, nuevoAcumulableRestante);
-            System.out.println("✅ Acumulable diario guardado: $" + nuevoAcumulableRestante + 
+            System.out.println("✅ Acumulable diario actualizado: $" + nuevoAcumulableRestante + 
                              " (este valor se usará en la próxima compra del día)");
         } catch (Exception e) {
             System.err.println("❌ ERROR actualizando acumulable: " + e.getMessage());
