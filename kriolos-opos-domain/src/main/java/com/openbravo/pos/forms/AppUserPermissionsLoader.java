@@ -34,16 +34,13 @@ public class AppUserPermissionsLoader {
     }
 
     public Set<String> getPermissionsForRole(String role) {
-
         String permisionsXML = dlSystem.findRolePermissions(role);
 
         Set<String> permissionsSet = new HashSet<>();
         try {
-
             SAXParserFactory spf = SAXParserUtils.newSecureInstance();
             SAXParser parser = spf.newSAXParser();
             parser.parse(new InputSource(new StringReader(permisionsXML)), new ConfigurationHandler(permissionsSet));
-
         } catch (ParserConfigurationException ex) {
             LOGGER.log(Level.WARNING, "Exception on SAXParser configuration", ex);
         } catch (SAXException | IOException ex) {

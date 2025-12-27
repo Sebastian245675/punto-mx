@@ -93,7 +93,6 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         // arregle el BLOB
         if ("ADMIN".equals(roleName) || "1".equals(m_appuser.getRole())) {
             userPermissions.add("com.openbravo.pos.reports.JPanelGraphics");
-            System.out.println("✓ Permiso de Gráficos agregado manualmente al admin");
         }
 
         m_appuser.fillPermissions(userPermissions);

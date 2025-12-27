@@ -182,7 +182,7 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
      * @return
      */
     public final String findRolePermissions(String sRole) {
-
+        // Primero intentar búsqueda exacta
         final SentenceFind m_rolepermissions = new PreparedSentence(this.session,
                 "SELECT permissions FROM roles WHERE name = ?",
                 SerializerWriteString.INSTANCE,
@@ -191,10 +191,21 @@ public class DataLogicSystem extends BeanFactoryDataSingle {
         String content = new String();
         try {
             byte[] permissionsBytes = (byte[])m_rolepermissions.find(sRole);
-            if (permissionsBytes != null) {
+            if (permissionsBytes != null && permissionsBytes.length > 0) {
                 content = Formats.BYTEA.formatValue(permissionsBytes);
             } else {
-                System.err.println("No se encontraron permisos para el rol: " + sRole);
+                // Si no se encuentra, intentar búsqueda case-insensitive
+                final SentenceFind m_rolepermissions_ci = new PreparedSentence(this.session,
+                        "SELECT permissions FROM roles WHERE UPPER(name) = UPPER(?)",
+                        SerializerWriteString.INSTANCE,
+                        SerializerReadBytes.INSTANCE);
+                
+                byte[] permissionsBytesCI = (byte[])m_rolepermissions_ci.find(sRole);
+                if (permissionsBytesCI != null && permissionsBytesCI.length > 0) {
+                    content = Formats.BYTEA.formatValue(permissionsBytesCI);
+                } else {
+                    System.err.println("No se encontraron permisos para el rol: " + sRole);
+                }
             }
         } catch (BasicException e) {
             LOGGER.log(Level.SEVERE, "Exception on format permissions for role: " + sRole, e);

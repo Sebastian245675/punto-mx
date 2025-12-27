@@ -44,8 +44,8 @@ public class DefaultRolesInitializer {
             // MANAGER - Acceso parcial (EDITABLE - solo se crea si no existe)
             initializeRoleIfNotExists(session, "2", "MANAGER", getManagerPermissions());
             
-            // Employee - Acceso controlado (EDITABLE - solo se crea si no existe)
-            initializeRoleIfNotExists(session, "3", "Employee", getEmployeePermissions());
+            // Employee - Acceso controlado (EDITABLE - se actualiza siempre para aplicar nuevos permisos)
+            initializeRole(session, "3", "Employee", getEmployeePermissions());
             
             System.out.println("Roles predeterminados inicializados correctamente");
             
@@ -69,11 +69,13 @@ public class DefaultRolesInitializer {
         Object resultRowById = checkRoleById.find(id);
         boolean roleExists = false;
         String existingName = null;
+        String actualId = id;
         
         if (resultRowById != null && resultRowById instanceof Object[]) {
             Object[] row = (Object[]) resultRowById;
             if (row.length > 0 && row[0] != null) {
                 roleExists = true;
+                actualId = row[0].toString();
                 if (row.length > 1 && row[1] != null) {
                     existingName = row[1].toString();
                 }
@@ -83,7 +85,7 @@ public class DefaultRolesInitializer {
         // Si no existe por ID, buscar por nombre (para migración de bases de datos antiguas)
         if (!roleExists) {
             StaticSentence checkRoleByName = new StaticSentence(session,
-                "SELECT id, name FROM roles WHERE name = ?",
+                "SELECT id, name FROM roles WHERE UPPER(name) = UPPER(?)",
                 new SerializerWriteBasic(new Datas[]{Datas.STRING}),
                 new SerializerReadBasic(new Datas[]{Datas.STRING, Datas.STRING})
             );
@@ -93,6 +95,7 @@ public class DefaultRolesInitializer {
                 Object[] row = (Object[]) resultRowByName;
                 if (row.length > 0 && row[0] != null) {
                     roleExists = true;
+                    actualId = row[0].toString();
                     if (row.length > 1 && row[1] != null) {
                         existingName = row[1].toString();
                     }
@@ -120,16 +123,16 @@ public class DefaultRolesInitializer {
             System.out.println("Rol creado: " + name + " (ID: " + id + ")");
         } else {
             // Actualizar permisos Y nombre del rol existente (para asegurar consistencia)
-            // Si el nombre es diferente, también lo actualizamos
+            // Usar actualId en caso de que se haya encontrado por nombre
             StaticSentence updateRole = new StaticSentence(session,
                 "UPDATE roles SET permissions = ?, name = ? WHERE id = ?",
                 new SerializerWriteBasic(new Datas[]{Datas.BYTES, Datas.STRING, Datas.STRING})
             );
-            updateRole.exec(new Object[]{permissionsBytes, name, id});
+            updateRole.exec(new Object[]{permissionsBytes, name, actualId});
             if (existingName != null && !existingName.equals(name)) {
-                System.out.println("Rol actualizado: '" + existingName + "' -> '" + name + "' (ID: " + id + ")");
+                System.out.println("Rol actualizado: '" + existingName + "' -> '" + name + "' (ID: " + actualId + ")");
             } else {
-                System.out.println("Rol actualizado: " + name + " (ID: " + id + ")");
+                System.out.println("Rol actualizado: " + name + " (ID: " + actualId + ")");
             }
         }
     }
@@ -247,7 +250,7 @@ public class DefaultRolesInitializer {
         
         // Clientes
         permissions.add("com.openbravo.pos.customers.CustomersPanel");
-        permissions.add("Menu.Customers");
+        permissions.add("com.openbravo.pos.forms.MenuCustomers");
         
         // Inventario (sin modificar precios base)
         permissions.add("com.openbravo.pos.inventory.ProductsPanel");
@@ -264,7 +267,7 @@ public class DefaultRolesInitializer {
     
     /**
      * Permisos para Employee - Acceso controlado
-     * Solo puede: hacer ventas, cobrar, ver productos
+     * Solo puede: hacer ventas, cobrar, ver productos, ver clientes
      */
     private static Set<String> getEmployeePermissions() {
         Set<String> permissions = new LinkedHashSet<>();
@@ -280,6 +283,10 @@ public class DefaultRolesInitializer {
         
         // Ver productos (sin modificar)
         permissions.add("Menu.Products");
+        
+        // Gestión de clientes (ver y consultar)
+        permissions.add("com.openbravo.pos.customers.CustomersPanel");
+        permissions.add("com.openbravo.pos.forms.MenuCustomers");
         
         return permissions;
     }
