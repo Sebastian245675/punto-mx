@@ -23,27 +23,50 @@ import java.awt.geom.AffineTransform;
  *
  * @author jaroslawwozniak
  * @author adrianromero
-
+ *
  */
 public class BasicTicketForPrinter extends BasicTicket {
 
+    private final Font baseFont;
+    private final int fontHeight;
+    private final double imageScale;
+    private final boolean normalTotals;
 
-    private static final Font BASEFONT = new Font("Courier New", 
-            Font.PLAIN, 7).deriveFont(AffineTransform.getScaleInstance(1.0, 1.50));
-    private static final int FONTHEIGHT = 12;
-    private static final double IMAGE_SCALE = 0.65;
+    public BasicTicketForPrinter() {
+        this("Courier New", 7, false, false);
+    }
+
+    public BasicTicketForPrinter(String fontName, int fontSize, boolean fontBold, boolean normalTotals) {
+        int style = fontBold ? Font.BOLD : Font.PLAIN;
+        int effectiveSize = Math.max(fontSize, 11);
+        this.baseFont = new Font(fontName, style, effectiveSize)
+                .deriveFont(AffineTransform.getScaleInstance(1.45, 1.45));
+        this.fontHeight = (int) Math.round(effectiveSize * 1.8);
+        this.imageScale = 0.65;
+        this.normalTotals = normalTotals;
+
+        // LOGGING: Registrar la configuración del ticket
+        TicketPrintLogger.logTicketCreated(fontName, fontSize, fontBold, normalTotals);
+        TicketPrintLogger.logBaseFontCalculated(fontName, fontSize, effectiveSize, this.baseFont);
+    }
 
     @Override
     protected Font getBaseFont() {
-        return BASEFONT;
+        return baseFont;
     }
 
     @Override
     protected int getFontHeight() {
-        return FONTHEIGHT;
+        return fontHeight;
     }
 
-    @Override    protected double getImageScale() {
-        return IMAGE_SCALE;
-      }
-  }
+    @Override
+    protected double getImageScale() {
+        return imageScale;
+    }
+
+    @Override
+    protected boolean isNormalTotals() {
+        return normalTotals;
+    }
+}

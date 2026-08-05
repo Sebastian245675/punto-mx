@@ -37,6 +37,7 @@ set JVM_OPTS=-Xms256m -Xmx2g ^
     -XX:+UseStringDeduplication ^
     -Dsun.java2d.d3d=false ^
     -Dsun.java2d.noddraw=true ^
+    -Dsun.java2d.uiScale=1.0 ^
     -Djava.awt.headless=false ^
     -Xverify:none ^
     -XX:TieredStopAtLevel=1 ^

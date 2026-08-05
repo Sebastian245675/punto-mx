@@ -26,7 +26,10 @@ import com.openbravo.data.user.ListProvider;
 import com.openbravo.data.user.ListProviderCreator;
 import com.openbravo.data.user.SaveProvider;
 import com.openbravo.pos.forms.AppLocal;
+import com.openbravo.pos.forms.DataLogicSystem;
+import com.openbravo.beans.JPasswordDialog;
 import com.openbravo.pos.panels.JPanelTable;
+import javax.swing.JOptionPane;
 import javax.swing.ListCellRenderer;
 
 /**
@@ -34,25 +37,25 @@ import javax.swing.ListCellRenderer;
  * @author adrianromero
  */
 public class PeoplePanel extends JPanelTable {
-    
+
     private DataLogicAdmin dlAdmin;
     private TableDefinition tpeople;
     private PeopleView jeditor;
-    
+
     /** Creates a new instance of JPanelPeople */
     public PeoplePanel() {
     }
-    
+
     /**
      *
      */
     @Override
-    protected void init() {      
-        dlAdmin = (DataLogicAdmin) app.getBean("com.openbravo.pos.admin.DataLogicAdmin");        
-        tpeople = dlAdmin.getTablePeople();           
-        jeditor = new PeopleView(dlAdmin, dirty);    
+    protected void init() {
+        dlAdmin = (DataLogicAdmin) app.getBean("com.openbravo.pos.admin.DataLogicAdmin");
+        tpeople = dlAdmin.getTablePeople();
+        jeditor = new PeopleView(dlAdmin, dirty);
     }
-    
+
     /**
      *
      * @return
@@ -61,44 +64,101 @@ public class PeoplePanel extends JPanelTable {
     public ListProvider getListProvider() {
         return new ListProviderCreator(tpeople);
     }
-    
+
     /**
      *
      * @return
      */
     @Override
     public SaveProvider getSaveProvider() {
-        return dlAdmin.getPeopleSaveProvider();
-        //return new DefaultSaveProvider(tpeople);        
+        return new SaveProviderAuth(dlAdmin.getPeopleSaveProvider());
     }
-    
+
+    private class SaveProviderAuth implements SaveProvider {
+        private final SaveProvider sp;
+
+        public SaveProviderAuth(SaveProvider sp) {
+            this.sp = sp;
+        }
+
+        @Override
+        public boolean canDelete() {
+            return sp.canDelete();
+        }
+
+        @Override
+        public boolean canInsert() {
+            return sp.canInsert();
+        }
+
+        @Override
+        public boolean canUpdate() {
+            return sp.canUpdate();
+        }
+
+        @Override
+        public int deleteData(Object value) throws BasicException {
+            checkAdminAuth();
+            return sp.deleteData(value);
+        }
+
+        @Override
+        public int insertData(Object value) throws BasicException {
+            checkAdminAuth();
+            return sp.insertData(value);
+        }
+
+        @Override
+        public int updateData(Object value) throws BasicException {
+            checkAdminAuth();
+            return sp.updateData(value);
+        }
+
+        private void checkAdminAuth() throws BasicException {
+            // Sebastian - Pedir contraseña de administrador si el usuario actual no lo es
+            if (app.getAppUserView().getUser() != null && !"1".equals(app.getAppUserView().getUser().getRole())) {
+                String sPwd = JPasswordDialog.showEditor(PeoplePanel.this, "Autorización de Administrador");
+                if (sPwd == null) {
+                    throw new BasicException("Acción cancelada. Se requiere autorización de administrador.");
+                }
+
+                DataLogicSystem dlSystem = (DataLogicSystem) app.getBean("com.openbravo.pos.forms.DataLogicSystem");
+                if (!dlSystem.authenticateAdmin(sPwd)) {
+                    JOptionPane.showMessageDialog(PeoplePanel.this, "Contraseña de administrador incorrecta.",
+                            "Error de Autorización", JOptionPane.ERROR_MESSAGE);
+                    throw new BasicException("Contraseña de administrador incorrecta.");
+                }
+            }
+        }
+    }
+
     /**
      *
      * @return
      */
     @Override
     public Vectorer getVectorer() {
-        return tpeople.getVectorerBasic(new int[]{1});
+        return tpeople.getVectorerBasic(new int[] { 1 });
     }
-    
+
     /**
      *
      * @return
      */
     @Override
     public ComparatorCreator getComparatorCreator() {
-        return tpeople.getComparatorCreator(new int[] {1, 3});
+        return tpeople.getComparatorCreator(new int[] { 1, 3 });
     }
-    
+
     /**
      *
      * @return
      */
     @Override
     public ListCellRenderer getListCellRenderer() {
-        return new ListCellRendererBasic(tpeople.getRenderStringBasic(new int[]{1}));
+        return new ListCellRendererBasic(tpeople.getRenderStringBasic(new int[] { 1 }));
     }
-    
+
     /**
      *
      * @return
@@ -107,16 +167,16 @@ public class PeoplePanel extends JPanelTable {
     public EditorRecord getEditor() {
         return jeditor;
     }
-    
+
     /**
      *
      * @throws BasicException
      */
     @Override
     public void activate() throws BasicException {
-        jeditor.activate();   
+        jeditor.activate();
         super.activate();
-    }      
+    }
 
     /**
      *
@@ -125,5 +185,5 @@ public class PeoplePanel extends JPanelTable {
     @Override
     public String getTitle() {
         return AppLocal.getIntString("Menu.Users");
-    }     
+    }
 }

@@ -234,7 +234,7 @@ public class FirebaseServiceREST {
      * Sincroniza clientes a Firestore
      */
     public CompletableFuture<Boolean> syncClientes(List<Map<String, Object>> clientes) {
-        return syncCollection("clientes", clientes);
+        return syncCollection("pos_clientes", clientes);
     }
     
     /**
@@ -562,7 +562,7 @@ public class FirebaseServiceREST {
      * Descarga clientes desde Firebase
      */
     public CompletableFuture<List<Map<String, Object>>> downloadClientes() {
-        return downloadCollection("clientes");
+        return downloadCollection("pos_clientes");
     }
     
     /**
@@ -642,6 +642,9 @@ public class FirebaseServiceREST {
             
             try {
                 String url = baseUrl + "/" + collectionName;
+                if (apiKey != null && !apiKey.trim().isEmpty()) {
+                    url += "?key=" + apiKey;
+                }
                 LOGGER.info("Descargando colección: " + collectionName + " desde " + url);
                 
                 HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
@@ -751,6 +754,60 @@ public class FirebaseServiceREST {
         }
     }
     
+    /**
+     * Descarga empleados (cumpleaños) desde Firebase
+     */
+    public CompletableFuture<List<Map<String, Object>>> downloadEmployees() {
+        return downloadCollection("empleados");
+    }
+
+    /**
+     * Sincroniza empleados (cumpleaños) a Firebase
+     */
+    public CompletableFuture<Boolean> syncEmployees(List<Map<String, Object>> employees) {
+        return syncCollection("empleados", employees);
+    }
+
+    /**
+     * Elimina un documento de una colección en Firebase
+     */
+    public boolean deleteDocument(String collection, String documentId) {
+        try {
+            if (!initialized) {
+                LOGGER.warning("Firebase no está inicializado para eliminar");
+                return false;
+            }
+            if (!hasInternetConnection()) {
+                LOGGER.warning("No hay conexión a internet para eliminar de Firebase");
+                return false;
+            }
+            
+            String url = baseUrl + "/" + collection + "/" + documentId + "?key=" + apiKey;
+            
+            HttpRequest request = HttpRequest.newBuilder()
+                .uri(URI.create(url))
+                .header("Content-Type", "application/json")
+                .DELETE()
+                .build();
+            
+            HttpResponse<String> response = httpClient.send(request, 
+                HttpResponse.BodyHandlers.ofString());
+            
+            if (response.statusCode() == 200 || response.statusCode() == 204) {
+                LOGGER.fine("Documento eliminado: " + collection + "/" + documentId);
+                return true;
+            } else {
+                LOGGER.warning("Error eliminando documento " + collection + "/" + documentId + 
+                              " - Status: " + response.statusCode() + 
+                              " - Response: " + response.body());
+                return false;
+            }
+        } catch (Exception e) {
+            LOGGER.log(Level.WARNING, "Error eliminando documento " + collection + "/" + documentId, e);
+            return false;
+        }
+    }
+
     /**
      * Obtiene el ID del usuario configurado
      */

@@ -138,7 +138,7 @@ public interface DevicePrinter {
     public enum FontSize {
         NORMAL(1.0, 1.0),
         DOUBLE_WIDTH(2.0, 1.0),
-        DOUBLE_HEIGHT(1.0, 2.0),
+        DOUBLE_HEIGHT(1.6, 2.0),
         DOUBLE_WIDTH_HEIGHT(2.0, 2.0);
 
         private final double widthScale;

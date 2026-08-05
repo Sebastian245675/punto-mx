@@ -76,6 +76,9 @@ public class CustomersPanel extends JPanelTable {
         } catch (BasicException e) {
             System.err.println("Error inicializando sistema de puntos: " + e.getMessage());
         }
+        
+        // Aplicar tamaño de letra gigante recursivamente a todo el panel de Clientes
+        setLargeFont(this);
     }
     
     /**
@@ -93,8 +96,15 @@ public class CustomersPanel extends JPanelTable {
 
     @Override
     public void activate() throws BasicException {     
-        super.activate();
         ensureDlCustomersInitialized(); // Asegurar inicialización antes de usar
+        if (dlCustomers != null) {
+            try {
+                dlCustomers.refreshLocalCustomersFromSupabase();
+            } catch (Exception e) {
+                System.err.println("Error al sincronizar clientes desde Supabase: " + e.getMessage());
+            }
+        }
+        super.activate();
         jeditor.activate();     
     }
 
@@ -147,19 +157,30 @@ public class CustomersPanel extends JPanelTable {
         return new ListCellRendererBasic(dlCustomers.getTableCustomers().getRenderStringBasic(new int[]{3}));
     }
     
-    // Sebastian - Agregar botón de puntos en la barra de herramientas
+    // Sebastian - Agregar botón de puntos y exportación a Excel en la barra de herramientas
     @Override
     public Component getToolbarExtras() {
+        JPanel panel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 0));
+        
         JButton btnPuntos = new JButton("Puntos");
-        btnPuntos.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+        btnPuntos.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         btnPuntos.setBackground(Color.RED);
         btnPuntos.setForeground(Color.WHITE);
         btnPuntos.setFocusPainted(false);
         btnPuntos.setToolTipText("Gestionar sistema de puntos de clientes");
-        
         btnPuntos.addActionListener(e -> abrirVentanaPuntos());
+        panel.add(btnPuntos);
+
+        JButton btnExportarClientes = new JButton("Exportar Excel");
+        btnExportarClientes.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+        btnExportarClientes.setBackground(new Color(40, 167, 69));
+        btnExportarClientes.setForeground(Color.WHITE);
+        btnExportarClientes.setFocusPainted(false);
+        btnExportarClientes.setToolTipText("Exportar toda la información de los clientes a Excel");
+        btnExportarClientes.addActionListener(e -> btnExportarClientesActionPerformed(e));
+        panel.add(btnExportarClientes);
         
-        return btnPuntos;
+        return panel;
     }
     
     /**
@@ -229,17 +250,17 @@ public class CustomersPanel extends JPanelTable {
             lblEjemplo.setForeground(Color.BLUE);
             panelConfiguracion.add(lblEjemplo);
             
-            // Botones de acción
+            // Botones de acción (negrita y tamaño 14 para mejor lectura sobre colores vivos)
             JButton btnActualizarEjemplo = new JButton("🔄 Actualizar Vista");
             btnActualizarEjemplo.setBackground(Color.ORANGE);
-            btnActualizarEjemplo.setForeground(Color.WHITE);
-            btnActualizarEjemplo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            btnActualizarEjemplo.setForeground(Color.BLACK);
+            btnActualizarEjemplo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
             panelConfiguracion.add(btnActualizarEjemplo);
             
             JButton btnGuardarConfig = new JButton("💾 Guardar Configuración");
             btnGuardarConfig.setBackground(Color.GREEN);
-            btnGuardarConfig.setForeground(Color.WHITE);
-            btnGuardarConfig.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+            btnGuardarConfig.setForeground(Color.BLACK);
+            btnGuardarConfig.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
             panelConfiguracion.add(btnGuardarConfig);
             
             // Botón para recrear tablas (troubleshooting)
@@ -539,4 +560,135 @@ public class CustomersPanel extends JPanelTable {
     public String getTitle() {
         return AppLocal.getIntString("Menu.CustomersManagement");
     }    
+
+    /**
+     * Exporta toda la base de datos de clientes e historial de puntos a un archivo Excel/TSV.
+     */
+    private void btnExportarClientesActionPerformed(java.awt.event.ActionEvent evt) {
+        javax.swing.JFileChooser fileChooser = new javax.swing.JFileChooser();
+        fileChooser.setDialogTitle("Exportar Clientes a Excel");
+        fileChooser.setSelectedFile(new java.io.File("Clientes.xls"));
+        fileChooser.setFileFilter(new javax.swing.filechooser.FileNameExtensionFilter("Archivos de Excel (*.xls)", "xls"));
+
+        int userSelection = fileChooser.showSaveDialog(this);
+        if (userSelection == javax.swing.JFileChooser.APPROVE_OPTION) {
+            java.io.File fileToSave = fileChooser.getSelectedFile();
+            
+            // Asegurar extensión .xls
+            String filePath = fileToSave.getAbsolutePath();
+            if (!filePath.toLowerCase().endsWith(".xls")) {
+                fileToSave = new java.io.File(filePath + ".xls");
+            }
+
+            try (java.io.PrintWriter pw = new java.io.PrintWriter(
+                    new java.io.OutputStreamWriter(new java.io.FileOutputStream(fileToSave), java.nio.charset.StandardCharsets.UTF_8))) {
+
+                // Escribir UTF-8 BOM para soporte correcto de acentos en Excel
+                pw.write('\uFEFF');
+
+                // Cabeceras de columnas
+                pw.print("Clave Búsqueda\tRFC\tNombre Completo\tNombre\tApellido\tCorreo\tTeléfono\tTeléfono 2\tDirección\tCiudad\tCódigo Postal\tLímite Crédito\tDeuda Actual\tDescuento %\tPuntos\tNotas\n");
+
+                Session session = app.getSession();
+                java.sql.Connection conn = session.getConnection();
+                java.sql.Statement stmt = conn.createStatement();
+                java.sql.ResultSet rs = stmt.executeQuery(
+                        "SELECT c.SEARCHKEY, c.TAXID, c.NAME, c.FIRSTNAME, c.LASTNAME, c.EMAIL, c.PHONE, c.PHONE2, " +
+                        "c.ADDRESS, c.CITY, c.POSTAL, c.MAXDEBT, c.CURDEBT, c.DISCOUNT, c.NOTES, " +
+                        "COALESCE(p.puntos_actuales, 0) AS PUNTOS " +
+                        "FROM customers c " +
+                        "LEFT JOIN cliente_puntos p ON c.ID = p.cliente_id " +
+                        "ORDER BY c.NAME");
+
+                int count = 0;
+                while (rs.next()) {
+                    String searchKey = rs.getString("SEARCHKEY");
+                    String taxId = rs.getString("TAXID");
+                    String name = rs.getString("NAME");
+                    String firstName = rs.getString("FIRSTNAME");
+                    String lastName = rs.getString("LASTNAME");
+                    String email = rs.getString("EMAIL");
+                    String phone = rs.getString("PHONE");
+                    String phone2 = rs.getString("PHONE2");
+                    String address = rs.getString("ADDRESS");
+                    String city = rs.getString("CITY");
+                    String postal = rs.getString("POSTAL");
+                    double maxDebt = rs.getDouble("MAXDEBT");
+                    double curDebt = rs.getDouble("CURDEBT");
+                    double discount = rs.getDouble("DISCOUNT");
+                    int puntos = rs.getInt("PUNTOS");
+                    String notes = rs.getString("NOTES");
+
+                    // Reemplazar saltos de línea y tabuladores en notas para no romper el formato TSV
+                    if (notes != null) {
+                        notes = notes.replace("\n", " ").replace("\r", " ").replace("\t", " ");
+                    } else {
+                        notes = "";
+                    }
+
+                    pw.print(String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%.2f\t%.2f\t%.2f\t%d\t%s\n",
+                            searchKey != null ? searchKey : "",
+                            taxId != null ? taxId : "",
+                            name != null ? name : "",
+                            firstName != null ? firstName : "",
+                            lastName != null ? lastName : "",
+                            email != null ? email : "",
+                            phone != null ? phone : "",
+                            phone2 != null ? phone2 : "",
+                            address != null ? address : "",
+                            city != null ? city : "",
+                            postal != null ? postal : "",
+                            maxDebt,
+                            curDebt,
+                            discount,
+                            puntos,
+                            notes
+                    ));
+                    count++;
+                }
+
+                rs.close();
+                stmt.close();
+
+                JOptionPane.showMessageDialog(this,
+                        "✅ Se han exportado " + count + " clientes correctamente a Excel con toda su información y puntos.",
+                        "Exportación Exitosa",
+                        JOptionPane.INFORMATION_MESSAGE);
+
+            } catch (Exception e) {
+                System.err.println("Error exportando clientes a Excel: " + e.getMessage());
+                JOptionPane.showMessageDialog(this,
+                        "❌ Error al exportar los clientes a Excel:\n" + e.getMessage(),
+                        "Error de Exportación",
+                        JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    /**
+     * Aplica el tipo de letra Segoe UI 24 de manera recursiva a todos los componentes
+     * del panel de clientes para una perfecta legibilidad.
+     */
+    private void setLargeFont(java.awt.Component comp) {
+        if (comp == null) return;
+        
+        java.awt.Font currentFont = comp.getFont();
+        if (currentFont == null || currentFont.getSize() < 24) {
+            comp.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 24));
+        }
+        
+        if (comp instanceof javax.swing.JTable) {
+            javax.swing.JTable t = (javax.swing.JTable) comp;
+            t.setRowHeight(32);
+            t.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24));
+        }
+        if (comp instanceof javax.swing.text.JTextComponent) {
+            comp.setPreferredSize(new java.awt.Dimension(comp.getPreferredSize().width, 36));
+        }
+        if (comp instanceof java.awt.Container) {
+            for (java.awt.Component child : ((java.awt.Container) comp).getComponents()) {
+                setLargeFont(child);
+            }
+        }
+    }
 }

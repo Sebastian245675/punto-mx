@@ -53,7 +53,7 @@ public class JSplashScreen extends javax.swing.JPanel {
         // Título moderno
         jLabel1.setFont(new Font("Segoe UI", Font.BOLD, 24));
         jLabel1.setForeground(MODERN_DARK);
-        jLabel1.setText("🚀 CONNECTING POS - Cargando...");
+        jLabel1.setText("🚀 " + AppLocal.APP_NAME + " - Cargando...");
         jLabel1.setHorizontalAlignment(SwingConstants.CENTER);
         jLabel1.setBorder(BorderFactory.createEmptyBorder(30, 20, 20, 20));
         

@@ -259,6 +259,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
      */
     @Override
     public void loadProperties(AppConfig config) {
+        this.m_config = config;
 
 // JG 6 May 2013 to switch
         StringParser p = new StringParser(config.getProperty("machine.printer"));
@@ -647,6 +648,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
     private void initComponents() {
 
         jPanel13 = new javax.swing.JPanel();
+        btnTestDrawer = new javax.swing.JButton();
         jLabel5 = new javax.swing.JLabel();
         jLabel6 = new javax.swing.JLabel();
         jLabel7 = new javax.swing.JLabel();
@@ -1723,6 +1725,20 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
         webLabel3.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         webLabel3.setText(bundle.getString("label.slow")); // NOI18N
 
+        btnTestDrawer.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        btnTestDrawer.setText("Probar Apertura del Cajón");
+        btnTestDrawer.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                btnTestDrawerActionPerformed(evt);
+            }
+        });
+
+        setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        setOpaque(false);
+        setPreferredSize(new java.awt.Dimension(800, 525));
+
+        jPanel13.setOpaque(false);
+        jPanel13.setPreferredSize(new java.awt.Dimension(800, 520));
         javax.swing.GroupLayout jPanel27Layout = new javax.swing.GroupLayout(jPanel27);
         jPanel27.setLayout(jPanel27Layout);
         jPanel27Layout.setHorizontalGroup(
@@ -1740,7 +1756,9 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(webLabel3))
                     .addComponent(webSlider, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(73, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addComponent(btnTestDrawer, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
         );
         jPanel27Layout.setVerticalGroup(
             jPanel27Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -1750,7 +1768,8 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
                     .addComponent(webLbliButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(webSwtch_iButton, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(webLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(webSlider, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(webSlider, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(btnTestDrawer, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel27Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                     .addComponent(webLabel2)
@@ -2088,6 +2107,71 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
 
     }//GEN-LAST:event_webSliderStateChanged
 
+    private void btnTestDrawerActionPerformed(java.awt.event.ActionEvent evt) {
+        com.openbravo.pos.forms.AppProperties tempProps = new com.openbravo.pos.forms.AppProperties() {
+            @Override
+            public java.io.File getConfigFile() {
+                return null;
+            }
+
+            @Override
+            public String getHost() {
+                return "localhost";
+            }
+
+            @Override
+            public String getProperty(String sKey) {
+                if ("machine.printer".equals(sKey)) {
+                    String sMachinePrinter = comboValue(jcboMachinePrinter.getSelectedItem());
+                    String sureParameter = comboValue(jcboConnPrinter.getSelectedItem()) + "," + comboValue(jcboSerialPrinter.getSelectedItem());
+                    String javaposParameter = m_jtxtJPOSPrinter.getText() + "," + m_jtxtJPOSDrawer.getText();
+                    String printerParameter = printer1printerparams.getParameters();
+                    
+                    switch (sMachinePrinter) {
+                        case "epson":
+                        case "tmu220":
+                        case "star":
+                        case "ODP1000":
+                        case "ithaca":
+                        case "surepos":
+                            return sMachinePrinter + ":" + sureParameter;
+                        case "javapos":
+                            return sMachinePrinter + ":" + javaposParameter;
+                        case "printer":
+                            return sMachinePrinter + ":" + printerParameter;
+                        default:
+                            return sMachinePrinter;
+                    }
+                }
+                if (sKey != null && sKey.startsWith("paper.")) {
+                    return m_config != null ? m_config.getProperty(sKey) : null;
+                }
+                return null;
+            }
+        };
+
+        try {
+            com.openbravo.pos.printer.DeviceTicket device = new com.openbravo.pos.printer.DeviceTicket(this, tempProps);
+            if (device.getDevicePrinter("1") != null) {
+                device.getDevicePrinter("1").openDrawer();
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "Comando de apertura enviado al cajón conectado a la Impresora 1.", 
+                    "Prueba de Apertura", 
+                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
+            } else {
+                javax.swing.JOptionPane.showMessageDialog(this, 
+                    "No se pudo iniciar la impresora 1 para probar la apertura.", 
+                    "Error", 
+                    javax.swing.JOptionPane.ERROR_MESSAGE);
+            }
+        } catch (Exception ex) {
+            javax.swing.JOptionPane.showMessageDialog(this, 
+                "Error al probar apertura del cajón: " + ex.getMessage(), 
+                "Error", 
+                javax.swing.JOptionPane.ERROR_MESSAGE);
+        }
+    }
+
     private void jcboConnPrinterActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jcboConnPrinterActionPerformed
         jcboSerialPrinter.removeAllItems();
         if (("raw".equals(jcboConnPrinter.getSelectedItem())) 
@@ -2288,5 +2372,7 @@ public class JPanelConfigPeripheral extends javax.swing.JPanel implements PanelC
     private javax.swing.JLabel webLbliButton;
     private javax.swing.JSlider webSlider;
     private javax.swing.JCheckBox webSwtch_iButton;
+    private javax.swing.JButton btnTestDrawer;
+    private AppConfig m_config;
     // End of variables declaration//GEN-END:variables
 }

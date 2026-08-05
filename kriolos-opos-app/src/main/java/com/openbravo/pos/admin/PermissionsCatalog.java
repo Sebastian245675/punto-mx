@@ -233,6 +233,7 @@ public class PermissionsCatalog {
         
         // EMPLEADOS (EPM)
         List<PermissionInfo> employees = new ArrayList<>();
+        employees.add(new PermissionInfo("com.openbravo.pos.admin.BirthdaysPanel", "Gestión de Cumpleaños", "Gestión de Empleados"));
         employees.add(new PermissionInfo("com.openbravo.pos.forms.MenuEmployees", "Menú Empleados", "Gestión de Empleados"));
         employees.add(new PermissionInfo("com.openbravo.pos.epm.BreaksPanel", "Gestión de Descansos", "Gestión de Empleados"));
         employees.add(new PermissionInfo("com.openbravo.pos.epm.LeavesPanel", "Gestión de Ausencias", "Gestión de Empleados"));

@@ -57,6 +57,10 @@ public abstract class JTicketsBag extends JPanel {
         m_dlSales = (DataLogicSales) m_App.getBean("com.openbravo.pos.forms.DataLogicSales");
     }
     
+    public AppView getApp() {
+        return m_App;
+    }
+    
     /**
      * Active panel (Call on active panel)
      */

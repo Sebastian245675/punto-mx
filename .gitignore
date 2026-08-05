@@ -32,3 +32,9 @@ launch4j/
 # Large JAR and binary files
 **/*.jar.original
 **/kriolos-pos.jar
+
+kriolopos/
+scripts/cleanup-temp.ps1
+tmp_extracted_jar/
+dist/  
+font-adjuster.log 

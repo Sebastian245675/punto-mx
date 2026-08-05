@@ -18,17 +18,22 @@ package com.openbravo.beans;
 
 import java.awt.*;
 import java.awt.event.*;
+import java.awt.geom.*;
 import javax.swing.*;
 
 /**
- * Diálogo simple de contraseña sin teclado en pantalla
+ * Diálogo simplificado de contraseña con toggle de visibilidad.
+ * 
  * @author Sebastian
  */
 public class JPasswordDialogSimple extends JDialog {
-    
+
     private static final long serialVersionUID = 1L;
-    
+
     private JPasswordField passwordField;
+    private JLabel iconLabel;
+    private JLabel userLabel;
+    private JToggleButton eyeButton;
     private String password = null;
     private boolean accepted = false;
 
@@ -41,93 +46,104 @@ public class JPasswordDialogSimple extends JDialog {
         super(parent, modal);
         initComponents();
     }
-    
+
     private void initComponents() {
         setTitle("Contraseña");
         setDefaultCloseOperation(DISPOSE_ON_CLOSE);
         setResizable(false);
-        
-        // Panel principal con fondo degradado sutil
-        JPanel mainPanel = new JPanel(new BorderLayout(0, 0));
-        mainPanel.setBorder(BorderFactory.createEmptyBorder(35, 40, 35, 40));
-        mainPanel.setBackground(new Color(248, 249, 250)); // Fondo gris muy claro
-        
-        // Panel del encabezado con icono y usuario
-        JPanel headerPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 15, 15));
-        headerPanel.setOpaque(false);
-        
-        JLabel iconLabel = new JLabel();
-        iconLabel.setPreferredSize(new Dimension(64, 64));
-        headerPanel.add(iconLabel);
-        
-        JLabel userLabel = new JLabel();
-        userLabel.setFont(new Font("Arial", Font.BOLD, 22));
-        userLabel.setForeground(new Color(30, 30, 30));
-        headerPanel.add(userLabel);
-        
-        mainPanel.add(headerPanel, BorderLayout.NORTH);
-        
-        // Panel central con campo de contraseña - MEJORADO
-        JPanel centerPanel = new JPanel(new BorderLayout(0, 12));
-        centerPanel.setOpaque(false);
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(20, 0, 20, 0));
-        
-        JLabel passwordLabel = new JLabel("Contraseña:");
-        passwordLabel.setFont(new Font("Arial", Font.BOLD, 16));
-        passwordLabel.setForeground(new Color(60, 60, 60));
-        passwordLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
-        centerPanel.add(passwordLabel, BorderLayout.NORTH);
-        
-        // Campo de contraseña MUCHO MÁS GRANDE y mejorado visualmente
-        passwordField = new JPasswordField();
-        passwordField.setFont(new Font("Arial", Font.BOLD, 32)); // Fuente mucho más grande
-        passwordField.setPreferredSize(new Dimension(450, 70)); // Campo mucho más grande
-        passwordField.setMinimumSize(new Dimension(450, 70));
-        passwordField.setMaximumSize(new Dimension(450, 70));
-        passwordField.setEchoChar('●'); // Usar círculo en lugar de asterisco
-        
-        // Borde mejorado con efecto de sombra sutil
-        passwordField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createCompoundBorder(
+        setBackground(Color.WHITE);
+
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBackground(Color.WHITE);
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(25, 30, 20, 30));
+
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(10, 5, 10, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // 1. Icono
+        iconLabel = new JLabel();
+        iconLabel.setHorizontalAlignment(SwingConstants.CENTER);
+        gbc.gridx = 0;
+        gbc.gridy = 0;
+        gbc.gridwidth = 2;
+        mainPanel.add(iconLabel, gbc);
+
+        // 2. Título de usuario
+        userLabel = new JLabel("Contraseña", SwingConstants.CENTER);
+        userLabel.setFont(new Font("Arial", Font.BOLD, 18));
+        userLabel.setForeground(new Color(50, 50, 50));
+        gbc.gridy = 1;
+        mainPanel.add(userLabel, gbc);
+
+        // 3. Label "Escriba su contraseña"
+        JLabel promptLabel = new JLabel("Contraseña:");
+        promptLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        gbc.gridy = 2;
+        gbc.insets = new Insets(15, 5, 5, 5);
+        mainPanel.add(promptLabel, gbc);
+
+        // 4. Input Wrapper (Password + Eye)
+        JPanel inputWrapper = new JPanel(new BorderLayout());
+        inputWrapper.setBackground(Color.WHITE);
+        inputWrapper.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                BorderFactory.createLineBorder(new Color(220, 220, 220), 1)
-            ),
-            BorderFactory.createEmptyBorder(12, 18, 12, 18) // Padding interno generoso
-        ));
-        
-        // Fondo blanco para el campo
-        passwordField.setBackground(Color.WHITE);
-        passwordField.setForeground(new Color(30, 30, 30));
-        
-        // Efecto de foco mejorado
-        passwordField.addFocusListener(new FocusAdapter() {
-            @Override
-            public void focusGained(FocusEvent e) {
-                passwordField.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(59, 130, 246), 2),
-                        BorderFactory.createLineBorder(new Color(100, 180, 255), 1)
-                    ),
-                    BorderFactory.createEmptyBorder(12, 18, 12, 18)
-                ));
-            }
-            
-            @Override
-            public void focusLost(FocusEvent e) {
-                passwordField.setBorder(BorderFactory.createCompoundBorder(
-                    BorderFactory.createCompoundBorder(
-                        BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-                        BorderFactory.createLineBorder(new Color(220, 220, 220), 1)
-                    ),
-                    BorderFactory.createEmptyBorder(12, 18, 12, 18)
-                ));
-            }
+                BorderFactory.createEmptyBorder(5, 10, 5, 5)));
+
+        passwordField = new JPasswordField();
+        passwordField.setFont(new Font("Arial", Font.PLAIN, 22));
+        passwordField.setEchoChar('*');
+        passwordField.setBorder(null);
+        passwordField.setOpaque(true);
+        passwordField.setPreferredSize(new Dimension(280, 40));
+
+        eyeButton = new JToggleButton();
+        eyeButton.setIcon(new EyeIcon(true));
+        eyeButton.setSelectedIcon(new EyeIcon(false));
+        eyeButton.setPreferredSize(new Dimension(35, 35));
+        eyeButton.setBorderPainted(false);
+        eyeButton.setContentAreaFilled(false);
+        eyeButton.setFocusPainted(false);
+        eyeButton.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        eyeButton.setToolTipText("Mostrar/Ocultar");
+
+        eyeButton.addActionListener(e -> {
+            passwordField.setEchoChar(eyeButton.isSelected() ? (char) 0 : '*');
+            passwordField.requestFocusInWindow();
         });
-        
-        // Listener para Enter
+
+        inputWrapper.add(passwordField, BorderLayout.CENTER);
+        inputWrapper.add(eyeButton, BorderLayout.EAST);
+
+        gbc.gridy = 3;
+        gbc.insets = new Insets(0, 5, 15, 5);
+        mainPanel.add(inputWrapper, gbc);
+
+        // 5. Botones
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        buttonPanel.setOpaque(false);
+
+        JButton cancelBtn = new JButton("Cancelar");
+        cancelBtn.setPreferredSize(new Dimension(100, 35));
+        cancelBtn.setFocusPainted(false);
+        cancelBtn.addActionListener(e -> cancelPassword());
+
+        JButton okBtn = new JButton("Aceptar");
+        okBtn.setPreferredSize(new Dimension(100, 35));
+        okBtn.setBackground(new Color(59, 130, 246));
+        okBtn.setForeground(Color.WHITE);
+        okBtn.setFocusPainted(false);
+        okBtn.addActionListener(e -> acceptPassword());
+
+        buttonPanel.add(cancelBtn);
+        buttonPanel.add(okBtn);
+
+        gbc.gridy = 4;
+        gbc.insets = new Insets(10, 5, 0, 5);
+        mainPanel.add(buttonPanel, gbc);
+
+        // Listeners globales
         passwordField.addActionListener(e -> acceptPassword());
-        
-        // Listener para Escape
         passwordField.addKeyListener(new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -136,154 +152,111 @@ public class JPasswordDialogSimple extends JDialog {
                 }
             }
         });
-        
-        centerPanel.add(passwordField, BorderLayout.CENTER);
-        mainPanel.add(centerPanel, BorderLayout.CENTER);
-        
-        // Panel de botones mejorado
-        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 15, 0));
-        buttonPanel.setOpaque(false);
-        buttonPanel.setBorder(BorderFactory.createEmptyBorder(15, 0, 0, 0));
-        
-        JButton cancelButton = new JButton("Cancelar");
-        cancelButton.setFont(new Font("Arial", Font.PLAIN, 15));
-        cancelButton.setPreferredSize(new Dimension(120, 45));
-        cancelButton.setMinimumSize(new Dimension(120, 45));
-        cancelButton.setFocusPainted(false);
-        cancelButton.setBackground(new Color(240, 240, 240));
-        cancelButton.setForeground(new Color(80, 80, 80));
-        cancelButton.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200), 1),
-            BorderFactory.createEmptyBorder(8, 20, 8, 20)
-        ));
-        cancelButton.addActionListener(e -> cancelPassword());
-        
-        JButton okButton = new JButton("Aceptar");
-        okButton.setFont(new Font("Arial", Font.BOLD, 15));
-        okButton.setPreferredSize(new Dimension(120, 45));
-        okButton.setMinimumSize(new Dimension(120, 45));
-        okButton.setBackground(new Color(59, 130, 246));
-        okButton.setForeground(Color.WHITE);
-        okButton.setFocusPainted(false);
-        okButton.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(40, 100, 200), 1),
-            BorderFactory.createEmptyBorder(8, 20, 8, 20)
-        ));
-        okButton.addActionListener(e -> acceptPassword());
-        
-        // Efecto hover en botones
-        okButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                okButton.setBackground(new Color(40, 120, 230));
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                okButton.setBackground(new Color(59, 130, 246));
-            }
-        });
-        
-        cancelButton.addMouseListener(new java.awt.event.MouseAdapter() {
-            public void mouseEntered(java.awt.event.MouseEvent evt) {
-                cancelButton.setBackground(new Color(220, 220, 220));
-            }
-            public void mouseExited(java.awt.event.MouseEvent evt) {
-                cancelButton.setBackground(new Color(240, 240, 240));
-            }
-        });
-        
-        buttonPanel.add(cancelButton);
-        buttonPanel.add(okButton);
-        mainPanel.add(buttonPanel, BorderLayout.SOUTH);
-        
-        add(mainPanel);
-        
-        // Configuración del diálogo - más grande para el campo grande
-        setPreferredSize(new Dimension(550, 380));
+
+        getContentPane().add(mainPanel);
         pack();
-        setLocationRelativeTo(getParent());
-        
-        // Establecer botón por defecto
-        getRootPane().setDefaultButton(okButton);
+        setSize(450, 360);
+        setLocationRelativeTo(null);
+        getRootPane().setDefaultButton(okBtn);
     }
-    
+
     public void setMessage(String userName, Icon userIcon) {
-        // Buscar y actualizar el label de usuario e icono en el nuevo diseño
-        Component[] topLevelComponents = getContentPane().getComponents();
-        if (topLevelComponents.length > 0 && topLevelComponents[0] instanceof JPanel) {
-            JPanel mainPanel = (JPanel) topLevelComponents[0];
-            Component[] mainComponents = mainPanel.getComponents();
-            
-            // Buscar el headerPanel (primer componente en BorderLayout.NORTH)
-            for (Component comp : mainComponents) {
-                if (comp instanceof JPanel) {
-                    JPanel headerPanel = (JPanel) comp;
-                    Component[] headerComponents = headerPanel.getComponents();
-                    
-                    if (headerComponents.length >= 2) {
-                        if (headerComponents[0] instanceof JLabel && userIcon != null) {
-                            ((JLabel) headerComponents[0]).setIcon(userIcon);
-                        }
-                        if (headerComponents[1] instanceof JLabel && userName != null) {
-                            ((JLabel) headerComponents[1]).setText(userName);
-                        }
-                        break;
-                    }
-                }
-            }
+        if (userLabel != null && userName != null) {
+            userLabel.setText(userName);
+        }
+        if (iconLabel != null && userIcon != null) {
+            iconLabel.setIcon(userIcon);
         }
     }
-    
+
     private void acceptPassword() {
-        char[] pwd = passwordField.getPassword();
-        password = new String(pwd);
-        // Limpiar el array de caracteres por seguridad
-        java.util.Arrays.fill(pwd, ' ');
+        password = new String(passwordField.getPassword());
         accepted = true;
         dispose();
     }
-    
+
     private void cancelPassword() {
         password = null;
         accepted = false;
         dispose();
     }
-    
+
     public String getPassword() {
         return accepted ? password : null;
     }
-    
-    protected static Window getWindow(Component parent) {
-        if (parent == null) {
-            return new JFrame();
-        } else if (parent instanceof Frame || parent instanceof Dialog) {
-            return (Window) parent;
-        } else {
-            return getWindow(parent.getParent());
-        }
-    }
-    
+
     public static String showEditor(Component parent, String title, String message, Icon icon) {
-        Window window = getWindow(parent);
-        
+        Window window = SwingUtilities.windowForComponent(parent);
         JPasswordDialogSimple dialog;
+
         if (window instanceof Frame) {
             dialog = new JPasswordDialogSimple((Frame) window, true);
-        } else {
+        } else if (window instanceof Dialog) {
             dialog = new JPasswordDialogSimple((Dialog) window, true);
+        } else {
+            dialog = new JPasswordDialogSimple((Frame) null, true);
         }
-        
+
         if (title != null) {
             dialog.setTitle(title);
         }
-        
         if (message != null || icon != null) {
             dialog.setMessage(message, icon);
         }
-        
-        // Enfocar el campo de contraseña
+
         SwingUtilities.invokeLater(() -> dialog.passwordField.requestFocusInWindow());
-        
         dialog.setVisible(true);
         return dialog.getPassword();
     }
-}
 
+    // --- ÍCONO DE OJO MEJORADO ---
+    private static class EyeIcon implements Icon {
+        private final boolean showOpen;
+
+        public EyeIcon(boolean showOpen) {
+            this.showOpen = showOpen;
+        }
+
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+
+            // Centrar el dibujo en los 24x24 del icono
+            g2.translate(x + 2, y + 2);
+
+            g2.setStroke(new BasicStroke(2f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.setColor(new Color(100, 100, 100));
+
+            // Curva del ojo
+            GeneralPath path = new GeneralPath();
+            path.moveTo(0, 10);
+            path.quadTo(10, -2, 20, 10); // Superior
+            path.quadTo(10, 22, 0, 10); // Inferior
+            path.closePath();
+            g2.draw(path);
+
+            // Pupila
+            g2.fillOval(7, 7, 6, 6);
+
+            // Si está tachado (ocultar)
+            if (!showOpen) {
+                g2.setColor(new Color(220, 50, 50));
+                g2.setStroke(new BasicStroke(2.5f));
+                g2.drawLine(2, 18, 18, 2);
+            }
+
+            g2.dispose();
+        }
+
+        @Override
+        public int getIconWidth() {
+            return 24;
+        }
+
+        @Override
+        public int getIconHeight() {
+            return 24;
+        }
+    }
+}

@@ -186,7 +186,7 @@ public class JPaymentCheque extends javax.swing.JPanel implements JPaymentInterf
             m_jMoneyEuros.setMaximumSize(new Dimension(400, 60));
             
             Font currentFont = m_jMoneyEuros.getFont();
-            m_jMoneyEuros.setFont(new Font(currentFont.getName(), Font.BOLD, 28));
+            m_jMoneyEuros.setFont(new Font(currentFont.getName(), Font.BOLD, 44));
             
             m_jMoneyEuros.setBorder(BorderFactory.createCompoundBorder(
                 BorderFactory.createLineBorder(new java.awt.Color(34, 197, 94), 3),

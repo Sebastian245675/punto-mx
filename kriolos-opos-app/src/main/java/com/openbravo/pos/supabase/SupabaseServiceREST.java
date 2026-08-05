@@ -6,6 +6,7 @@ import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.StandardOpenOption;
 import java.util.*;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -183,7 +184,6 @@ public class SupabaseServiceREST {
 
         } catch (Exception e) {
             errorMessage = e.getMessage();
-            LOGGER.severe("Error sincronizando batch en tabla " + table + ": " + e.getMessage());
         } finally {
             if (conn != null) {
                 conn.disconnect();
@@ -217,8 +217,6 @@ public class SupabaseServiceREST {
             conn.setDoInput(true);
 
             String json = mapper.writeValueAsString(batch);
-            LOGGER.info("Enviando batch a " + table + " (" + batch.size() + " registros): " + 
-                       (json.length() > 500 ? json.substring(0, 500) + "..." : json));
             
             try (OutputStream os = conn.getOutputStream()) {
                 os.write(json.getBytes());
@@ -240,31 +238,26 @@ public class SupabaseServiceREST {
                 }
             }
 
-            // Solo considerar exitoso si es 201 (Created) o 200 (OK)
-            // 409 (Conflict) es un error y debe ser manejado
-            success = responseCode == 201 || responseCode == 200;
+            // Considerar exitoso si es 201 (Created), 200 (OK) o 409 (Conflict - duplicado)
+            // 409 significa que el registro ya existe, lo cual es aceptable
+            // También aceptar 204 (No Content) como éxito
+            success = responseCode == 201 || responseCode == 200 || responseCode == 204 || responseCode == 409;
             
-            if (success) {
-                LOGGER.info("Batch insertado exitosamente en " + table + ". Response code: " + responseCode + 
-                           ", registros: " + batch.size());
-                if (responseBody != null && !responseBody.isEmpty()) {
-                    LOGGER.fine("Respuesta de Supabase: " + responseBody);
-                }
-            } else {
-                errorMessage = responseBody != null ? responseBody : "Error desconocido";
-                LOGGER.severe("Error insertando batch en " + table + ". Response code: " + responseCode + 
-                             ", Error: " + errorMessage);
-                // Si es 409, puede ser duplicado, pero aún así es un error
-                if (responseCode == 409) {
-                    LOGGER.warning("Conflicto (409) al insertar en " + table + 
-                                  ". Puede ser porque el registro ya existe. Error: " + errorMessage);
+            if (!success) {
+                errorMessage = responseBody != null ? responseBody : "Error desconocido (código: " + responseCode + ")";
+                // Verificar si el error es porque la tabla no existe
+                if (errorMessage.contains("PGRST205") && errorMessage.contains("Could not find the table")) {
+                    LOGGER.severe("ERROR: La tabla '" + table + "' no existe en Supabase. Debe crearla primero.");
                 }
             }
 
+        } catch (java.net.UnknownHostException | java.net.ConnectException e) {
+            // Errores de conexión - no intentar más
+            errorMessage = "Error de conexión: " + e.getMessage();
+            success = false;
         } catch (Exception e) {
             errorMessage = e.getMessage();
-            LOGGER.severe("Error insertando batch en tabla " + table + ": " + e.getMessage());
-            e.printStackTrace();
+            success = false;
         } finally {
             if (conn != null) {
                 conn.disconnect();
@@ -307,18 +300,16 @@ public class SupabaseServiceREST {
     }
 
     /**
-     * Escribe un registro JSON con el resultado de cada sincronización
-     * IMPORTANTE: Este método es synchronized para evitar problemas de concurrencia
+     * Registra el resultado de una operación de sincronización en el archivo JSON local
      */
-    private synchronized void logSyncResult(String table, int recordsCount, int responseCode, boolean success, String error) {
+    public synchronized void logSyncResult(String table, int recordsCount, int responseCode, boolean success, String error) {
         // Asegurar que la ruta del log esté inicializada
         if (LOG_FILE_PATH == null) {
             initializeLogFilePath();
         }
         
         File logFile = new File(LOG_FILE_PATH);
-        FileWriter fw = null;
-        
+
         try {
             List<ObjectNode> logs = new ArrayList<>();
 
@@ -379,27 +370,14 @@ public class SupabaseServiceREST {
                 LOGGER.info("Directorio de logs creado: " + parentDir.getAbsolutePath());
             }
 
-            // Escribir todos los logs - usar FileWriter sin try-with-resources para evitar cierre prematuro
-            fw = new FileWriter(logFile, java.nio.charset.StandardCharsets.UTF_8);
-            mapper.writerWithDefaultPrettyPrinter().writeValue(fw, logs);
-            fw.flush();
-            fw.close();
-            fw = null; // Marcar como cerrado para evitar doble cierre
+            // Escribir todos los logs - usando el File de forma directa con Jackson para evitar el cierre prematuro del stream
+            mapper.writerWithDefaultPrettyPrinter().writeValue(logFile, logs);
             
             LOGGER.info("Log escrito exitosamente en " + LOG_FILE_PATH + " para tabla " + table + " (total de logs: " + logs.size() + ")");
 
         } catch (IOException writeEx) {
             LOGGER.severe("Error al escribir en el archivo de logs " + LOG_FILE_PATH + ": " + writeEx.getMessage());
             writeEx.printStackTrace();
-            
-            // Cerrar el FileWriter si está abierto
-            if (fw != null) {
-                try {
-                    fw.close();
-                } catch (Exception e) {
-                    // Ignorar errores al cerrar
-                }
-            }
             
             // Intentar escribir un log de error simple como fallback
             try {
@@ -415,15 +393,6 @@ public class SupabaseServiceREST {
             LOGGER.severe("Error inesperado al escribir logs en " + LOG_FILE_PATH + ": " + e.getMessage());
             e.printStackTrace();
             
-            // Cerrar el FileWriter si está abierto
-            if (fw != null) {
-                try {
-                    fw.close();
-                } catch (Exception closeEx) {
-                    // Ignorar errores al cerrar
-                }
-            }
-            
             // Intentar escribir un log de error simple como fallback
             try {
                 String errorLog = String.format("[%s] ERROR CRÍTICO escribiendo log: tabla=%s, error=%s\n", 
@@ -433,15 +402,6 @@ public class SupabaseServiceREST {
                     StandardOpenOption.APPEND);
             } catch (Exception fallbackEx) {
                 LOGGER.severe("Error crítico: no se pudo escribir ni siquiera el log de error: " + fallbackEx.getMessage());
-            }
-        } finally {
-            // Asegurar que el FileWriter se cierre incluso si hay un error
-            if (fw != null) {
-                try {
-                    fw.close();
-                } catch (Exception e) {
-                    // Ignorar errores al cerrar
-                }
             }
         }
     }
@@ -485,15 +445,23 @@ public class SupabaseServiceREST {
                         resultList = mapper.readValue(sb.toString(), List.class);
                         LOGGER.info("fetchData(" + table + ") obtuvo " + resultList.size() + " registros.");
                     } else {
-                        LOGGER.severe("Error al obtener datos de Supabase (" + table + "): " + sb);
-                        logSyncResult(table, 0, responseCode, false, sb.toString());
+                        // Verificar si el error es porque la tabla no existe
+                        String errorMsg = sb.toString();
+                        if (errorMsg != null && errorMsg.contains("PGRST205") && errorMsg.contains("Could not find the table")) {
+                            LOGGER.severe("ERROR: La tabla '" + table + "' no existe en Supabase. Debe crearla primero.");
+                        } else {
+                            LOGGER.severe("Error al obtener datos de Supabase (" + table + "): " + errorMsg);
+                        }
+                        logSyncResult(table, 0, responseCode, false, errorMsg);
+                        return null; // Retornar null para indicar error
                     }
                 }
             }
 
         } catch (Exception e) {
-            LOGGER.severe("Error al obtener datos de Supabase (" + table + "): " + e.getMessage());
+            LOGGER.log(Level.SEVERE, "Error excepcional en fetchData(" + table + "): " + e.getMessage(), e);
             logSyncResult(table, 0, 500, false, e.getMessage());
+            return null; // Retornar null en caso de excepción
         } finally {
             if (conn != null) conn.disconnect();
         }

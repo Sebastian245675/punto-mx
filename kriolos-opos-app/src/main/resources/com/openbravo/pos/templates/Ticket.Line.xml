@@ -33,9 +33,8 @@
 	&lt;br&gt;${ticketline.getProductAttSetInstDesc()}"/>
 
     <column name="label.price" width="50" align="right" value="${ticketline.printPrice()}"/>
+    <column name="label.ticket_value" width="100" align="right" value="${ticketline.printValue()}"/>
     <column name="label.units" width="50" align="right" value="x${ticketline.printMultiply()}"/>
-    <column name="label.tax" width="50" align="right" value="${ticketline.printTaxRate()}"/>
-    <column name="label.value" width="100" align="right" value="${ticketline.printValue()}"/>
 <!--<column name="label.sendorder" width="5" align="left" value="${ticketline.getProperty('printkb','?')}"/> -->
 <!--<column name="label.sendstatus" width="5" align="left" value="${ticketline.getProperty('sendstatus','?')}"/> -->
 </line>

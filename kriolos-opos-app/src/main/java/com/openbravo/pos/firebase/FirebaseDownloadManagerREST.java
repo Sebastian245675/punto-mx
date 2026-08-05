@@ -15,6 +15,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>
 
 package com.openbravo.pos.firebase;
+
 import com.openbravo.pos.supabase.SupabaseServiceREST;
 import com.openbravo.pos.supabase.SupabaseServiceManager;
 import com.openbravo.data.loader.Session;
@@ -37,28 +38,33 @@ import java.math.BigDecimal;
 
 /**
  * Gestor de descarga de datos desde Supabase hacia la base de datos local
+ * 
  * @author Sebastian
  */
 public class FirebaseDownloadManagerREST {
-    
+
     private static final Logger LOGGER = Logger.getLogger(FirebaseDownloadManagerREST.class.getName());
-    
+
     private final Session session;
     private final SupabaseServiceManager supabaseManager;
-    
+
     public FirebaseDownloadManagerREST(Session session, AppConfig config) {
         this.session = session;
         this.supabaseManager = SupabaseServiceManager.getInstance();
-        
+
         // Inicializar el servicio Supabase
         if (!supabaseManager.initialize(config)) {
             throw new IllegalStateException("No se pudo inicializar Supabase Service");
         }
+
+        // Inicializar el servicio Firebase REST
+        FirebaseServiceREST.getInstance().initialize(config);
     }
 
     private static java.sql.Timestamp toSqlTimestamp(Object value) {
         try {
-            if (value == null) return null;
+            if (value == null)
+                return null;
             if (value instanceof java.sql.Timestamp) {
                 return (java.sql.Timestamp) value;
             }
@@ -71,28 +77,32 @@ public class FirebaseDownloadManagerREST {
             }
             if (value instanceof CharSequence) {
                 String s = value.toString().trim();
-                if (s.isEmpty()) return null;
+                if (s.isEmpty())
+                    return null;
                 // Try ISO-8601: 2025-10-29T14:41:07 or with zone suffix
                 try {
                     java.time.OffsetDateTime odt = java.time.OffsetDateTime.parse(s);
                     return java.sql.Timestamp.from(odt.toInstant());
-                } catch (Exception ignore) {}
+                } catch (Exception ignore) {
+                }
                 try {
                     java.time.LocalDateTime ldt = java.time.LocalDateTime.parse(s);
                     return java.sql.Timestamp.valueOf(ldt);
-                } catch (Exception ignore) {}
+                } catch (Exception ignore) {
+                }
                 // Fallback: parse as millis in string
                 try {
                     long millis = Long.parseLong(s);
                     return new java.sql.Timestamp(millis);
-                } catch (Exception ignore) {}
+                } catch (Exception ignore) {
+                }
             }
         } catch (Exception e) {
             // ignore and return null
         }
         return null;
     }
-    
+
     /**
      * Ejecuta la descarga completa según las selecciones especificadas
      */
@@ -100,98 +110,111 @@ public class FirebaseDownloadManagerREST {
         return CompletableFuture.supplyAsync(() -> {
             Instant startTime = Instant.now();
             LOGGER.info("=== INICIANDO DESCARGA SELECTIVA DESDE FIREBASE ===");
-            
+
             DownloadResult result = new DownloadResult();
-            
+
             try {
                 // Descargar cada categoría seleccionada
-                if (selections.getOrDefault("usuarios", false)) {
-                    LOGGER.info("1. Descargando usuarios...");
-                    result.usuariosDescargados = downloadUsuarios().join();
-                }
-                
-                if (selections.getOrDefault("clientes", false)) {
-                    LOGGER.info("2. Descargando clientes...");
-                    result.clientesDescargados = downloadClientes().join();
-                }
-                
                 if (selections.getOrDefault("categorias", false)) {
-                    LOGGER.info("3. Descargando categorías...");
+                    LOGGER.info("1. Descargando categorías...");
                     result.categoriasDescargadas = downloadCategorias().join();
                 }
-                
-                if (selections.getOrDefault("productos", false)) {
-                    LOGGER.info("4. Descargando productos...");
-                    result.productosDescargados = downloadProductos().join();
-                }
-                
-                if (selections.getOrDefault("ventas", false)) {
-                    LOGGER.info("5. Descargando ventas...");
-                    result.ventasDescargadas = downloadVentas().join();
-                }
-                
-                if (selections.getOrDefault("puntos", false)) {
-                    LOGGER.info("6. Descargando puntos de clientes...");
-                    result.puntosDescargados = downloadPuntosClientes().join();
-                }
-                
-                if (selections.getOrDefault("cierres", false)) {
-                    LOGGER.info("7. Descargando cierres de caja...");
-                    result.cierresDescargados = downloadCierresCaja().join();
-                }
-                
-                if (selections.getOrDefault("pagos", false)) {
-                    LOGGER.info("8. Descargando formas de pago...");
-                    result.pagosDescargados = downloadFormasPago().join();
-                }
-                
+
                 if (selections.getOrDefault("impuestos", false)) {
-                    LOGGER.info("9. Descargando impuestos...");
+                    LOGGER.info("2. Descargando impuestos...");
                     result.impuestosDescargados = downloadImpuestos().join();
                 }
-                
+
+                if (selections.getOrDefault("usuarios", false)) {
+                    LOGGER.info("3. Descargando usuarios...");
+                    result.usuariosDescargados = downloadUsuarios().join();
+                }
+
+                if (selections.getOrDefault("clientes", false)) {
+                    LOGGER.info("4. Descargando clientes...");
+                    result.clientesDescargados = downloadClientes().join();
+                }
+
+                if (selections.getOrDefault("productos", false)) {
+                    LOGGER.info("5. Descargando productos...");
+                    result.productosDescargados = downloadProductos().join();
+                }
+
                 if (selections.getOrDefault("configuraciones", false)) {
                     LOGGER.info("10. Descargando configuraciones...");
                     result.configuracionesDescargadas = downloadConfiguraciones().join();
                 }
-                
+
                 if (selections.getOrDefault("inventario", false)) {
                     LOGGER.info("11. Descargando inventario...");
                     result.inventarioDescargado = downloadInventario().join();
                 }
-                
+
                 // Calcular estadísticas finales
                 Duration duration = Duration.between(startTime, Instant.now());
                 int exitosas = 0;
                 int errores = 0;
-                
-                if (result.usuariosDescargados) exitosas++; else if (selections.getOrDefault("usuarios", false)) errores++;
-                if (result.clientesDescargados) exitosas++; else if (selections.getOrDefault("clientes", false)) errores++;
-                if (result.categoriasDescargadas) exitosas++; else if (selections.getOrDefault("categorias", false)) errores++;
-                if (result.productosDescargados) exitosas++; else if (selections.getOrDefault("productos", false)) errores++;
-                if (result.ventasDescargadas) exitosas++; else if (selections.getOrDefault("ventas", false)) errores++;
-                if (result.puntosDescargados) exitosas++; else if (selections.getOrDefault("puntos", false)) errores++;
-                if (result.cierresDescargados) exitosas++; else if (selections.getOrDefault("cierres", false)) errores++;
-                if (result.pagosDescargados) exitosas++; else if (selections.getOrDefault("pagos", false)) errores++;
-                if (result.impuestosDescargados) exitosas++; else if (selections.getOrDefault("impuestos", false)) errores++;
-                if (result.configuracionesDescargadas) exitosas++; else if (selections.getOrDefault("configuraciones", false)) errores++;
-                if (result.inventarioDescargado) exitosas++; else if (selections.getOrDefault("inventario", false)) errores++;
-                
+
+                if (result.usuariosDescargados)
+                    exitosas++;
+                else if (selections.getOrDefault("usuarios", false))
+                    errores++;
+                if (result.clientesDescargados)
+                    exitosas++;
+                else if (selections.getOrDefault("clientes", false))
+                    errores++;
+                if (result.categoriasDescargadas)
+                    exitosas++;
+                else if (selections.getOrDefault("categorias", false))
+                    errores++;
+                if (result.productosDescargados)
+                    exitosas++;
+                else if (selections.getOrDefault("productos", false))
+                    errores++;
+                if (result.ventasDescargadas)
+                    exitosas++;
+                else if (selections.getOrDefault("ventas", false))
+                    errores++;
+                if (result.puntosDescargados)
+                    exitosas++;
+                else if (selections.getOrDefault("puntos", false))
+                    errores++;
+                if (result.cierresDescargados)
+                    exitosas++;
+                else if (selections.getOrDefault("cierres", false))
+                    errores++;
+                if (result.pagosDescargados)
+                    exitosas++;
+                else if (selections.getOrDefault("pagos", false))
+                    errores++;
+                if (result.impuestosDescargados)
+                    exitosas++;
+                else if (selections.getOrDefault("impuestos", false))
+                    errores++;
+                if (result.configuracionesDescargadas)
+                    exitosas++;
+                else if (selections.getOrDefault("configuraciones", false))
+                    errores++;
+                if (result.inventarioDescargado)
+                    exitosas++;
+                else if (selections.getOrDefault("inventario", false))
+                    errores++;
+
                 result.success = (errores == 0);
-                
+
                 LOGGER.info("=== DESCARGA SELECTIVA COMPLETADA ===");
                 LOGGER.info("Tiempo: " + duration.toString());
                 LOGGER.info("Exitosas: " + exitosas + " | Errores: " + errores);
-                
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error durante la descarga selectiva", e);
                 result.success = false;
             }
-            
+
             return result;
         });
     }
-    
+
     /**
      * Descarga usuarios desde Firebase e inserta/actualiza en la base local
      */
@@ -201,27 +224,32 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement insertStmt = null;
             PreparedStatement updateStmt = null;
             java.sql.ResultSet rs = null;
-            
+
             try {
                 SupabaseServiceREST supabase = supabaseManager.getService();
-                
+
                 List<Map<String, Object>> usuarios = supabase.fetchData("usuarios");
+                if (usuarios == null) {
+                    LOGGER.warning("No se pudieron descargar usuarios (tabla inexistente o error)");
+                    return false;
+                }
                 LOGGER.info("Descargados " + usuarios.size() + " usuarios desde Supabase");
-                
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
+
                 // Preparar statements
                 String checkSql = "SELECT ID FROM people WHERE ID = ?";
-                String insertSql = "INSERT INTO people (ID, NAME, APPPASSWORD, CARD, ROLE, VISIBLE, IMAGE, BRANCH_NAME, BRANCH_ADDRESS) " +
-                                  "VALUES (?, ?, NULL, ?, ?, ?, NULL, ?, ?)";
-                String updateSql = "UPDATE people SET NAME = ?, CARD = ?, ROLE = ?, VISIBLE = ?, BRANCH_NAME = ?, BRANCH_ADDRESS = ? WHERE ID = ?";
-                
+                String insertSql = "INSERT INTO people (ID, NAME, APPPASSWORD, CARD, ROLE, VISIBLE, IMAGE, BRANCH_NAME, BRANCH_ADDRESS) "
+                        +
+                        "VALUES (?, ?, NULL, ?, ?, ?, NULL, ?, ?)";
+                String updateSql = "UPDATE people SET NAME = ?, CARD = ?, VISIBLE = ?, BRANCH_NAME = ?, BRANCH_ADDRESS = ? WHERE ID = ?";
+
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+
                 for (Map<String, Object> usuario : usuarios) {
                     try {
                         String id = (String) usuario.get("id");
@@ -231,32 +259,33 @@ public class FirebaseDownloadManagerREST {
                         Boolean visible = (Boolean) usuario.get("visible");
                         String sucursalNombre = (String) usuario.get("sucursal_nombre");
                         String sucursalDireccion = (String) usuario.get("sucursal_direccion");
-                        
+
                         // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Usuario sin ID, saltando: " + usuario);
                             errores++;
                             continue;
                         }
-                        
+
                         // Verificar si existe
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
+
                         if (existe) {
-                            // Actualizar usuario existente
+                            // Actualizar usuario existente - NO sobreescribir ROLE ni APPPASSWORD
+                            // para preservar roles/permisos configurados localmente
                             updateStmt.setString(1, nombre != null ? nombre : "Usuario sin nombre");
                             updateStmt.setString(2, tarjeta); // Puede ser null
-                            updateStmt.setString(3, rol != null ? rol : "3"); // Role por defecto: Guest
-                            updateStmt.setBoolean(4, visible != null ? visible : true);
-                            updateStmt.setString(5, sucursalNombre);
-                            updateStmt.setString(6, sucursalDireccion);
-                            updateStmt.setString(7, id);
+                            updateStmt.setBoolean(3, visible != null ? visible : true);
+                            updateStmt.setString(4, sucursalNombre);
+                            updateStmt.setString(5, sucursalDireccion);
+                            updateStmt.setString(6, id);
                             updateStmt.executeUpdate();
                             actualizados++;
-                            LOGGER.fine("Usuario actualizado: " + id + " - " + nombre + " (ID Remoto: " + tarjeta + ")");
+                            LOGGER.fine(
+                                    "Usuario actualizado: " + id + " - " + nombre + " (ID Remoto: " + tarjeta + ")");
                         } else {
                             // Insertar nuevo usuario
                             insertStmt.setString(1, id);
@@ -270,33 +299,37 @@ public class FirebaseDownloadManagerREST {
                             insertados++;
                             LOGGER.fine("Usuario insertado: " + id + " - " + nombre + " (ID Remoto: " + tarjeta + ")");
                         }
-                        
+
                     } catch (Exception e) {
                         errores++;
                         LOGGER.log(Level.WARNING, "Error procesando usuario: " + usuario, e);
                     }
                 }
-                
-                LOGGER.info("Usuarios procesados: " + insertados + " insertados, " + 
-                           actualizados + " actualizados, " + errores + " errores");
+
+                LOGGER.info("Usuarios procesados: " + insertados + " insertados, " +
+                        actualizados + " actualizados, " + errores + " errores");
                 return errores == 0;
-                
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando usuarios", e);
                 return false;
             } finally {
                 try {
-                    if (rs != null) rs.close();
-                    if (checkStmt != null) checkStmt.close();
-                    if (insertStmt != null) insertStmt.close();
-                    if (updateStmt != null) updateStmt.close();
+                    if (rs != null)
+                        rs.close();
+                    if (checkStmt != null)
+                        checkStmt.close();
+                    if (insertStmt != null)
+                        insertStmt.close();
+                    if (updateStmt != null)
+                        updateStmt.close();
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
                 }
             }
         });
     }
-    
+
     /**
      * Descarga clientes desde Firebase e inserta/actualiza en la base local
      */
@@ -305,63 +338,98 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement checkStmt = null;
             PreparedStatement insertStmt = null;
             PreparedStatement updateStmt = null;
+            PreparedStatement checkPuntosStmt = null;
+            PreparedStatement insertPuntosStmt = null;
+            PreparedStatement updatePuntosStmt = null;
             java.sql.ResultSet rs = null;
-    
+
             try {
-                SupabaseServiceREST supabase = supabaseManager.getService();
-                List<Map<String, Object>> clientes = supabase.fetchData("clientes");
-                LOGGER.info("Descargados " + clientes.size() + " clientes desde Supabase");
-    
+                List<Map<String, Object>> clientes = FirebaseServiceREST.getInstance().downloadClientes().join();
+                
+                if (clientes == null) {
+                    LOGGER.warning("Sebastian - Error al obtener clientes de Firebase (servicio retornó null)");
+                    return false;
+                }
+                
+                LOGGER.info("Sebastian - Descargados " + clientes.size() + " clientes desde Firebase");
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-    
+
+                // Asegurar que la columna PUNTOS existe
+                try {
+                    session.getConnection().createStatement().execute("ALTER TABLE CUSTOMERS ADD COLUMN PUNTOS INTEGER DEFAULT 0");
+                    LOGGER.info("Columna PUNTOS agregada exitosamente (vía FirebaseDownloadManager)");
+                } catch (Exception ignore) {}
+
                 String checkSql = "SELECT ID FROM customers WHERE ID = ?";
                 String insertSql = "INSERT INTO customers (ID, SEARCHKEY, TAXID, NAME, CARD, TAXCATEGORY, " +
-                                   "NOTES, VISIBLE, CURDATE, CURDEBT, MAXDEBT) " +
-                                   "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                        "NOTES, VISIBLE, CURDATE, CURDEBT, MAXDEBT, PUNTOS, PHONE, EMAIL, ADDRESS) " +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 String updateSql = "UPDATE customers SET SEARCHKEY = ?, TAXID = ?, NAME = ?, CARD = ?, " +
-                                   "TAXCATEGORY = ?, NOTES = ?, VISIBLE = ?, CURDATE = ?, CURDEBT = ?, " +
-                                   "MAXDEBT = ? WHERE ID = ?";
-    
+                        "TAXCATEGORY = ?, NOTES = ?, VISIBLE = ?, CURDATE = ?, CURDEBT = ?, " +
+                        "MAXDEBT = ?, PUNTOS = ?, PHONE = ?, EMAIL = ?, ADDRESS = ? WHERE ID = ?";
+
+                String checkPuntosSql = "SELECT ID FROM CLIENTE_PUNTOS WHERE CLIENTE_ID = ?";
+                String insertPuntosSql = "INSERT INTO CLIENTE_PUNTOS (ID, CLIENTE_ID, PUNTOS_ACTUALES, PUNTOS_TOTALES, ULTIMA_TRANSACCION, FECHA_ULTIMA_TRANSACCION, FECHA_CREACION) VALUES (?, ?, ?, ?, ?, ?, ?)";
+                String updatePuntosSql = "UPDATE CLIENTE_PUNTOS SET PUNTOS_ACTUALES = ?, ULTIMA_TRANSACCION = ?, FECHA_ULTIMA_TRANSACCION = ? WHERE CLIENTE_ID = ?";
+
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-    
+
+
+                try {
+                    checkPuntosStmt = session.getConnection().prepareStatement(checkPuntosSql);
+                    insertPuntosStmt = session.getConnection().prepareStatement(insertPuntosSql);
+                    updatePuntosStmt = session.getConnection().prepareStatement(updatePuntosSql);
+                } catch (SQLException e) {
+                    LOGGER.log(Level.INFO, "Tabla CLIENTE_PUNTOS no existe, se omitirá sincronización de puntos.");
+                }
+
                 for (Map<String, Object> cliente : clientes) {
+                    LOGGER.info("Sebastian - Sincronizando cliente: " + cliente);
                     try {
                         String id = (String) cliente.get("id");
-                        String searchkey = (String) cliente.get("searchkey");
-                        String taxid = (String) cliente.get("taxid");
+                        String clienteId = (String) cliente.get("clienteId");
+                        String searchkey = (clienteId != null) ? clienteId : id;
+                        String taxid = (clienteId != null) ? clienteId : id;
                         String name = (String) cliente.get("nombre");
                         String card = (String) cliente.get("tarjeta");
                         String taxcategory = (String) cliente.get("taxcategory");
-                        String notes = (String) cliente.get("notes");
-                        Boolean visible = (Boolean) cliente.get("visible");
-                        String curdate = (String) cliente.get("curdate");
+                        String notes = (String) cliente.get("notas");
+                        Boolean visible = (cliente.get("visible") != null) ? (Boolean) cliente.get("visible") : true;
+                        String curdate = (String) cliente.get("fechaRegistro");
                         Object curdebtObj = cliente.get("curdebt");
                         Object maxdebtObj = cliente.get("maxdebt");
-    
+                        int puntos = (cliente.get("puntos") != null) ? ((Number) cliente.get("puntos")).intValue() : 0;
+                        
+                        String phone = (String) cliente.get("telefono");
+                        String email = (String) cliente.get("email");
+                        String address = (String) cliente.get("residencia");
+
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Cliente sin ID, saltando: " + cliente);
                             errores++;
                             continue;
                         }
-    
+
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-    
+
                         BigDecimal curdebt = BigDecimal.ZERO;
                         BigDecimal maxdebt = BigDecimal.ZERO;
-    
+
                         if (curdebtObj instanceof Number)
                             curdebt = new BigDecimal(((Number) curdebtObj).doubleValue());
                         if (maxdebtObj instanceof Number)
                             maxdebt = new BigDecimal(((Number) maxdebtObj).doubleValue());
-    
-                        // ✅ Convertir fecha si viene en texto ISO (por ejemplo: 2025-10-29T16:20:39.236957+00:00)
+
+                        // ✅ Convertir fecha si viene en texto ISO (por ejemplo:
+                        // 2025-10-29T16:20:39.236957+00:00)
                         Timestamp curDateTimestamp = null;
                         if (curdate != null && !curdate.isEmpty()) {
                             try {
@@ -370,29 +438,34 @@ public class FirebaseDownloadManagerREST {
                                 LOGGER.fine("Fecha inválida para cliente " + id + ": " + curdate);
                             }
                         }
-    
-                        // ✅ Si taxcategory está vacío o no existe, usar null (para evitar violación de FK)
+
+                        // ✅ Si taxcategory está vacío o no existe, usar null (para evitar violación de
+                        // FK)
                         if (taxcategory != null && taxcategory.trim().isEmpty()) {
                             taxcategory = null;
                         }
-    
+
                         if (existe) {
                             updateStmt.setString(1, searchkey != null ? searchkey : id);
                             updateStmt.setString(2, taxid);
                             updateStmt.setString(3, name != null ? name : "Cliente sin nombre");
                             updateStmt.setString(4, card);
-    
+
                             if (taxcategory != null)
                                 updateStmt.setString(5, taxcategory);
                             else
                                 updateStmt.setNull(5, java.sql.Types.VARCHAR);
-    
+
                             updateStmt.setString(6, notes);
                             updateStmt.setBoolean(7, visible != null ? visible : true);
                             updateStmt.setTimestamp(8, curDateTimestamp);
                             updateStmt.setBigDecimal(9, curdebt);
                             updateStmt.setBigDecimal(10, maxdebt);
-                            updateStmt.setString(11, id);
+                            updateStmt.setInt(11, puntos);
+                            updateStmt.setString(12, phone);
+                            updateStmt.setString(13, email);
+                            updateStmt.setString(14, address);
+                            updateStmt.setString(15, id);
                             updateStmt.executeUpdate();
                             actualizados++;
                             LOGGER.fine("Cliente actualizado: " + id + " - " + name);
@@ -402,22 +475,55 @@ public class FirebaseDownloadManagerREST {
                             insertStmt.setString(3, taxid);
                             insertStmt.setString(4, name != null ? name : "Cliente sin nombre");
                             insertStmt.setString(5, card);
-    
+
                             if (taxcategory != null)
                                 insertStmt.setString(6, taxcategory);
                             else
                                 insertStmt.setNull(6, java.sql.Types.VARCHAR);
-    
+
                             insertStmt.setString(7, notes);
                             insertStmt.setBoolean(8, visible != null ? visible : true);
                             insertStmt.setTimestamp(9, curDateTimestamp);
                             insertStmt.setBigDecimal(10, curdebt);
                             insertStmt.setBigDecimal(11, maxdebt);
+                            insertStmt.setInt(12, puntos);
+                            insertStmt.setString(13, phone);
+                            insertStmt.setString(14, email);
+                            insertStmt.setString(15, address);
                             insertStmt.executeUpdate();
                             insertados++;
                             LOGGER.fine("Cliente insertado: " + id + " - " + name);
                         }
-    
+
+                        // Sincronizar CLIENTE_PUNTOS
+                        try {
+                            if (checkPuntosStmt != null && insertPuntosStmt != null && updatePuntosStmt != null) {
+                                checkPuntosStmt.setString(1, id);
+                                java.sql.ResultSet rsPuntos = checkPuntosStmt.executeQuery();
+                                boolean existePuntos = rsPuntos.next();
+                                rsPuntos.close();
+
+                                if (existePuntos) {
+                                    updatePuntosStmt.setInt(1, puntos);
+                                    updatePuntosStmt.setString(2, "Sincronización Firebase");
+                                    updatePuntosStmt.setTimestamp(3, new java.sql.Timestamp(System.currentTimeMillis()));
+                                    updatePuntosStmt.setString(4, id);
+                                    updatePuntosStmt.executeUpdate();
+                                } else {
+                                    insertPuntosStmt.setString(1, java.util.UUID.randomUUID().toString());
+                                    insertPuntosStmt.setString(2, id);
+                                    insertPuntosStmt.setInt(3, puntos);
+                                    insertPuntosStmt.setInt(4, Math.max(0, puntos)); // Totales
+                                    insertPuntosStmt.setString(5, "Sincronización Firebase");
+                                    insertPuntosStmt.setTimestamp(6, new java.sql.Timestamp(System.currentTimeMillis()));
+                                    insertPuntosStmt.setTimestamp(7, curDateTimestamp != null ? curDateTimestamp : new java.sql.Timestamp(System.currentTimeMillis()));
+                                    insertPuntosStmt.executeUpdate();
+                                }
+                            }
+                        } catch (Exception e) {
+                            LOGGER.log(Level.WARNING, "No se pudo sincronizar CLIENTE_PUNTOS para " + id + " (tabla puede no existir aún): " + e.getMessage());
+                        }
+
                     } catch (java.sql.SQLIntegrityConstraintViolationException fkEx) {
                         errores++;
                         LOGGER.warning("Violación de integridad al insertar cliente (FK no válida): " + cliente);
@@ -426,28 +532,37 @@ public class FirebaseDownloadManagerREST {
                         LOGGER.log(Level.WARNING, "Error procesando cliente: " + cliente, e);
                     }
                 }
-    
+
                 LOGGER.info("Clientes procesados: " + insertados + " insertados, " +
-                           actualizados + " actualizados, " + errores + " errores");
+                        actualizados + " actualizados, " + errores + " errores");
                 return errores == 0;
-    
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando clientes", e);
                 return false;
             } finally {
                 try {
-                    if (rs != null) rs.close();
-                    if (checkStmt != null) checkStmt.close();
-                    if (insertStmt != null) insertStmt.close();
-                    if (updateStmt != null) updateStmt.close();
+                    if (rs != null)
+                        rs.close();
+                    if (checkStmt != null)
+                        checkStmt.close();
+                    if (insertStmt != null)
+                        insertStmt.close();
+                    if (updateStmt != null)
+                        updateStmt.close();
+                    if (checkPuntosStmt != null)
+                        checkPuntosStmt.close();
+                    if (insertPuntosStmt != null)
+                        insertPuntosStmt.close();
+                    if (updatePuntosStmt != null)
+                        updatePuntosStmt.close();
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
                 }
             }
         });
     }
-    
-    
+
     /**
      * Descarga categorías desde Firebase e inserta/actualiza en la base local
      */
@@ -461,40 +576,40 @@ public class FirebaseDownloadManagerREST {
                 SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> categorias = supabase.fetchData("categorias");
                 LOGGER.info("Descargadas " + categorias.size() + " categorías desde Supabase");
-                
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
+
                 // Preparar statements
                 String checkSql = "SELECT ID FROM categories WHERE ID = ?";
                 String insertSql = "INSERT INTO categories (ID, NAME, PARENTID, IMAGE) VALUES (?, ?, ?, NULL)";
                 String updateSql = "UPDATE categories SET NAME = ?, PARENTID = ? WHERE ID = ?";
-                
+
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+
                 for (Map<String, Object> categoria : categorias) {
                     try {
                         String id = (String) categoria.get("id");
                         String nombre = (String) categoria.get("nombre");
                         String categoriapadre = (String) categoria.get("categoriapadre");
                         Boolean tieneimagen = (Boolean) categoria.get("tieneimagen");
-                        
+
                         // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Categoría sin ID, saltando: " + categoria);
                             errores++;
                             continue;
                         }
-                        
+
                         // Verificar si existe
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
+
                         if (existe) {
                             // Actualizar categoría existente
                             updateStmt.setString(1, nombre != null ? nombre : "Categoría sin nombre");
@@ -517,20 +632,24 @@ public class FirebaseDownloadManagerREST {
                         LOGGER.log(Level.WARNING, "Error procesando categoría: " + categoria, e);
                     }
                 }
-                
-                LOGGER.info("Categorías procesadas: " + insertados + " insertadas, " + 
-                           actualizados + " actualizadas, " + errores + " errores");
+
+                LOGGER.info("Categorías procesadas: " + insertados + " insertadas, " +
+                        actualizados + " actualizadas, " + errores + " errores");
                 return true;
-                
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando categorías", e);
                 return false;
             } finally {
                 try {
-                    if (rs != null) rs.close();
-                    if (checkStmt != null) checkStmt.close();
-                    if (insertStmt != null) insertStmt.close();
-                    if (updateStmt != null) updateStmt.close();
+                    if (rs != null)
+                        rs.close();
+                    if (checkStmt != null)
+                        checkStmt.close();
+                    if (insertStmt != null)
+                        insertStmt.close();
+                    if (updateStmt != null)
+                        updateStmt.close();
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
                 }
@@ -550,31 +669,31 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement insertMoneyStmt = null;
             PreparedStatement seqStmt = null;
             java.sql.ResultSet rs = null;
-    
+
             try {
                 SupabaseServiceREST supabase = supabaseManager.getService();
-    
+
                 List<Map<String, Object>> ventas = supabase.fetchData("ventas");
                 LOGGER.info("Descargadas " + ventas.size() + " ventas desde Firebase");
-    
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-    
+
                 String checkSql = "SELECT ID FROM receipts WHERE ID = ?";
                 String insertSql = "INSERT INTO receipts (ID, MONEY, DATENEW, PERSON) VALUES (?, ?, ?, ?)";
                 String updateSql = "UPDATE receipts SET MONEY = ?, DATENEW = ?, PERSON = ? WHERE ID = ?";
                 String checkMoneySql = "SELECT MONEY FROM closedcash WHERE MONEY = ?";
                 String seqSql = "SELECT MAX(HOSTSEQUENCE) FROM closedcash WHERE HOST = ?";
                 String insertMoneySql = "INSERT INTO closedcash (MONEY, HOST, HOSTSEQUENCE, DATESTART, DATEEND) VALUES (?, ?, ?, ?, ?)";
-    
+
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
                 checkMoneyStmt = session.getConnection().prepareStatement(checkMoneySql);
                 seqStmt = session.getConnection().prepareStatement(seqSql);
                 insertMoneyStmt = session.getConnection().prepareStatement(insertMoneySql);
-    
+
                 for (Map<String, Object> venta : ventas) {
                     try {
                         String id = (String) venta.get("id");
@@ -582,22 +701,22 @@ public class FirebaseDownloadManagerREST {
                         Object rawFechaVenta = venta.get("fechaventa");
                         java.sql.Timestamp fechaVentaTs = toSqlTimestamp(rawFechaVenta);
                         String vendedorid = (String) venta.get("vendedorid");
-    
+
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Venta sin ID, saltando: " + venta);
                             errores++;
                             continue;
                         }
-    
+
                         // Verificar si existe el MONEY (caja)
                         checkMoneyStmt.setString(1, caja);
                         java.sql.ResultSet rsMoney = checkMoneyStmt.executeQuery();
                         boolean moneyExiste = rsMoney.next();
                         rsMoney.close();
-    
+
                         if (!moneyExiste) {
                             String host = "default-host";
-    
+
                             // Buscar el siguiente HOSTSEQUENCE disponible
                             seqStmt.setString(1, host);
                             java.sql.ResultSet rsSeq = seqStmt.executeQuery();
@@ -606,7 +725,7 @@ public class FirebaseDownloadManagerREST {
                                 nextSeq = rsSeq.getInt(1) + 1;
                             }
                             rsSeq.close();
-    
+
                             try {
                                 insertMoneyStmt.setString(1, caja);
                                 insertMoneyStmt.setString(2, host);
@@ -614,18 +733,20 @@ public class FirebaseDownloadManagerREST {
                                 insertMoneyStmt.setTimestamp(4, new java.sql.Timestamp(System.currentTimeMillis()));
                                 insertMoneyStmt.setNull(5, java.sql.Types.TIMESTAMP);
                                 insertMoneyStmt.executeUpdate();
-                                LOGGER.info("Se creó cierre de caja automáticamente: " + caja + " con HOSTSEQUENCE=" + nextSeq);
+                                LOGGER.info("Se creó cierre de caja automáticamente: " + caja + " con HOSTSEQUENCE="
+                                        + nextSeq);
                             } catch (SQLException ex) {
-                                LOGGER.warning("No se pudo insertar cierre de caja (puede existir conflicto): " + ex.getMessage());
+                                LOGGER.warning("No se pudo insertar cierre de caja (puede existir conflicto): "
+                                        + ex.getMessage());
                             }
                         }
-    
+
                         // Verificar si existe la venta
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-    
+
                         if (existe) {
                             updateStmt.setString(1, caja);
                             updateStmt.setTimestamp(2, fechaVentaTs);
@@ -643,34 +764,60 @@ public class FirebaseDownloadManagerREST {
                             insertados++;
                             LOGGER.fine("Venta insertada: " + id + " - " + caja);
                         }
-    
+
                     } catch (Exception e) {
                         errores++;
                         LOGGER.log(Level.WARNING, "Error procesando venta: " + venta, e);
                     }
                 }
-    
+
                 LOGGER.info("Ventas procesadas: " + insertados + " insertadas, " +
-                            actualizados + " actualizadas, " + errores + " errores");
+                        actualizados + " actualizadas, " + errores + " errores");
                 return errores == 0;
-    
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando ventas", e);
                 return false;
             } finally {
-                try { if (rs != null) rs.close(); } catch (SQLException ignore) {}
-                try { if (checkStmt != null) checkStmt.close(); } catch (SQLException ignore) {}
-                try { if (insertStmt != null) insertStmt.close(); } catch (SQLException ignore) {}
-                try { if (updateStmt != null) updateStmt.close(); } catch (SQLException ignore) {}
-                try { if (checkMoneyStmt != null) checkMoneyStmt.close(); } catch (SQLException ignore) {}
-                try { if (insertMoneyStmt != null) insertMoneyStmt.close(); } catch (SQLException ignore) {}
-                try { if (seqStmt != null) seqStmt.close(); } catch (SQLException ignore) {}
+                try {
+                    if (rs != null)
+                        rs.close();
+                } catch (SQLException ignore) {
+                }
+                try {
+                    if (checkStmt != null)
+                        checkStmt.close();
+                } catch (SQLException ignore) {
+                }
+                try {
+                    if (insertStmt != null)
+                        insertStmt.close();
+                } catch (SQLException ignore) {
+                }
+                try {
+                    if (updateStmt != null)
+                        updateStmt.close();
+                } catch (SQLException ignore) {
+                }
+                try {
+                    if (checkMoneyStmt != null)
+                        checkMoneyStmt.close();
+                } catch (SQLException ignore) {
+                }
+                try {
+                    if (insertMoneyStmt != null)
+                        insertMoneyStmt.close();
+                } catch (SQLException ignore) {
+                }
+                try {
+                    if (seqStmt != null)
+                        seqStmt.close();
+                } catch (SQLException ignore) {
+                }
             }
         });
     }
-    
-    
-    
+
     /**
      * Descarga productos desde Firebase e inserta/actualiza en la base local
      */
@@ -684,21 +831,22 @@ public class FirebaseDownloadManagerREST {
                 SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> productos = supabase.fetchData("productos");
                 LOGGER.info("Descargados " + productos.size() + " productos desde Supabase");
-                
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
+
                 // Preparar statements
                 String checkSql = "SELECT ID FROM products WHERE ID = ?";
-                String insertSql = "INSERT INTO products (ID, REFERENCE, CODE, CODETYPE, NAME, PRICEBUY, PRICESELL, CATEGORY, TAXCAT, ATTRIBUTESET_ID, ISCOM, PRINTKB, SENDSTATUS, ISSERVICE) " +
-                                  "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
+                String insertSql = "INSERT INTO products (ID, REFERENCE, CODE, CODETYPE, NAME, PRICEBUY, PRICESELL, CATEGORY, TAXCAT, ATTRIBUTESET_ID, ISCOM, PRINTKB, SENDSTATUS, ISSERVICE) "
+                        +
+                        "VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)";
                 String updateSql = "UPDATE products SET REFERENCE = ?, CODE = ?, CODETYPE = ?, NAME = ?, PRICEBUY = ?, PRICESELL = ?, CATEGORY = ?, TAXCAT = ?, ATTRIBUTESET_ID = ?, ISCOM = ?, PRINTKB = ?, SENDSTATUS = ?, ISSERVICE = ? WHERE ID = ?";
-                
+
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+
                 for (Map<String, Object> producto : productos) {
                     try {
                         String id = (String) producto.get("id");
@@ -717,7 +865,8 @@ public class FirebaseDownloadManagerREST {
                         Boolean escompuesto = (Boolean) producto.get("escompuesto");
                         Boolean imprimirencocina = (Boolean) producto.get("imprimirencocina");
                         Boolean estadoenvio = (Boolean) producto.get("estadoenvio");
-                        // Obtener ISSERVICE desde Supabase (puede venir como esServicio, isservice, o es_servicio)
+                        // Obtener ISSERVICE desde Supabase (puede venir como esServicio, isservice, o
+                        // es_servicio)
                         Boolean esServicio = (Boolean) producto.get("esServicio");
                         if (esServicio == null) {
                             esServicio = (Boolean) producto.get("isservice");
@@ -730,20 +879,68 @@ public class FirebaseDownloadManagerREST {
                         }
                         String fechaextraccion = (String) producto.get("fechaextraccion");
                         String tabla = (String) producto.get("tabla");
-                        
+
                         // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Producto sin ID, saltando: " + producto);
                             errores++;
                             continue;
                         }
-                        
+
                         // Verificar si existe
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
+
+                        // Validar FK de categoría antes de insertar/actualizar
+                        if (categoriaid == null || categoriaid.trim().isEmpty()) {
+                             // Buscar primera categoría disponible si viene nulo
+                             try (java.sql.Statement stmt = session.getConnection().createStatement();
+                                  java.sql.ResultSet rsCat = stmt.executeQuery("SELECT ID FROM categories")) {
+                                 if (rsCat.next()) {
+                                     categoriaid = rsCat.getString(1);
+                                 } else {
+                                     categoriaid = "0"; // ID por defecto si no hay nada
+                                 }
+                             }
+                        } else {
+                            try (PreparedStatement catStmt = session.getConnection()
+                                    .prepareStatement("SELECT ID FROM categories WHERE ID = ?")) {
+                                catStmt.setString(1, categoriaid);
+                                try (java.sql.ResultSet catRs = catStmt.executeQuery()) {
+                                    if (!catRs.next()) {
+                                        LOGGER.warning("⚠️ Producto " + id + " refiere a categoría inexistente "
+                                                + categoriaid + ". Usando primera disponible.");
+                                        // Buscar primera categoría disponible
+                                        try (java.sql.Statement stmt = session.getConnection().createStatement();
+                                             java.sql.ResultSet rsCatFallback = stmt.executeQuery("SELECT ID FROM categories")) {
+                                            if (rsCatFallback.next()) {
+                                                categoriaid = rsCatFallback.getString(1);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Validar FK de categoría de impuesto (TAXCAT)
+                        if (categoriaimpuesto != null) {
+                            try (PreparedStatement taxStmt = session.getConnection()
+                                    .prepareStatement("SELECT ID FROM taxcategories WHERE ID = ?")) {
+                                taxStmt.setString(1, categoriaimpuesto);
+                                try (java.sql.ResultSet taxRs = taxStmt.executeQuery()) {
+                                    if (!taxRs.next()) {
+                                        LOGGER.warning("⚠️ Producto " + id + " refiere a taxcategory inexistente "
+                                                + categoriaimpuesto + ". Usando default 000.");
+                                        categoriaimpuesto = "000"; // Fallback a estándar
+                                    }
+                                }
+                            }
+                        } else {
+                            categoriaimpuesto = "000"; // Asegurar valor si viene nulo
+                        }
+
                         if (existe) {
                             // Actualizar producto existente
                             updateStmt.setString(1, referencia != null ? referencia : id);
@@ -762,7 +959,7 @@ public class FirebaseDownloadManagerREST {
                             updateStmt.setString(14, id);
                             updateStmt.executeUpdate();
                             actualizados++;
-                            LOGGER.fine("Producto actualizado: " + id + " - " + nombre + " (ISSERVICE: " + esServicio + ")");
+                            LOGGER.fine("Producto actualizado: " + id + " - " + nombre);
                         } else {
                             // Insertar nuevo producto
                             insertStmt.setString(1, id);
@@ -771,8 +968,7 @@ public class FirebaseDownloadManagerREST {
                             insertStmt.setString(4, tipocodigobarras);
                             insertStmt.setString(5, nombre != null ? nombre : "Producto sin nombre");
                             insertStmt.setDouble(6, preciocompra != null ? preciocompra : 0.0);
-                            insertStmt.setDouble(7, precioventa != null ? precioventa : 0.0);   
-
+                            insertStmt.setDouble(7, precioventa != null ? precioventa : 0.0);
                             insertStmt.setString(8, categoriaid);
                             insertStmt.setString(9, categoriaimpuesto);
                             insertStmt.setString(10, atributos);
@@ -782,37 +978,41 @@ public class FirebaseDownloadManagerREST {
                             insertStmt.setBoolean(14, esServicio);
                             insertStmt.executeUpdate();
                             insertados++;
-                            LOGGER.fine("Producto insertado: " + id + " - " + nombre + " (ISSERVICE: " + esServicio + ")");
+                            LOGGER.fine("Producto insertado: " + id + " - " + nombre);
                         }
-                    }
-                    catch (Exception e) {
+                    } catch (Exception e) {
                         errores++;
                         LOGGER.log(Level.WARNING, "Error procesando producto: " + producto, e);
                     }
                 }
-                
-                LOGGER.info("Productos procesados: " + insertados + " insertados, " + 
-                           actualizados + " actualizados, " + errores + " errores");
+
+                LOGGER.info("Productos procesados: " + insertados + " insertados, " +
+                        actualizados + " actualizados, " + errores + " errores");
                 return errores == 0;
-                
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando productos", e);
                 return false;
             } finally {
                 try {
-                    if (rs != null) rs.close();
-                    if (checkStmt != null) checkStmt.close();
-                    if (insertStmt != null) insertStmt.close();
-                    if (updateStmt != null) updateStmt.close();
+                    if (rs != null)
+                        rs.close();
+                    if (checkStmt != null)
+                        checkStmt.close();
+                    if (insertStmt != null)
+                        insertStmt.close();
+                    if (updateStmt != null)
+                        updateStmt.close();
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
                 }
             }
         });
     }
-    
+
     /**
-     * Descarga puntos de clientes desde Firebase e inserta/actualiza en la base local
+     * Descarga puntos de clientes desde Firebase e inserta/actualiza en la base
+     * local
      */
     private CompletableFuture<Boolean> downloadPuntosClientes() {
         return CompletableFuture.supplyAsync(() -> {
@@ -821,17 +1021,16 @@ public class FirebaseDownloadManagerREST {
                 SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> puntos = supabase.fetchData("puntos_historial");
                 LOGGER.info("Descargados " + puntos.size() + " registros de puntos de clientes desde Supabase");
-                
-                
+
                 return true;
-                
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando puntos de clientes", e);
                 return false;
             }
         });
     }
-    
+
     /**
      * Descarga cierres de caja desde Firebase e inserta/actualiza en la base local
      */
@@ -841,17 +1040,16 @@ public class FirebaseDownloadManagerREST {
                 SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> cierres = supabase.fetchData("cierres");
                 LOGGER.info("Descargados " + cierres.size() + " cierres de caja desde Supabase");
-                
 
                 return true;
-                
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando cierres de caja", e);
                 return false;
             }
         });
     }
-    
+
     /**
      * Descarga formas de pago desde Firebase e inserta/actualiza en la base local
      */
@@ -865,39 +1063,39 @@ public class FirebaseDownloadManagerREST {
                 SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> formas = supabase.fetchData("formas_de_pago");
                 LOGGER.info("Descargados " + formas.size() + " formas de pago desde supabase");
-                
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
+
                 // Preparar statements
                 String checkSql = "SELECT ID FROM payment_methods WHERE ID = ?";
                 String insertSql = "INSERT INTO payment_methods (ID, NAME, DESCRIPTION) VALUES (?, ?, ?)";
                 String updateSql = "UPDATE payment_methods SET NAME = ?, DESCRIPTION = ? WHERE ID = ?";
-                
+
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+
                 for (Map<String, Object> forma : formas) {
                     try {
                         String id = (String) forma.get("id");
                         String nombre = (String) forma.get("nombre");
                         String descripcion = (String) forma.get("descripcion");
-                        
+
                         // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Forma de pago sin ID, saltando: " + forma);
                             errores++;
                             continue;
                         }
-                        
+
                         // Verificar si existe
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
+
                         if (existe) {
                             // Actualizar forma de pago existente
                             updateStmt.setString(1, nombre);
@@ -920,19 +1118,23 @@ public class FirebaseDownloadManagerREST {
                         LOGGER.log(Level.WARNING, "Error procesando forma de pago: " + forma, e);
                     }
                 }
-                
-                LOGGER.info("Formas de pago procesadas: " + insertados + " insertadas, " + 
-                           actualizados + " actualizadas, " + errores + " errores");
-                return errores == 0;    
+
+                LOGGER.info("Formas de pago procesadas: " + insertados + " insertadas, " +
+                        actualizados + " actualizadas, " + errores + " errores");
+                return errores == 0;
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando formas de pago", e);
                 return false;
             } finally {
                 try {
-                    if (rs != null) rs.close();
-                    if (checkStmt != null) checkStmt.close();
-                    if (insertStmt != null) insertStmt.close();
-                    if (updateStmt != null) updateStmt.close();
+                    if (rs != null)
+                        rs.close();
+                    if (checkStmt != null)
+                        checkStmt.close();
+                    if (insertStmt != null)
+                        insertStmt.close();
+                    if (updateStmt != null)
+                        updateStmt.close();
 
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
@@ -940,8 +1142,6 @@ public class FirebaseDownloadManagerREST {
             }
         });
     }
-    
-
 
     /**
      * Descarga impuestos desde Firebase e inserta/actualiza en la base local
@@ -955,41 +1155,45 @@ public class FirebaseDownloadManagerREST {
             try {
                 SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> impuestos = supabase.fetchData("impuestos");
+                if (impuestos == null) {
+                    LOGGER.warning("No se pudieron descargar impuestos (tabla inexistente o error)");
+                    return false;
+                }
                 LOGGER.info("Descargados " + impuestos.size() + " impuestos desde Supabase");
-                
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
+
                 // Preparar statements
                 String checkSql = "SELECT ID FROM taxes WHERE ID = ?";
                 String insertSql = "INSERT INTO taxes (ID, NAME, CATEGORY, RATE) VALUES (?, ?, ?, ?)";
                 String updateSql = "UPDATE taxes SET NAME = ?, CATEGORY = ?, RATE = ? WHERE ID = ?";
-                
+
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+
                 for (Map<String, Object> impuesto : impuestos) {
                     try {
                         String id = (String) impuesto.get("id");
                         String nombre = (String) impuesto.get("nombre");
                         String categoria = (String) impuesto.get("categoria");
                         Double tasa = (Double) impuesto.get("tasa");
-                        
+
                         // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Impuesto sin ID, saltando: " + impuesto);
                             errores++;
                             continue;
                         }
-                        
+
                         // Verificar si existe
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
+
                         if (existe) {
                             // Actualizar impuesto existente
                             updateStmt.setString(1, nombre);
@@ -1015,23 +1219,27 @@ public class FirebaseDownloadManagerREST {
                     }
                 }
                 return true;
-                
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando impuestos", e);
                 return false;
             } finally {
                 try {
-                    if (rs != null) rs.close();
-                    if (checkStmt != null) checkStmt.close();
-                    if (insertStmt != null) insertStmt.close();
-                    if (updateStmt != null) updateStmt.close();
+                    if (rs != null)
+                        rs.close();
+                    if (checkStmt != null)
+                        checkStmt.close();
+                    if (insertStmt != null)
+                        insertStmt.close();
+                    if (updateStmt != null)
+                        updateStmt.close();
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
                 }
             }
         });
     }
-    
+
     /**
      * Descarga configuraciones desde Firebase e inserta/actualiza en la base local
      */
@@ -1046,39 +1254,39 @@ public class FirebaseDownloadManagerREST {
                 SupabaseServiceREST supabase = supabaseManager.getService();
                 List<Map<String, Object>> configuraciones = supabase.fetchData("config");
                 LOGGER.info("Descargadas " + configuraciones.size() + " configuraciones desde Firebase");
-                
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-                
+
                 // Preparar statements
                 String checkSql = "SELECT ID FROM configurations WHERE ID = ?";
                 String insertSql = "INSERT INTO configurations (ID, NAME, VALUE) VALUES (?, ?, ?)";
                 String updateSql = "UPDATE configurations SET NAME = ?, VALUE = ? WHERE ID = ?";
-                
+
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+
                 for (Map<String, Object> configuracion : configuraciones) {
                     try {
                         String id = (String) configuracion.get("id");
                         String nombre = (String) configuracion.get("nombre");
                         String valor = (String) configuracion.get("valor");
-                        
+
                         // Validar que tenga ID
                         if (id == null || id.trim().isEmpty()) {
                             LOGGER.warning("Configuración sin ID, saltando: " + configuracion);
                             errores++;
                             continue;
                         }
-                        
+
                         // Verificar si existe
                         checkStmt.setString(1, id);
                         rs = checkStmt.executeQuery();
                         boolean existe = rs.next();
                         rs.close();
-                        
+
                         if (existe) {
                             // Actualizar configuración existente
                             updateStmt.setString(1, nombre);
@@ -1101,27 +1309,31 @@ public class FirebaseDownloadManagerREST {
                         LOGGER.log(Level.WARNING, "Error procesando configuración: " + configuracion, e);
                     }
                 }
-                
-                LOGGER.info("Configuraciones procesadas: " + insertados + " insertadas, " + 
-                           actualizados + " actualizadas, " + errores + " errores");
+
+                LOGGER.info("Configuraciones procesadas: " + insertados + " insertadas, " +
+                        actualizados + " actualizadas, " + errores + " errores");
                 return true;
-                
+
             } catch (Exception e) {
                 LOGGER.log(Level.SEVERE, "Error descargando configuraciones", e);
                 return false;
             } finally {
                 try {
-                    if (rs != null) rs.close();
-                    if (checkStmt != null) checkStmt.close();
-                    if (insertStmt != null) insertStmt.close();
-                    if (updateStmt != null) updateStmt.close();
+                    if (rs != null)
+                        rs.close();
+                    if (checkStmt != null)
+                        checkStmt.close();
+                    if (insertStmt != null)
+                        insertStmt.close();
+                    if (updateStmt != null)
+                        updateStmt.close();
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
                 }
             }
         });
     }
-    
+
     /**
      * Descarga inventario desde Firebase e inserta/actualiza en la base local
      */
@@ -1132,40 +1344,40 @@ public class FirebaseDownloadManagerREST {
             PreparedStatement insertStmt = null;
             PreparedStatement updateStmt = null;
             ResultSet rs = null;
-    
+
             try {
                 SupabaseServiceREST supabase = supabaseManager.getService();
-    
+
                 List<Map<String, Object>> inventario = supabase.fetchData("inventario");
                 LOGGER.info("Descargado inventario con " + inventario.size() + " registros desde Supabase");
-    
+
                 int insertados = 0;
                 int actualizados = 0;
                 int errores = 0;
-    
+
                 // ✅ Compatible con HSQLDB
                 String checkProductSql = "SELECT ID FROM products WHERE ID = ?";
                 String checkSql = """
-                    SELECT * FROM stockcurrent 
-                    WHERE LOCATION = ? 
-                    AND PRODUCT = ? 
-                    AND ((ATTRIBUTESETINSTANCE_ID IS NULL AND ? IS NULL) OR ATTRIBUTESETINSTANCE_ID = ?)
-                    """;
+                        SELECT * FROM stockcurrent
+                        WHERE LOCATION = ?
+                        AND PRODUCT = ?
+                        AND ((ATTRIBUTESETINSTANCE_ID IS NULL AND ? IS NULL) OR ATTRIBUTESETINSTANCE_ID = ?)
+                        """;
 
                 String insertSql = "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, ?, ?)";
                 String updateSql = """
-                    UPDATE stockcurrent 
-                    SET UNITS = ? 
-                    WHERE LOCATION = ? 
-                    AND PRODUCT = ? 
-                    AND ((ATTRIBUTESETINSTANCE_ID IS NULL AND ? IS NULL) OR ATTRIBUTESETINSTANCE_ID = ?)
-                    """;
+                        UPDATE stockcurrent
+                        SET UNITS = ?
+                        WHERE LOCATION = ?
+                        AND PRODUCT = ?
+                        AND ((ATTRIBUTESETINSTANCE_ID IS NULL AND ? IS NULL) OR ATTRIBUTESETINSTANCE_ID = ?)
+                        """;
 
                 checkProductStmt = session.getConnection().prepareStatement(checkProductSql);
                 checkStmt = session.getConnection().prepareStatement(checkSql);
                 insertStmt = session.getConnection().prepareStatement(insertSql);
                 updateStmt = session.getConnection().prepareStatement(updateSql);
-                
+
                 for (Map<String, Object> movimiento : inventario) {
                     try {
                         String location = (String) movimiento.get("ubicacion");
@@ -1186,7 +1398,8 @@ public class FirebaseDownloadManagerREST {
                         productRs.close();
 
                         if (!productoExiste) {
-                            LOGGER.warning("⚠️ Producto no encontrado en BD local: " + product + " (" + movimiento.get("productonombre") + "). Inventario saltado.");
+                            LOGGER.warning("⚠️ Producto no encontrado en BD local: " + product + " ("
+                                    + movimiento.get("productonombre") + "). Inventario saltado.");
                             errores++;
                             continue;
                         }
@@ -1204,12 +1417,14 @@ public class FirebaseDownloadManagerREST {
                             stockActual = rs.getDouble("UNITS");
                         }
                         rs.close();
-    
+
                         if (existe) {
                             // ⚠️ NO actualizar si ya existe registro local - preservar cambios locales
-                            // El stock local tiene prioridad sobre el remoto para evitar sobrescribir ventas
-                            LOGGER.fine("Inventario local existe para " + product + " en " + location + 
-                                      " (local: " + stockActual + ", remoto: " + units + ") - NO actualizado para preservar cambios locales");
+                            // El stock local tiene prioridad sobre el remoto para evitar sobrescribir
+                            // ventas
+                            LOGGER.fine("Inventario local existe para " + product + " en " + location +
+                                    " (local: " + stockActual + ", remoto: " + units
+                                    + ") - NO actualizado para preservar cambios locales");
                             // No hacer nada - preservar el stock local
                         } else {
                             // 🆕 Insertar solo si no existe
@@ -1217,19 +1432,21 @@ public class FirebaseDownloadManagerREST {
                             insertStmt.setString(2, product);
                             insertStmt.setString(3, attributeSetInstanceId);
                             insertStmt.setDouble(4, units);
-    
+
                             insertStmt.executeUpdate();
                             insertados++;
-                            LOGGER.fine("Inventario insertado: " + product + " en " + location + " con " + units + " unidades");
+                            LOGGER.fine("Inventario insertado: " + product + " en " + location + " con " + units
+                                    + " unidades");
                         }
-    
+
                     } catch (Exception e) {
                         errores++;
                         LOGGER.log(Level.WARNING, "Error procesando movimiento de inventario: " + movimiento, e);
                     }
                 }
-    
-                LOGGER.info("Inventario sincronizado: " + insertados + " insertados, " + actualizados + " actualizados, " + errores + " errores.");
+
+                LOGGER.info("Inventario sincronizado: " + insertados + " insertados, " + actualizados
+                        + " actualizados, " + errores + " errores.");
                 return errores == 0;
 
             } catch (Exception e) {
@@ -1237,53 +1454,22 @@ public class FirebaseDownloadManagerREST {
                 return false;
             } finally {
                 try {
-                    if (rs != null) rs.close();
-                    if (checkProductStmt != null) checkProductStmt.close();
-                    if (checkStmt != null) checkStmt.close();
-                    if (insertStmt != null) insertStmt.close();
-                    if (updateStmt != null) updateStmt.close();
+                    if (rs != null)
+                        rs.close();
+                    if (checkProductStmt != null)
+                        checkProductStmt.close();
+                    if (checkStmt != null)
+                        checkStmt.close();
+                    if (insertStmt != null)
+                        insertStmt.close();
+                    if (updateStmt != null)
+                        updateStmt.close();
                 } catch (SQLException e) {
                     LOGGER.log(Level.WARNING, "Error cerrando recursos", e);
                 }
             }
         });
     }
-    
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
     /**
      * Resultado de la descarga

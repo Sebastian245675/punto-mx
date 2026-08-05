@@ -22,6 +22,7 @@ import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.printer.DevicePrinter;
 import com.openbravo.pos.printer.ticket.BasicTicket;
 import com.openbravo.pos.printer.ticket.BasicTicketForPrinter;
+import com.openbravo.pos.printer.ticket.TicketPrintLogger;
 import com.openbravo.pos.util.ReportUtils;
 import com.openbravo.pos.util.SelectPrinter;
 import java.awt.Component;
@@ -79,6 +80,12 @@ public class DevicePrinterPrinter implements DevicePrinter {
     private int imageable_y;
     private Media media;
     
+    private String fontName = "Arial";
+    private int fontSize = 16;
+    private boolean fontBold = true;
+    private int columns = 42;
+    private boolean normalTotals = false;
+    
     // JG 16 May 12 use multicatch
     private static final HashMap<String, MediaSizeName> mediasizenamemap = new HashMap<>();
 
@@ -105,6 +112,16 @@ public class DevicePrinterPrinter implements DevicePrinter {
         this.imageable_width = imageable_width;
         this.imageable_height = imageable_height;
         this.media = getMedia(mediasizename);
+    }
+
+    public DevicePrinterPrinter(Component parent, String printername, int imageable_x, int imageable_y, int imageable_width, int imageable_height, String mediasizename,
+                                String fontName, int fontSize, boolean fontBold, int columns, boolean normalTotals) {
+        this(parent, printername, imageable_x, imageable_y, imageable_width, imageable_height, mediasizename);
+        this.fontName = fontName;
+        this.fontSize = fontSize;
+        this.fontBold = fontBold;
+        this.columns = columns;
+        this.normalTotals = normalTotals;
     }
 
     /**
@@ -150,7 +167,10 @@ public class DevicePrinterPrinter implements DevicePrinter {
      */
     @Override
     public void beginReceipt() {
-        m_ticketcurrent = new BasicTicketForPrinter();
+        TicketPrintLogger.info("DevicePrinterPrinter.beginReceipt() - Creando ticket con: fontName=" + fontName 
+                + ", fontSize=" + fontSize + ", fontBold=" + fontBold + ", normalTotals=" + normalTotals
+                + ", columns=" + columns + ", printer=" + printerName);
+        m_ticketcurrent = new BasicTicketForPrinter(fontName, fontSize, fontBold, normalTotals);
     }
 
     /**
@@ -249,12 +269,15 @@ public class DevicePrinterPrinter implements DevicePrinter {
                 PrintRequestAttributeSet aset = new HashPrintRequestAttributeSet();
                 aset.add(OrientationRequested.PORTRAIT);
                 aset.add(new JobName(AppLocal.APP_NAME + " - Document", null));
-                aset.add(media);
+                if (media != null) {
+                    aset.add(media);
+                }
 
                 DocPrintJob printjob = ps.createPrintJob();
-                Doc doc = new SimpleDoc(new PrintableBasicTicket(m_ticketcurrent, imageable_x, imageable_y, imageable_width, imageable_height), DocFlavor.SERVICE_FORMATTED.PRINTABLE, null);
+                Doc doc = new SimpleDoc(new PrintableBasicTicket(m_ticketcurrent, imageable_x, imageable_y, imageable_width, imageable_height, columns, fontSize), DocFlavor.SERVICE_FORMATTED.PRINTABLE, null);
 
                 printjob.print(doc, aset);
+                TicketPrintLogger.logEndReceipt(this.printerName);
             }
 
         } catch (PrintException ex) {
@@ -272,8 +295,25 @@ public class DevicePrinterPrinter implements DevicePrinter {
    
     @Override
     public void openDrawer() {
-        // Una simulacion
         Toolkit.getDefaultToolkit().beep();
+        PrintService service = (printservice != null) ? printservice : ReportUtils.getPrintService(printerName);
+        if (service != null) {
+            try {
+                // Comando ESC/POS para abrir cajón monedero:
+                // ESC p 0 25 250 (Pin 2: 0x1B, 0x70, 0x00, 0x19, 0xFA)
+                // ESC p 1 25 250 (Pin 5: 0x1B, 0x70, 0x01, 0x19, 0xFA)
+                byte[] openDrawerBytes = new byte[]{
+                    0x1B, 0x70, 0x00, 0x19, (byte) 0xFA,
+                    0x1B, 0x70, 0x01, 0x19, (byte) 0xFA
+                };
+                DocPrintJob job = service.createPrintJob();
+                Doc doc = new SimpleDoc(openDrawerBytes, DocFlavor.BYTE_ARRAY.AUTOSENSE, null);
+                job.print(doc, null);
+                logger.info("Comando RAW ESC/POS enviado exitosamente a la impresora para abrir el cajón monedero.");
+            } catch (Exception ex) {
+                logger.log(Level.WARNING, "No se pudo enviar comando raw para abrir cajón monedero: " + ex.getMessage(), ex);
+            }
+        }
     }
 
     private static MediaSizeName getMedia(String mediasizename) {

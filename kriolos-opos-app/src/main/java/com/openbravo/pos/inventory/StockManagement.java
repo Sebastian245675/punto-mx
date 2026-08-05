@@ -181,6 +181,7 @@ public class StockManagement extends JPanel implements JPanelView {
 
         jTableProductStock.setVisible(false);
 
+        setLargeFont(this);
     }
 
     /**
@@ -2045,4 +2046,30 @@ public class StockManagement extends JPanel implements JPanelView {
     private javax.swing.JLabel webLblValue;
     // End of variables declaration//GEN-END:variables
 
+    /**
+     * Aplica el tipo de letra Segoe UI 24 de manera recursiva a todos los componentes
+     * del panel de movimientos de stock para una perfecta legibilidad.
+     */
+    private void setLargeFont(java.awt.Component comp) {
+        if (comp == null) return;
+        
+        java.awt.Font currentFont = comp.getFont();
+        if (currentFont == null || currentFont.getSize() < 24) {
+            comp.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 24));
+        }
+        
+        if (comp instanceof javax.swing.JTable) {
+            javax.swing.JTable t = (javax.swing.JTable) comp;
+            t.setRowHeight(32);
+            t.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24));
+        }
+        if (comp instanceof javax.swing.text.JTextComponent) {
+            comp.setPreferredSize(new java.awt.Dimension(comp.getPreferredSize().width, 36));
+        }
+        if (comp instanceof java.awt.Container) {
+            for (java.awt.Component child : ((java.awt.Container) comp).getComponents()) {
+                setLargeFont(child);
+            }
+        }
+    }
 }

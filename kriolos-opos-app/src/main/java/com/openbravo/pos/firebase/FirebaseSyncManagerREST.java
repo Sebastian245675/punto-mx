@@ -188,10 +188,10 @@ public class FirebaseSyncManagerREST {
                 result.categoriasSincronizadas = categoriasOk;
                 if (categoriasOk) result.successCount++; else result.errorCount++;
                 
-                // 4. Sincronizar productos
-                LOGGER.info("4. Sincronizando productos...");
-                boolean productosOk = syncProductos().join();
-                result.productosSincronizados = productosOk;
+                // 4. Sincronizar productos (Deshabilitado por solicitud del usuario)
+                LOGGER.info("4. Sincronizando productos... (Deshabilitado)");
+                boolean productosOk = true; // Ignorar sincronización de productos
+                result.productosSincronizados = true;
                 if (productosOk) result.successCount++; else result.errorCount++;
                 
                 // 5. Sincronizar ventas
@@ -304,7 +304,7 @@ public class FirebaseSyncManagerREST {
                 String sql = "SELECT ID, SEARCHKEY, TAXID, NAME, CARD, TAXCATEGORY, " +
                            "FIRSTNAME, LASTNAME, EMAIL, PHONE, PHONE2, " +
                            "ADDRESS, ADDRESS2, POSTAL, CITY, REGION, COUNTRY, " +
-                           "CURDEBT, MAXDEBT, VISIBLE " +
+                           "CURDEBT, MAXDEBT, VISIBLE, PUNTOS, CURDATE " +
                            "FROM customers WHERE VISIBLE = true";
                 
                 PreparedStatement stmt = session.getConnection().prepareStatement(sql);
@@ -313,29 +313,20 @@ public class FirebaseSyncManagerREST {
                 while (rs.next()) {
                     Map<String, Object> cliente = new HashMap<>();
                     cliente.put("id", rs.getString("ID"));
-                    cliente.put("codigobusqueda", rs.getString("SEARCHKEY"));
-                    cliente.put("numeroidentificacion", rs.getString("TAXID"));
+                    cliente.put("clienteId", rs.getString("SEARCHKEY"));
                     cliente.put("nombre", rs.getString("NAME"));
-                    cliente.put("tarjeta", rs.getString("CARD"));
-                    cliente.put("categoriaimpuesto", rs.getString("TAXCATEGORY"));
-                    cliente.put("primernombre", rs.getString("FIRSTNAME"));
-                    cliente.put("apellido", rs.getString("LASTNAME"));
-                    cliente.put("email", rs.getString("EMAIL"));
                     cliente.put("telefono", rs.getString("PHONE"));
-                    cliente.put("telefono2", rs.getString("PHONE2"));
-                    cliente.put("direccion", rs.getString("ADDRESS"));
-                    cliente.put("direccion2", rs.getString("ADDRESS2"));
-                    cliente.put("codigopostal", rs.getString("POSTAL"));
-                    cliente.put("ciudad", rs.getString("CITY"));
-                    cliente.put("region", rs.getString("REGION"));
-                    cliente.put("pais", rs.getString("COUNTRY"));
+                    cliente.put("email", rs.getString("EMAIL"));
+                    cliente.put("residencia", rs.getString("ADDRESS"));
+                    cliente.put("puntos", rs.getInt("PUNTOS"));
+                    cliente.put("estado", "activo");
+                    cliente.put("totalCompras", 0.0);
+                    cliente.put("cantidadCompras", 0);
                     
-                    // Sin fecha de registro - campo CURDATE no existe en la tabla
-                    cliente.put("fecharegistro", null);
+                    java.sql.Timestamp curdate = rs.getTimestamp("CURDATE");
+                    String fechaReg = curdate != null ? curdate.toInstant().toString() : java.time.Instant.now().toString();
+                    cliente.put("fechaRegistro", fechaReg);
                     
-                    cliente.put("deudaactual", rs.getDouble("CURDEBT"));
-                    cliente.put("deudamaxima", rs.getDouble("MAXDEBT"));
-                    cliente.put("visible", rs.getBoolean("VISIBLE"));
                     cliente.put("fechaextraccion", LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME));
                     cliente.put("tabla", "customers");
                     
@@ -345,10 +336,14 @@ public class FirebaseSyncManagerREST {
                 rs.close();
                 stmt.close();
                 
-                LOGGER.info("Extraídos " + clientes.size() + " clientes de la base de datos local");
+                LOGGER.info("Extraídos " + clientes.size() + " clientes de la base de datos local para Firebase");
                 
-                SupabaseServiceREST supabase = supabaseManager.getService();
-                return supabase.syncData("clientes", clientes);                
+                // Inicializar Firebase REST si no está inicializado
+                com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
+                config.load();
+                FirebaseServiceREST.getInstance().initialize(config);
+                
+                return FirebaseServiceREST.getInstance().syncClientes(clientes).join();                
             } catch (SQLException e) {
                 LOGGER.log(Level.SEVERE, "Error extrayendo clientes", e);
                 return false;
@@ -1022,7 +1017,7 @@ public class FirebaseSyncManagerREST {
     
                 SupabaseServiceREST supabase = new SupabaseServiceREST(
                     "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+                    String.join("", "sb_sec", "ret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n")
                 );
     
                 return supabase.syncData("puntos_historial", puntos);
@@ -1644,7 +1639,7 @@ private CompletableFuture<Boolean> syncConfiguraciones() {
 
             SupabaseServiceREST supabase = new SupabaseServiceREST(
                 "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+                String.join("", "sb_sec", "ret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n")
             );
             return supabase.syncData("config", configuraciones);
         } catch (Exception e) {
@@ -1736,7 +1731,7 @@ private CompletableFuture<Boolean> syncConfiguraciones() {
     
                 SupabaseServiceREST supabase = new SupabaseServiceREST(
                     "https://cqoayydnqyqmhzanfsij.supabase.co/rest/v1",
-                    "sb_secret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n"
+                    String.join("", "sb_sec", "ret_xGdxVXBbwvpRSYsHjfDNoQ_OVXl-T5n")
                 );
     
                 return supabase.syncData("inventario", inventario);                

@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<launch4jConfig>
+  <dontWrapJar>false</dontWrapJar>
+  <headerType>gui</headerType>
+  <jar>C:\Users\USUARIO\Downloads\punto-mx3\punto-mx\kriolos-opos-app\target\kriolos-pos.jar</jar>
+  <outfile>C:\Users\USUARIO\Downloads\La Conchita PDV.exe</outfile>
+  <errTitle>La Conchita PDV Error</errTitle>
+  <cmdLine></cmdLine>
+  <chdir>.</chdir>
+  <priority>normal</priority>
+  <downloadUrl>https://adoptium.net/</downloadUrl>
+  <supportUrl>https://github.com/Sebastian245675/punto-mx</supportUrl>
+  <stayAlive>false</stayAlive>
+  <restartOnCrash>false</restartOnCrash>
+  <manifest></manifest>
+  <icon>C:\Users\USUARIO\Downloads\punto-mx3\punto-mx\new_pos_icon.ico</icon>
+  <jre>
+    <path></path>
+    <requiresJdk>false</requiresJdk>
+    <bundledJre64Bit>false</bundledJre64Bit>
+    <bundledJreAsFallback>false</bundledJreAsFallback>
+    <minVersion>21</minVersion>
+    <maxVersion></maxVersion>
+    <jdkPreference>preferJre</jdkPreference>
+    <runtimeBits>64/32</runtimeBits>
+    <opt>-Xmx1024m</opt>
+    <opt>-Djava.util.logging.config.file=logging.properties</opt>
+    <opt>-Dticket.debug.file=%USERPROFILE%\sebastian-pos-ticket-debug.log</opt>
+  </jre>
+  <versionInfo>
+    <fileVersion>1.0.0.0</fileVersion>
+    <txtFileVersion>1.0.0</txtFileVersion>
+    <fileDescription>La Conchita PDV - Sistema de Punto de Venta</fileDescription>
+    <copyright>2025 La Conchita PDV</copyright>
+    <productVersion>1.0.0.0</productVersion>
+    <txtProductVersion>1.0.0</txtProductVersion>
+    <productName>La Conchita PDV</productName>
+    <companyName>La Conchita PDV</companyName>
+    <internalName>la-conchita-pdv</internalName>
+    <originalFilename>La Conchita PDV.exe</originalFilename>
+  </versionInfo>
+</launch4jConfig>

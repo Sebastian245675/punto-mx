@@ -37,7 +37,7 @@ public class JCopyRightPanel extends javax.swing.JPanel {
         
         // Crear contenido moderno y atractivo
         copyRightLabel.setText("<html><div style='text-align: center; padding: 40px;'>"
-                + "<h1 style='color: #4080FF; font-size: 28px; margin-bottom: 20px;'>🚀 CONNECTING POS</h1>"
+                + "<h1 style='color: #4080FF; font-size: 28px; margin-bottom: 20px;'>🚀 " + AppLocal.APP_NAME + "</h1>"
                 + "<p style='color: #2D2D2D; font-size: 18px; margin-bottom: 15px;'><strong>Sistema de Punto de Venta Moderno</strong></p>"
                 + "<p style='color: #6C757D; font-size: 14px; margin-bottom: 25px;'>Desarrollado con tecnología avanzada para tu negocio</p>"
                 
@@ -64,7 +64,7 @@ public class JCopyRightPanel extends javax.swing.JPanel {
                 + "</div>"
                 
                 + "<div style='margin-top: 25px;'>"
-                + "<p style='color: #4080FF; font-size: 14px; font-weight: bold;'>¡Gracias por elegir CONNECTING POS! 🎉</p>"
+                + "<p style='color: #4080FF; font-size: 14px; font-weight: bold;'>¡Gracias por elegir " + AppLocal.APP_NAME + "! 🎉</p>"
                 + "</div>"
                 
                 + "</div></html>"

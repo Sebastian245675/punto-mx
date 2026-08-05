@@ -162,6 +162,7 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
             mejorarBotones();
             mejorarCamposDeTexto();
             mejorarTablaYPestanas();
+            setLargeFont(this);
         });
     }
     
@@ -786,10 +787,18 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
     @Override
     public Object createValue() throws BasicException {
 
-        Object[] customer = new Object[27];
+        Object[] customer = new Object[28];
 
-        customer[0] = m_oId == null ? UUID.randomUUID().toString() : m_oId;
-        customer[1] = m_jSearchkey.getText();
+        String id = m_oId == null ? UUID.randomUUID().toString() : m_oId.toString();
+        customer[0] = id;
+        
+        String searchKey = m_jSearchkey.getText();
+        if (searchKey == null || searchKey.trim().isEmpty()) {
+            searchKey = "C-" + System.currentTimeMillis();
+            m_jSearchkey.setText(searchKey);
+        }
+        customer[1] = searchKey;
+        
         customer[2] = m_jTaxID.getText();
         customer[3] = m_jName.getText();
         customer[4] = m_CategoryModel.getSelectedKey();
@@ -815,6 +824,16 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         customer[24] = m_jVip.isSelected();
         customer[25] = Formats.CURRENCY.parseValue(txtDiscount.getText(), 0.0);
         customer[26] = Formats.TIMESTAMP.parseValue(m_jdate.getText());
+        
+        int puntosAct = 0;
+        try {
+            if (txtPuntosActuales != null && txtPuntosActuales.getText() != null && !txtPuntosActuales.getText().trim().isEmpty()) {
+                puntosAct = Integer.parseInt(txtPuntosActuales.getText().trim());
+            }
+        } catch(Exception e) {
+            // Ignorar y usar 0
+        }
+        customer[27] = puntosAct;
 
         return customer;
     }
@@ -1007,10 +1026,12 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
         btnImprimirCopiaPuntos = new javax.swing.JButton();
 
         setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        setPreferredSize(new java.awt.Dimension(700, 400));
+        setPreferredSize(new java.awt.Dimension(900, 480));
+        setMinimumSize(new java.awt.Dimension(800, 420)); // Tamaño mínimo para que el scroll funcione
 
         jTabbedPane1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
-        jTabbedPane1.setPreferredSize(new java.awt.Dimension(650, 300));
+        jTabbedPane1.setPreferredSize(new java.awt.Dimension(880, 400));
+        jTabbedPane1.setMinimumSize(new java.awt.Dimension(750, 380));
 
         jLabel8.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jLabel8.setText(AppLocal.getIntString("label.searchkeym")); // NOI18N
@@ -1238,19 +1259,19 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
                         .addGroup(jPanelGeneralLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                             .addGroup(jPanelGeneralLayout.createSequentialGroup()
                                 .addComponent(jLabel4, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(m_jVisible, javax.swing.GroupLayout.PREFERRED_SIZE, 20, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addGroup(jPanelGeneralLayout.createSequentialGroup()
-                                .addGap(0, 0, Short.MAX_VALUE)
-                                .addComponent(jLblVIP, javax.swing.GroupLayout.PREFERRED_SIZE, 94, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(100, 100, 100)
+                                .addComponent(jLblVIP, javax.swing.GroupLayout.PREFERRED_SIZE, 50, javax.swing.GroupLayout.PREFERRED_SIZE)
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                                 .addComponent(m_jVip, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
-                        .addGap(83, 83, 83))))
+                        .addContainerGap(20, Short.MAX_VALUE))))
         );
         jPanelGeneralLayout.setVerticalGroup(
             jPanelGeneralLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, jPanelGeneralLayout.createSequentialGroup()
-                .addContainerGap(13, Short.MAX_VALUE)
+                .addContainerGap(10, 10)
                 .addGroup(jPanelGeneralLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addGroup(jPanelGeneralLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
                         .addComponent(jLabel7, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
@@ -1307,6 +1328,10 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
                         .addComponent(txtCurdebt, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addContainerGap())
         );
+        
+        // Forzar tamaño del panel General para que no se corten los campos
+        jPanelGeneral.setPreferredSize(new java.awt.Dimension(700, 320));
+        jPanelGeneral.setMinimumSize(new java.awt.Dimension(650, 300));
 
         jTabbedPane1.addTab(AppLocal.getIntString("label.general"), jPanelGeneral); // NOI18N
 
@@ -1864,14 +1889,14 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 659, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 339, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addContainerGap())
         );
     }// </editor-fold>//GEN-END:initComponents
@@ -2378,4 +2403,30 @@ public final class CustomersView extends com.openbravo.pos.panels.ValidationPane
     private javax.swing.JButton btnImprimirCopiaPuntos; // Sebastian - Botón para reimprimir ticket de puntos
     // End of variables declaration//GEN-END:variables
 
+    /**
+     * Aplica el tipo de letra Segoe UI 24 de manera recursiva a todos los componentes
+     * del editor de clientes para una perfecta visualización y legibilidad.
+     */
+    private void setLargeFont(java.awt.Component comp) {
+        if (comp == null) return;
+        
+        java.awt.Font currentFont = comp.getFont();
+        if (currentFont == null || currentFont.getSize() < 24) {
+            comp.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 24));
+        }
+        
+        if (comp instanceof javax.swing.JTable) {
+            javax.swing.JTable t = (javax.swing.JTable) comp;
+            t.setRowHeight(32);
+            t.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24));
+        }
+        if (comp instanceof javax.swing.text.JTextComponent) {
+            comp.setPreferredSize(new java.awt.Dimension(comp.getPreferredSize().width, 36));
+        }
+        if (comp instanceof java.awt.Container) {
+            for (java.awt.Component child : ((java.awt.Container) comp).getComponents()) {
+                setLargeFont(child);
+            }
+        }
+    }
 }

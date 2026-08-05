@@ -25,8 +25,8 @@ public class CodesEpson extends Codes {
     private static final byte[] INITSEQUENCE = {};
 
     private static final byte[] CHAR_SIZE_0 = {0x1D, 0x21, 0x00};
-    private static final byte[] CHAR_SIZE_1 = {0x1D, 0x21, 0x01};
-    private static final byte[] CHAR_SIZE_2 = {0x1D, 0x21, 0x30};
+    private static final byte[] CHAR_SIZE_1 = {0x1D, 0x21, 0x11};
+    private static final byte[] CHAR_SIZE_2 = {0x1D, 0x21, 0x20};
     private static final byte[] CHAR_SIZE_3 = {0x1D, 0x21, 0x31};
 
     public static final byte[] BOLD_SET = {0x1B, 0x45, 0x01};

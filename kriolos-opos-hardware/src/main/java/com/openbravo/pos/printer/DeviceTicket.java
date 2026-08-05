@@ -115,8 +115,8 @@ public class DeviceTicket {
         int iPrinterIndex = 1;
         String sPrinterIndex = Integer.toString(iPrinterIndex);
         String sprinter = props.getProperty("machine.printer");
-        
-        List<String> serialNamesAlternative = Arrays.asList( "serial", "rxtx", "file");
+
+        List<String> serialNamesAlternative = Arrays.asList("serial", "rxtx", "file");
 
         while (sprinter != null && !"".equals(sprinter)) {
 
@@ -124,11 +124,10 @@ public class DeviceTicket {
             String sPrinterType = sp.nextToken(':');
             String sPrinterParam1 = sp.nextToken(',');
             String sPrinterParam2 = sp.nextToken(',');
-            
-            
-            logger.log(Level.WARNING, "Printer device: "+sprinter);
 
-            //Special Case for Epson ( [serial|rxtx|file]:param1,param2
+            logger.log(Level.WARNING, "Printer device: " + sprinter);
+
+            // Special Case for Epson ( [serial|rxtx|file]:param1,param2
             if (serialNamesAlternative.contains(sPrinterType)) {
                 sPrinterParam2 = sPrinterParam1;
                 sPrinterParam1 = sPrinterType;
@@ -139,7 +138,7 @@ public class DeviceTicket {
 
                 switch (sPrinterType) {
                     case "screen":
-                        addPrinter(sPrinterIndex, new DevicePrinterPanel());
+                        addPrinter(sPrinterIndex, new DevicePrinterPanel(props, sPrinterParam2));
                         break;
                     case "printer":
                         // backward compatibility
@@ -149,13 +148,47 @@ public class DeviceTicket {
                         } else if (sPrinterParam2.equals("false")) {
                             sPrinterParam2 = "standard";
                         }
+                        String mediaSizeName = props.getProperty("paper." + sPrinterParam2 + ".mediasizename");
+                        if ("receipt".equals(sPrinterParam2) && "A4".equals(mediaSizeName)) {
+                            mediaSizeName = "Default";
+                        }
+                        String fontNameProp = props.getProperty("paper." + sPrinterParam2 + ".fontname");
+                        if (fontNameProp == null) {
+                            fontNameProp = props.getProperty("paper.receipt.fontname");
+                        }
+                        String fontName = (fontNameProp != null) ? fontNameProp : "Courier New";
+
+                        String fontSizeProp = props.getProperty("paper." + sPrinterParam2 + ".fontsize");
+                        if (fontSizeProp == null) {
+                            fontSizeProp = props.getProperty("paper.receipt.fontsize");
+                        }
+                        int fontSize = Integer.parseInt((fontSizeProp != null) ? fontSizeProp : "7");
+
+                        String fontBoldProp = props.getProperty("paper." + sPrinterParam2 + ".fontbold");
+                        if (fontBoldProp == null) {
+                            fontBoldProp = props.getProperty("paper.receipt.fontbold");
+                        }
+                        boolean fontBold = Boolean.parseBoolean((fontBoldProp != null) ? fontBoldProp : "false");
+
+                        String columnsProp = props.getProperty("paper." + sPrinterParam2 + ".columns");
+                        if (columnsProp == null) {
+                            columnsProp = props.getProperty("paper.receipt.columns");
+                        }
+                        int columns = Integer.parseInt((columnsProp != null) ? columnsProp : "42");
+
+                        String normalTotalsProp = props.getProperty("paper." + sPrinterParam2 + ".normaltotals");
+                        if (normalTotalsProp == null) {
+                            normalTotalsProp = props.getProperty("paper.receipt.normaltotals");
+                        }
+                        boolean normalTotals = Boolean
+                                .parseBoolean((normalTotalsProp != null) ? normalTotalsProp : "false");
+
                         addPrinter(sPrinterIndex, new DevicePrinterPrinter(parent, sPrinterParam1,
                                 Integer.parseInt(props.getProperty("paper." + sPrinterParam2 + ".x")),
                                 Integer.parseInt(props.getProperty("paper." + sPrinterParam2 + ".y")),
                                 Integer.parseInt(props.getProperty("paper." + sPrinterParam2 + ".width")),
                                 Integer.parseInt(props.getProperty("paper." + sPrinterParam2 + ".height")),
-                                props.getProperty("paper." + sPrinterParam2 + ".mediasizename")
-                        ));
+                                mediaSizeName, fontName, fontSize, fontBold, columns, normalTotals));
                         break;
                     case "epson":
                         addPrinter(sPrinterIndex, new DevicePrinterESCPOS(
@@ -258,14 +291,14 @@ public class DeviceTicket {
             m_devicedisplay = new DeviceDisplayNull(e.getMessage());
         }
     }
-    
-    public static String[] getDisplayDeviceTypes(){
-        String[] devices = {"screen", "window", "dual", "epson", "surepos", "ld200", "javapos", "led8"};
+
+    public static String[] getDisplayDeviceTypes() {
+        String[] devices = { "screen", "window", "dual", "epson", "surepos", "ld200", "javapos", "led8" };
         return devices;
     }
-    
-    public static String[] getPrinterDeviceTypes(){
-        String[] devices = {"screen", "window", "dual", "epson", "surepos", "ld200", "javapos", "led8"};
+
+    public static String[] getPrinterDeviceTypes() {
+        String[] devices = { "screen", "window", "dual", "epson", "surepos", "ld200", "javapos", "led8" };
         return devices;
     }
 
@@ -313,7 +346,8 @@ public class DeviceTicket {
                             this.m_apool.put(skey, pw);
                             return pw;
                         } else {
-                            throw new TicketPrinterException("Invalid host addr: " + hostAddr + "; connection string: " + skey);
+                            throw new TicketPrinterException(
+                                    "Invalid host addr: " + hostAddr + "; connection string: " + skey);
                         }
                     default:
                         throw new TicketPrinterException("Not supported protocol with connection string: " + skey);
@@ -347,6 +381,19 @@ public class DeviceTicket {
     public DevicePrinter getDevicePrinter(String key) {
         DevicePrinter printer = m_deviceprinters.get(key);
         return printer == null ? m_nullprinter : printer;
+    }
+
+    /**
+     * Marca el último ticket visualizado como CANCELADO, mostrando un sello
+     * gráfico sobre el ticket en pantalla.
+     * 
+     * @param cancelled true para mostrar el sello, false para ocultarlo
+     */
+    public void setCancelled(boolean cancelled) {
+        DevicePrinter dp = m_deviceprinters.get("1");
+        if (dp instanceof DevicePrinterPanel) {
+            ((DevicePrinterPanel) dp).setCancelled(cancelled);
+        }
     }
 
     /**
@@ -400,16 +447,17 @@ public class DeviceTicket {
     }
 
     public static String alignText(int textAlignment, String text, int textLength) {
-          return switch (textAlignment) {
+        return switch (textAlignment) {
             case DevicePrinter.ALIGN_RIGHT ->
                 alignRight(text, textLength);
             case DevicePrinter.ALIGN_CENTER ->
                 alignCenter(text, textLength);
             default ->
-                //DevicePrinter.ALIGN_LEFT
+                // DevicePrinter.ALIGN_LEFT
                 alignLeft(text, textLength);
         };
     }
+
     /**
      *
      * @param sLine
@@ -455,7 +503,7 @@ public class DeviceTicket {
             sLine = "";
         }
         if (sLine.length() > iSize) {
-            return alignRight(sLine.substring(0, (sLine.length() + iSize) / 2), iSize);
+            return sLine.substring(0, iSize);
         } else {
             return alignRight(sLine + getWhiteString((iSize - sLine.length()) / 2), iSize);
         }
@@ -463,6 +511,7 @@ public class DeviceTicket {
 
     /**
      * Text Aligment 'Center' with default text length of 42
+     * 
      * @param sLine
      * @return Equalise Left/Right spacing
      */
@@ -470,7 +519,7 @@ public class DeviceTicket {
         return alignCenter(sLine, 42);
     }
 
-// JG 16 May 12     public static final byte[] transNumber(String sCad) {
+    // JG 16 May 12 public static final byte[] transNumber(String sCad) {
     /**
      *
      * @param sCad

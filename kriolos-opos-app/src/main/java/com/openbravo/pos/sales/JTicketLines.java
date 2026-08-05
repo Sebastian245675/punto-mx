@@ -15,6 +15,7 @@
 //    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 package com.openbravo.pos.sales;
 
+import com.openbravo.pos.forms.AppConfig;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.pos.scripting.ScriptEngine;
 import com.openbravo.pos.scripting.ScriptException;
@@ -60,6 +61,9 @@ public class JTicketLines extends javax.swing.JPanel {
 
     private static final Logger logger = Logger.getLogger("com.openbravo.pos.sales.JTicketLines");
 
+    // Sebastian - Clave de preferencia para persistir el orden de columnas
+    private static final String PREF_KEY_COL_ORDER = "ticketlines.column.order";
+
     private static SAXParser m_sp = null;
 
     private final TicketTableModel m_jTableModel;
@@ -101,14 +105,14 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jTableModel = new TicketTableModel(acolumns);
         m_jTicketTable.setModel(m_jTableModel);
 
-        //m_jTicketTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
+        // m_jTicketTable.setAutoResizeMode(JTable.AUTO_RESIZE_OFF);
         TableColumnModel jColumns = m_jTicketTable.getColumnModel();
         TicketCellRenderer defaultRenderer = new TicketCellRenderer(acolumns);
-        
+
         for (int i = 0; i < acolumns.length; i++) {
             jColumns.getColumn(i).setPreferredWidth(acolumns[i].width);
             jColumns.getColumn(i).setResizable(false);
-            
+
             // Configurar renderizador específico para cada columna
             jColumns.getColumn(i).setCellRenderer(defaultRenderer);
         }
@@ -116,88 +120,128 @@ public class JTicketLines extends javax.swing.JPanel {
         m_jScrollTableTicket.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
 
         // set font for headers
-        Font f = new Font("Arial", Font.BOLD, 14);
+        Font f = new Font("Arial", Font.BOLD, 36);
         JTableHeader header = m_jTicketTable.getTableHeader();
         header.setFont(f);
-        
+
         // Eliminar espacio entre header y tabla para mejor alineación
         m_jTicketTable.setIntercellSpacing(new java.awt.Dimension(0, 0)); // Sin espacio entre celdas
         m_jTicketTable.setRowMargin(0); // Sin margen entre filas
-        
-        // Eliminar TODOS los bordes y espacios del header para perfecta alineación sin gaps
+
+        // Eliminar TODOS los bordes y espacios del header para perfecta alineación sin
+        // gaps
         header.setBorder(null); // Sin borde en absoluto
-        header.setPreferredSize(new java.awt.Dimension(header.getPreferredSize().width, 30)); // Altura fija del header
-        
+        header.setPreferredSize(new java.awt.Dimension(header.getPreferredSize().width, 60)); // Altura aumentada para
+                                                                                              // fuentes más grandes
+
         // Eliminar cualquier espacio entre el header y la tabla
         // Eliminar todos los bordes del scrollpane para que no haya espacios
         javax.swing.border.Border emptyBorder = javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0);
         m_jScrollTableTicket.setViewportBorder(emptyBorder);
         m_jScrollTableTicket.setBorder(emptyBorder);
-        
+
         // Configurar el header para que no tenga separación con la tabla
         header.setBorder(null);
-        
-        // Configurar renderer personalizado para el header que pinte fondo azul claro en columnas de código de barras y precio
+
+        // Configurar renderer personalizado para el header que pinte fondo azul claro
+        // en columnas de código de barras y precio
         header.setDefaultRenderer(new HeaderCellRenderer(acolumns));
 
         m_jTicketTable.getTableHeader().setReorderingAllowed(true);
         m_jTicketTable.setAutoCreateRowSorter(true);
         m_jTicketTable.setDefaultRenderer(Object.class, defaultRenderer);
 
-        m_jTicketTable.setRowHeight(40);
+        m_jTicketTable.setRowHeight(55); // Altura aumentada para acomodar fuentes más grandes
         m_jTicketTable.getSelectionModel().setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
-        
+
         // Configurar colores estilo Eleventa
         m_jTicketTable.setBackground(java.awt.Color.WHITE);
         m_jTicketTable.setSelectionBackground(new java.awt.Color(91, 192, 222)); // Azul claro de Eleventa
         m_jTicketTable.setSelectionForeground(java.awt.Color.WHITE); // Texto blanco cuando está seleccionado
         m_jTicketTable.setGridColor(new java.awt.Color(220, 220, 220)); // Grid gris claro
-        
-        // Configurar el fondo del viewport para que las columnas de código de barras y precio se extiendan hasta abajo
+
+        // Configurar el fondo del viewport para que las columnas de código de barras y
+        // precio se extiendan hasta abajo
         m_jTicketTable.setFillsViewportHeight(true);
         m_jTicketTable.setOpaque(false); // Hacer la tabla transparente para que se vea el fondo del viewport
         m_jTicketTable.setShowGrid(false); // Ocultar grid para mejor visualización
-        
-        // Reemplazar el viewport por defecto con uno personalizado que pinte el fondo de las columnas
-        ColumnBackgroundViewport customViewport = new ColumnBackgroundViewport(m_jTicketTable, acolumns, defaultRenderer);
+
+        // Reemplazar el viewport por defecto con uno personalizado que pinte el fondo
+        // de las columnas
+        ColumnBackgroundViewport customViewport = new ColumnBackgroundViewport(m_jTicketTable, acolumns,
+                defaultRenderer);
         customViewport.setBackground(java.awt.Color.WHITE);
         customViewport.setOpaque(true);
         customViewport.setView(m_jTicketTable);
         m_jScrollTableTicket.setViewport(customViewport);
 
         m_jTableModel.clear();
-        
+
+        // Sebastian - Restaurar el orden de columnas guardado
+        restoreColumnOrder(acolumns.length);
+
+        // Sebastian - Guardar el orden de columnas cuando el usuario las mueva
+        m_jTicketTable.getColumnModel().addColumnModelListener(new javax.swing.event.TableColumnModelListener() {
+            @Override
+            public void columnAdded(javax.swing.event.TableColumnModelEvent e) {
+            }
+
+            @Override
+            public void columnRemoved(javax.swing.event.TableColumnModelEvent e) {
+            }
+
+            @Override
+            public void columnMarginChanged(javax.swing.event.ChangeEvent e) {
+            }
+
+            @Override
+            public void columnSelectionChanged(javax.swing.event.ListSelectionEvent e) {
+            }
+
+            @Override
+            public void columnMoved(javax.swing.event.TableColumnModelEvent e) {
+                // Solo guardar cuando el movimiento se completa (origen != destino)
+                if (e.getFromIndex() != e.getToIndex()) {
+                    saveColumnOrder();
+                }
+            }
+        });
+
         // Configurar listeners para eliminar con Delete al pasar el mouse
         setupDeleteOnHover();
     }
-    
+
     /**
      * Interfaz para callback de eliminación de línea
      */
     public interface DeleteLineCallback {
         void onDeleteLine(int rowIndex);
     }
-    
+
     public interface IncrementLineCallback {
         void onIncrementLine(int rowIndex, double amount);
     }
-    
+
     /**
      * Establece el callback para eliminar líneas
-     * @param callback El callback que se llamará cuando se presione Delete sobre una fila
+     * 
+     * @param callback El callback que se llamará cuando se presione Delete sobre
+     *                 una fila
      */
     public void setDeleteLineCallback(DeleteLineCallback callback) {
         this.deleteLineCallback = callback;
     }
-    
+
     /**
      * Establece el callback para incrementar/decrementar cantidad de líneas
-     * @param callback El callback que se llamará cuando se presione + o - sobre una fila
+     * 
+     * @param callback El callback que se llamará cuando se presione + o - sobre una
+     *                 fila
      */
     public void setIncrementLineCallback(IncrementLineCallback callback) {
         this.incrementLineCallback = callback;
     }
-    
+
     /**
      * Configura los listeners de mouse y teclado para eliminar líneas
      * cuando se pasa el mouse sobre una fila y se presiona Delete, o con doble clic
@@ -206,7 +250,7 @@ public class JTicketLines extends javax.swing.JPanel {
         // Hacer la tabla focusable para recibir eventos de teclado
         m_jTicketTable.setFocusable(true);
         m_jTicketTable.setRequestFocusEnabled(true);
-        
+
         // Listener de mouse para detectar cuando el mouse está sobre una fila
         MouseAdapter mouseAdapter = new MouseAdapter() {
             @Override
@@ -223,12 +267,12 @@ public class JTicketLines extends javax.swing.JPanel {
                     hoveredRow = -1;
                 }
             }
-            
+
             @Override
             public void mouseExited(MouseEvent e) {
                 hoveredRow = -1;
             }
-            
+
             @Override
             public void mouseClicked(MouseEvent e) {
                 // Eliminar línea con doble clic
@@ -249,12 +293,13 @@ public class JTicketLines extends javax.swing.JPanel {
                 }
             }
         };
-        
+
         m_jTicketTable.addMouseMotionListener(mouseAdapter);
         m_jTicketTable.addMouseListener(mouseAdapter);
-        
+
         // Listener de teclado para detectar cuando se presiona Delete, + o -
-        // Se agrega tanto a la tabla como al panel para capturar el evento en ambos casos
+        // Se agrega tanto a la tabla como al panel para capturar el evento en ambos
+        // casos
         KeyAdapter keyboardListener = new KeyAdapter() {
             @Override
             public void keyPressed(KeyEvent e) {
@@ -268,7 +313,7 @@ public class JTicketLines extends javax.swing.JPanel {
                         currentRow = selectedRow;
                     }
                 }
-                
+
                 // Manejar tecla DELETE
                 if (e.getKeyCode() == KeyEvent.VK_DELETE || e.getKeyCode() == KeyEvent.VK_BACK_SPACE) {
                     if (currentRow >= 0 && deleteLineCallback != null) {
@@ -277,21 +322,21 @@ public class JTicketLines extends javax.swing.JPanel {
                     }
                 }
                 // Manejar tecla + (incrementar cantidad)
-                else if ((e.getKeyCode() == KeyEvent.VK_PLUS || e.getKeyCode() == KeyEvent.VK_ADD || 
-                          (e.getKeyCode() == KeyEvent.VK_EQUALS && e.isShiftDown())) && 
-                         currentRow >= 0 && incrementLineCallback != null) {
+                else if ((e.getKeyCode() == KeyEvent.VK_PLUS || e.getKeyCode() == KeyEvent.VK_ADD ||
+                        (e.getKeyCode() == KeyEvent.VK_EQUALS && e.isShiftDown())) &&
+                        currentRow >= 0 && incrementLineCallback != null) {
                     incrementLineCallback.onIncrementLine(currentRow, 1.0);
                     e.consume();
                 }
                 // Manejar tecla - (decrementar cantidad)
-                else if ((e.getKeyCode() == KeyEvent.VK_MINUS || e.getKeyCode() == KeyEvent.VK_SUBTRACT) && 
-                         currentRow >= 0 && incrementLineCallback != null) {
+                else if ((e.getKeyCode() == KeyEvent.VK_MINUS || e.getKeyCode() == KeyEvent.VK_SUBTRACT) &&
+                        currentRow >= 0 && incrementLineCallback != null) {
                     incrementLineCallback.onIncrementLine(currentRow, -1.0);
                     e.consume();
                 }
             }
         };
-        
+
         m_jTicketTable.addKeyListener(keyboardListener);
         // También agregar al panel para capturar eventos cuando la tabla no tiene foco
         this.addKeyListener(keyboardListener);
@@ -313,12 +358,12 @@ public class JTicketLines extends javax.swing.JPanel {
     public void removeListSelectionListener(ListSelectionListener l) {
         m_jTicketTable.getSelectionModel().removeListSelectionListener(l);
     }
-    
-    public void addTableModelListener(TableModelListener listener){
+
+    public void addTableModelListener(TableModelListener listener) {
         m_jTicketTable.getModel().addTableModelListener(listener);
     }
-    
-    public void removeTableModelListener(TableModelListener listener){
+
+    public void removeTableModelListener(TableModelListener listener) {
         m_jTicketTable.getModel().removeTableModelListener(listener);
     }
 
@@ -460,10 +505,23 @@ public class JTicketLines extends javax.swing.JPanel {
             // #region agent log
             if (m_acolumns[column].name != null && m_acolumns[column].name.equals("label.printto")) {
                 try {
-                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                    fw.write("{\"location\":\"JTicketLines.java:414\",\"message\":\"Rendering printto cell\",\"data\":{\"value\":" + (value != null ? "\"" + value.toString().replace("\"", "\\\"").replace("\n", "\\n") + "\"" : "null") + ",\"valueType\":" + (value != null ? "\"" + value.getClass().getName() + "\"" : "null") + ",\"isNull\":" + (value == null) + ",\"isEmpty\":" + (value != null && value.toString().isEmpty()) + "},\"timestamp\":" + System.currentTimeMillis() + ",\"sessionId\":\"debug-session\",\"runId\":\"run3\",\"hypothesisId\":\"C\"}\n");
+                    java.io.FileWriter fw = new java.io.FileWriter(
+                            "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log",
+                            true);
+                    fw.write(
+                            "{\"location\":\"JTicketLines.java:414\",\"message\":\"Rendering printto cell\",\"data\":{\"value\":"
+                                    + (value != null
+                                            ? "\"" + value.toString().replace("\"", "\\\"").replace("\n", "\\n") + "\""
+                                            : "null")
+                                    + ",\"valueType\":"
+                                    + (value != null ? "\"" + value.getClass().getName() + "\"" : "null")
+                                    + ",\"isNull\":" + (value == null) + ",\"isEmpty\":"
+                                    + (value != null && value.toString().isEmpty()) + "},\"timestamp\":"
+                                    + System.currentTimeMillis()
+                                    + ",\"sessionId\":\"debug-session\",\"runId\":\"run3\",\"hypothesisId\":\"C\"}\n");
                     fw.close();
-                } catch (Exception e) {}
+                } catch (Exception e) {
+                }
             }
             // #endregion
 
@@ -471,42 +529,40 @@ public class JTicketLines extends javax.swing.JPanel {
                     isSelected, hasFocus, row, column);
             aux.setVerticalAlignment(javax.swing.SwingConstants.TOP);
             aux.setHorizontalAlignment(m_acolumns[column].align);
-            // Usar fuente Arial como Eleventa
-            aux.setFont(new Font("Arial", Font.PLAIN, 14));
-            
+            // Usar fuente Arial como Eleventa - tamaño aumentado significativamente
+            aux.setFont(new Font("Arial", Font.PLAIN, 28));
+
             // Identificar nombre de la columna traducida
             String columnName = com.openbravo.pos.forms.AppLocal.getIntString(m_acolumns[column].name);
             String columnKey = m_acolumns[column].name;
-            
-            // Verificar si es columna de código de barras o precio usando las claves exactas
-            boolean isBarcodeColumn = columnKey != null && (
-                "label.prodbarcode".equals(columnKey) ||
-                columnKey.contains("barcode") || 
-                columnKey.contains("code") ||
-                (columnName != null && (columnName.toLowerCase().contains("código de barras") || 
-                                      columnName.toLowerCase().contains("codigo de barras")))
-            );
-            boolean isPriceColumn = columnKey != null && (
-                "label.price".equals(columnKey) ||
-                columnKey.contains("price") ||
-                (columnName != null && columnName.toLowerCase().contains("precio"))
-            );
-            
+
+            // Verificar si es columna de código de barras o precio usando las claves
+            // exactas
+            boolean isBarcodeColumn = columnKey != null && ("label.prodbarcode".equals(columnKey) ||
+                    columnKey.contains("barcode") ||
+                    columnKey.contains("code") ||
+                    (columnName != null && (columnName.toLowerCase().contains("código de barras") ||
+                            columnName.toLowerCase().contains("codigo de barras"))));
+            boolean isPriceColumn = columnKey != null && ("label.price".equals(columnKey) ||
+                    columnKey.contains("price") ||
+                    (columnName != null && columnName.toLowerCase().contains("precio")));
+
             // Asegurarse de que el componente sea opaco para que se vea el fondo
             aux.setOpaque(true);
-            
+
             // Sin bordes NI márgenes para perfecta alineación sin espacios
             aux.setBorder(null); // Sin borde en absoluto
-            
+
             // Color azul uniforme como Eleventa
             java.awt.Color azulColumnas = new java.awt.Color(220, 235, 245);
-            
+
             // Colores estilo Eleventa
             if (isSelected) {
                 aux.setBackground(new java.awt.Color(91, 192, 222)); // Azul claro de Eleventa
                 aux.setForeground(java.awt.Color.WHITE); // Texto blanco
             } else {
-                // Aplicar fondo azul claro a columnas de código de barras y precio (siempre, incluso en celdas vacías)
+                // Aplicar fondo azul claro a columnas de código de barras y precio (siempre,
+                // incluso en celdas vacías)
                 if (isBarcodeColumn || isPriceColumn) {
                     aux.setBackground(azulColumnas); // Azul claro uniforme
                     aux.setForeground(java.awt.Color.BLACK);
@@ -518,7 +574,7 @@ public class JTicketLines extends javax.swing.JPanel {
 
             return aux;
         }
-        
+
         /**
          * Método para obtener el color de fondo de una columna específica
          */
@@ -526,18 +582,14 @@ public class JTicketLines extends javax.swing.JPanel {
             if (column >= 0 && column < m_acolumns.length) {
                 String columnName = com.openbravo.pos.forms.AppLocal.getIntString(m_acolumns[column].name);
                 String columnKey = m_acolumns[column].name;
-                
-                boolean isBarcodeColumn = columnKey != null && (
-                    columnKey.contains("barcode") || 
-                    columnKey.contains("code") ||
-                    columnName.toLowerCase().contains("código de barras") ||
-                    columnName.toLowerCase().contains("codigo de barras")
-                );
-                boolean isPriceColumn = columnKey != null && (
-                    columnKey.contains("price") ||
-                    columnName.toLowerCase().contains("precio")
-                );
-                
+
+                boolean isBarcodeColumn = columnKey != null && (columnKey.contains("barcode") ||
+                        columnKey.contains("code") ||
+                        columnName.toLowerCase().contains("código de barras") ||
+                        columnName.toLowerCase().contains("codigo de barras"));
+                boolean isPriceColumn = columnKey != null && (columnKey.contains("price") ||
+                        columnName.toLowerCase().contains("precio"));
+
                 if (isBarcodeColumn || isPriceColumn) {
                     return new java.awt.Color(220, 235, 245);
                 }
@@ -566,7 +618,7 @@ public class JTicketLines extends javax.swing.JPanel {
             aux.setVerticalAlignment(javax.swing.SwingConstants.TOP);
             aux.setHorizontalAlignment(m_acolumns[column].align);
             Font fName = aux.getFont();
-            aux.setFont(new Font(fName.getName(), Font.PLAIN, 12));
+            aux.setFont(new Font(fName.getName(), Font.PLAIN, 24)); // Tamaño aumentado
             aux.setBackground(Color.yellow);
             return aux;
         }
@@ -626,13 +678,28 @@ public class JTicketLines extends javax.swing.JPanel {
                     // #region agent log
                     if (m_acolumns[i].name != null && m_acolumns[i].name.equals("label.printto")) {
                         try {
-                            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                            fw.write("{\"location\":\"JTicketLines.java:569\",\"message\":\"Rendering printto column\",\"data\":{\"columnName\":\"" + m_acolumns[i].name + "\",\"evalResult\":" + (evalResult != null ? "\"" + evalResult.replace("\"", "\\\"").replace("\n", "\\n") + "\"" : "null") + ",\"printPrinterValue\":" + (oLine.printPrinter() != null ? "\"" + oLine.printPrinter() + "\"" : "null") + "},\"timestamp\":" + System.currentTimeMillis() + ",\"sessionId\":\"debug-session\",\"runId\":\"run2\",\"hypothesisId\":\"B\"}\n");
+                            java.io.FileWriter fw = new java.io.FileWriter(
+                                    "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log",
+                                    true);
+                            fw.write(
+                                    "{\"location\":\"JTicketLines.java:569\",\"message\":\"Rendering printto column\",\"data\":{\"columnName\":\""
+                                            + m_acolumns[i].name + "\",\"evalResult\":"
+                                            + (evalResult != null
+                                                    ? "\"" + evalResult.replace("\"", "\\\"").replace("\n", "\\n")
+                                                            + "\""
+                                                    : "null")
+                                            + ",\"printPrinterValue\":"
+                                            + (oLine.printPrinter() != null ? "\"" + oLine.printPrinter() + "\""
+                                                    : "null")
+                                            + "},\"timestamp\":" + System.currentTimeMillis()
+                                            + ",\"sessionId\":\"debug-session\",\"runId\":\"run2\",\"hypothesisId\":\"B\"}\n");
                             fw.close();
-                        } catch (Exception e) {}
+                        } catch (Exception e) {
+                        }
                     }
                     // #endregion
-                    // Fix: Replace "null" string with empty string to prevent displaying "null" text
+                    // Fix: Replace "null" string with empty string to prevent displaying "null"
+                    // text
                     row[i] = (evalResult != null && evalResult.equals("null")) ? "" : evalResult;
                 } catch (ScriptException e) {
                     row[i] = null;
@@ -654,7 +721,8 @@ public class JTicketLines extends javax.swing.JPanel {
                     ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
                     script.put("ticketline", oLine);
                     String evalResult = script.eval(m_acolumns[i].value).toString();
-                    // Fix: Replace "null" string with empty string to prevent displaying "null" text
+                    // Fix: Replace "null" string with empty string to prevent displaying "null"
+                    // text
                     row[i] = (evalResult != null && evalResult.equals("null")) ? "" : evalResult;
                 } catch (ScriptException e) {
                     row[i] = null;
@@ -742,7 +810,8 @@ public class JTicketLines extends javax.swing.JPanel {
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         m_jScrollTableTicket = new javax.swing.JScrollPane();
@@ -752,9 +821,10 @@ public class JTicketLines extends javax.swing.JPanel {
 
         m_jScrollTableTicket.setHorizontalScrollBarPolicy(javax.swing.ScrollPaneConstants.HORIZONTAL_SCROLLBAR_NEVER);
         m_jScrollTableTicket.setVerticalScrollBarPolicy(javax.swing.ScrollPaneConstants.VERTICAL_SCROLLBAR_ALWAYS);
-        m_jScrollTableTicket.setFont(new java.awt.Font("Segoe UI", 0, 16)); // Fuente moderna
+        m_jScrollTableTicket.setFont(new java.awt.Font("Segoe UI", 0, 22)); // Fuente moderna - tamaño aumentado
 
-        m_jTicketTable.setFont(new java.awt.Font("Segoe UI", 0, 20)); // Fuente moderna y números grandes
+        m_jTicketTable.setFont(new java.awt.Font("Segoe UI", 0, 34)); // Fuente moderna y números grandes - tamaño
+                                                                      // aumentado
         m_jTicketTable.setFocusable(false);
         // setIntercellSpacing ya está configurado arriba (0, 0) para mejor alineación
         m_jTicketTable.setRequestFocusEnabled(false);
@@ -768,7 +838,6 @@ public class JTicketLines extends javax.swing.JPanel {
         add(m_jScrollTableTicket, java.awt.BorderLayout.CENTER);
     }// </editor-fold>//GEN-END:initComponents
 
-
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JScrollPane m_jScrollTableTicket;
     private javax.swing.JTable m_jTicketTable;
@@ -781,38 +850,36 @@ public class JTicketLines extends javax.swing.JPanel {
     private static class HeaderCellRenderer extends javax.swing.table.DefaultTableCellRenderer {
         private static final long serialVersionUID = 1L;
         private final ColumnTicket[] columns;
-        
+
         public HeaderCellRenderer(ColumnTicket[] columns) {
             this.columns = columns;
             setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
-            setFont(new Font("Arial", Font.BOLD, 14));
+            setFont(new Font("Arial", Font.BOLD, 36)); // Tamaño aumentado significativamente
             setBorder(javax.swing.BorderFactory.createEmptyBorder()); // Sin bordes para perfecta alineación
         }
-        
+
         @Override
         public Component getTableCellRendererComponent(JTable table, Object value,
                 boolean isSelected, boolean hasFocus, int row, int column) {
             super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
-            
+            setFont(new Font("Arial", Font.BOLD, 36)); // Aplicar explícitamente font después de la llamada super
+
             if (column >= 0 && column < columns.length) {
                 String columnName = com.openbravo.pos.forms.AppLocal.getIntString(columns[column].name);
                 String columnKey = columns[column].name;
-                
+
                 // Usar las mismas claves exactas que el viewport para perfecta alineación
-                boolean isBarcodeColumn = columnKey != null && (
-                    "label.prodbarcode".equals(columnKey) ||
-                    columnKey.contains("barcode") || 
-                    columnKey.contains("code") ||
-                    (columnName != null && (columnName.toLowerCase().contains("código de barras") || 
-                                          columnName.toLowerCase().contains("codigo de barras")))
-                );
-                boolean isPriceColumn = columnKey != null && (
-                    "label.price".equals(columnKey) ||
-                    columnKey.contains("price") ||
-                    (columnName != null && columnName.toLowerCase().contains("precio"))
-                );
-                
-                // Aplicar fondo azul claro a columnas de código de barras y precio (mismo color que el viewport)
+                boolean isBarcodeColumn = columnKey != null && ("label.prodbarcode".equals(columnKey) ||
+                        columnKey.contains("barcode") ||
+                        columnKey.contains("code") ||
+                        (columnName != null && (columnName.toLowerCase().contains("código de barras") ||
+                                columnName.toLowerCase().contains("codigo de barras"))));
+                boolean isPriceColumn = columnKey != null && ("label.price".equals(columnKey) ||
+                        columnKey.contains("price") ||
+                        (columnName != null && columnName.toLowerCase().contains("precio")));
+
+                // Aplicar fondo azul claro a columnas de código de barras y precio (mismo color
+                // que el viewport)
                 if (isBarcodeColumn || isPriceColumn) {
                     setBackground(new java.awt.Color(220, 235, 245)); // Azul claro uniforme
                     setForeground(java.awt.Color.BLACK);
@@ -821,23 +888,24 @@ public class JTicketLines extends javax.swing.JPanel {
                     setForeground(java.awt.Color.BLACK);
                 }
             }
-            
+
             setOpaque(true);
             // Sin bordes NI márgenes para perfecta alineación sin espacios
             setBorder(null); // Sin borde en absoluto
             return this;
         }
     }
-    
+
     /**
-     * Viewport personalizado que pinta el fondo de las columnas de código de barras y precio hasta abajo
+     * Viewport personalizado que pinta el fondo de las columnas de código de barras
+     * y precio hasta abajo
      */
     private static class ColumnBackgroundViewport extends javax.swing.JViewport {
         private static final long serialVersionUID = 1L;
         private final JTable table;
         private final ColumnTicket[] columns;
         private final TicketCellRenderer renderer;
-        
+
         public ColumnBackgroundViewport(JTable table, ColumnTicket[] columns, TicketCellRenderer renderer) {
             this.table = table;
             this.columns = columns;
@@ -847,86 +915,90 @@ public class JTicketLines extends javax.swing.JPanel {
                 table.getTableHeader().addPropertyChangeListener(evt -> repaint());
             }
         }
-        
+
         @Override
         protected void paintComponent(java.awt.Graphics g) {
             // Pintar primero el fondo blanco completo
             g.setColor(java.awt.Color.WHITE);
             g.fillRect(0, 0, getWidth(), getHeight());
-            
+
             // Pintar el fondo azul claro de las columnas de código de barras y precio
-            // Esto asegura que el fondo azul esté siempre visible, incluso cuando la tabla está vacía
+            // Esto asegura que el fondo azul esté siempre visible, incluso cuando la tabla
+            // está vacía
             if (table != null && columns != null) {
                 paintColumnBackgrounds(g);
             }
         }
-        
+
         @Override
         public void paint(java.awt.Graphics g) {
             // Primero pintar el componente (fondo blanco y azul de columnas)
             // Esto se pinta ANTES de la tabla para que quede como fondo
             paintComponent(g);
-            
+
             // Luego pintar la tabla (esto incluye las celdas con contenido)
             // La tabla es transparente (setOpaque(false)) pero las celdas son opacas
             // así que el contenido se verá sobre el fondo azul
             super.paint(g);
         }
-        
-        
+
         /**
-         * Pinta el fondo de las columnas de código de barras y precio desde arriba hasta abajo
+         * Pinta el fondo de las columnas de código de barras y precio desde arriba
+         * hasta abajo
          * Siempre pinta el fondo completo, incluso cuando la tabla está vacía
          * Se asegura de que NO haya espacios entre el header y las celdas
          */
         private void paintColumnBackgrounds(java.awt.Graphics g) {
-            if (table == null || columns == null) return;
-            
+            if (table == null || columns == null)
+                return;
+
             java.awt.Point viewPosition = getViewPosition();
             int viewportHeight = getHeight();
             int viewportWidth = getWidth();
-            
-            if (viewportHeight <= 0 || viewportWidth <= 0) return;
-            
-            // Color azul claro uniforme como Eleventa (mismo que el renderizador y el header)
+
+            if (viewportHeight <= 0 || viewportWidth <= 0)
+                return;
+
+            // Color azul claro uniforme como Eleventa (mismo que el renderizador y el
+            // header)
             java.awt.Color azulColumnas = new java.awt.Color(220, 235, 245);
-            
-            // Pintar el fondo completo de cada columna desde arriba hasta abajo (siempre, incluso cuando está vacía)
+
+            // Pintar el fondo completo de cada columna desde arriba hasta abajo (siempre,
+            // incluso cuando está vacía)
             // Usar EXACTAMENTE los mismos anchos que el header para perfecta alineación
-            // El header y las celdas comparten el mismo TableColumnModel, así que los anchos deben ser idénticos
+            // El header y las celdas comparten el mismo TableColumnModel, así que los
+            // anchos deben ser idénticos
             int x = -viewPosition.x;
             javax.swing.table.TableColumnModel columnModel = table.getColumnModel();
-            
+
             for (int i = 0; i < columns.length && i < table.getColumnCount(); i++) {
                 // Obtener el ancho EXACTO de la columna del modelo (mismo que usa el header)
                 int columnWidth = columnModel.getColumn(i).getWidth();
-                
-                // Verificar si es columna de código de barras o precio usando las claves exactas
+
+                // Verificar si es columna de código de barras o precio usando las claves
+                // exactas
                 String columnName = com.openbravo.pos.forms.AppLocal.getIntString(columns[i].name);
                 String columnKey = columns[i].name;
-                
-                boolean isBarcodeColumn = columnKey != null && (
-                    "label.prodbarcode".equals(columnKey) ||
-                    columnKey.contains("barcode") || 
-                    columnKey.contains("code") ||
-                    (columnName != null && (columnName.toLowerCase().contains("código de barras") || 
-                                          columnName.toLowerCase().contains("codigo de barras")))
-                );
-                boolean isPriceColumn = columnKey != null && (
-                    "label.price".equals(columnKey) ||
-                    columnKey.contains("price") ||
-                    (columnName != null && columnName.toLowerCase().contains("precio"))
-                );
-                
-                // Pintar el fondo completo de la columna desde arriba hasta abajo (siempre, incluso vacía)
+
+                boolean isBarcodeColumn = columnKey != null && ("label.prodbarcode".equals(columnKey) ||
+                        columnKey.contains("barcode") ||
+                        columnKey.contains("code") ||
+                        (columnName != null && (columnName.toLowerCase().contains("código de barras") ||
+                                columnName.toLowerCase().contains("codigo de barras"))));
+                boolean isPriceColumn = columnKey != null && ("label.price".equals(columnKey) ||
+                        columnKey.contains("price") ||
+                        (columnName != null && columnName.toLowerCase().contains("precio")));
+
+                // Pintar el fondo completo de la columna desde arriba hasta abajo (siempre,
+                // incluso vacía)
                 if (isBarcodeColumn || isPriceColumn) {
                     g.setColor(azulColumnas);
-                    
+
                     // Usar el ancho EXACTO de la columna, pixel por pixel igual al header
                     // Sin ajustes ni redondeos - debe ser idéntico
                     int paintX = x;
                     int paintWidth = columnWidth;
-                    
+
                     // Solo ajustar si la columna está parcialmente fuera del viewport visible
                     if (paintX < 0) {
                         paintWidth += paintX; // Reducir el ancho si parte está fuera por la izquierda
@@ -935,7 +1007,7 @@ public class JTicketLines extends javax.swing.JPanel {
                     if (paintX + paintWidth > viewportWidth) {
                         paintWidth = Math.max(0, viewportWidth - paintX); // Ajustar si se sale por la derecha
                     }
-                    
+
                     // Pintar el fondo azul completo desde y=0 hasta abajo (sin espacios)
                     // El ancho debe ser EXACTAMENTE igual al del header (pixel perfect)
                     // Sin espacios en la parte superior
@@ -944,15 +1016,85 @@ public class JTicketLines extends javax.swing.JPanel {
                         g.fillRect(paintX, 0, paintWidth, viewportHeight);
                     }
                 }
-                
-                // Avanzar la posición X usando el ancho exacto (pixel por pixel igual al header)
+
+                // Avanzar la posición X usando el ancho exacto (pixel por pixel igual al
+                // header)
                 x += columnWidth;
-                
+
                 // Si ya pasamos del ancho del viewport, no necesitamos seguir
-                if (x > viewportWidth) break;
+                if (x > viewportWidth)
+                    break;
             }
         }
-        
+
+    }
+
+    /**
+     * Sebastian - Guarda el orden actual de las columnas en AppConfig.
+     * El orden se almacena como índices de modelo por posición visual, ej:
+     * "2,0,1,3"
+     */
+    private void saveColumnOrder() {
+        try {
+            javax.swing.table.TableColumnModel columnModel = m_jTicketTable.getColumnModel();
+            int count = columnModel.getColumnCount();
+            StringBuilder sb = new StringBuilder();
+            for (int viewIdx = 0; viewIdx < count; viewIdx++) {
+                if (viewIdx > 0)
+                    sb.append(",");
+                sb.append(columnModel.getColumn(viewIdx).getModelIndex());
+            }
+            com.openbravo.pos.forms.AppConfig config = com.openbravo.pos.forms.AppConfig.getInstance();
+            config.setProperty(PREF_KEY_COL_ORDER, sb.toString());
+            config.save();
+            logger.log(Level.INFO, "Orden de columnas guardado: " + sb.toString());
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "No se pudo guardar el orden de columnas", e);
+        }
+    }
+
+    /**
+     * Sebastian - Restaura el orden de columnas desde AppConfig.
+     * Si no hay orden guardado, o el número de columnas no coincide, usa el orden
+     * por defecto.
+     */
+    private void restoreColumnOrder(int expectedCount) {
+        try {
+            com.openbravo.pos.forms.AppConfig config = com.openbravo.pos.forms.AppConfig.getInstance();
+            String saved = config.getProperty(PREF_KEY_COL_ORDER);
+            if (saved == null || saved.trim().isEmpty())
+                return;
+
+            String[] parts = saved.split(",");
+            if (parts.length != expectedCount) {
+                logger.log(Level.INFO, "Orden de columnas guardado no compatible (guardado: "
+                        + parts.length + " vs actual: " + expectedCount + "), usando orden por defecto");
+                return;
+            }
+
+            int[] modelIndices = new int[parts.length];
+            for (int i = 0; i < parts.length; i++) {
+                modelIndices[i] = Integer.parseInt(parts[i].trim());
+            }
+
+            // Aplicar el orden: para cada posición visual, colocar la columna de modelo
+            // correcta
+            javax.swing.table.TableColumnModel columnModel = m_jTicketTable.getColumnModel();
+            for (int viewIdx = 0; viewIdx < modelIndices.length; viewIdx++) {
+                int wantedModelIdx = modelIndices[viewIdx];
+                for (int searchIdx = viewIdx; searchIdx < columnModel.getColumnCount(); searchIdx++) {
+                    if (columnModel.getColumn(searchIdx).getModelIndex() == wantedModelIdx) {
+                        if (searchIdx != viewIdx) {
+                            columnModel.moveColumn(searchIdx, viewIdx);
+                        }
+                        break;
+                    }
+                }
+            }
+            logger.log(Level.INFO, "Orden de columnas restaurado: " + saved);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "No se pudo restaurar el orden de columnas", e);
+        }
     }
 
 }

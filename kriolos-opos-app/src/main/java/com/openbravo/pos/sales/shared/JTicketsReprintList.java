@@ -16,7 +16,6 @@
 
 package com.openbravo.pos.sales.shared;
 
-
 import com.openbravo.pos.sales.ReprintTicketInfo;
 import java.awt.*;
 import java.awt.event.ActionEvent;
@@ -46,46 +45,62 @@ import com.openbravo.pos.ticket.TicketTaxInfo;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
-
 /**
  *
  * @author JG uniCenta
  */
 public class JTicketsReprintList extends javax.swing.JDialog {
-    
+
     private String m_sDialogTicket;
-    private final DeviceTicket m_TP;    
-    private final TicketParser m_TTP;    
-//    private final TicketParser m_TTP2;     
+    private final DeviceTicket m_TP;
+    private final TicketParser m_TTP;
+    // private final TicketParser m_TTP2;
     private TaxesLogic taxeslogic;
     private ListKeyed taxcollection;
 
     private TicketInfo m_ticket;
     private TicketInfo m_ticketCopy;
-    private AppView m_App;    
-    
+    private AppView m_App;
+
     private DataLogicSystem dlSystem = null;
-    private DataLogicSales dlSales = null;   
-    
+    private DataLogicSales dlSales = null;
+
     /** Creates new form JTicketsReprintList */
-    private JTicketsReprintList(java.awt.Frame parent, boolean modal) {
+    private JTicketsReprintList(java.awt.Frame parent, boolean modal, AppView app) {
         super(parent, modal);
-        AppView app = null;
         m_App = app;
-        AppProperties props = null;
-        
-        m_TP = new DeviceTicket();        
+        dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
+        dlSales = (DataLogicSales) m_App.getBean("com.openbravo.pos.forms.DataLogicSales");
 
+        m_TP = m_App.getDeviceTicket();
         m_TTP = new TicketParser(m_TP, dlSystem);
-//        m_TTP2 = new TicketParser(m_App.getDeviceTicket(), dlSystem);          
+
+        try {
+            taxeslogic = new TaxesLogic(dlSales.getTaxList().list());
+            taxcollection = new ListKeyed(dlSales.getTaxList().list());
+        } catch (BasicException e) {
+            taxeslogic = null;
+            taxcollection = null;
+        }
     }
-    /** Creates new form JTicketsReprintList */
-    private JTicketsReprintList(java.awt.Dialog parent, boolean modal) {
-        super(parent, modal);
-        AppProperties props = null;
 
-        m_TP = new DeviceTicket();        
+    /** Creates new form JTicketsReprintList */
+    private JTicketsReprintList(java.awt.Dialog parent, boolean modal, AppView app) {
+        super(parent, modal);
+        m_App = app;
+        dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
+        dlSales = (DataLogicSales) m_App.getBean("com.openbravo.pos.forms.DataLogicSales");
+
+        m_TP = m_App.getDeviceTicket();
         m_TTP = new TicketParser(m_TP, dlSystem);
+
+        try {
+            taxeslogic = new TaxesLogic(dlSales.getTaxList().list());
+            taxcollection = new ListKeyed(dlSales.getTaxList().list());
+        } catch (BasicException e) {
+            taxeslogic = null;
+            taxcollection = null;
+        }
     }
 
     /**
@@ -95,26 +110,26 @@ public class JTicketsReprintList extends javax.swing.JDialog {
      * @return
      */
     public String showTicketsList(java.util.List<ReprintTicketInfo> atickets, DataLogicSales dlSales) {
-        
-        m_ticket = null;
-        m_ticketCopy = null;        
 
-ReprintTicketInfo m_Ticket = null;
-        
+        m_ticket = null;
+        m_ticketCopy = null;
+
+        ReprintTicketInfo m_Ticket = null;
+
         for (ReprintTicketInfo aticket : atickets) {
             m_jtickets.add(new JButtonTicket(aticket, dlSales));
-        }  
-     
+        }
+
         m_sDialogTicket = null;
 
         int lsize = atickets.size();
         if (lsize > 0) {
             setVisible(true);
-        }else{
+        } else {
             JOptionPane.showMessageDialog(this,
-                AppLocal.getIntString("message.nosharedtickets"), 
-                AppLocal.getIntString("message.sharedtickettitle"), 
-                JOptionPane.OK_OPTION);            
+                    AppLocal.getIntString("message.nosharedtickets"),
+                    AppLocal.getIntString("message.sharedtickettitle"),
+                    JOptionPane.OK_OPTION);
         }
 
         return m_sDialogTicket;
@@ -126,23 +141,23 @@ ReprintTicketInfo m_Ticket = null;
      * @return
      */
     public static JTicketsReprintList newJDialog(JTicketsBagShared ticketsbagshared) {
-        
+
         Window window = getWindow(ticketsbagshared);
         JTicketsReprintList mydialog;
-        if (window instanceof Frame) { 
-            mydialog = new JTicketsReprintList((Frame) window, true);
+        if (window instanceof Frame) {
+            mydialog = new JTicketsReprintList((Frame) window, true, ticketsbagshared.getApp());
         } else {
-            mydialog = new JTicketsReprintList((Dialog) window, true);
-        } 
-        
+            mydialog = new JTicketsReprintList((Dialog) window, true, ticketsbagshared.getApp());
+        }
+
         mydialog.initComponents();
-        
+
         mydialog.jScrollPane1.getVerticalScrollBar().setPreferredSize(new Dimension(35, 35));
         mydialog.jScrollPane1.getHorizontalScrollBar().setPreferredSize(new Dimension(25, 25));
-        
+
         return mydialog;
     }
-    
+
     private static Window getWindow(Component parent) {
         if (parent == null) {
             return new JFrame();
@@ -151,28 +166,28 @@ ReprintTicketInfo m_Ticket = null;
         } else {
             return getWindow(parent.getParent());
         }
-    }  
+    }
 
     private class JButtonTicket extends JButton {
-        
+
         private final ReprintTicketInfo m_Ticket;
-        
-        public JButtonTicket(ReprintTicketInfo ticket, DataLogicSales dlSales){
-            
+
+        public JButtonTicket(ReprintTicketInfo ticket, DataLogicSales dlSales) {
+
             super();
-            
+
             m_Ticket = ticket;
             setFocusPainted(false);
             setFocusable(false);
             setRequestFocusEnabled(false);
             setMargin(new Insets(8, 14, 8, 14));
-            setFont(new java.awt.Font ("Dialog", 0, 14));
-            setBackground(new java.awt.Color (220, 220, 220));
+            setFont(new java.awt.Font("Dialog", 0, 14));
+            setBackground(new java.awt.Color(220, 220, 220));
             addActionListener(new ActionListenerImpl());
-            
+
             setText(ticket.getId() + " - " +
                     ticket.getTicketDate() + " - " +
-                    ticket.getUserName());               
+                    ticket.getUserName());
         }
 
         private class ActionListenerImpl implements ActionListener {
@@ -182,21 +197,22 @@ ReprintTicketInfo m_Ticket = null;
 
             @Override
             public void actionPerformed(ActionEvent evt) {
-                        
+
                 try {
                     m_sDialogTicket = m_Ticket.getId();
-                    
+
                     JTicketsReprintList.this.setVisible(false);
-                    int iTkt=Integer.valueOf(m_sDialogTicket);
+                    int iTkt = Integer.valueOf(m_sDialogTicket);
                     int iTt = 0;
-//            readTicket(iTkt, iTt);
-// readTicket(m_sDialogTicket);
-                    
+                    // readTicket(iTkt, iTt);
+                    // readTicket(m_sDialogTicket);
+
                     TicketInfo ticket = dlSales.loadTicket(iTt, iTkt);
 
                     if (ticket == null) {
                         JFrame frame = new JFrame();
-                        JOptionPane.showMessageDialog(frame, AppLocal.getIntString("message.notexiststicket"), AppLocal.getIntString("message.notexiststickettitle"), JOptionPane.WARNING_MESSAGE);
+                        JOptionPane.showMessageDialog(frame, AppLocal.getIntString("message.notexiststicket"),
+                                AppLocal.getIntString("message.notexiststickettitle"), JOptionPane.WARNING_MESSAGE);
                     } else {
                         m_ticket = ticket;
                         m_ticketCopy = null;
@@ -207,103 +223,108 @@ ReprintTicketInfo m_Ticket = null;
                         }
                         printTicket("Printer.ReprintLastTicket", m_ticket, null);
                     }
-//            } catch (BasicException e) {
-//                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadticket"), e);
-//                msg.show(this);
-//            }
-//        }                        
+                    // } catch (BasicException e) {
+                    // MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                    // AppLocal.getIntString("message.cannotloadticket"), e);
+                    // msg.show(this);
+                    // }
+                    // }
                 } catch (BasicException ex) {
                     Logger.getLogger(JTicketsReprintList.class.getName()).log(Level.SEVERE, null, ex);
                 }
-                        
-                        
+
             }
         }
     }
-    
-//    private void readTicket(int iTicketid, int iTickettype) {
-    private void readTicket(String Id) {    
-//        Integer findTicket=Integer.valueOf(m_sDialogTicket);    
+
+    // private void readTicket(int iTicketid, int iTickettype) {
+    private void readTicket(String Id) {
+        // Integer findTicket=Integer.valueOf(m_sDialogTicket);
 
         try {
-        //TicketInfo ticket = new TicketInfo();             
-   
-//            TicketInfo ticket = dlSales.loadTicket(iTickettype, iTicketid);
+            // TicketInfo ticket = new TicketInfo();
 
-TicketInfo ticket = dlSales.getReprintTicket(Id);
+            // TicketInfo ticket = dlSales.loadTicket(iTickettype, iTicketid);
+
+            TicketInfo ticket = dlSales.getReprintTicket(Id);
             if (ticket == null) {
                 JFrame frame = new JFrame();
                 JOptionPane.showMessageDialog(frame,
-                    AppLocal.getIntString("message.notexiststicket"),
-                    AppLocal.getIntString("message.notexiststickettitle"),
-                    JOptionPane.WARNING_MESSAGE);
-                
+                        AppLocal.getIntString("message.notexiststicket"),
+                        AppLocal.getIntString("message.notexiststickettitle"),
+                        JOptionPane.WARNING_MESSAGE);
+
             } else {
                 m_ticket = ticket;
                 m_ticketCopy = null;
 
-                    if(m_ticket.getTicketType()== 1 
-                        || m_ticket.getTicketStatus()> 0) {
-                        JFrame frame = new JFrame();
-                            JOptionPane.showMessageDialog(frame,
+                if (m_ticket.getTicketType() == 1
+                        || m_ticket.getTicketStatus() > 0) {
+                    JFrame frame = new JFrame();
+                    JOptionPane.showMessageDialog(frame,
                             AppLocal.getIntString("message.ticketrefunded"),
                             AppLocal.getIntString("message.ticketrefundedtitle"),
                             JOptionPane.WARNING_MESSAGE);
-//                        m_jEdit.setEnabled(false);
-//                        m_jRefund.setEnabled(false);                            
-                    }else{
-//                        m_jEdit.setEnabled(true);
-//                        m_jRefund.setEnabled(true);
-                    }
+                    // m_jEdit.setEnabled(false);
+                    // m_jRefund.setEnabled(false);
+                } else {
+                    // m_jEdit.setEnabled(true);
+                    // m_jRefund.setEnabled(true);
+                }
                 try {
                     taxeslogic.calculateTaxes(m_ticket);
                     TicketTaxInfo[] taxlist = m_ticket.getTaxLines();
-                } catch (TaxesException ex) {}
+                } catch (TaxesException ex) {
+                }
 
-//                printTicket();
+                // printTicket();
             }
-            
+
         } catch (BasicException e) {
-            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadticket"), e);
+            MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotloadticket"),
+                    e);
             msg.show(this);
         }
-     
-    }
-    
-/*    private void printTicket() {
-         
-        if (m_ticket != null
-                && (m_ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL
-                    &&  m_ticket.getTicketStatus() == 0)) {
-         }
 
-        m_TP.getDevicePrinter("1").reset();
-        
-        if (m_ticket == null) {
-//            m_jTicketId.setText(m_ticket.getName());
-            
-            try {
-                ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
-                script.put("ticket", m_ticket);
-                script.put("taxes", m_ticket.getTaxLines());                
-                m_TTP.printTicket(script.eval(dlSystem.getResourceAsXML("Printer.TicketPreview")).toString());
-            } catch (    ScriptException | TicketPrinterException e) {
-                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e);
-                msg.show(this);
-            }
-        }
     }
-*/
-    
+
+    /*
+     * private void printTicket() {
+     * 
+     * if (m_ticket != null
+     * && (m_ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL
+     * && m_ticket.getTicketStatus() == 0)) {
+     * }
+     * 
+     * m_TP.getDevicePrinter("1").reset();
+     * 
+     * if (m_ticket == null) {
+     * // m_jTicketId.setText(m_ticket.getName());
+     * 
+     * try {
+     * ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
+     * script.put("ticket", m_ticket);
+     * script.put("taxes", m_ticket.getTaxLines());
+     * m_TTP.printTicket(script.eval(dlSystem.getResourceAsXML(
+     * "Printer.TicketPreview")).toString());
+     * } catch ( ScriptException | TicketPrinterException e) {
+     * MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+     * AppLocal.getIntString("message.cannotprintticket"), e);
+     * msg.show(this);
+     * }
+     * }
+     * }
+     */
+
     private void printTicket(String sresourcename, TicketInfo ticket, Object ticketext) {
 
         String sresource = dlSystem.getResourceAsXML(sresourcename);
         if (sresource == null) {
             MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"));
-//            msg.show(JPanelTicket.this);
+            // msg.show(JPanelTicket.this);
         } else {
 
-// if this is ticket does not have a pickup code assign on now            
+            // if this is ticket does not have a pickup code assign on now
             if (ticket.getPickupId() == 0) {
                 try {
                     ticket.setPickupId(dlSales.getNextPickupIndex());
@@ -313,38 +334,45 @@ TicketInfo ticket = dlSales.getReprintTicket(Id);
             }
             try {
                 ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
-// JG 19 Feb 14 unnecessary boolean parse - if (Boolean.valueOf(m_App.getProperties().getProperty("receipt.newlayout")).booleanValue()){
-                if (Boolean.parseBoolean(m_App.getProperties().getProperty("receipt.newlayout"))) {
-                    script.put("taxes", ticket.getTaxLines());
-                } else {
-                    script.put("taxes", taxcollection);
-                }
+                // JG 19 Feb 14 unnecessary boolean parse - if
+                // (Boolean.valueOf(m_App.getProperties().getProperty("receipt.newlayout")).booleanValue()){
+                script.put("taxes", taxcollection);
                 script.put("taxeslogic", taxeslogic);
                 script.put("ticket", ticket);
                 script.put("place", ticketext);
-                Object warrantyPrint;
-//                script.put("warranty", warrantyPrint);
-//                script.put("pickupid", getPickupString(ticket));
 
-// JG Aug 2014
-//                refreshTicket();
+                // Sebastian - Inicializar variables de puntos para evitar que aparezcan como
+                // texto en el ticket
+                script.put("customerPoints", "");
+                script.put("customerPointsAfter", "");
+                script.put("puntosPorCompra", "");
+                script.put("limiteAlcanzado", false);
+                Object warrantyPrint;
+                // script.put("warranty", warrantyPrint);
+                // script.put("pickupid", getPickupString(ticket));
+
+                // JG Aug 2014
+                // refreshTicket();
 
                 m_TTP.printTicket(script.eval(sresource).toString(), ticket);
 
-// JG May 2013 replaced with Multicatch            
+                // JG May 2013 replaced with Multicatch
             } catch (ScriptException | TicketPrinterException e) {
-                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING, AppLocal.getIntString("message.cannotprintticket"), e);
-//                msg.show(JPanelTicket.this);
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                        AppLocal.getIntString("message.cannotprintticket"), e);
+                // msg.show(JPanelTicket.this);
             }
         }
-    }    
-    
-    /** This method is called from within the constructor to
+    }
+
+    /**
+     * This method is called from within the constructor to
      * initialize the form.
      * WARNING: Do NOT modify this code. The content of this method is
      * always regenerated by the Form Editor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         jPanel1 = new javax.swing.JPanel();
@@ -398,12 +426,12 @@ TicketInfo ticket = dlSales.getReprintTicket(Id);
         setLocationRelativeTo(null);
     }// </editor-fold>//GEN-END:initComponents
 
-    private void m_jButtonCancelActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_m_jButtonCancelActionPerformed
+    private void m_jButtonCancelActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jButtonCancelActionPerformed
 
         dispose();
-        
-    }//GEN-LAST:event_m_jButtonCancelActionPerformed
-       
+
+    }// GEN-LAST:event_m_jButtonCancelActionPerformed
+
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel2;
@@ -413,5 +441,5 @@ TicketInfo ticket = dlSales.getReprintTicket(Id);
     private javax.swing.JButton m_jButtonCancel;
     private javax.swing.JPanel m_jtickets;
     // End of variables declaration//GEN-END:variables
-    
+
 }

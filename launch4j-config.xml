@@ -13,7 +13,7 @@
   <stayAlive>false</stayAlive>
   <restartOnCrash>false</restartOnCrash>
   <manifest></manifest>
-  <icon></icon>
+  <icon>icono.ico</icon>
   <jre>
     <path>jre</path>
     <requiresJdk>false</requiresJdk>
@@ -21,6 +21,7 @@
     <minVersion>21</minVersion>
     <maxVersion></maxVersion>
     <opt>-Xmx2048m</opt>
+    <opt>-Dsun.java2d.uiScale=1.0</opt>
     <opt>-Djava.util.logging.config.file=logging.properties</opt>
   </jre>
   <versionInfo>

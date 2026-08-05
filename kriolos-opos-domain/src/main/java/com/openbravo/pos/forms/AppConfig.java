@@ -343,9 +343,14 @@ public class AppConfig implements AppProperties {
         // Receipt printer paper set to 72mmx200mm
         propConfig.setProperty("paper.receipt.x", "10");
         propConfig.setProperty("paper.receipt.y", "10");
-        propConfig.setProperty("paper.receipt.width", "190");
+        propConfig.setProperty("paper.receipt.width", "262");
         propConfig.setProperty("paper.receipt.height", "546");
-        propConfig.setProperty("paper.receipt.mediasizename", "A4");
+        propConfig.setProperty("paper.receipt.mediasizename", "Default");
+        propConfig.setProperty("paper.receipt.fontname", "Arial");
+        propConfig.setProperty("paper.receipt.fontsize", "16");
+        propConfig.setProperty("paper.receipt.fontbold", "true");
+        propConfig.setProperty("paper.receipt.columns", "42");
+        propConfig.setProperty("paper.receipt.normaltotals", "false");
 
         // Normal printer paper for A4
         propConfig.setProperty("paper.standard.x", "72");
@@ -376,6 +381,12 @@ public class AppConfig implements AppProperties {
     }
 
     public static void applySystemProperties(AppConfig config) {
+        // Sebastian - Configuración de escalado DPI (uiScale) desde el archivo de propiedades
+        String uiScale = config.getProperty("sun.java2d.uiScale");
+        if (uiScale != null && !uiScale.isBlank()) {
+            System.setProperty("sun.java2d.uiScale", uiScale);
+        }
+
         // Set the look and feel.
         String lafClass = config.getProperty("swing.defaultlaf");
         try {

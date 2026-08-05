@@ -131,6 +131,7 @@ group = menu.addGroup("Menu.Backoffice");
     submenu.addTitle("Menu.PresenceManagement");
         submenu.addPanel("/com/openbravo/images/coffee.png", "Menu.Breaks", "com.openbravo.pos.epm.BreaksPanel");
         submenu.addPanel("/com/openbravo/images/leaves.png", "Menu.Leaves", "com.openbravo.pos.epm.LeavesPanel");
+        submenu.addPanel("/com/openbravo/images/heart.png", "Menu.Birthdays", "com.openbravo.pos.admin.BirthdaysPanel");
         submenu.addTitle("Menu.Employees.Reports");
         submenu.addPanel("/com/openbravo/images/reports.png", "Menu.EPM.DailyPresenceReport", "/com/openbravo/reports/epm_dailypresence.bs");
         submenu.addPanel("/com/openbravo/images/reports.png", "Menu.EPM.DailyScheduleReport", "/com/openbravo/reports/epm_dailyschedule.bs");

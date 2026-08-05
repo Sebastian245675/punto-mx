@@ -1,23 +1,8 @@
-/*
- * Copyright (C) 2022 KriolOS
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with this program.  If not, see <http://www.gnu.org/licenses/>.
- */
 package com.openbravo.pos.printer.printer;
 
 import com.openbravo.pos.printer.ticket.BasicTicket;
 import com.openbravo.pos.printer.ticket.PrintItem;
+import com.openbravo.pos.printer.ticket.TicketPrintLogger;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.print.PageFormat;
@@ -34,6 +19,8 @@ public class PrintableBasicTicket implements Printable {
     private int imageable_height;
     private int imageable_x;
     private int imageable_y;
+    private int columns = 42;
+    private int fontSize = 7;
 
     private BasicTicket ticket;
 
@@ -46,11 +33,27 @@ public class PrintableBasicTicket implements Printable {
      * @param imageable_height
      */
     public PrintableBasicTicket(BasicTicket ticket, int imageable_x, int imageable_y, int imageable_width, int imageable_height) {
+        this(ticket, imageable_x, imageable_y, imageable_width, imageable_height, 42, 7);
+    }
+
+    /**
+     *
+     * @param ticket
+     * @param imageable_x
+     * @param imageable_y
+     * @param imageable_width
+     * @param imageable_height
+     * @param columns
+     * @param fontSize
+     */
+    public PrintableBasicTicket(BasicTicket ticket, int imageable_x, int imageable_y, int imageable_width, int imageable_height, int columns, int fontSize) {
         this.ticket = ticket;
         this.imageable_x = imageable_x;
         this.imageable_y = imageable_y;
         this.imageable_width = imageable_width;
         this.imageable_height = imageable_height;
+        this.columns = columns;
+        this.fontSize = fontSize;
     }
 
     @Override
@@ -64,6 +67,29 @@ public class PrintableBasicTicket implements Printable {
         boolean printed = false;
 
         g2d.translate(imageable_x, imageable_y);
+
+        // Dinámicamente calcular la escala horizontal (scaleX) basada en el ancho configurado del papel
+        double physicalWidth = imageable_width > 0 ? imageable_width : 262;
+        // Usar factor base constante de ancho de carácter para que el incremento de tamaño de fuente
+        // no se anule al escalar y la letra se imprima grande, nítida y legible idéntica a Eleventa.
+        double expectedTextWidth = (columns > 0 ? columns : 42) * 4.2;
+        double scaleX = physicalWidth / expectedTextWidth;
+        
+        // Limitar la escala a un rango razonable para evitar compresión excesiva
+        if (scaleX < 0.85) {
+            scaleX = 0.85;
+        } else if (scaleX > 2.5) {
+            scaleX = 2.5;
+        }
+
+        g2d.scale(scaleX, 1.0);
+
+        // El ancho lógico para cálculos de alineación y centrado es el ancho real dividido por la escala
+        int logicalWidth = (int) (physicalWidth / scaleX);
+
+        // LOGGING: Registrar la configuración de impresión
+        TicketPrintLogger.logPrintableTicket(imageable_x, imageable_y, imageable_width,
+                imageable_height, columns, fontSize, scaleX, logicalWidth);
 
         java.util.List<PrintItem> commands = ticket.getCommands();
 
@@ -82,7 +108,7 @@ public class PrintableBasicTicket implements Printable {
                 line ++;
             } else if (currentpage == pageIndex) {
                 printed = true;
-                commands.get(line).draw(g2d, 0, currentpagey - itemheight, imageable_width);
+                commands.get(line).draw(g2d, 0, currentpagey - itemheight, logicalWidth);
 
                 line ++;
             } else if (currentpage > pageIndex) {

@@ -50,7 +50,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private javax.swing.JButton btnCierreRef;
     private javax.swing.JButton btnInventarioRef;
     private javax.swing.JButton btnReportesRef;
-    
+
     // Referencia al panel de perfil en el panel superior
     private javax.swing.JPanel profilePanelRef;
 
@@ -89,11 +89,21 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         Set<String> userPermissions = aupLoader.getPermissionsForRole(roleName);
 
-        // Sebastian - TEMPORAL: Agregar permiso de gráficos manualmente hasta que se
-        // arregle el BLOB
-        if ("ADMIN".equals(roleName) || "1".equals(m_appuser.getRole())) {
+        // Sebastian - TEMPORAL: Agregar permisos críticos de administración manualmente
+        // como failsafe
+        if ("ADMIN".equalsIgnoreCase(roleName) || "1".equals(m_appuser.getRole())
+                || "admin".equalsIgnoreCase(m_appuser.getName())) {
             userPermissions.add("com.openbravo.pos.reports.JPanelGraphics");
+            userPermissions.add("com.openbravo.pos.panels.JPanelPrinter");
+            userPermissions.add("com.openbravo.pos.config.JPanelConfiguration");
+            userPermissions.add("com.openbravo.pos.admin.PeoplePanel");
+            userPermissions.add("com.openbravo.pos.admin.RolesPanel");
+            userPermissions.add("com.openbravo.pos.admin.ResourcesPanel");
+            System.out.println("Sebastian - Permisos administrativos agregados por failsafe.");
         }
+
+        System.out.println(
+                "Sebastian - Permisos cargados para el usuario (" + m_appuser.getName() + "): " + userPermissions);
 
         m_appuser.fillPermissions(userPermissions);
 
@@ -105,12 +115,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_principalnotificator.setText(m_appuser.getName());
         // Sebastian - Sin icono en el perfil, solo texto
         m_principalnotificator.setIcon(null);
-        
+
         // Sebastian - Configurar estilo del perfil para el panel superior
-        m_principalnotificator.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 13));
+        m_principalnotificator.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
         m_principalnotificator.setForeground(new java.awt.Color(50, 50, 70));
         m_principalnotificator.setHorizontalTextPosition(javax.swing.SwingConstants.LEFT);
-        
+
         // Agregar el perfil al panel superior (se inicializa en initComponents)
         javax.swing.SwingUtilities.invokeLater(() -> {
             if (profilePanelRef != null) {
@@ -135,7 +145,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
         addView(new JPanel(), "<NULL>");
         showView("<NULL>");
-        
+
         // Configurar atajos de teclado globales después de inicializar todo
         setupGlobalKeyboardShortcuts();
 
@@ -169,15 +179,15 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     public JComponent getNotificator() {
         return m_principalnotificator;
     }
-    
 
     public void activate() {
 
         // Sebastian - Mantener el menú lateral siempre oculto para diseño tipo eleventa
         setMenuVisible(false);
         rMenu.getViewManager().resetActionfirst();
-        
-        // Sebastian - Refrescar el logo cuando se active el panel (por si cambió en configuración)
+
+        // Sebastian - Refrescar el logo cuando se active el panel (por si cambió en
+        // configuración)
         try {
             // Buscar el logoPanel en el componente
             javax.swing.JPanel artisticPanel = findArtisticTopPanel(this);
@@ -186,10 +196,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     if (comp instanceof javax.swing.JPanel) {
                         javax.swing.JPanel logoPanel = (javax.swing.JPanel) comp;
                         @SuppressWarnings("unchecked")
-                        java.util.function.Consumer<String> updateLogo = (java.util.function.Consumer<String>) logoPanel.getClientProperty("updateLogo");
+                        java.util.function.Consumer<String> updateLogo = (java.util.function.Consumer<String>) logoPanel
+                                .getClientProperty("updateLogo");
                         if (updateLogo != null) {
                             // Recargar la configuración y actualizar el logo
-                            com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig.getInstance();
+                            com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig
+                                    .getInstance();
                             appConfig.load();
                             String logoPath = appConfig.getProperty("start.logo");
                             updateLogo.accept(logoPath);
@@ -204,7 +216,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             LOGGER.log(Level.WARNING, "Error al refrescar el logo", e);
         }
     }
-    
+
     // Sebastian - Método helper para encontrar el artisticTopPanel
     private javax.swing.JPanel findArtisticTopPanel(java.awt.Container container) {
         for (java.awt.Component comp : container.getComponents()) {
@@ -241,94 +253,43 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
     @Override
     public void exitToLogin() {
-        // Sebastian - Verificar si hay turno abierto - OBLIGATORIO cerrar el turno antes de salir
+        // Sebastian - Nuevo diálogo de opciones de salida estilo eleventa
+        java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
+        java.awt.Frame parentFrame = null;
+        if (parentWindow instanceof java.awt.Frame) {
+            parentFrame = (java.awt.Frame) parentWindow;
+        } else if (parentWindow instanceof java.awt.Dialog) {
+            parentFrame = (java.awt.Frame) ((java.awt.Dialog) parentWindow).getParent();
+        }
+
+        // Si hay turno abierto, mostrar opciones personalizadas
         if (m_appview.getActiveCashDateEnd() == null && m_appview.getActiveCashIndex() != null) {
-            // Verificar si el usuario es empleado (rol "3")
-            boolean isEmployee = false;
-            try {
-                if (m_appuser != null && m_appuser.getRole() != null) {
-                    isEmployee = "3".equals(m_appuser.getRole());
-                }
-            } catch (Exception e) {
-                // Si hay error al obtener el rol, asumir que no es empleado
-            }
-            
-            // Para empleados: abrir directamente el diálogo de cierre sin opción de cancelar
-            if (isEmployee) {
-                java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
-                java.awt.Frame parentFrame = null;
-                if (parentWindow instanceof java.awt.Frame) {
-                    parentFrame = (java.awt.Frame) parentWindow;
-                } else if (parentWindow instanceof java.awt.Dialog) {
-                    parentFrame = (java.awt.Frame) ((java.awt.Dialog) parentWindow).getParent();
-                }
+            JDialogExitOptions exitOptions = new JDialogExitOptions(parentFrame, (JRootApp) m_appview);
+            exitOptions.setVisible(true);
 
-                // Mostrar mensaje informativo para empleados
-                JOptionPane.showMessageDialog(
-                    this,
-                    "Tienes un turno abierto.\nDebes cerrar el turno antes de salir del perfil.",
-                    "Cierre de Caja Obligatorio",
-                    JOptionPane.WARNING_MESSAGE);
-
-                JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_appview, isEmployee);
+            if (exitOptions.isCloseShiftRequested()) {
+                // El usuario eligió cerrar turno
+                JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_appview);
                 dialog.setVisible(true);
 
                 if (dialog.isClosed() && dialog.shouldCloseShift()) {
-                    // El turno fue cerrado exitosamente, ahora permitir salir
-                    // Cerrar la vista de usuario ANTES de mostrar login
-                    if (m_appview.closeAppView()) {
-                        // Mostrar panel de login después de cerrar la vista
-                        ((JRootApp) m_appview).showLoginPanelPublic();
-                    }
-                } else {
-                    // Si canceló el cierre del turno, no permitir salir
-                    // El diálogo ya se cerró pero no se completó el cierre
-                    return;
+                    // Turno cerrado exitosamente, ahora salir
+                    performFinalExit();
                 }
-            } else {
-                // Para otros roles: mostrar mensaje pero también hacer obligatorio el cierre
-                int opcion = JOptionPane.showOptionDialog(
-                        this,
-                        "Tienes un turno abierto.\nDebes cerrar el turno antes de salir del perfil.",
-                        "Cerrar Sesión",
-                        JOptionPane.OK_CANCEL_OPTION,
-                        JOptionPane.WARNING_MESSAGE,
-                        null,
-                        new Object[] { "Cerrar Turno", "Cancelar" },
-                        "Cerrar Turno");
-
-                if (opcion == JOptionPane.OK_OPTION) { // Cerrar Turno
-                    java.awt.Window parentWindow = SwingUtilities.getWindowAncestor(this);
-                    java.awt.Frame parentFrame = null;
-                    if (parentWindow instanceof java.awt.Frame) {
-                        parentFrame = (java.awt.Frame) parentWindow;
-                    } else if (parentWindow instanceof java.awt.Dialog) {
-                        parentFrame = (java.awt.Frame) ((java.awt.Dialog) parentWindow).getParent();
-                    }
-
-                    JDialogCloseShift dialog = new JDialogCloseShift(parentFrame, m_appview);
-                    dialog.setVisible(true);
-
-                    if (dialog.isClosed() && dialog.shouldCloseShift()) {
-                        // El turno fue cerrado exitosamente, ahora permitir salir
-                        // Cerrar la vista de usuario ANTES de mostrar login
-                        if (m_appview.closeAppView()) {
-                            // Mostrar panel de login después de cerrar la vista
-                            ((JRootApp) m_appview).showLoginPanelPublic();
-                        }
-                    }
-                    // Si canceló el cierre del turno, no hacer nada (no permitir salir)
-                    return;
-                }
-                // Si canceló, no hacer nada (no permitir salir)
-                return;
+            } else if (exitOptions.isExitOnlyRequested()) {
+                // El usuario eligió salir con turno abierto
+                performFinalExit();
             }
+            // Si canceló (isCloseShiftRequested e isExitOnlyRequested son false), no hacer
+            // nada
+        } else {
+            // No hay turno abierto, permitir salir normalmente
+            performFinalExit();
         }
+    }
 
-        // No hay turno abierto, permitir salir normalmente
-        // Cerrar la vista de usuario ANTES de mostrar login
+    private void performFinalExit() {
         if (m_appview.closeAppView()) {
-            // Mostrar panel de login después de cerrar la vista
             ((JRootApp) m_appview).showLoginPanelPublic();
         }
     }
@@ -409,8 +370,38 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                                                                                                     // está oculto
                         m_jTitle.setText("");
                     }
+
+                    // Sebastian - Si es la vista de ventas, asegurar que el campo de búsqueda tenga
+                    // el foco
+                    if (sTaskClass != null && sTaskClass.contains("JPanelTicketSales")) {
+                        final JPanelView finalViewPanel = viewPanel;
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            try {
+                                if (finalViewPanel.getComponent() instanceof com.openbravo.pos.sales.JPanelTicket) {
+                                    ((com.openbravo.pos.sales.JPanelTicket) finalViewPanel.getComponent())
+                                            .setSearchFieldFocus();
+                                }
+                            } catch (Exception ex) {
+                                LOGGER.log(Level.WARNING, "Error al establecer foco en campo de búsqueda", ex);
+                            }
+                        });
+                    }
                 } else {
                     LOGGER.log(Level.INFO, "Already open: " + sTaskClass + ", Instance: " + viewPanel);
+                    // Sebastian - Incluso si ya está abierto, asegurar que el campo tenga el foco
+                    if (sTaskClass != null && sTaskClass.contains("JPanelTicketSales")) {
+                        final JPanelView finalViewPanel = viewPanel;
+                        javax.swing.SwingUtilities.invokeLater(() -> {
+                            try {
+                                if (finalViewPanel.getComponent() instanceof com.openbravo.pos.sales.JPanelTicket) {
+                                    ((com.openbravo.pos.sales.JPanelTicket) finalViewPanel.getComponent())
+                                            .setSearchFieldFocus();
+                                }
+                            } catch (Exception ex) {
+                                LOGGER.log(Level.WARNING, "Error al establecer foco en campo de búsqueda", ex);
+                            }
+                        });
+                    }
                 }
             } else {
 
@@ -476,14 +467,14 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jTitle = new javax.swing.JLabel();
         m_jPanelContainer = new javax.swing.JPanel();
 
-        setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N - Tamaño aumentado
         setLayout(new java.awt.BorderLayout());
 
         m_jPanelLefSide.setLayout(new java.awt.BorderLayout());
 
         m_jPanelMenu.setBackground(new java.awt.Color(102, 102, 102));
         m_jPanelMenu.setBorder(null);
-        m_jPanelMenu.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jPanelMenu.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N - Tamaño aumentado
         m_jPanelMenu.setPreferredSize(new java.awt.Dimension(250, 2));
         m_jPanelLefSide.add(m_jPanelMenu, java.awt.BorderLayout.LINE_START);
 
@@ -528,19 +519,22 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jPanelLefSide.setVisible(false);
         // add(m_jPanelLefSide, java.awt.BorderLayout.LINE_START);
 
-        m_jPanelRightSide.setPreferredSize(new java.awt.Dimension(200, 40));
+        // No forzar tamaño pequeño: dejar que el contenido use el espacio disponible
+        // (evita vistas cortadas)
         m_jPanelRightSide.setLayout(new java.awt.BorderLayout());
 
         // Sebastian - Crear barra horizontal superior con TODOS los botones del menú
         // (estilo eleventa)
         // Panel contenedor principal con BorderLayout para mantener botón cerrar fijo
         javax.swing.JPanel topMenuBar = new javax.swing.JPanel(new java.awt.BorderLayout(5, 0));
-        topMenuBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)); // Reducir padding vertical (2px
-                                                                                       // en lugar de 5px)
+        topHeaderMenuPanel = new javax.swing.JPanel();
+        topHeaderMenuPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 6));
+        topHeaderMenuPanel.setOpaque(false);
+        topMenuBar.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 5, 4, 5));
         topMenuBar.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
-        topMenuBar.setMinimumSize(new java.awt.Dimension(0, 30)); // Altura mínima reducida (25px botón + padding)
-        topMenuBar.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura máxima fija para una sola
-                                                                                  // línea
+        topMenuBar.setMinimumSize(new java.awt.Dimension(0, 80)); // Altura mínima de 80px para botones grandes
+        topMenuBar.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 200)); // Permitir hasta 2 filas de botones
+                                                                                   // si es necesario
 
         // Panel izquierdo con todos los botones del menú
         javax.swing.JPanel leftMenuPanel = new javax.swing.JPanel();
@@ -567,13 +561,14 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             leftMenuPanel.add(btnVentasRef);
         }
 
-        // Botón Pagos de Clientes (Menu.CustomersPayment) - Solo mostrar si tiene permiso
+        // Botón Pagos de Clientes (Menu.CustomersPayment) - Solo mostrar si tiene
+        // permiso
         if (m_appuser.hasPermission("com.openbravo.pos.customers.CustomersPayment")) {
             javax.swing.JButton btnPagosClientes = createMenuButton(
                     "/com/openbravo/images/customerpay.png",
                     AppLocal.getIntString("Menu.CustomersPayment"),
                     "com.openbravo.pos.customers.CustomersPayment");
-            leftMenuPanel.add(btnPagosClientes);
+            topHeaderMenuPanel.add(btnPagosClientes);
         }
 
         // Botón Cierre de Caja (Menu.CloseTPV) - Solo mostrar si tiene permiso
@@ -586,7 +581,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             leftMenuPanel.add(btnCierreRef);
         }
 
-        // Botón Gestión de Sucursales eliminado de la barra superior - ahora está dentro de Mantenimiento
+        // Botón Gestión de Sucursales eliminado de la barra superior - ahora está
+        // dentro de Mantenimiento
 
         // ========== MENU.BACKOFFICE - Submenús ==========
         // Botón Clientes (Menu.Customers - submenu) - Solo mostrar si tiene permiso
@@ -595,7 +591,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     "/com/openbravo/images/customer.png",
                     AppLocal.getIntString("Menu.Customers"),
                     "com.openbravo.pos.forms.MenuCustomers");
-            leftMenuPanel.add(btnClientes);
+            topHeaderMenuPanel.add(btnClientes);
         }
 
         // Botón Proveedores (Menu.Suppliers - submenu) - Solo mostrar si tiene permiso
@@ -604,10 +600,11 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     "/com/openbravo/images/stockmaint.png",
                     AppLocal.getIntString("Menu.Suppliers"),
                     "com.openbravo.pos.forms.MenuSuppliers");
-            leftMenuPanel.add(btnProveedores);
+            topHeaderMenuPanel.add(btnProveedores);
         }
 
-        // Botón Gestión de Inventario (Menu.StockManagement - submenu) - Solo mostrar si tiene permiso
+        // Botón Gestión de Inventario (Menu.StockManagement - submenu) - Solo mostrar
+        // si tiene permiso
         if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuStockManagement")) {
             btnInventarioRef = createMenuButton(
                     "/com/openbravo/images/products.png",
@@ -617,7 +614,8 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             leftMenuPanel.add(btnInventarioRef);
         }
 
-        // Botón Gestión de Ventas (Menu.SalesManagement - submenu) - Solo mostrar si tiene permiso
+        // Botón Gestión de Ventas (Menu.SalesManagement - submenu) - Solo mostrar si
+        // tiene permiso
         // Cambiar texto para distinguirlo del botón principal de Ventas
         if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuSalesManagement")) {
             javax.swing.JButton btnVentasManagement = createMenuButton(
@@ -625,19 +623,49 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     "Gestión Ventas", // Texto más descriptivo para distinguirlo
                     "com.openbravo.pos.forms.MenuSalesManagement",
                     null); // Sin color especial
-            leftMenuPanel.add(btnVentasManagement);
+            topHeaderMenuPanel.add(btnVentasManagement);
         }
 
-        // Botón Mantenimiento (Menu.Maintenance - submenu) - Solo mostrar si tiene permiso
+        // Botón Mantenimiento (Menu.Maintenance - submenu) - Solo mostrar si tiene
+        // permiso
         if (m_appuser.hasPermission("com.openbravo.pos.forms.MenuMaintenance")) {
             javax.swing.JButton btnMantenimiento = createMenuButton(
                     "/com/openbravo/images/maintain.png",
                     AppLocal.getIntString("Menu.Maintenance"),
                     "com.openbravo.pos.forms.MenuMaintenance");
-            leftMenuPanel.add(btnMantenimiento);
+            topHeaderMenuPanel.add(btnMantenimiento);
         }
-        // Botón Herramientas eliminado de la barra superior - ahora está dentro de Mantenimiento
-        // Botón Gestión de Presencia eliminado de la barra superior
+        // Botón Herramientas eliminado de la barra superior - ahora está dentro de
+        // Mantenimiento
+
+        // ========== EPM - Gestión de Empleados / Presencia ==========
+        if (m_appuser.hasPermission("com.openbravo.pos.admin.BirthdaysPanel")) {
+            javax.swing.JButton btnBirthdays = createMenuButton(
+                    "/com/openbravo/images/heart.png",
+                    AppLocal.getIntString("Menu.Birthdays"),
+                    "com.openbravo.pos.admin.BirthdaysPanel");
+            topHeaderMenuPanel.add(btnBirthdays);
+        }
+
+        // Botón Entrada/Salida de Empleados (Check-In / Check-Out con pausas) -
+        // ELIMINADO SEGÚN SOLICITUD
+        // if (m_appuser.hasPermission("com.openbravo.pos.epm.JPanelEmployeePresence"))
+        // {
+        // javax.swing.JButton btnCheckin = createMenuButton(
+        // "/com/openbravo/images/users.png",
+        // AppLocal.getIntString("Menu.CheckInCheckOut"),
+        // "com.openbravo.pos.epm.JPanelEmployeePresence");
+        // leftMenuPanel.add(btnCheckin);
+        // }
+
+        // Botón Tipos de Pausas (Almuerzo, descanso, etc.)
+        // if (m_appuser.hasPermission("com.openbravo.pos.epm.BreaksPanel")) {
+        // javax.swing.JButton btnBreaks = createMenuButton(
+        // "/com/openbravo/images/auxiliary.png",
+        // AppLocal.getIntString("Menu.Breaks"),
+        // "com.openbravo.pos.epm.BreaksPanel");
+        // leftMenuPanel.add(btnBreaks);
+        // }
 
         // ========== MENU.SYSTEM ==========
         // Botón Cambiar Contraseña movido a Configuración > General
@@ -648,17 +676,19 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                     "/com/openbravo/images/configuration.png",
                     AppLocal.getIntString("Menu.Configuration"),
                     "com.openbravo.pos.config.JPanelConfiguration");
-            leftMenuPanel.add(btnConfig);
+            topHeaderMenuPanel.add(btnConfig);
         }
 
-        // Botón Impresora (Menu.Printer) - Solo mostrar si tiene permiso
+        // Botón Impresora (Menu.Printer) - Movido al panel de ventas (JPanelTicket)
+        /*
         if (m_appuser.hasPermission("com.openbravo.pos.panels.JPanelPrinter")) {
             javax.swing.JButton btnImpresora = createMenuButton(
                     "/com/openbravo/images/printer.png",
                     AppLocal.getIntString("Menu.Printer"),
                     "com.openbravo.pos.panels.JPanelPrinter");
-            leftMenuPanel.add(btnImpresora);
+            topHeaderMenuPanel.add(btnImpresora);
         }
+        */
 
         // Botón Reportes (Menu.Reports) - Solo mostrar si tiene permiso
         if (m_appuser.hasPermission("com.openbravo.pos.reports.JPanelGraphics")) {
@@ -672,49 +702,33 @@ public class JPrincipalApp extends JPanel implements AppUserView {
 
         // Sebastian - Label de puntos del cliente (al lado del botón Salir)
         m_jCustomerPoints = new javax.swing.JLabel();
-        m_jCustomerPoints.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+        m_jCustomerPoints.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
         m_jCustomerPoints.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         m_jCustomerPoints.setText("");
         m_jCustomerPoints.setToolTipText("Puntos del cliente");
         m_jCustomerPoints.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
         m_jCustomerPoints.setOpaque(false); // Sin fondo
-        m_jCustomerPoints.setPreferredSize(new java.awt.Dimension(300, 25));
+        m_jCustomerPoints.setPreferredSize(new java.awt.Dimension(600, 25));
         m_jCustomerPoints.setForeground(java.awt.Color.BLACK);
         m_jCustomerPoints.setVisible(false); // Inicialmente oculto
         rightPanel.add(m_jCustomerPoints);
 
-        // Botón Salir (Menu.Exit) - Siempre fijo al final
-        javax.swing.JButton btnSalir = new javax.swing.JButton();
-        // Icono removido para diseño compacto
-        btnSalir.setText(AppLocal.getIntString("Menu.Exit"));
-        btnSalir.setPreferredSize(new java.awt.Dimension(70, 25));
-        btnSalir.setMinimumSize(new java.awt.Dimension(60, 25));
-        btnSalir.setMaximumSize(new java.awt.Dimension(90, 25));
-        btnSalir.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9));
-        btnSalir.setBackground(java.awt.Color.WHITE);
-        btnSalir.setForeground(java.awt.Color.BLACK);
-        btnSalir.setOpaque(true);
-        btnSalir.setFocusPainted(false);
-        btnSalir.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                exitToLogin();
-            }
-        });
-        rightPanel.add(btnSalir);
+        // Botón Salir removido de aquí para ponerlo arriba en el panel artístico (como
+        // solicitó el usuario)
 
         // Agregar paneles al topMenuBar principal
         topMenuBar.add(leftMenuPanel, java.awt.BorderLayout.WEST);
-        topMenuBar.add(rightPanel, java.awt.BorderLayout.EAST);
+        topMenuBar.add(rightPanel, java.awt.BorderLayout.CENTER);
 
         // Altura fija para una sola línea con botones compactos
-        topMenuBar.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 30)); // Altura fija para una línea
+        topMenuBar.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 80)); // Altura preferida de 80px
 
         m_jPanelTitle.setLayout(new java.awt.BorderLayout());
         m_jPanelTitle.setBorder(null); // Sin borde para eliminar espacio
         m_jPanelTitle.setPreferredSize(new java.awt.Dimension(0, 0)); // Sin tamaño cuando está oculto
         m_jPanelTitle.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 0)); // Sin altura cuando está oculto
 
-        m_jTitle.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        m_jTitle.setFont(new java.awt.Font("Arial", 1, 22)); // NOI18N - Tamaño aumentado
         m_jTitle.setForeground(new java.awt.Color(0, 168, 223));
         m_jTitle.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                 javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, java.awt.Color.darkGray),
@@ -731,157 +745,158 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             protected void paintComponent(java.awt.Graphics g) {
                 super.paintComponent(g);
                 java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
-                g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-                
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                        java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                        java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+
                 int width = getWidth();
                 int height = getHeight();
-                
+
                 // Gradiente base suave tipo Eleventa - mejorado con más tonos
                 java.awt.GradientPaint baseGradient = new java.awt.GradientPaint(
-                    0, 0, new java.awt.Color(250, 252, 255),
-                    0, height, new java.awt.Color(238, 242, 247)
-                );
+                        0, 0, new java.awt.Color(250, 252, 255),
+                        0, height, new java.awt.Color(238, 242, 247));
                 g2d.setPaint(baseGradient);
                 g2d.fillRect(0, 0, width, height);
-                
+
                 // Efecto de luz difuminada superior izquierda (para logo) - más suave
                 java.awt.RadialGradientPaint lightEffect1 = new java.awt.RadialGradientPaint(
-                    150, 40, 250,
-                    new float[]{0f, 0.5f, 0.8f, 1f},
-                    new java.awt.Color[]{
-                        new java.awt.Color(140, 195, 240, 50),
-                        new java.awt.Color(140, 195, 240, 25),
-                        new java.awt.Color(140, 195, 240, 10),
-                        new java.awt.Color(140, 195, 240, 0)
-                    }
-                );
+                        150, 40, 250,
+                        new float[] { 0f, 0.5f, 0.8f, 1f },
+                        new java.awt.Color[] {
+                                new java.awt.Color(140, 195, 240, 50),
+                                new java.awt.Color(140, 195, 240, 25),
+                                new java.awt.Color(140, 195, 240, 10),
+                                new java.awt.Color(140, 195, 240, 0)
+                        });
                 g2d.setPaint(lightEffect1);
                 g2d.fillOval(-50, -30, 500, 200);
-                
+
                 // Efecto de luz difuminada superior derecha - más suave
                 java.awt.RadialGradientPaint lightEffect2 = new java.awt.RadialGradientPaint(
-                    width - 150, 40, 220,
-                    new float[]{0f, 0.6f, 0.9f, 1f},
-                    new java.awt.Color[]{
-                        new java.awt.Color(110, 170, 230, 35),
-                        new java.awt.Color(110, 170, 230, 15),
-                        new java.awt.Color(110, 170, 230, 5),
-                        new java.awt.Color(110, 170, 230, 0)
-                    }
-                );
+                        width - 150, 40, 220,
+                        new float[] { 0f, 0.6f, 0.9f, 1f },
+                        new java.awt.Color[] {
+                                new java.awt.Color(110, 170, 230, 35),
+                                new java.awt.Color(110, 170, 230, 15),
+                                new java.awt.Color(110, 170, 230, 5),
+                                new java.awt.Color(110, 170, 230, 0)
+                        });
                 g2d.setPaint(lightEffect2);
                 g2d.fillOval(width - 440, -20, 440, 180);
-                
+
                 // Efecto adicional central para más profundidad
                 java.awt.RadialGradientPaint lightEffect3 = new java.awt.RadialGradientPaint(
-                    width / 2, height / 3, 300,
-                    new float[]{0f, 0.7f, 1f},
-                    new java.awt.Color[]{
-                        new java.awt.Color(120, 180, 225, 20),
-                        new java.awt.Color(120, 180, 225, 5),
-                        new java.awt.Color(120, 180, 225, 0)
-                    }
-                );
+                        width / 2, height / 3, 300,
+                        new float[] { 0f, 0.7f, 1f },
+                        new java.awt.Color[] {
+                                new java.awt.Color(120, 180, 225, 20),
+                                new java.awt.Color(120, 180, 225, 5),
+                                new java.awt.Color(120, 180, 225, 0)
+                        });
                 g2d.setPaint(lightEffect3);
                 g2d.fillOval(width / 2 - 300, -50, 600, 200);
-                
+
                 // Línea sutil inferior con gradiente más suave
                 java.awt.MultipleGradientPaint.CycleMethod cycleMethod = java.awt.MultipleGradientPaint.CycleMethod.NO_CYCLE;
                 java.awt.Color[] lineColors = {
-                    new java.awt.Color(200, 210, 220, 80),
-                    new java.awt.Color(220, 220, 220, 40),
-                    new java.awt.Color(240, 240, 240, 0)
+                        new java.awt.Color(200, 210, 220, 80),
+                        new java.awt.Color(220, 220, 220, 40),
+                        new java.awt.Color(240, 240, 240, 0)
                 };
-                float[] lineFractions = {0.0f, 0.5f, 1.0f};
+                float[] lineFractions = { 0.0f, 0.5f, 1.0f };
                 java.awt.LinearGradientPaint lineGradient = new java.awt.LinearGradientPaint(
-                    0, height - 1, width, height - 1,
-                    lineFractions, lineColors, cycleMethod
-                );
+                        0, height - 1, width, height - 1,
+                        lineFractions, lineColors, cycleMethod);
                 g2d.setPaint(lineGradient);
                 g2d.fillRect(0, height - 2, width, 2);
-                
+
                 // Sombra sutil superior para profundidad
                 java.awt.GradientPaint shadowGradient = new java.awt.GradientPaint(
-                    0, 0, new java.awt.Color(0, 0, 0, 5),
-                    0, 10, new java.awt.Color(0, 0, 0, 0)
-                );
+                        0, 0, new java.awt.Color(0, 0, 0, 5),
+                        0, 10, new java.awt.Color(0, 0, 0, 0));
                 g2d.setPaint(shadowGradient);
                 g2d.fillRect(0, 0, width, 10);
-                
+
                 g2d.dispose();
             }
         };
         artisticTopPanel.setLayout(new java.awt.BorderLayout());
-        artisticTopPanel.setPreferredSize(new java.awt.Dimension(0, 80)); // Altura exacta de 80px
+        artisticTopPanel.setPreferredSize(new java.awt.Dimension(0, 120)); // Altura exacta de 120px
         artisticTopPanel.setOpaque(false);
-        
+
         // Panel para el logo en la parte izquierda con medidas exactas
         javax.swing.JPanel logoPanel = new javax.swing.JPanel();
         logoPanel.setLayout(new java.awt.BorderLayout());
         logoPanel.setOpaque(false);
-        logoPanel.setPreferredSize(new java.awt.Dimension(200, 80)); // Ancho exacto 200px, alto 80px
-        logoPanel.setMaximumSize(new java.awt.Dimension(200, 80));
-        logoPanel.setMinimumSize(new java.awt.Dimension(200, 80));
-        logoPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 20, 10, 20)); // Padding interno para centrar el logo
-        
-        // Sebastian - Cargar imagen del logo desde configuraciones (propiedad "start.logo")
+        logoPanel.setPreferredSize(new java.awt.Dimension(160, 120)); // Ancho exacto 160px, alto 120px
+        logoPanel.setMaximumSize(new java.awt.Dimension(160, 120));
+        logoPanel.setMinimumSize(new java.awt.Dimension(160, 120));
+        logoPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Padding interno para
+                                                                                          // centrar el logo
+
+        // Sebastian - Cargar imagen del logo desde configuraciones (propiedad
+        // "start.logo")
         javax.swing.JLabel logoLabel = new javax.swing.JLabel();
         logoLabel.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
         logoLabel.setVerticalAlignment(javax.swing.SwingConstants.CENTER);
-        
+
         // Método para actualizar el logo
         java.util.function.Consumer<String> updateLogo = (logoPath) -> {
             try {
                 logoLabel.setIcon(null); // Limpiar icono anterior
                 logoLabel.setText(""); // Limpiar texto anterior
-                
+
                 if (logoPath != null && !logoPath.trim().isEmpty()) {
                     java.io.File logoFile = new java.io.File(logoPath);
-                    LOGGER.log(Level.INFO, "Verificando archivo de logo: " + logoPath + " - Existe: " + logoFile.exists() + " - Es archivo: " + logoFile.isFile());
-                    
+                    LOGGER.log(Level.INFO, "Verificando archivo de logo: " + logoPath + " - Existe: "
+                            + logoFile.exists() + " - Es archivo: " + logoFile.isFile());
+
                     if (logoFile.exists() && logoFile.isFile()) {
                         // Cargar la imagen del logo usando ImageIO para mejor manejo
                         try {
                             java.awt.Image originalImage = javax.imageio.ImageIO.read(logoFile);
-                            
+
                             // Verificar que la imagen se cargó correctamente
                             if (originalImage != null) {
                                 int originalWidth = originalImage.getWidth(null);
                                 int originalHeight = originalImage.getHeight(null);
                                 LOGGER.log(Level.INFO, "Imagen cargada: " + originalWidth + "x" + originalHeight);
-                                
+
                                 if (originalWidth > 0 && originalHeight > 0) {
-                                    // Escalar la imagen para que quepa en el panel (máximo 180x60px manteniendo proporción)
-                                    int maxWidth = 180;
-                                    int maxHeight = 60;
-                                    
+                                    // Escalar la imagen para que quepa en el panel (máximo 140x100px manteniendo
+                                    // proporción)
+                                    int maxWidth = 140;
+                                    int maxHeight = 100;
+
                                     // Calcular dimensiones manteniendo proporción
                                     double widthRatio = (double) maxWidth / originalWidth;
                                     double heightRatio = (double) maxHeight / originalHeight;
                                     double ratio = Math.min(widthRatio, heightRatio);
-                                    
+
                                     int scaledWidth = (int) (originalWidth * ratio);
                                     int scaledHeight = (int) (originalHeight * ratio);
-                                    
+
                                     LOGGER.log(Level.INFO, "Escalando imagen a: " + scaledWidth + "x" + scaledHeight);
-                                    
+
                                     // Escalar la imagen con mejor calidad usando Graphics2D
                                     java.awt.Image scaledImage = originalImage.getScaledInstance(
-                                        scaledWidth, scaledHeight, java.awt.Image.SCALE_SMOOTH
-                                    );
-                                    
+                                            scaledWidth, scaledHeight, java.awt.Image.SCALE_SMOOTH);
+
                                     // Usar BufferedImage para mejor renderizado
                                     java.awt.image.BufferedImage bufferedImage = new java.awt.image.BufferedImage(
-                                        scaledWidth, scaledHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB
-                                    );
+                                            scaledWidth, scaledHeight, java.awt.image.BufferedImage.TYPE_INT_ARGB);
                                     java.awt.Graphics2D g2d = bufferedImage.createGraphics();
-                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION, java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
-                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING, java.awt.RenderingHints.VALUE_RENDER_QUALITY);
-                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING, java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_INTERPOLATION,
+                                            java.awt.RenderingHints.VALUE_INTERPOLATION_BILINEAR);
+                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_RENDERING,
+                                            java.awt.RenderingHints.VALUE_RENDER_QUALITY);
+                                    g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                                            java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
                                     g2d.drawImage(scaledImage, 0, 0, null);
                                     g2d.dispose();
-                                    
+
                                     logoLabel.setIcon(new javax.swing.ImageIcon(bufferedImage));
                                     logoLabel.setText(""); // Sin texto, solo imagen
                                     LOGGER.log(Level.INFO, "✓ Logo cargado y mostrado exitosamente desde: " + logoPath);
@@ -891,15 +906,17 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                                 }
                             }
                         } catch (javax.imageio.IIOException e) {
-                            LOGGER.log(Level.WARNING, "Error al leer imagen del logo (formato no soportado?): " + logoPath, e);
+                            LOGGER.log(Level.WARNING,
+                                    "Error al leer imagen del logo (formato no soportado?): " + logoPath, e);
                         }
                     } else {
-                        LOGGER.log(Level.WARNING, "El archivo de logo no existe o no es un archivo válido: " + logoPath);
+                        LOGGER.log(Level.WARNING,
+                                "El archivo de logo no existe o no es un archivo válido: " + logoPath);
                     }
                 } else {
                     LOGGER.log(Level.INFO, "No hay ruta de logo configurada en 'start.logo'");
                 }
-                
+
                 // Si no hay ruta válida o el archivo no existe, mostrar texto "LOGO"
                 logoLabel.setIcon(null);
                 logoLabel.setText("LOGO");
@@ -918,12 +935,13 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 logoPanel.repaint();
             }
         };
-        
+
         // Cargar el logo inicialmente
         try {
             com.openbravo.pos.forms.AppConfig appConfig = com.openbravo.pos.forms.AppConfig.getInstance();
             appConfig.load();
-            String logoPath = appConfig.getProperty("start.logo"); // Sebastian - Propiedad correcta desde Configuración > General > Logo
+            String logoPath = appConfig.getProperty("start.logo"); // Sebastian - Propiedad correcta desde Configuración
+                                                                   // > General > Logo
             LOGGER.log(Level.INFO, "Ruta del logo desde configuraciones: " + logoPath);
             if (logoPath != null && !logoPath.trim().isEmpty()) {
                 LOGGER.log(Level.INFO, "Intentando cargar logo desde: " + logoPath);
@@ -933,80 +951,88 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             LOGGER.log(Level.WARNING, "Error al cargar configuración del logo", e);
             updateLogo.accept(null);
         }
-        
+
         logoPanel.add(logoLabel, java.awt.BorderLayout.CENTER);
-        
-        // Sebastian - Guardar referencia al logoLabel para poder actualizarlo dinámicamente
+
+        // Sebastian - Guardar referencia al logoLabel para poder actualizarlo
+        // dinámicamente
         // (se puede usar más adelante para refrescar cuando cambie la configuración)
         logoPanel.putClientProperty("logoLabel", logoLabel);
         logoPanel.putClientProperty("updateLogo", updateLogo);
-        
+
         artisticTopPanel.add(logoPanel, java.awt.BorderLayout.WEST);
-        
+
+        // Sebastian - Panel central de artisticTopPanel para botones de acción del
+        // ticket
+        javax.swing.JPanel headerCenterPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
+        headerCenterPanel.setOpaque(false);
+        headerCenterPanel.add(topHeaderMenuPanel, java.awt.BorderLayout.CENTER);
+        artisticTopPanel.add(headerCenterPanel, java.awt.BorderLayout.CENTER);
+        this.putClientProperty("headerCenterPanel", headerCenterPanel);
+
         // Panel derecho con "Le atiende: [perfil]"
         javax.swing.JPanel rightTopPanel = new javax.swing.JPanel();
         rightTopPanel.setLayout(new java.awt.BorderLayout());
         rightTopPanel.setOpaque(false);
-        rightTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 20, 10, 30)); // Padding para espaciar
-        
+        rightTopPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 5, 10, 20)); // Padding para espaciar
+
         // Panel contenedor para el texto y el perfil (vertical)
         javax.swing.JPanel atendidoPanel = new javax.swing.JPanel();
         atendidoPanel.setLayout(new javax.swing.BoxLayout(atendidoPanel, javax.swing.BoxLayout.Y_AXIS));
         atendidoPanel.setOpaque(false);
         atendidoPanel.setAlignmentX(javax.swing.JComponent.RIGHT_ALIGNMENT);
-        
+
         // Panel superior: "Le atiende: [perfil]"
         javax.swing.JPanel perfilPanel = new javax.swing.JPanel();
         perfilPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 8, 0));
         perfilPanel.setOpaque(false);
         perfilPanel.setAlignmentX(javax.swing.JComponent.RIGHT_ALIGNMENT);
-        
+
         // Label "Le atiende:"
         javax.swing.JLabel lblLeAtiende = new javax.swing.JLabel("Le atiende:");
-        lblLeAtiende.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
+        lblLeAtiende.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 20));
         lblLeAtiende.setForeground(new java.awt.Color(80, 80, 100));
         perfilPanel.add(lblLeAtiende);
-        
-        // Perfil del usuario - se agregará después de inicializar m_principalnotificator
+
+        // Perfil del usuario - se agregará después de inicializar
+        // m_principalnotificator
         profilePanelRef = new javax.swing.JPanel();
         profilePanelRef.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 0));
         profilePanelRef.setOpaque(false);
-        
+
         perfilPanel.add(profilePanelRef);
         atendidoPanel.add(perfilPanel);
-        
+
         // Espacio pequeño entre perfil y botón cerrar
         atendidoPanel.add(javax.swing.Box.createVerticalStrut(5));
-        
-        // Panel inferior: botón cerrar
-        javax.swing.JPanel closeButtonPanel = new javax.swing.JPanel();
-        closeButtonPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
-        closeButtonPanel.setOpaque(false);
-        closeButtonPanel.setAlignmentX(javax.swing.JComponent.RIGHT_ALIGNMENT);
-        
-        // Botón cerrar programa
-        javax.swing.JButton btnCerrar = new javax.swing.JButton();
-        btnCerrar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
-        btnCerrar.setText(AppLocal.getIntString("button.exit"));
-        btnCerrar.setFocusPainted(false);
-        btnCerrar.setFocusable(false);
-        btnCerrar.setPreferredSize(new java.awt.Dimension(80, 25));
-        btnCerrar.setMinimumSize(new java.awt.Dimension(70, 25));
-        btnCerrar.setMaximumSize(new java.awt.Dimension(90, 25));
-        btnCerrar.setBackground(new java.awt.Color(220, 53, 69)); // Rojo para cerrar
-        btnCerrar.setForeground(java.awt.Color.WHITE);
-        btnCerrar.setOpaque(true);
-        btnCerrar.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 12, 4, 12));
-        btnCerrar.addActionListener(new java.awt.event.ActionListener() {
+
+        // Panel inferior: botón Salir destacado (Rojo, arriba, texto completo)
+        javax.swing.JPanel exitButtonPanel = new javax.swing.JPanel();
+        exitButtonPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 0, 0));
+        exitButtonPanel.setOpaque(false);
+        exitButtonPanel.setAlignmentX(javax.swing.JComponent.RIGHT_ALIGNMENT);
+
+        javax.swing.JButton btnSalirProminent = new javax.swing.JButton();
+        btnSalirProminent.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 26));
+        btnSalirProminent.setText("SALIR"); // Texto "completo" en mayúsculas
+        btnSalirProminent.setFocusPainted(false);
+        btnSalirProminent.setFocusable(false);
+        btnSalirProminent.setPreferredSize(new java.awt.Dimension(160, 60)); // Más grande y visible
+        btnSalirProminent.setBackground(new java.awt.Color(220, 53, 69)); // Rojo vibrante
+        btnSalirProminent.setForeground(java.awt.Color.WHITE);
+        btnSalirProminent.setOpaque(true);
+        btnSalirProminent.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnSalirProminent.setBorder(javax.swing.BorderFactory.createEmptyBorder(6, 16, 6, 16));
+        btnSalirProminent.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                m_appview.tryToClose();
+                exitToLogin();
             }
         });
-        closeButtonPanel.add(btnCerrar);
-        
-        atendidoPanel.add(closeButtonPanel);
+        exitButtonPanel.add(btnSalirProminent);
+
+        atendidoPanel.add(exitButtonPanel);
         rightTopPanel.add(atendidoPanel, java.awt.BorderLayout.CENTER);
-        
+
         artisticTopPanel.add(rightTopPanel, java.awt.BorderLayout.EAST);
 
         // Sebastian - Agregar barra de menú horizontal arriba del título (con múltiples
@@ -1015,15 +1041,16 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         // correctamente
         javax.swing.JPanel topContainer = new javax.swing.JPanel();
         topContainer.setLayout(new java.awt.BorderLayout());
-        
+
         // Agregar panel artístico arriba
         topContainer.add(artisticTopPanel, java.awt.BorderLayout.NORTH);
-        
+
         // Panel para la barra de menú y título
         javax.swing.JPanel menuContainer = new javax.swing.JPanel();
         menuContainer.setLayout(new javax.swing.BoxLayout(menuContainer, javax.swing.BoxLayout.Y_AXIS));
         menuContainer.setOpaque(false);
         topMenuBar.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
+        topMenuBar.setOpaque(true);
         menuContainer.add(topMenuBar);
         m_jPanelTitle.setAlignmentX(javax.swing.JComponent.LEFT_ALIGNMENT);
         menuContainer.add(m_jPanelTitle); // Sin espacio entre barra y título
@@ -1032,12 +1059,12 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         // No forzar tamaño preferido para evitar espacio cuando m_jPanelTitle está
         // oculto
         // El tamaño se calculará automáticamente basado en los componentes visibles
-        
+
         topContainer.add(menuContainer, java.awt.BorderLayout.CENTER);
 
         m_jPanelRightSide.add(topContainer, java.awt.BorderLayout.NORTH);
 
-        m_jPanelContainer.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jPanelContainer.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N - Tamaño aumentado
         m_jPanelContainer.setLayout(new java.awt.CardLayout());
         m_jPanelRightSide.add(m_jPanelContainer, java.awt.BorderLayout.CENTER);
 
@@ -1056,25 +1083,23 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass) {
         return createMenuButton(iconPath, text, taskClass, null);
     }
-    
+
     /**
      * Método helper para crear botones del menú con color personalizado
      */
-    private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass, java.awt.Color backgroundColor) {
+    private javax.swing.JButton createMenuButton(String iconPath, String text, String taskClass,
+            java.awt.Color backgroundColor) {
         javax.swing.JButton button = new javax.swing.JButton();
-        // Iconos removidos para diseño compacto como eleventa
         button.setText(text);
-        
-        // Calcular ancho basado en la longitud del texto para que se lea bien
-        int textLength = text.length();
-        int buttonWidth = Math.max(60, Math.min(130, 30 + (textLength * 6))); // Mínimo 60, máximo 130, más proporcional al texto
-        
-        // Tamaño compacto y proporcional al texto
-        button.setPreferredSize(new java.awt.Dimension(buttonWidth, 25));
-        button.setMinimumSize(new java.awt.Dimension(60, 25));
-        button.setMaximumSize(new java.awt.Dimension(130, 25));
-        button.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10)); // Tamaño de fuente ligeramente mayor
-        
+        button.putClientProperty("isMenuButton", Boolean.TRUE);
+
+        java.awt.Font font = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 26);
+        button.setFont(font);
+
+        // No fijar preferredSize: dejar que el botón crezca según el texto y la fuente
+        // Solo usar margen interno para dar un poco de espacio
+        button.setMargin(new java.awt.Insets(8, 12, 8, 12));
+
         // Color de fondo personalizado o blanco por defecto
         if (backgroundColor != null) {
             button.setBackground(backgroundColor);
@@ -1085,14 +1110,14 @@ public class JPrincipalApp extends JPanel implements AppUserView {
             button.setBackground(java.awt.Color.WHITE);
             button.setForeground(java.awt.Color.BLACK);
         }
-        
+
         button.setOpaque(true);
         button.setFocusPainted(false);
         button.setBorderPainted(true);
         button.setBorder(javax.swing.BorderFactory.createCompoundBorder(
-            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1),
-            javax.swing.BorderFactory.createEmptyBorder(2, 5, 2, 5)));
-        
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1),
+                javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)));
+
         button.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 showTask(taskClass);
@@ -1111,7 +1136,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private void setupGlobalKeyboardShortcuts() {
         javax.swing.InputMap inputMap = this.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);
         javax.swing.ActionMap actionMap = this.getActionMap();
-        
+
         // F1: Ventas
         if (btnVentasRef != null) {
             inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F1, 0), "shortcutVentas");
@@ -1124,12 +1149,13 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 }
             });
         }
-        
+
         // F2: Cerrar Caja
         if (btnCierreRef != null) {
             inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0), "shortcutCierre");
             actionMap.put("shortcutCierre", new javax.swing.AbstractAction() {
-                @Override
+
+    @Override
                 public void actionPerformed(java.awt.event.ActionEvent e) {
                     if (btnCierreRef != null && btnCierreRef.isEnabled()) {
                         btnCierreRef.doClick();
@@ -1137,7 +1163,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 }
             });
         }
-        
+
         // F3: Stock (Gestión de Inventario)
         if (btnInventarioRef != null) {
             inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F3, 0), "shortcutInventario");
@@ -1150,21 +1176,23 @@ public class JPrincipalApp extends JPanel implements AppUserView {
                 }
             });
         }
-        
-        // F4: Reportes
-        if (btnReportesRef != null) {
-            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0), "shortcutReportes");
-            actionMap.put("shortcutReportes", new javax.swing.AbstractAction() {
-                @Override
-                public void actionPerformed(java.awt.event.ActionEvent e) {
-                    if (btnReportesRef != null && btnReportesRef.isEnabled()) {
-                        btnReportesRef.doClick();
-                    }
+
+    // F4: Reportes
+    if(btnReportesRef!=null)
+
+    {
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F4, 0), "shortcutReportes");
+        actionMap.put("shortcutReportes", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (btnReportesRef != null && btnReportesRef.isEnabled()) {
+                    btnReportesRef.doClick();
                 }
-            });
-        }
-        
-        LOGGER.log(Level.INFO, "✅ Atajos de teclado globales configurados: F1=Ventas, F2=Cerrar Caja, F3=Stock, F4=Reportes");
+            }
+        });
+    }
+
+    LOGGER.log(Level.INFO,"✅ Atajos de teclado globales configurados: F1=Ventas, F2=Cerrar Caja, F3=Stock, F4=Reportes");
     }
 
     /**
@@ -1206,6 +1234,9 @@ public class JPrincipalApp extends JPanel implements AppUserView {
     private javax.swing.JLabel m_jTitle;
     // Sebastian - Label de puntos del cliente en la barra superior
     private javax.swing.JLabel m_jCustomerPoints;
+    // Sebastian - Panel de botones de menú en el header superior (para botones sin
+    // atajo)
+    private javax.swing.JPanel topHeaderMenuPanel;
     // End of variables declaration//GEN-END:variables
 
     /**

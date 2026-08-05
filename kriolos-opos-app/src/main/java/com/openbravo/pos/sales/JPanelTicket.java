@@ -115,6 +115,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private final static int NUMBER_PORDEC = 7;
     private final static long serialVersionUID = 1L;
 
+    // Sebastian - Variables para reimpression de ticket
+    private static Integer lastTicketId = null;
+    private static Integer lastTicketType = null;
+
     protected JTicketLines m_ticketlines;
     protected JPanelButtons m_jbtnconfig;
     protected AppView m_App;
@@ -128,6 +132,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private javax.swing.JLabel lblTotalValue;
     private javax.swing.JLabel lblPagoConValue;
     private javax.swing.JLabel lblCambioValue;
+    // Sebastian - Guardar valores de la última venta para mostrar hasta que se inicie una nueva
+    private String lastSaleTotalText = null;
+    private String lastSalePagoConText = null;
+    private String lastSaleCambioText = null;
+    // Sebastian - Panel de botones de acción
+    private javax.swing.JPanel actionButtonsPanel;
     protected TicketsEditor m_panelticket;
     protected TicketInfo m_oTicket;
     protected String m_oTicketExt;
@@ -169,6 +179,19 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_config = app.getProperties();
 
         m_App = app;
+        
+        // Configurar visibilidad del botón de Impresoras según los permisos del usuario actual
+        javax.swing.JButton btnImpresorasRef = (javax.swing.JButton) this.getClientProperty("btnImpresorasRef");
+        if (btnImpresorasRef != null) {
+            boolean hasPermission = false;
+            try {
+                hasPermission = m_App.getAppUserView().getUser().hasPermission("com.openbravo.pos.panels.JPanelPrinter");
+            } catch (Exception e) {
+                LOGGER.log(System.Logger.Level.WARNING, "Error al verificar permisos del botón Impresoras", e);
+            }
+            btnImpresorasRef.setVisible(hasPermission);
+        }
+
         restDB = new RestaurantDBUtils(m_App);
 
         dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
@@ -217,19 +240,19 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 removeTicketLine(rowIndex);
             }
         });
-        
+
         // Sebastian - Callback para incrementar/decrementar cantidad con + y -
         m_ticketlines.setIncrementLineCallback((int rowIndex, double amount) -> {
             if (m_oTicket != null && rowIndex >= 0 && rowIndex < m_oTicket.getLinesCount()) {
                 TicketLineInfo line = m_oTicket.getLine(rowIndex);
                 double newMultiply = line.getMultiply() + amount;
-                
+
                 // No permitir cantidades negativas o cero
                 if (newMultiply > 0) {
                     line.setMultiply(newMultiply);
                     m_ticketlines.setTicketLine(rowIndex, line);
                     m_ticketlines.setSelectedIndex(rowIndex);
-                    
+
                     // Actualizar totales
                     printPartialTotals();
                     stateToZero();
@@ -290,6 +313,19 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.InputMap inputMap = this.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);
         javax.swing.ActionMap actionMap = this.getActionMap();
 
+        // Tecla C: Reimprimir último ticket
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_C, 0), "reimprimirTicket");
+        actionMap.put("reimprimirTicket", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                if (m_sBarcode.length() == 0) {
+                    LOGGER.log(System.Logger.Level.DEBUG, "Tecla C → Reimprimir Ticket");
+                    reprintLastTicket();
+                    // Limpiar la 'c' que se haya podido escribir en la barra de búsqueda
+                    javax.swing.SwingUtilities.invokeLater(() -> stateToZero());
+                }
+            }
+        });
         // F2: Corte de caja
         inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F2, 0), "corteCaja");
         actionMap.put("corteCaja", new javax.swing.AbstractAction() {
@@ -341,14 +377,23 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
 
-        // F6: Eliminar línea
+        // F6 y Suprimir (Delete): Eliminar línea
         inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_F6, 0), "eliminarLinea");
+        inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DELETE, 0), "eliminarLinea");
         actionMap.put("eliminarLinea", new javax.swing.AbstractAction() {
             @Override
             public void actionPerformed(java.awt.event.ActionEvent e) {
                 if (m_jDelete != null && m_jDelete.isEnabled() && m_oTicket != null && m_oTicket.getLinesCount() > 0) {
-                    LOGGER.log(System.Logger.Level.DEBUG, "F6 → Eliminar Línea");
+                    LOGGER.log(System.Logger.Level.DEBUG, "F6 / Supr → Eliminar Línea");
                     m_jDelete.doClick();
+                } else if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
+                    int i = m_ticketlines.getSelectedIndex();
+                    if (i >= 0 && i < m_oTicket.getLinesCount()) {
+                        removeTicketLine(i);
+                        jCheckStock.setText("");
+                    } else {
+                        java.awt.Toolkit.getDefaultToolkit().beep();
+                    }
                 } else {
                     java.awt.Toolkit.getDefaultToolkit().beep();
                 }
@@ -512,6 +557,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_P,
                                 java.awt.event.InputEvent.CTRL_DOWN_MASK), "imprimir");
                         actionMap.put("imprimir", new javax.swing.AbstractAction() {
+
                             @Override
                             public void actionPerformed(java.awt.event.ActionEvent e) {
                                 if (btn.isEnabled()) {
@@ -534,6 +580,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         });
                         updateButtonTextWithShortcut(btn, "Ctrl+O");
                     }
+
                 }
             }
         }
@@ -677,7 +724,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Botón 1 - Cliente (sin atajo específico, se usa F5 para asignar cliente)
         btnClienteCustom = new javax.swing.JButton("Cliente");
         btnClienteCustom.setPreferredSize(new java.awt.Dimension(120, 40));
-        btnClienteCustom.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11));
+        btnClienteCustom.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 17));
         btnClienteCustom.setBackground(new java.awt.Color(70, 130, 180));
         btnClienteCustom.setForeground(java.awt.Color.WHITE);
         btnClienteCustom.setFocusPainted(false);
@@ -696,7 +743,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Botón 2 - Historial (F3)
         javax.swing.JButton btnHistorial = new javax.swing.JButton("F3 - Historial");
         btnHistorial.setPreferredSize(new java.awt.Dimension(120, 40));
-        btnHistorial.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 11));
+        btnHistorial.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 17));
         btnHistorial.setBackground(new java.awt.Color(34, 139, 34));
         btnHistorial.setForeground(java.awt.Color.WHITE);
         btnHistorial.setFocusPainted(false);
@@ -716,7 +763,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnEntradasSalidasCustom = new javax.swing.JButton(
                 "<html><center>F7 Entradas<br/>F8 Salidas</center></html>");
         btnEntradasSalidasCustom.setPreferredSize(new java.awt.Dimension(120, 40));
-        btnEntradasSalidasCustom.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 9));
+        btnEntradasSalidasCustom.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 15));
         btnEntradasSalidasCustom.setBackground(new java.awt.Color(255, 140, 0)); // Color naranja
         btnEntradasSalidasCustom.setForeground(java.awt.Color.WHITE);
         btnEntradasSalidasCustom.setFocusPainted(false);
@@ -813,7 +860,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         LOGGER.log(System.Logger.Level.INFO, "JPanelTicket.activate");
 
-        // Actualizar los templates Printer.Ticket y Printer.Ticket2 en la base de datos desde los archivos XML
+        // Actualizar los templates Printer.Ticket y Printer.Ticket2 en la base de datos
+        // desde los archivos XML
         actualizarTemplateTicketEnBD();
         actualizarTemplateTicket2EnBD();
 
@@ -894,7 +942,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Aplicar fuentes grandes nuevamente por si acaso
         SwingUtilities.invokeLater(() -> {
             aplicarFuentesGrandesVentas();
+            // Establecer foco automáticamente en el campo de búsqueda de productos
+            setSearchFieldFocus();
         });
+
+        // Agregar listener para cuando la ventana recupere el foco
+        addWindowFocusListener();
     }
 
     /**
@@ -902,31 +955,48 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     private void actualizarTemplateTicketEnBD() {
         try {
+            // Verificar si el recurso ya existe y tiene la versión correcta o
+            // personalizaciones
+            String currentDbRes = dlSystem.getResourceAsXML("Printer.Ticket");
+            if (currentDbRes != null && currentDbRes.contains("CONNECTING-POS-VERSION-999")) {
+                // Ya tiene la versión 2 con fuente ancha size=3, no sobrescribir
+                return;
+            }
+
             // #region agent log
             try {
-                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_update_start\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:843\",\"message\":\"Starting Printer.Ticket template update\",\"data\":{},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                java.io.FileWriter fw = new java.io.FileWriter(
+                        "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_update_start\",\"timestamp\":"
+                        + System.currentTimeMillis()
+                        + ",\"location\":\"JPanelTicket.java:843\",\"message\":\"Starting Printer.Ticket template update\",\"data\":{},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
                 fw.close();
                 System.out.println("DEBUG: Starting Printer.Ticket template update");
             } catch (Exception ex) {
                 System.out.println("DEBUG: Error logging template update start: " + ex.getMessage());
             }
             // #endregion
-            
+
             // Leer el archivo XML desde el classpath
             java.io.InputStream is = getClass().getResourceAsStream("/com/openbravo/pos/templates/Printer.Ticket.xml");
             if (is == null) {
-                LOGGER.log(System.Logger.Level.WARNING, "No se pudo encontrar el archivo Printer.Ticket.xml en el classpath");
+                LOGGER.log(System.Logger.Level.WARNING,
+                        "No se pudo encontrar el archivo Printer.Ticket.xml en el classpath");
                 // #region agent log
                 try {
-                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_not_found\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:847\",\"message\":\"Printer.Ticket.xml not found in classpath\",\"data\":{},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                    java.io.FileWriter fw = new java.io.FileWriter(
+                            "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log",
+                            true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_not_found\",\"timestamp\":"
+                            + System.currentTimeMillis()
+                            + ",\"location\":\"JPanelTicket.java:847\",\"message\":\"Printer.Ticket.xml not found in classpath\",\"data\":{},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
                     fw.close();
-                } catch (Exception ex) {}
+                } catch (Exception ex) {
+                }
                 // #endregion
                 return;
             }
-            
+
             // Leer todo el contenido del archivo
             java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
             byte[] buffer = new byte[4096];
@@ -937,66 +1007,104 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             byte[] templateContent = baos.toByteArray();
             is.close();
             baos.close();
-            
+
             // #region agent log
             try {
                 String templateStr = new String(templateContent, "UTF-8");
                 boolean hasValor = templateStr.contains("Valor");
                 boolean hasImporte = templateStr.contains("length=\"10\">Importe");
                 boolean hasCode7 = templateStr.contains("length=\"7\">Código");
-                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_content_check\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:863\",\"message\":\"Printer.Ticket template content check\",\"data\":{\"length\":" + templateContent.length + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                java.io.FileWriter fw = new java.io.FileWriter(
+                        "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_content_check\",\"timestamp\":"
+                        + System.currentTimeMillis()
+                        + ",\"location\":\"JPanelTicket.java:863\",\"message\":\"Printer.Ticket template content check\",\"data\":{\"length\":"
+                        + templateContent.length + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte
+                        + ",\"hasCode7\":" + hasCode7
+                        + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
                 fw.close();
-                System.out.println("DEBUG: Printer.Ticket template - hasValor=" + hasValor + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7);
+                System.out.println("DEBUG: Printer.Ticket template - hasValor=" + hasValor + ", hasImporte="
+                        + hasImporte + ", hasCode7=" + hasCode7);
             } catch (Exception ex) {
                 System.out.println("DEBUG: Error logging template content check: " + ex.getMessage());
             }
             // #endregion
-            
+
+            String templateStrNormalized = new String(templateContent, java.nio.charset.StandardCharsets.UTF_8);
+            if (templateStrNormalized.equals(currentDbRes)) {
+                return;
+            }
+
             // Actualizar el template en la base de datos
             // Tipo 0 = texto/XML
             dlSystem.setResource("Printer.Ticket", 0, templateContent);
             LOGGER.log(System.Logger.Level.INFO, "Template Printer.Ticket actualizado en la base de datos");
-            
+
             // #region agent log
             try {
-                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_updated\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:865\",\"message\":\"Printer.Ticket template updated in DB\",\"data\":{\"length\":" + templateContent.length + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                java.io.FileWriter fw = new java.io.FileWriter(
+                        "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_updated\",\"timestamp\":"
+                        + System.currentTimeMillis()
+                        + ",\"location\":\"JPanelTicket.java:865\",\"message\":\"Printer.Ticket template updated in DB\",\"data\":{\"length\":"
+                        + templateContent.length
+                        + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
                 fw.close();
                 System.out.println("DEBUG: Printer.Ticket template updated in DB, length=" + templateContent.length);
             } catch (Exception ex) {
                 System.out.println("DEBUG: Error logging template update: " + ex.getMessage());
             }
             // #endregion
-            
+
         } catch (java.io.IOException e) {
             String errorMsg = e.getMessage() != null ? e.getMessage() : "Error desconocido";
             LOGGER.log(System.Logger.Level.ERROR, "Error leyendo el archivo Printer.Ticket.xml: " + errorMsg);
             // #region agent log
             try {
-                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_io_error\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:868\",\"message\":\"IO Error updating Printer.Ticket\",\"data\":{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                java.io.FileWriter fw = new java.io.FileWriter(
+                        "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_io_error\",\"timestamp\":"
+                        + System.currentTimeMillis()
+                        + ",\"location\":\"JPanelTicket.java:868\",\"message\":\"IO Error updating Printer.Ticket\",\"data\":{\"error\":\""
+                        + errorMsg.replace("\"", "\\\"")
+                        + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
                 fw.close();
-            } catch (Exception ex) {}
+            } catch (Exception ex) {
+            }
             // #endregion
         } catch (Exception e) {
             String errorMsg = e.getMessage() != null ? e.getMessage() : "Error desconocido";
             LOGGER.log(System.Logger.Level.ERROR, "Error actualizando template Printer.Ticket en BD: " + errorMsg);
             // #region agent log
             try {
-                java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_exception\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:872\",\"message\":\"Exception updating Printer.Ticket\",\"data\":{\"error\":\"" + errorMsg.replace("\"", "\\\"") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
+                java.io.FileWriter fw = new java.io.FileWriter(
+                        "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+                fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_ticket_exception\",\"timestamp\":"
+                        + System.currentTimeMillis()
+                        + ",\"location\":\"JPanelTicket.java:872\",\"message\":\"Exception updating Printer.Ticket\",\"data\":{\"error\":\""
+                        + errorMsg.replace("\"", "\\\"")
+                        + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"A\"}\n");
                 fw.close();
-            } catch (Exception ex) {}
+            } catch (Exception ex) {
+            }
             // #endregion
         }
     }
 
     /**
-     * Actualiza el template Printer.Ticket2 en la base de datos desde el archivo XML
+     * Actualiza el template Printer.Ticket2 en la base de datos desde el archivo
+     * XML
      */
     private void actualizarTemplateTicket2EnBD() {
         try {
+            // Verificar si el recurso ya existe y tiene la versión correcta o
+            // personalizaciones
+            String currentDbRes = dlSystem.getResourceAsXML("Printer.Ticket2");
+            if (currentDbRes != null && currentDbRes.contains("CONNECTING-POS-VERSION-999")) {
+                // Ya tiene la versión 2 con fuente ancha size=3, no sobrescribir
+                return;
+            }
+
             // Leer el archivo XML desde el classpath
             java.io.InputStream is = getClass().getResourceAsStream("/com/openbravo/pos/templates/Printer.Ticket2.xml");
             if (is == null) {
@@ -1015,6 +1123,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             byte[] templateContent = baos.toByteArray();
             is.close();
             baos.close();
+
+            String templateStrNormalized = new String(templateContent, java.nio.charset.StandardCharsets.UTF_8);
+            if (templateStrNormalized.equals(currentDbRes)) {
+                return;
+            }
 
             // Actualizar el template en la base de datos
             // Tipo 0 = texto/XML
@@ -1058,7 +1171,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private void aplicarFuentesGrandesVentas() {
         if (m_jKeyFactory != null) {
             // Configuración optimizada para códigos de barras largos
-            m_jKeyFactory.setFont(new Font("Arial", Font.BOLD, 22)); // Fuente Arial Bold más grande y gruesa para
+            m_jKeyFactory.setFont(new Font("Arial", Font.BOLD, 32)); // Fuente Arial Bold más grande y gruesa para
                                                                      // números más anchos
             m_jKeyFactory.setForeground(Color.BLACK);
             m_jKeyFactory.setBackground(Color.WHITE);
@@ -1069,7 +1182,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             m_jKeyFactory.setAutoscrolls(true);
         }
         if (m_jPrice != null) {
-            m_jPrice.setFont(new Font("Segoe UI", Font.BOLD, 24));
+            m_jPrice.setFont(new Font("Segoe UI", Font.BOLD, 32));
         }
         if (m_jTotalEuros != null) {
             m_jTotalEuros.setFont(new Font("Arial", Font.PLAIN, 52)); // Total estilo Eleventa - tamaño grande pero
@@ -1094,6 +1207,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
 
         saveCurrentTicket();
+
+        // Remover el listener global de foco para que no interfiera con otras pantallas
+        removeWindowFocusListener();
 
         return m_ticketsbag.deactivate();
     }
@@ -1301,13 +1417,24 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         if (m_oTicket == null || m_oTicket.getLinesCount() == 0) {
             // m_jSubtotalEuros.setText(null); // Ya no se muestra
             // m_jTaxesEuros.setText(null); // Ya no se muestra
-            m_jTotalEuros.setText("$0.00"); // Mostrar $0.00 en lugar de null
-            if (lblTotalValue != null)
-                lblTotalValue.setText("$0.00");
-            if (lblPagoConValue != null)
-                lblPagoConValue.setText("$0.00");
-            if (lblCambioValue != null)
-                lblCambioValue.setText("$0.00");
+            // Sebastian - Si hay valores de la última venta guardados, mostrarlos
+            if (lastSaleTotalText != null) {
+                m_jTotalEuros.setText(lastSaleTotalText);
+                if (lblTotalValue != null)
+                    lblTotalValue.setText(lastSaleTotalText);
+                if (lblPagoConValue != null)
+                    lblPagoConValue.setText(lastSalePagoConText != null ? lastSalePagoConText : "$0.00");
+                if (lblCambioValue != null)
+                    lblCambioValue.setText(lastSaleCambioText != null ? lastSaleCambioText : "$0.00");
+            } else {
+                m_jTotalEuros.setText("$0.00");
+                if (lblTotalValue != null)
+                    lblTotalValue.setText("$0.00");
+                if (lblPagoConValue != null)
+                    lblPagoConValue.setText("$0.00");
+                if (lblCambioValue != null)
+                    lblCambioValue.setText("$0.00");
+            }
             if (m_jProductosVenta != null) {
                 m_jProductosVenta.setText("0 productos en la venta actual.");
             }
@@ -1319,6 +1446,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Actualizar labels de información estilo Eleventa
             if (lblTotalValue != null) {
                 lblTotalValue.setText(m_oTicket.printTotal());
+            }
+            // Sebastian - Limpiar Pago Con y Cambio cuando hay productos (venta en curso)
+            if (lblPagoConValue != null) {
+                lblPagoConValue.setText("$0.00");
+            }
+            if (lblCambioValue != null) {
+                lblCambioValue.setText("$0.00");
             }
 
             if (m_jProductosVenta != null) {
@@ -1422,7 +1556,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 }
             } catch (BasicException ex) {
                 LOGGER.log(System.Logger.Level.WARNING, "Could not check product stock", ex);
-                // Allow adding if stock check fails - backend also checks it on save
+                // Allow adding if stock fails - backend also checks it on save
             }
 
             addTicketLine(new TicketLineInfo(oProduct, dMul, dPrice, tax, props));
@@ -1440,6 +1574,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     protected void addTicketLine(TicketLineInfo oLine) {
         if (m_oTicket != null) {
+            // Sebastian - Limpiar valores de la última venta cuando se agrega un producto
+            // (indica que se inicia una nueva venta)
+            lastSaleTotalText = null;
+            lastSalePagoConText = null;
+            lastSaleCambioText = null;
+
             boolean foundMatchingLine = false;
 
             if (oLine.isProductCom()) {
@@ -1737,7 +1877,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         panel.add(lblNombre, gbc);
 
         javax.swing.JTextField txtNombre = new javax.swing.JTextField(20);
-        txtNombre.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 14));
+        txtNombre.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 20));
         gbc.gridx = 1;
         gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1.0;
@@ -1752,7 +1892,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         panel.add(lblPrecio, gbc);
 
         javax.swing.JTextField txtPrecio = new javax.swing.JTextField(15);
-        txtPrecio.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 14));
+        txtPrecio.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 20));
         txtPrecio.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         gbc.gridx = 1;
         gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
@@ -2778,14 +2918,104 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     }
 
     /**
-     * Método para establecer el foco en el campo de búsqueda de productos
+     * Método para establecer el foco en el campo de búsqueda de productos.
+     * Siempre debe recuperar el foco automáticamente.
      */
-    protected void setSearchFieldFocus() {
+    public void setSearchFieldFocus() {
         javax.swing.SwingUtilities.invokeLater(() -> {
-            if (m_jKeyFactory != null) {
+            if (m_jKeyFactory != null && m_jKeyFactory.isDisplayable() && m_jKeyFactory.isShowing()) {
                 m_jKeyFactory.requestFocusInWindow();
             }
         });
+    }
+
+    /** Referencia al listener global de foco para poder removerlo al desactivar */
+    private java.beans.PropertyChangeListener m_focusRedirectListener = null;
+
+    /**
+     * Instala un listener global de teclado que redirige automáticamente el foco
+     * al campo de búsqueda (m_jKeyFactory) siempre que el foco se pierda en
+     * componentes que no son campos de texto editables dentro de esta pantalla.
+     */
+    private void addWindowFocusListener() {
+        // Listener para ventana padre - cuando se activa la ventana principal
+        java.awt.Window parentWindow = javax.swing.SwingUtilities.getWindowAncestor(this);
+        if (parentWindow != null) {
+            parentWindow.addWindowListener(new java.awt.event.WindowAdapter() {
+                @Override
+                public void windowActivated(java.awt.event.WindowEvent e) {
+                    setSearchFieldFocus();
+                }
+            });
+        }
+
+        // Listener para cuando este panel se vuelve visible (se activa el tab de
+        // ventas)
+        addHierarchyListener(new java.awt.event.HierarchyListener() {
+            @Override
+            public void hierarchyChanged(java.awt.event.HierarchyEvent e) {
+                if ((e.getChangeFlags() & java.awt.event.HierarchyEvent.SHOWING_CHANGED) != 0) {
+                    if (isShowing()) {
+                        setSearchFieldFocus();
+                    }
+                }
+            }
+        });
+
+        // ── LISTENER PRINCIPAL: KeyboardFocusManager ──────────────────────────────
+        // Intercepta CUALQUIER cambio de foco en la aplicación.
+        // Si el nuevo componente con foco es una tabla, lista, botón, panel u otro
+        // componente no-editable que pertenece a esta ventana POS, devuelve el foco
+        // inmediatamente a m_jKeyFactory.
+        m_focusRedirectListener = evt -> {
+            if (!"focusOwner".equals(evt.getPropertyName()))
+                return;
+
+            java.awt.Component newOwner = (java.awt.Component) evt.getNewValue();
+            if (newOwner == null)
+                return;
+
+            // Solo actuar cuando estamos en la pantalla de ventas (este panel visible)
+            if (!JPanelTicket.this.isShowing())
+                return;
+
+            // No redirigimos si el foco va al propio m_jKeyFactory
+            if (newOwner == m_jKeyFactory)
+                return;
+
+            // No redirigimos si el nuevo componente es un campo de texto editable
+            // (por ejemplo, campos de cantidad, precio, descuento, dialogo de pago, etc.)
+            if (newOwner instanceof javax.swing.text.JTextComponent) {
+                javax.swing.text.JTextComponent tc = (javax.swing.text.JTextComponent) newOwner;
+                if (tc.isEditable())
+                    return;
+            }
+
+            // No redirigimos si el foco está en una ventana diferente (diálogos, popups)
+            java.awt.Window focusedWindow = javax.swing.SwingUtilities.getWindowAncestor(newOwner);
+            java.awt.Window myWindow = javax.swing.SwingUtilities.getWindowAncestor(JPanelTicket.this);
+            if (focusedWindow != myWindow)
+                return;
+
+            // El foco fue a algún componente no-editable de nuestra ventana:
+            // devolvérselo al campo de búsqueda
+            setSearchFieldFocus();
+        };
+
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                .addPropertyChangeListener("focusOwner", m_focusRedirectListener);
+    }
+
+    /**
+     * Elimina el listener global de foco cuando el panel se desactiva.
+     * Llamar desde deactivate() para evitar memory leaks.
+     */
+    private void removeWindowFocusListener() {
+        if (m_focusRedirectListener != null) {
+            java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager()
+                    .removePropertyChangeListener("focusOwner", m_focusRedirectListener);
+            m_focusRedirectListener = null;
+        }
     }
 
     private void createNewTicket() {
@@ -2836,6 +3066,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
                     if (paymentdialog.showDialog(ticket.getTotal(), ticket.getCustomer())) {
 
+                        // Sebastian - Restaurar foco en campo de búsqueda después de cerrar diálogo de
+                        // pago
+                        setSearchFieldFocus();
+
                         ticket.setPayments(paymentdialog.getSelectedPayments());
 
                         String LOG = "Ticket payment Ticket total: " + ticket.getTotal()
@@ -2855,9 +3089,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             try {
                                 dlSales.saveTicket(ticket, m_App.getInventoryLocation());
 
+                                // Save last ticket info for reprint
+                                lastTicketType = ticket.getTicketType();
+                                lastTicketId = ticket.getTicketId();
                                 // Sebastian - Otorgar puntos automáticamente después de guardar el ticket
                                 procesarPuntosAutomaticos(ticket);
-                                
+
                                 // Sebastian - Actualizar visualización de puntos después de procesarlos
                                 updateCustomerPointsDisplay();
 
@@ -2977,9 +3214,46 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                     LOGGER.log(System.Logger.Level.ERROR, "Exception on printTicket: Printer.Ticket",
                                             ex);
                                 }
+                            } else {
+                                // "Cobrar sin imprimir": abrir el cajón por la impresora
+                                // usando el template Printer.OpenDrawer (igual que el botón Abrir Cajón)
+                                // Esto envía el comando ESC/POS de cajón a través de la impresora.
+                                try {
+                                    printTicket("Printer.OpenDrawer", ticket, ticketext);
+                                    LOGGER.log(System.Logger.Level.INFO,
+                                            "Cajón abierto vía Printer.OpenDrawer (sin imprimir ticket)");
+                                } catch (Exception ex) {
+                                    LOGGER.log(System.Logger.Level.WARNING,
+                                            "No se pudo abrir el cajón vía Printer.OpenDrawer: " + ex.getMessage());
+                                    // Fallback: intentar openDrawer() directo
+                                    try {
+                                        m_App.getDeviceTicket().getDevicePrinter("1").openDrawer();
+                                    } catch (Exception ex2) {
+                                        LOGGER.log(System.Logger.Level.WARNING,
+                                                "Fallback openDrawer() también falló: " + ex2.getMessage());
+                                    }
+                                }
                             }
 
                             resultok = true;
+
+                            // Sebastian - Guardar valores de la última venta para mostrar hasta nueva venta
+                            try {
+                                lastSaleTotalText = ticket.printTotal();
+                                double pagado = paymentdialog.getPaidTotal();
+                                double cambio = pagado - ticket.getTotal();
+                                if (cambio < 0) cambio = 0;
+                                lastSalePagoConText = Formats.CURRENCY.formatValue(pagado);
+                                lastSaleCambioText = Formats.CURRENCY.formatValue(cambio);
+                            } catch (Exception ex) {
+                                // Si falla, no guardar nada
+                                lastSaleTotalText = null;
+                                lastSalePagoConText = null;
+                                lastSaleCambioText = null;
+                            }
+
+                            // Sebastian - Restaurar foco en campo de búsqueda después de procesar pago
+                            setSearchFieldFocus();
 
                             if ("restaurant".equals(m_App.getProperties()
                                     .getProperty("machine.ticketsbag")) && !ticket.getOldTicket()) {
@@ -2988,6 +3262,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 restDB.clearTicketIdInTable(ticketext);
                             }
                         }
+                    } else {
+                        // Sebastian - Si se canceló el diálogo de pago, restaurar foco en campo de
+                        // búsqueda
+                        setSearchFieldFocus();
                     }
                 }
             } catch (TaxesException ex) {
@@ -2996,6 +3274,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         AppLocal.getIntString("message.cannotcalculatetaxes"));
                 msg.show(this);
                 resultok = false;
+                // Sebastian - Restaurar foco en campo de búsqueda después de error
+                setSearchFieldFocus();
             }
 
             m_oTicket.resetTaxes();
@@ -3009,11 +3289,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
     private boolean warrantyCheck(TicketInfo ticket) {
 
-        Boolean warrantyPrint = false;
         int lines = 0;
         while (lines < ticket.getLinesCount()) {
-            if (!warrantyPrint) {
-                warrantyPrint = ticket.getLine(lines).isProductWarranty();
+            if (ticket.getLine(lines).isProductWarranty()) {
                 return true;
             }
             lines++;
@@ -3070,10 +3348,22 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             boolean hasCode8 = sresource != null && sresource.contains("length=\"8\">Código</text>");
             boolean hasArticulo12 = sresource != null && sresource.contains("length=\"12\">Artículo</text>");
             boolean hasArticulo15 = sresource != null && sresource.contains("length=\"15\">Artículo</text>");
-            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_resource\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2815\",\"message\":\"Resource loaded from DB\",\"data\":{\"resource\":\"" + sresourcename + "\",\"isNull\":" + (sresource == null) + ",\"length\":" + (sresource != null ? sresource.length() : 0) + ",\"hasTicketTag\":" + (ticketIndex >= 0) + ",\"hasDisplayTag\":" + (displayIndex >= 0) + ",\"ticketIndex\":" + ticketIndex + ",\"displayIndex\":" + displayIndex + ",\"ticketFirst\":" + ticketFirst + ",\"hasValor\":" + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + ",\"hasCode8\":" + hasCode8 + ",\"hasArticulo12\":" + hasArticulo12 + ",\"hasArticulo15\":" + hasArticulo15 + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n");
+            java.io.FileWriter fw = new java.io.FileWriter(
+                    "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
+            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_resource\",\"timestamp\":"
+                    + System.currentTimeMillis()
+                    + ",\"location\":\"JPanelTicket.java:2815\",\"message\":\"Resource loaded from DB\",\"data\":{\"resource\":\""
+                    + sresourcename + "\",\"isNull\":" + (sresource == null) + ",\"length\":"
+                    + (sresource != null ? sresource.length() : 0) + ",\"hasTicketTag\":" + (ticketIndex >= 0)
+                    + ",\"hasDisplayTag\":" + (displayIndex >= 0) + ",\"ticketIndex\":" + ticketIndex
+                    + ",\"displayIndex\":" + displayIndex + ",\"ticketFirst\":" + ticketFirst + ",\"hasValor\":"
+                    + hasValor + ",\"hasImporte\":" + hasImporte + ",\"hasCode7\":" + hasCode7 + ",\"hasCode8\":"
+                    + hasCode8 + ",\"hasArticulo12\":" + hasArticulo12 + ",\"hasArticulo15\":" + hasArticulo15
+                    + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"B\"}\n");
             fw.close();
-            System.out.println("DEBUG: Resource " + sresourcename + " loaded from DB - hasValor=" + hasValor + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7 + ", hasCode8=" + hasCode8 + ", hasArticulo12=" + hasArticulo12 + ", hasArticulo15=" + hasArticulo15);
+            System.out.println("DEBUG: Resource " + sresourcename + " loaded from DB - hasValor=" + hasValor
+                    + ", hasImporte=" + hasImporte + ", hasCode7=" + hasCode7 + ", hasCode8=" + hasCode8
+                    + ", hasArticulo12=" + hasArticulo12 + ", hasArticulo15=" + hasArticulo15);
         } catch (IOException ex) {
             System.out.println("DEBUG: Error logging resource load: " + ex.getMessage());
         }
@@ -3109,47 +3399,53 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 script.put("place", ticketext);
                 script.put("warranty", warrantyPrint);
                 script.put("pickupid", getPickupString(ticket));
-                
-                // Sebastian - Inicializar variables de puntos siempre (para evitar errores en Velocity)
+
+                // Sebastian - Inicializar variables de puntos siempre (para evitar errores en
+                // Velocity)
                 script.put("customerPoints", null);
                 script.put("customerPointsAfter", null);
                 script.put("puntosPorCompra", 0);
                 script.put("limiteAlcanzado", false);
-                
+
                 // Sebastian - Agregar puntos del cliente al template si hay cliente
                 if (ticket.getCustomer() != null && puntosDataLogic != null) {
                     try {
                         int puntosCliente = puntosDataLogic.obtenerPuntos(ticket.getCustomer().getId());
                         script.put("customerPoints", puntosCliente);
-                        
+
                         // Obtener los puntos realmente otorgados para este ticket desde el historial
                         // Esto es más preciso que recalcular porque los puntos ya se otorgaron
                         int puntosOtorgadosTicket = -1;
                         try {
                             String ticketId = String.valueOf(ticket.getTicketId());
-                            puntosOtorgadosTicket = puntosDataLogic.getPuntosOtorgadosPorTicket(ticketId, ticket.getCustomer().getId());
+                            puntosOtorgadosTicket = puntosDataLogic.getPuntosOtorgadosPorTicket(ticketId,
+                                    ticket.getCustomer().getId());
                         } catch (Exception e) {
                             System.out.println("⚠️ DEBUG - Error obteniendo puntos del ticket: " + e.getMessage());
                         }
-                        
+
                         PuntosConfiguracion config = puntosDataLogic.getConfiguracionActiva();
                         int puntosNuevos = 0;
                         boolean limiteAlcanzado = false;
-                        
+
                         if (puntosOtorgadosTicket >= 0 && config != null) {
                             // Se encontraron puntos en el historial para este ticket, usarlos directamente
                             puntosNuevos = puntosOtorgadosTicket;
-                            // Verificar si ya alcanzó el límite diario (usando la configuración del sistema)
+                            // Verificar si ya alcanzó el límite diario (usando la configuración del
+                            // sistema)
                             try {
-                                int puntosGanadosHoy = puntosDataLogic.getPuntosGanadosHoy(ticket.getCustomer().getId());
+                                int puntosGanadosHoy = puntosDataLogic
+                                        .getPuntosGanadosHoy(ticket.getCustomer().getId());
                                 int limiteDiario = config.getLimiteDiarioPuntos();
                                 if (puntosGanadosHoy >= limiteDiario && puntosOtorgadosTicket == 0) {
                                     // Ya alcanzó el límite y no se otorgaron puntos en esta compra
                                     limiteAlcanzado = true;
-                                    System.out.println("🚫 DEBUG - Límite diario alcanzado (total hoy: " + puntosGanadosHoy + ")");
+                                    System.out.println(
+                                            "🚫 DEBUG - Límite diario alcanzado (total hoy: " + puntosGanadosHoy + ")");
                                 } else {
                                     limiteAlcanzado = false;
-                                    System.out.println("✅ DEBUG - Puntos otorgados para este ticket: " + puntosOtorgadosTicket);
+                                    System.out.println(
+                                            "✅ DEBUG - Puntos otorgados para este ticket: " + puntosOtorgadosTicket);
                                 }
                             } catch (Exception e) {
                                 limiteAlcanzado = false;
@@ -3158,13 +3454,15 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             // No se encontraron puntos en el historial, calcular normalmente (caso raro)
                             double totalAcumulable = ticket.getTotal();
                             puntosNuevos = config.calcularPuntos(totalAcumulable);
-                            System.out.println("⚠️ DEBUG - No se encontraron puntos en historial, calculando: " + puntosNuevos);
-                            
+                            System.out.println(
+                                    "⚠️ DEBUG - No se encontraron puntos en historial, calculando: " + puntosNuevos);
+
                             // Verificar límite diario
                             try {
-                                int puntosGanadosHoy = puntosDataLogic.getPuntosGanadosHoy(ticket.getCustomer().getId());
+                                int puntosGanadosHoy = puntosDataLogic
+                                        .getPuntosGanadosHoy(ticket.getCustomer().getId());
                                 int limiteDiario = config.getLimiteDiarioPuntos();
-                                
+
                                 if (puntosGanadosHoy >= limiteDiario) {
                                     puntosNuevos = 0;
                                     limiteAlcanzado = true;
@@ -3187,44 +3485,82 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             puntosNuevos = 0;
                             limiteAlcanzado = false;
                         }
-                        
+
                         System.out.println("✅ DEBUG - Puntos finales por compra: " + puntosNuevos);
-                        
+
                         // Agregar puntos por compra y límite alcanzado al script
                         script.put("puntosPorCompra", puntosNuevos);
                         script.put("limiteAlcanzado", limiteAlcanzado);
-                        
-                        int puntosDespues = puntosCliente + puntosNuevos;
-                        script.put("customerPointsAfter", puntosDespues);
-                        
+
+                        // Sebastian - FIX: Corregir lógica de visualización en ticket
+                        // Como procesarPuntosAutomaticos() se ejecuta ANTES de imprimir,
+                        // puntosCliente (obtenido de la BDD) YA incluye los puntosNuevos.
+                        // Por lo tanto:
+                        // - Puntos Antes = Total Actual (puntosCliente) - Puntos Ganados (puntosNuevos)
+                        // - Puntos Después = Total Actual (puntosCliente)
+
+                        int puntosAntes = puntosCliente - puntosNuevos;
+                        if (puntosAntes < 0)
+                            puntosAntes = 0; // Protección por si acaso
+
+                        // Actualizar la variable customerPoints con el valor "Antes" correcto
+                        script.put("customerPoints", puntosAntes);
+                        // La variable customerPointsAfter debe ser el total actual
+                        script.put("customerPointsAfter", puntosCliente);
+
                         // #region agent log
                         try {
-                            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_points_calc\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2905\",\"message\":\"Customer points calculated\",\"data\":{\"customerId\":\"" + ticket.getCustomer().getId() + "\",\"puntosActuales\":" + puntosCliente + ",\"puntosNuevos\":" + puntosNuevos + ",\"puntosDespues\":" + puntosDespues + ",\"totalTicket\":" + ticket.getTotal() + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
+                            java.io.FileWriter fw = new java.io.FileWriter(
+                                    "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log",
+                                    true);
+                            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_points_calc\",\"timestamp\":"
+                                    + System.currentTimeMillis()
+                                    + ",\"location\":\"JPanelTicket.java:2905\",\"message\":\"Customer points calculated\",\"data\":{\"customerId\":\""
+                                    + ticket.getCustomer().getId() + "\",\"puntosActuales\":" + puntosCliente
+                                    + ",\"puntosNuevos\":" + puntosNuevos + ",\"puntosDespues\":" + puntosCliente
+                                    + ",\"totalTicket\":" + ticket.getTotal()
+                                    + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
                             fw.close();
-                            System.out.println("DEBUG: Puntos calculados - Actuales: " + puntosCliente + ", Nuevos: " + puntosNuevos + ", Después: " + puntosDespues);
+                            System.out.println("DEBUG: Puntos calculados - Antes: " + puntosAntes + ", Nuevos: "
+                                    + puntosNuevos + ", Total: " + puntosCliente);
                         } catch (Exception ex2) {
                             System.out.println("DEBUG: Error logging points calculation: " + ex2.getMessage());
                         }
                         // #endregion
                     } catch (Exception ex) {
                         // Si no se pueden obtener los puntos, no agregar la variable
-                        LOGGER.log(System.Logger.Level.WARNING, "Error obteniendo puntos del cliente para template: " + ex.getMessage());
+                        LOGGER.log(System.Logger.Level.WARNING,
+                                "Error obteniendo puntos del cliente para template: " + ex.getMessage());
                         // #region agent log
                         try {
-                            java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_points_error\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2908\",\"message\":\"Error calculating customer points\",\"data\":{\"error\":\"" + ex.getMessage().replace("\"", "\\\"") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
+                            java.io.FileWriter fw = new java.io.FileWriter(
+                                    "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log",
+                                    true);
+                            fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_points_error\",\"timestamp\":"
+                                    + System.currentTimeMillis()
+                                    + ",\"location\":\"JPanelTicket.java:2908\",\"message\":\"Error calculating customer points\",\"data\":{\"error\":\""
+                                    + ex.getMessage().replace("\"", "\\\"")
+                                    + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
                             fw.close();
-                        } catch (Exception ex2) {}
+                        } catch (Exception ex2) {
+                        }
                         // #endregion
                     }
                 } else {
                     // #region agent log
                     try {
-                        java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                        fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_no_customer_points\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2871\",\"message\":\"No customer or puntosDataLogic for points calculation\",\"data\":{\"hasCustomer\":" + (ticket.getCustomer() != null) + ",\"hasPuntosDataLogic\":" + (puntosDataLogic != null) + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
+                        java.io.FileWriter fw = new java.io.FileWriter(
+                                "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log",
+                                true);
+                        fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_no_customer_points\",\"timestamp\":"
+                                + System.currentTimeMillis()
+                                + ",\"location\":\"JPanelTicket.java:2871\",\"message\":\"No customer or puntosDataLogic for points calculation\",\"data\":{\"hasCustomer\":"
+                                + (ticket.getCustomer() != null) + ",\"hasPuntosDataLogic\":"
+                                + (puntosDataLogic != null)
+                                + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"I\"}\n");
                         fw.close();
-                    } catch (Exception ex2) {}
+                    } catch (Exception ex2) {
+                    }
                     // #endregion
                 }
 
@@ -3233,26 +3569,44 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
                 // #region agent log
                 try {
-                    java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_before_velocity_eval\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2777\",\"message\":\"Before Velocity eval\",\"data\":{\"resource\":\"" + sresourcename + "\",\"hasCustomer\":" + (ticket.getCustomer() != null) + ",\"customerId\":" + (ticket.getCustomer() != null ? "\"" + ticket.getCustomer().getId() + "\"" : "null") + ",\"hasPuntosDataLogic\":" + (puntosDataLogic != null) + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"H\"}\n");
+                    java.io.FileWriter fw = new java.io.FileWriter(
+                            "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log",
+                            true);
+                    fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_before_velocity_eval\",\"timestamp\":"
+                            + System.currentTimeMillis()
+                            + ",\"location\":\"JPanelTicket.java:2777\",\"message\":\"Before Velocity eval\",\"data\":{\"resource\":\""
+                            + sresourcename + "\",\"hasCustomer\":" + (ticket.getCustomer() != null)
+                            + ",\"customerId\":"
+                            + (ticket.getCustomer() != null ? "\"" + ticket.getCustomer().getId() + "\"" : "null")
+                            + ",\"hasPuntosDataLogic\":" + (puntosDataLogic != null)
+                            + "},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"H\"}\n");
                     fw.close();
-                } catch (IOException ex) {}
+                } catch (IOException ex) {
+                }
                 // #endregion
-                
+
                 try {
                     processTemaplated = script.eval(sresource).toString();
                 } catch (ScriptException ex) {
                     // #region agent log
                     try {
-                        java.io.FileWriter fw = new java.io.FileWriter("c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log", true);
-                        fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_velocity_error\",\"timestamp\":" + System.currentTimeMillis() + ",\"location\":\"JPanelTicket.java:2782\",\"message\":\"Velocity evaluation error\",\"data\":{\"resource\":\"" + sresourcename + "\",\"error\":\"" + ex.getMessage().replace("\"", "\\\"").replace("\n", "\\n") + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"H\"}\n");
+                        java.io.FileWriter fw = new java.io.FileWriter(
+                                "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log",
+                                true);
+                        fw.write("{\"id\":\"log_" + System.currentTimeMillis() + "_velocity_error\",\"timestamp\":"
+                                + System.currentTimeMillis()
+                                + ",\"location\":\"JPanelTicket.java:2782\",\"message\":\"Velocity evaluation error\",\"data\":{\"resource\":\""
+                                + sresourcename + "\",\"error\":\""
+                                + ex.getMessage().replace("\"", "\\\"").replace("\n", "\\n")
+                                + "\"},\"sessionId\":\"debug-session\",\"runId\":\"run1\",\"hypothesisId\":\"H\"}\n");
                         fw.close();
                         System.out.println("DEBUG: Velocity error: " + ex.getMessage());
-                    } catch (IOException ex2) {}
+                    } catch (IOException ex2) {
+                    }
                     // #endregion
                     throw ex;
                 }
-                
+
                 // #region agent log
                 try {
                     java.io.FileWriter fw = new java.io.FileWriter(
@@ -3406,7 +3760,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // TODO EVALUATE PERFORMANCE TO CREATE THIS EVERY TIME
             JTicketLines m_ticketlines2 = new JTicketLines(
                     this.dlSystem.getResourceAsXML(TicketConstants.RES_TICKET_LINES));
-            m_ticketlines2.setTicketTableFont(new Font("Segoe UI", Font.PLAIN, 22)); // Fuente moderna y números grandes
+            m_ticketlines2.setTicketTableFont(new Font("Segoe UI", Font.PLAIN, 36)); // Fuente moderna y números grandes
+                                                                                     // - tamaño aumentado
                                                                                      // en tabla
 
             this.m_ticketlines.addListSelectionListener((ListSelectionEvent e) -> {
@@ -3788,6 +4143,20 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
                 // Mostrar nombre del cliente y puntos en formato: "Juan Sebastian 360 → 450"
                 String nombreCliente = m_oTicket.getCustomer().getName();
+
+                // Sebastian - Abreviar nombre si es muy largo para evitar truncamiento en la UI
+                if (nombreCliente != null && nombreCliente.length() > 30) {
+                    String[] parts = nombreCliente.split(" ");
+                    if (parts.length >= 3) {
+                        // Tomar primer nombre y último apellido para acortar
+                        nombreCliente = parts[0] + " " + parts[parts.length - 1];
+                    }
+                    // Si después de acortar o si no tenía espacios sigue siendo muy largo
+                    if (nombreCliente.length() > 30) {
+                        nombreCliente = nombreCliente.substring(0, 27) + "...";
+                    }
+                }
+
                 String textoCompleto = String.format("%s %d → %d",
                         nombreCliente, puntosActuales, puntosFuturos);
 
@@ -3892,7 +4261,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelBag.setMaximumSize(new java.awt.Dimension(300, 100)); // Sebastian - Permitir que el panel sea visible
         m_jPanelBag.setPreferredSize(new java.awt.Dimension(200, 60)); // Sebastian - Hacer visible el panel de tickets
 
-        jTBtnShow.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jTBtnShow.setFont(new java.awt.Font("Arial", 0, 20)); // NOI18N - Tamaño aumentado
         jTBtnShow.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/resources.png"))); // NOI18N
         jTBtnShow.setPreferredSize(new java.awt.Dimension(80, 45));
         jTBtnShow.addActionListener(new java.awt.event.ActionListener() {
@@ -3904,7 +4273,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         jTBtnShow.setVisible(false);
         m_jPanelBag.add(jTBtnShow);
 
-        m_jbtnScale.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        m_jbtnScale.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N - Tamaño aumentado
         m_jbtnScale.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/scale.png"))); // NOI18N
         m_jbtnScale.setText(AppLocal.getIntString("button.scale")); // NOI18N
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N
@@ -3942,7 +4311,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
 
-        btnReprint1.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        btnReprint1.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N - Tamaño aumentado
         btnReprint1.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/reprint24.png"))); // NOI18N
         btnReprint1.setToolTipText(bundle.getString("tooltip.reprintLastTicket")); // NOI18N
         btnReprint1.setFocusPainted(false);
@@ -3973,7 +4342,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
 
-        jBtnCustomer.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jBtnCustomer.setFont(new java.awt.Font("Arial", 0, 20)); // NOI18N - Tamaño aumentado
         jBtnCustomer.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/customer.png"))); // NOI18N
         jBtnCustomer.setToolTipText(bundle.getString("tooltip.salescustomer") + " (F5)"); // NOI18N
         jBtnCustomer.setPreferredSize(new java.awt.Dimension(80, 45));
@@ -4047,7 +4416,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelTicket.setBackground(new java.awt.Color(220, 220, 220)); // Fondo gris que continúa desde arriba
         m_jPanelTicket.setOpaque(true);
 
-        m_jPanelLinesToolbar.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
+        m_jPanelLinesToolbar.setFont(new java.awt.Font("Arial", 0, 18)); // NOI18N - Tamaño aumentado
         m_jPanelLinesToolbar.setPreferredSize(new java.awt.Dimension(65, 270));
         m_jPanelLinesToolbar.setLayout(new java.awt.BorderLayout());
 
@@ -4128,7 +4497,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         });
         jPanel2.add(jEditAttributes);
 
-        jCheckStock.setFont(new java.awt.Font("Arial", 1, 14)); // NOI18N
+        jCheckStock.setFont(new java.awt.Font("Arial", 1, 20)); // NOI18N - Tamaño aumentado
         jCheckStock.setForeground(new java.awt.Color(76, 197, 237));
         jCheckStock.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/info.png"))); // NOI18N
         jCheckStock.setToolTipText(bundle.getString("tooltip.salecheckstock")); // NOI18N
@@ -4202,7 +4571,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // No agregar la barra lateral al panel de ticket
         // m_jPanelTicket.add(m_jPanelLinesToolbar, java.awt.BorderLayout.LINE_START);
 
-        m_jPanelLines.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        m_jPanelLines.setFont(new java.awt.Font("Arial", 0, 20)); // NOI18N - Tamaño aumentado
         // Sebastian - Expandir el panel de líneas para ocupar TODO el ancho disponible
         // (sin barra lateral)
         // Remover el tamaño preferido limitado para que ocupe todo el espacio
@@ -4226,11 +4595,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JPanel customerInputPanel = new javax.swing.JPanel();
         customerInputPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 2));
 
-        m_jLblCustomerId.setFont(new java.awt.Font("Arial", 1, 11)); // NOI18N
+        m_jLblCustomerId.setFont(new java.awt.Font("Arial", 1, 17)); // NOI18N - Tamaño aumentado
         m_jLblCustomerId.setText(AppLocal.getIntString("label.customerid")); // NOI18N
         customerInputPanel.add(m_jLblCustomerId);
 
-        m_jCustomerId.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
+        m_jCustomerId.setFont(new java.awt.Font("Arial", 0, 17)); // NOI18N - Tamaño aumentado
         m_jCustomerId.setPreferredSize(new java.awt.Dimension(100, 20));
         m_jCustomerId.addKeyListener(new java.awt.event.KeyAdapter() {
             public void keyReleased(java.awt.event.KeyEvent evt) {
@@ -4241,7 +4610,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         customerPanel.add(customerInputPanel, java.awt.BorderLayout.WEST);
 
-        m_jCustomerName.setFont(new java.awt.Font("Arial", 1, 11)); // NOI18N
+        m_jCustomerName.setFont(new java.awt.Font("Arial", 1, 17)); // NOI18N - Tamaño aumentado
         m_jCustomerName.setForeground(new java.awt.Color(0, 100, 0));
         m_jCustomerName.setText("");
         customerPanel.add(m_jCustomerName, java.awt.BorderLayout.CENTER);
@@ -4251,7 +4620,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Sebastian - Eliminar customerPanel completamente para bajar más la tabla
         // m_jPanelLinesSum.add(customerPanel, java.awt.BorderLayout.NORTH);
 
-        m_jTicketId.setFont(new java.awt.Font("Arial", 1, 12)); // NOI18N
+        m_jTicketId.setFont(new java.awt.Font("Arial", 1, 18)); // NOI18N - Tamaño aumentado
         m_jTicketId.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         m_jTicketId.setText("ID");
         m_jTicketId.setToolTipText("");
@@ -4263,7 +4632,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // m_jPanelLinesSum.add(m_jTicketId, java.awt.BorderLayout.CENTER);
 
         // Sebastian - Configuración del label de puntos del cliente
-        m_jCustomerPoints.setFont(new java.awt.Font("Arial", 1, 14)); // Tamaño ajustado
+        m_jCustomerPoints.setFont(new java.awt.Font("Arial", 1, 20)); // Tamaño aumentado
         m_jCustomerPoints.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT);
         m_jCustomerPoints.setText("");
         m_jCustomerPoints.setToolTipText("Puntos del cliente");
@@ -4281,8 +4650,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Panel para área inferior completa estilo Eleventa
         // Sebastian - Reducir padding al mínimo para acercarlo a la barra inferior
-        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 120)); // Altura aumentada, ancho
-                                                                                         // completo
+        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 190)); // Altura aumentada a 190 para evitar recortes
         // Sebastian - Sin padding para acercarlo lo más posible a la barra inferior
         m_jPanelTotals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
         m_jPanelTotals.setBackground(java.awt.Color.WHITE); // Fondo blanco como Eleventa
@@ -4309,28 +4677,36 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Panel con Total, Pago Con, Cambio
         javax.swing.JPanel infoPanel = new javax.swing.JPanel(new java.awt.GridLayout(3, 2, 5, 2));
         infoPanel.setOpaque(false);
-        infoPanel.setMaximumSize(new java.awt.Dimension(300, 60));
+        infoPanel.setPreferredSize(new java.awt.Dimension(320, 130));
+        infoPanel.setMinimumSize(new java.awt.Dimension(320, 130));
+        infoPanel.setMaximumSize(new java.awt.Dimension(320, 130));
         infoPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
 
         javax.swing.JLabel lblTotal = new javax.swing.JLabel("Total:");
-        lblTotal.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        lblTotal.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
+        lblTotal.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblTotal);
         lblTotalValue = new javax.swing.JLabel("$0.00");
-        lblTotalValue.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        lblTotalValue.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
+        lblTotalValue.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblTotalValue);
 
         javax.swing.JLabel lblPagoCon = new javax.swing.JLabel("Pago Con:");
-        lblPagoCon.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        lblPagoCon.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
+        lblPagoCon.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblPagoCon);
         lblPagoConValue = new javax.swing.JLabel("$0.00");
-        lblPagoConValue.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        lblPagoConValue.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
+        lblPagoConValue.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblPagoConValue);
 
         javax.swing.JLabel lblCambio = new javax.swing.JLabel("Cambio:");
-        lblCambio.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        lblCambio.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
+        lblCambio.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblCambio);
         lblCambioValue = new javax.swing.JLabel("$0.00");
-        lblCambioValue.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
+        lblCambioValue.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
+        lblCambioValue.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblCambioValue);
 
         leftContentPanel.add(infoPanel);
@@ -4343,16 +4719,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         smallButtonsPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
 
         javax.swing.JButton btnCambiar = new javax.swing.JButton("Cambiar");
-        btnCambiar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
-        btnCambiar.setPreferredSize(new java.awt.Dimension(100, 28));
+        btnCambiar.putClientProperty("isSmallActionButton", Boolean.TRUE);
+        btnCambiar.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16));
+        // No fijar preferredSize para que crezca con la fuente grande
         btnCambiar.setFocusPainted(false);
         btnCambiar.setBackground(java.awt.Color.WHITE);
         btnCambiar.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
         smallButtonsPanel.add(btnCambiar);
 
         javax.swing.JButton btnAsignarCliente = new javax.swing.JButton("F5 - Asignar Cliente");
-        btnAsignarCliente.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 10));
-        btnAsignarCliente.setPreferredSize(new java.awt.Dimension(140, 28));
+        btnAsignarCliente.putClientProperty("isSmallActionButton", Boolean.TRUE);
+        btnAsignarCliente.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 14));
+        // No fijar preferredSize para que crezca con la fuente grande
         btnAsignarCliente.setFocusPainted(false);
         btnAsignarCliente.setBackground(java.awt.Color.WHITE);
         btnAsignarCliente.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
@@ -4390,17 +4768,14 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                                                                        // pero no bold)
         m_jTotalEuros.setFont(totalFont);
         m_jTotalEuros.setForeground(new java.awt.Color(0, 100, 200)); // Azul más claro como en Eleventa (no tan oscuro)
-        m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.LEFT); // Alineación a la IZQUIERDA para que
-                                                                               // siempre empiece desde el mismo punto
+        m_jTotalEuros.setHorizontalAlignment(javax.swing.SwingConstants.RIGHT); // Alineación a la DERECHA para que coincida con el borde
         m_jTotalEuros.setText("$0.00");
         m_jTotalEuros.setOpaque(false); // Sin fondo
         m_jTotalEuros.setRequestFocusEnabled(false);
-        // Padding izquierdo reducido porque el gap del panel moverá ambos componentes
-        // juntos
-        m_jTotalEuros.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 0)); // Padding mínimo solo para el
-                                                                                          // texto dentro del label
+        // Padding izquierdo y derecho para la cifra
+        m_jTotalEuros.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 0, 5)); 
         // Ancho suficiente para números grandes - cuando crezca se expandirá hacia la
-        // DERECHA
+        // IZQUIERDA
         m_jTotalEuros.setPreferredSize(new java.awt.Dimension(300, 60)); // Ancho más generoso para números grandes
         m_jTotalEuros.setMinimumSize(new java.awt.Dimension(150, 60)); // Mínimo para números pequeños
         m_jTotalEuros.setMaximumSize(new java.awt.Dimension(320, 60)); // Máximo con espacio para crecer
@@ -4410,12 +4785,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Botón Cobrar compacto, justo al lado del total
         m_jPayNow = new javax.swing.JButton();
-        m_jPayNow.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 14));
+        m_jPayNow.putClientProperty("isPaymentButton", Boolean.TRUE);
+        m_jPayNow.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 22));
         m_jPayNow.setText("F12 - Cobrar");
         m_jPayNow.setFocusPainted(false);
         m_jPayNow.setBackground(new java.awt.Color(92, 184, 92)); // Verde
         m_jPayNow.setForeground(java.awt.Color.WHITE);
-        m_jPayNow.setPreferredSize(new java.awt.Dimension(160, 40)); // Más ancho
         m_jPayNow.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                 new javax.swing.border.LineBorder(new java.awt.Color(76, 174, 76), 1),
                 javax.swing.BorderFactory.createEmptyBorder(8, 16, 8, 4) // Padding derecho reducido para acercarlo al
@@ -4423,37 +4798,99 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         ));
         m_jPayNow.setOpaque(true);
 
+        // Botón Reimprimir Ticket (Azul/Gris, al lado de Cobrar)
+        javax.swing.JButton m_jReprint = new javax.swing.JButton();
+        m_jReprint.putClientProperty("isReprintButton", Boolean.TRUE);
+        m_jReprint.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16));
+        m_jReprint.setText("Reimprimir");
+        m_jReprint.setToolTipText("Reimprimir último ticket (Impr Pnt)");
+        m_jReprint.setFocusPainted(false);
+        m_jReprint.setBackground(new java.awt.Color(52, 152, 219)); // Azul
+        m_jReprint.setForeground(java.awt.Color.WHITE);
+        // No fijar preferredSize para que crezca con la fuente grande
+        m_jReprint.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                new javax.swing.border.LineBorder(new java.awt.Color(41, 128, 185), 1),
+                javax.swing.BorderFactory.createEmptyBorder(8, 10, 8, 10)));
+        m_jReprint.setOpaque(true);
+        m_jReprint.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                reprintLastTicket();
+            }
+        });
+
         // Acción: reutiliza el flujo de cierre/pago de ticket
         m_jPayNow.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 if (m_oTicket != null && m_oTicket.getLinesCount() > 0) {
-                    if (closeTicket(m_oTicket, m_oTicketExt)) {
-                        // Sebastian - Eliminar el ticket cerrado de la lista de pestañas
+                    LOGGER.log(System.Logger.Level.INFO,
+                            "Iniciando proceso de cobro para ticket: " + m_oTicket.getTicketId());
+                    try {
                         TicketInfo ticketCerrado = m_oTicket;
-                        setActiveTicket(null, null);
-                        refreshTicket();
-                        m_ticketsbag.deleteTicket();
+                        if (closeTicket(ticketCerrado, m_oTicketExt)) {
+                            LOGGER.log(System.Logger.Level.INFO,
+                                    "Cobro exitoso para ticket: " + ticketCerrado.getTicketId());
 
-                        // Eliminar el ticket de la lista si existe
-                        if (ventasActivas.contains(ticketCerrado)) {
-                            ventasActivas.remove(ticketCerrado);
-                            // Ajustar el índice si es necesario
-                            if (ventaActualIndex >= ventasActivas.size() && !ventasActivas.isEmpty()) {
-                                ventaActualIndex = ventasActivas.size() - 1;
+                            // Sebastian - Eliminar el ticket cerrado de la lista de pestañas
+                            // IMPORTANTE: Primero borrar del sistema base mientras el ticket aún es el
+                            // activo "oficial"
+                            try {
+                                m_ticketsbag.deleteTicket();
+                            } catch (Exception e) {
+                                LOGGER.log(System.Logger.Level.WARNING,
+                                        "Error al borrar ticket de la bolsa base: " + e.getMessage());
                             }
-                        }
 
-                        // Si quedan tickets, activar uno; si no, crear uno nuevo
-                        if (!ventasActivas.isEmpty() && ventaActualIndex >= 0
-                                && ventaActualIndex < ventasActivas.size()) {
-                            setActiveTicket(ventasActivas.get(ventaActualIndex), null);
+                            // Eliminar de nuestra lista personalizada
+                            boolean removido = false;
+                            for (java.util.Iterator<TicketInfo> it = ventasActivas.iterator(); it.hasNext();) {
+                                if (it.next() == ticketCerrado) {
+                                    it.remove();
+                                    removido = true;
+                                    break;
+                                }
+                            }
+
+                            if (removido) {
+                                LOGGER.log(System.Logger.Level.DEBUG,
+                                        "Ticket removido de ventasActivas. Quedan: " + ventasActivas.size());
+                                // Ajustar el índice
+                                if (ventaActualIndex >= ventasActivas.size() && !ventasActivas.isEmpty()) {
+                                    ventaActualIndex = ventasActivas.size() - 1;
+                                }
+                            }
+
+                            // CRITICAL: Clear current ticket reference before creating/switching
+                            // so abrirNuevaVenta doesn't try to re-add this closed ticket.
+                            m_oTicket = null;
+                            m_oTicketExt = null;
+
+                            // Si quedan tickets, activar uno; si no, crear uno nuevo
+                            if (!ventasActivas.isEmpty() && ventaActualIndex >= 0
+                                    && ventaActualIndex < ventasActivas.size()) {
+                                LOGGER.log(System.Logger.Level.DEBUG,
+                                        "Cambiando a ticket en índice: " + ventaActualIndex);
+                                setActiveTicket(ventasActivas.get(ventaActualIndex), null);
+                            } else {
+                                LOGGER.log(System.Logger.Level.DEBUG, "No quedan tickets, creando uno nuevo");
+                                createNewTicket();
+                            }
+
+                            updateTabsBar();
                         } else {
-                            createNewTicket();
+                            LOGGER.log(System.Logger.Level.INFO,
+                                    "El cobro fue cancelado o falló para el ticket: " + ticketCerrado.getTicketId());
                         }
-
-                        updateTabsBar(); // Actualizar pestañas después de eliminar
+                    } catch (Exception ex) {
+                        LOGGER.log(System.Logger.Level.ERROR, "Error crítico durante el proceso de cobro", ex);
+                        ex.printStackTrace();
+                        javax.swing.JOptionPane.showMessageDialog(JPanelTicket.this,
+                                "Error al finalizar la venta: " + ex.getMessage(),
+                                "Error de Sistema", javax.swing.JOptionPane.ERROR_MESSAGE);
+                    } finally {
+                        // Siempre refrescar para asegurar que la UI sea consistente
+                        refreshTicket();
+                        setSearchFieldFocus();
                     }
-                    refreshTicket();
                 }
             }
         });
@@ -4464,14 +4901,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JPanel totalPanel = new javax.swing.JPanel();
         totalPanel.setLayout(new javax.swing.BoxLayout(totalPanel, javax.swing.BoxLayout.X_AXIS));
         totalPanel.setOpaque(false);
-        // Agregar espacio flexible a la izquierda para empujar el contenido a la
-        // derecha
-        totalPanel.add(javax.swing.Box.createHorizontalStrut(200)); // 200px de espacio a la izquierda para mover ambos
-                                                                    // a la derecha
-        totalPanel.add(m_jPayNow); // Botón cobrar primero (quedará a la izquierda del total)
-        totalPanel.add(javax.swing.Box.createHorizontalStrut(5)); // Gap pequeño (5px) entre botón y total
-        totalPanel.add(m_jTotalEuros); // Total después - posición fija, crece hacia la derecha
-        totalPanel.add(javax.swing.Box.createHorizontalGlue()); // Espacio flexible a la derecha
+        totalPanel.add(javax.swing.Box.createHorizontalGlue()); // Empujar todo el grupo al extremo derecho
+        totalPanel.add(m_jReprint);
+        totalPanel.add(javax.swing.Box.createHorizontalStrut(10));
+        totalPanel.add(m_jPayNow); // Botón cobrar
+        totalPanel.add(javax.swing.Box.createHorizontalStrut(10)); // Espacio entre botón cobrar y la cifra total
+        totalPanel.add(m_jTotalEuros); // Total al extremo derecho del grupo
         totalPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 20)); // Padding derecho para espacio
                                                                                         // cuando crezca la cifra
 
@@ -4480,12 +4915,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // === Botón "Ventas del día y Devoluciones" directamente debajo del total ===
         javax.swing.JButton btnVentasDelDia = new javax.swing.JButton();
-        btnVentasDelDia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 9)); // Fuente más pequeña
+        btnVentasDelDia.putClientProperty("isSmallActionButton", Boolean.TRUE);
+        btnVentasDelDia.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12)); // Fuente
         btnVentasDelDia.setText("Ventas / Devoluciones");
         btnVentasDelDia.setFocusPainted(false);
-        btnVentasDelDia.setPreferredSize(new java.awt.Dimension(140, 22)); // Tamaño más pequeño
-        btnVentasDelDia.setMinimumSize(new java.awt.Dimension(140, 22));
-        btnVentasDelDia.setMaximumSize(new java.awt.Dimension(140, 22));
+        // No fijar preferredSize/minSize/maxSize para que crezca con la fuente grande
         btnVentasDelDia.setBackground(java.awt.Color.WHITE);
         btnVentasDelDia.setForeground(new java.awt.Color(80, 80, 80));
         btnVentasDelDia.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(200, 200, 200), 1));
@@ -4498,23 +4932,19 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
 
-        // Panel contenedor para el botón, alineado debajo del inicio del total
+        // Panel contenedor para el botón, alineado al extremo derecho debajo del total
         javax.swing.JPanel btnVentasPanel = new javax.swing.JPanel();
         btnVentasPanel.setLayout(new javax.swing.BoxLayout(btnVentasPanel, javax.swing.BoxLayout.X_AXIS));
         btnVentasPanel.setOpaque(false);
-        // Alinearlo con el INICIO del total: 200px (strut inicial) + 160px (ancho botón
-        // cobrar) + 5px (gap) = 365px
-        btnVentasPanel.add(javax.swing.Box.createHorizontalStrut(365)); // 200 + 160 + 5 = 365px para alinearlo con el
-                                                                        // inicio del total
+        btnVentasPanel.add(javax.swing.Box.createHorizontalGlue()); // Empujar el botón al extremo derecho
         btnVentasPanel.add(btnVentasDelDia);
-        btnVentasPanel.add(javax.swing.Box.createHorizontalGlue()); // Espacio flexible a la derecha
-        btnVentasPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 20)); // Padding derecho
+        btnVentasPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 20)); // Padding derecho idéntico al del total
 
         // Agregar botón al panel (debajo del total)
         totalAndButtonPanel.add(btnVentasPanel, java.awt.BorderLayout.SOUTH);
 
         // Agregar panel de total y botón cobrar al panel superior
-        topRightPanel.add(totalAndButtonPanel, java.awt.BorderLayout.EAST);
+        topRightPanel.add(totalAndButtonPanel, java.awt.BorderLayout.CENTER);
 
         // Agregar panel superior al rightPanel en SOUTH para que esté pegado abajo
         rightPanel.add(topRightPanel, java.awt.BorderLayout.SOUTH);
@@ -4523,9 +4953,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // leftPanel completamente a la izquierda
         m_jPanelTotals.add(leftPanel, java.awt.BorderLayout.WEST);
 
-        // rightPanel (total grande en su posición original + botón cobrar al lado) a la
-        // derecha
-        m_jPanelTotals.add(rightPanel, java.awt.BorderLayout.EAST);
+        // rightPanel (total grande en su posición original + botón cobrar al lado) al centro (estirado)
+        m_jPanelTotals.add(rightPanel, java.awt.BorderLayout.CENTER);
 
         // Sebastian - Panel original del botón comentado porque ya está arriba
         /*
@@ -4602,9 +5031,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         javax.swing.JPanel tabsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 2));
         tabsPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(200, 200, 200)));
         tabsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave para continuar el fondo
-        tabsPanel.setPreferredSize(new java.awt.Dimension(0, 35));
-        tabsPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 35)); // Limitar altura máxima
-        tabsPanel.setMinimumSize(new java.awt.Dimension(0, 35)); // Limitar altura mínima
+        tabsPanel.setPreferredSize(new java.awt.Dimension(0, 55));
+        tabsPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 55)); // Limitar altura máxima
+        tabsPanel.setMinimumSize(new java.awt.Dimension(0, 55)); // Limitar altura mínima
         tabsPanel.setName("tabsPanel"); // Para poder encontrarlo después
 
         // Panel contenedor para la barra de pestañas y la tabla
@@ -4662,9 +5091,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         jPanelScanner.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 5, 2, 5)); // Sin padding superior para
                                                                                           // subir el contenido
-        jPanelScanner.setMaximumSize(new java.awt.Dimension(800, 55)); // Ajustar altura del panel para fuente más
-                                                                       // grande
-        jPanelScanner.setPreferredSize(new java.awt.Dimension(800, 55));
+        jPanelScanner.setMaximumSize(new java.awt.Dimension(900, 68)); // Ajustar altura del panel para fuente más grande
+        jPanelScanner.setPreferredSize(new java.awt.Dimension(900, 68));
 
         m_jPrice.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24)); // Fuente moderna y números grandes
         m_jPrice.setForeground(new java.awt.Color(76, 197, 237));
@@ -4698,16 +5126,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPor.setRequestFocusEnabled(false);
 
         m_jKeyFactory.setEditable(true);
-        m_jKeyFactory.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 22)); // Fuente Arial Bold más grande y
-                                                                                   // gruesa para números más anchos
+        m_jKeyFactory.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 30)); // Fuente Arial Bold más grande y
+                                                                                   // gruesa para números más anchos -
+                                                                                   // tamaño aumentado
         m_jKeyFactory.setForeground(new java.awt.Color(33, 33, 33)); // Texto oscuro moderno
         m_jKeyFactory.setBackground(java.awt.Color.WHITE);
         m_jKeyFactory.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
         m_jKeyFactory.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 10, 8, 10)); // Solo padding, sin borde
         m_jKeyFactory.setOpaque(true);
-        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 44));
-        m_jKeyFactory.setMinimumSize(new java.awt.Dimension(350, 44));
-        m_jKeyFactory.setMaximumSize(new java.awt.Dimension(500, 44)); // Limitar el ancho máximo
+        m_jKeyFactory.setPreferredSize(new java.awt.Dimension(500, 62));
+        m_jKeyFactory.setMinimumSize(new java.awt.Dimension(350, 62));
+        m_jKeyFactory.setMaximumSize(new java.awt.Dimension(500, 62)); // Limitar el ancho máximo - altura aumentada
+                                                                       // para fuente más grande
         m_jKeyFactory.setAutoscrolls(true);
         m_jKeyFactory.setCaretColor(new java.awt.Color(52, 152, 219));
         m_jKeyFactory.setRequestFocusEnabled(true);
@@ -4720,6 +5150,29 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             }
         });
         m_jKeyFactory.addKeyListener(new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent evt) {
+                if (evt.getKeyCode() == java.awt.event.KeyEvent.VK_DELETE
+                        || (evt.getKeyCode() == java.awt.event.KeyEvent.VK_BACK_SPACE && m_jKeyFactory.getText().isEmpty())) {
+                    int i = m_ticketlines.getSelectedIndex();
+                    if (i >= 0 && m_oTicket != null && i < m_oTicket.getLinesCount()) {
+                        if (m_jDelete != null && m_jDelete.isEnabled()) {
+                            removeTicketLine(i);
+                            jCheckStock.setText("");
+                            evt.consume();
+                        } else if (m_jDelete == null) {
+                            removeTicketLine(i);
+                            jCheckStock.setText("");
+                            evt.consume();
+                        }
+                    } else if (m_jKeyFactory.getText().isEmpty()) {
+                        java.awt.Toolkit.getDefaultToolkit().beep();
+                        evt.consume();
+                    }
+                }
+            }
+
+            @Override
             public void keyTyped(java.awt.event.KeyEvent evt) {
                 m_jKeyFactoryKeyTyped(evt);
             }
@@ -4744,9 +5197,10 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)));
         searchFieldContainer.setBackground(java.awt.Color.WHITE);
         searchFieldContainer.setOpaque(true);
-        searchFieldContainer.setPreferredSize(new java.awt.Dimension(500, 44)); // Tamaño intermedio
-        searchFieldContainer.setMinimumSize(new java.awt.Dimension(350, 44));
-        searchFieldContainer.setMaximumSize(new java.awt.Dimension(500, 44)); // Limitar el ancho máximo
+        searchFieldContainer.setPreferredSize(new java.awt.Dimension(500, 62)); // Tamaño intermedio - altura aumentada
+        searchFieldContainer.setMinimumSize(new java.awt.Dimension(350, 62));
+        searchFieldContainer.setMaximumSize(new java.awt.Dimension(500, 62)); // Limitar el ancho máximo - altura
+                                                                              // aumentada
 
         // Panel para el icono con padding
         javax.swing.JPanel iconContainer = new javax.swing.JPanel();
@@ -4858,7 +5312,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Botón ENTER - Agregar Producto
         javax.swing.JButton btnAgregarProducto = new javax.swing.JButton();
         btnAgregarProducto.setText("ENTER - Agregar Producto");
-        btnAgregarProducto.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        btnAgregarProducto.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         btnAgregarProducto.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/ok.png")));
         btnAgregarProducto.setForeground(java.awt.Color.WHITE);
         btnAgregarProducto.setBackground(new java.awt.Color(46, 204, 113)); // Verde atractivo
@@ -4866,7 +5320,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnAgregarProducto.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                 javax.swing.BorderFactory.createLineBorder(new java.awt.Color(39, 174, 96), 1),
                 javax.swing.BorderFactory.createEmptyBorder(8, 15, 8, 15)));
-        btnAgregarProducto.setPreferredSize(new java.awt.Dimension(220, 44));
+        // No fijar preferredSize para que crezca con la fuente grande
         btnAgregarProducto.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
         btnAgregarProducto.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -4877,7 +5331,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Label "Código del Producto" antes de la barra de búsqueda - Tipografía
         // moderna y decorativa
         javax.swing.JLabel lblCodigoProducto = new javax.swing.JLabel("Código del Producto");
-        lblCodigoProducto.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 13)); // Fuente moderna en cursiva
+        lblCodigoProducto.setFont(new java.awt.Font("Segoe UI", java.awt.Font.ITALIC, 18)); // Fuente moderna en cursiva
+                                                                                            // - tamaño aumentado
         lblCodigoProducto.setForeground(new java.awt.Color(100, 100, 120)); // Color gris elegante y moderno
         lblCodigoProducto.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 8)); // Espacio antes de la
                                                                                               // barra
@@ -4889,6 +5344,27 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         searchWrapper.add(lblCodigoProducto);
         searchWrapper.add(searchFieldContainer);
         searchWrapper.add(btnAgregarProducto); // Botón ENTER justo al lado de la barra
+
+        // Botón Impresoras (bajado desde el menú superior) - Se creará incondicionalmente, y los permisos se verificarán en el constructor después de asignar m_App
+        javax.swing.JButton btnImpresoras = new javax.swing.JButton("Impresoras");
+        btnImpresoras.putClientProperty("isActionToolbarButton", Boolean.TRUE);
+        btnImpresoras.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
+        btnImpresoras.setIcon(new javax.swing.ImageIcon(getClass().getResource("/com/openbravo/images/printer.png")));
+        btnImpresoras.setForeground(java.awt.Color.WHITE);
+        btnImpresoras.setBackground(new java.awt.Color(52, 152, 219)); // Azul moderno
+        btnImpresoras.setFocusPainted(false);
+        btnImpresoras.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(41, 128, 185), 1),
+                javax.swing.BorderFactory.createEmptyBorder(8, 15, 8, 15)));
+        // No fijar preferredSize para que crezca con la fuente grande
+        btnImpresoras.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnImpresoras.addActionListener(e -> {
+            if (m_App != null && m_App.getAppUserView() != null) {
+                m_App.getAppUserView().showTask("com.openbravo.pos.panels.JPanelPrinter");
+            }
+        });
+        searchWrapper.add(btnImpresoras);
+        this.putClientProperty("btnImpresorasRef", btnImpresoras);
 
         scannerInputPanel.add(searchWrapper, java.awt.BorderLayout.WEST);
 
@@ -4902,24 +5378,27 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         searchPanel.add(scannerContainerPanel, java.awt.BorderLayout.CENTER);
 
         // Sebastian - Crear barra de botones de acción debajo del campo de búsqueda
-        javax.swing.JPanel actionButtonsPanel = new javax.swing.JPanel();
-        actionButtonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 6, 0));
+        actionButtonsPanel = new javax.swing.JPanel();
+        actionButtonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 8, 5));
         actionButtonsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 20, 12, 20)); // Padding superior
                                                                                                   // reducido para
                                                                                                   // acercar a la barra
                                                                                                   // de búsqueda
         actionButtonsPanel.setBackground(new java.awt.Color(245, 245, 245)); // Mismo fondo que searchPanel
+        actionButtonsPanel.setOpaque(true);
+        actionButtonsPanel.setVisible(true);
 
         // Estilo común para todos los botones
         java.awt.Color btnBg = java.awt.Color.WHITE;
         java.awt.Color btnFg = new java.awt.Color(60, 60, 60);
         java.awt.Color btnBorder = new java.awt.Color(220, 220, 220);
-        java.awt.Font btnFont = new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11);
+        java.awt.Font btnFont = new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12);
         int btnHeight = 36;
 
         // Botón Artículo Común
         javax.swing.JButton btnArticuloComun = new javax.swing.JButton("CTRL+P Art. Común");
-        btnArticuloComun.setPreferredSize(new java.awt.Dimension(145, btnHeight));
+        btnArticuloComun.putClientProperty("isActionToolbarButton", Boolean.TRUE);
+        // No fijar preferredSize para que crezca con la fuente grande
         btnArticuloComun.setFont(btnFont);
         btnArticuloComun.setFocusPainted(false);
         btnArticuloComun.setBackground(btnBg);
@@ -4936,15 +5415,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Botón Mayoreo
         javax.swing.JButton btnMayoreo = new javax.swing.JButton("F11 Mayoreo");
-        btnMayoreo.setPreferredSize(new java.awt.Dimension(110, btnHeight));
+        btnMayoreo.putClientProperty("isActionToolbarButton", Boolean.TRUE);
+        // No fijar preferredSize/minSize/maxSize para que crezca con la fuente grande
         btnMayoreo.setFont(btnFont);
         btnMayoreo.setFocusPainted(false);
         btnMayoreo.setBackground(btnBg);
         btnMayoreo.setForeground(btnFg);
         btnMayoreo.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                 javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
-                javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+                javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)));
         btnMayoreo.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnMayoreo.setVisible(true);
+        btnMayoreo.setOpaque(true);
         btnMayoreo.addActionListener(e -> {
             aplicarDescuentoMayoreo();
         });
@@ -4952,15 +5434,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Botón Entradas
         javax.swing.JButton btnEntradas = new javax.swing.JButton("F7 Entradas");
-        btnEntradas.setPreferredSize(new java.awt.Dimension(105, btnHeight));
+        btnEntradas.putClientProperty("isActionToolbarButton", Boolean.TRUE);
+        // No fijar preferredSize/minSize/maxSize para que crezca con la fuente grande
         btnEntradas.setFont(btnFont);
         btnEntradas.setFocusPainted(false);
         btnEntradas.setBackground(btnBg);
         btnEntradas.setForeground(btnFg);
         btnEntradas.setBorder(javax.swing.BorderFactory.createCompoundBorder(
                 javax.swing.BorderFactory.createLineBorder(btnBorder, 1),
-                javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)));
+                javax.swing.BorderFactory.createEmptyBorder(6, 8, 6, 8)));
         btnEntradas.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btnEntradas.setVisible(true);
+        btnEntradas.setOpaque(true);
         btnEntradas.addActionListener(e -> {
             showEntradasDialog();
         });
@@ -4968,7 +5453,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Botón Salidas
         javax.swing.JButton btnSalidas = new javax.swing.JButton("F8 Salidas");
-        btnSalidas.setPreferredSize(new java.awt.Dimension(100, btnHeight));
+        btnSalidas.putClientProperty("isActionToolbarButton", Boolean.TRUE);
+        // No fijar preferredSize para que crezca con la fuente grande
         btnSalidas.setFont(btnFont);
         btnSalidas.setFocusPainted(false);
         btnSalidas.setBackground(btnBg);
@@ -4984,7 +5470,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Botón F6 - Eliminar Línea (eliminar producto del ticket)
         javax.swing.JButton btnEliminarLinea = new javax.swing.JButton("F6 Eliminar");
-        btnEliminarLinea.setPreferredSize(new java.awt.Dimension(115, btnHeight));
+        btnEliminarLinea.putClientProperty("isActionToolbarButton", Boolean.TRUE);
+        // No fijar preferredSize para que crezca con la fuente grande
         btnEliminarLinea.setFont(btnFont);
         btnEliminarLinea.setFocusPainted(false);
         btnEliminarLinea.setBackground(new java.awt.Color(220, 53, 69)); // Color rojo para eliminar
@@ -5006,7 +5493,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Botón F4 - Nueva Venta (reemplaza DEL Borrar Art.)
         javax.swing.JButton btnF4Nueva = new javax.swing.JButton("F4 Nueva");
-        btnF4Nueva.setPreferredSize(new java.awt.Dimension(100, btnHeight));
+        btnF4Nueva.putClientProperty("isActionToolbarButton", Boolean.TRUE);
+        // No fijar preferredSize para que crezca con la fuente grande
         btnF4Nueva.setFont(btnFont);
         btnF4Nueva.setFocusPainted(false);
         btnF4Nueva.setBackground(btnBg);
@@ -5218,39 +5706,99 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     }// GEN-LAST:event_j_btnRemotePrtActionPerformed
 
     private void btnReprint1ActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btnReprint1ActionPerformed
-
-        // TODO GET LAST FROM DB (USER ID)
-        /*
-         * if (m_config.getProperty("lastticket.number") != null) {
-         * try {
-         * TicketInfo ticketInfo = dlSales.loadTicket(
-         * Integer.parseInt((m_config.getProperty("lastticket.type"))),
-         * Integer.parseInt((m_config.getProperty("lastticket.number"))));
-         * if (ticketInfo == null) {
-         * JFrame frame = new JFrame();
-         * JOptionPane.showMessageDialog(frame,
-         * AppLocal.getIntString("message.notexiststicket"),
-         * AppLocal.getIntString("message.notexiststickettitle"),
-         * JOptionPane.WARNING_MESSAGE);
-         * } else {
-         * try {
-         * taxeslogic.calculateTaxes(ticketInfo);
-         * //TicketTaxInfo[] taxlist = m_ticket.getTaxLines();
-         * } catch (TaxesException ex) {
-         * LOGGER.log(System.Logger.Level.WARNING, "Exception on: ", ex);
-         * }
-         * printTicket("Printer.ReprintTicket", ticketInfo, null);
-         * Notify("'Printed'");
-         * }
-         * } catch (BasicException ex) {
-         * LOGGER.log(System.Logger.Level.WARNING, "Exception on: ", ex);
-         * MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
-         * AppLocal.getIntString("message.cannotloadticket"), ex);
-         * msg.show(this);
-         * }
-         * }
-         */
+        reprintLastTicket();
     }// GEN-LAST:event_btnReprint1ActionPerformed
+
+    private void reprintLastTicket() {
+        if (lastTicketId != null) {
+            try {
+                TicketInfo ticketInfo = dlSales.loadTicket(
+                        lastTicketType,
+                        lastTicketId);
+                if (ticketInfo == null) {
+                    javax.swing.JOptionPane.showMessageDialog(this,
+                            AppLocal.getIntString("message.notexiststicket"),
+                            AppLocal.getIntString("message.notexiststickettitle"),
+                            javax.swing.JOptionPane.WARNING_MESSAGE);
+                } else {
+                    try {
+                        taxeslogic.calculateTaxes(ticketInfo);
+                    } catch (TaxesException ex) {
+                        LOGGER.log(System.Logger.Level.WARNING, "Exception on: ", ex);
+                    }
+                    // Sebastian: Al reimprimir, NO abrir cajón de dinero.
+                    // Obtener el XML del template y eliminar la etiqueta <opendrawer> antes de
+                    // imprimir.
+                    try {
+                        String sresource = dlSystem.getResourceAsXML("Printer.Ticket");
+                        if (sresource != null) {
+                            // Remover etiquetas <opendrawer .../> y <opendrawer/> (con o sin atributos)
+                            String sresourceNoDrawer = sresource
+                                    .replaceAll("<opendrawer[^/]*/>", "")
+                                    .replaceAll("<opendrawer/>", "");
+                            // Evaluar el template con Velocity
+                            com.openbravo.pos.scripting.ScriptEngine script = com.openbravo.pos.scripting.ScriptFactory
+                                    .getScriptEngine(com.openbravo.pos.scripting.ScriptFactory.VELOCITY);
+                            script.put("ticket", ticketInfo);
+                            script.put("taxes", taxcollection); // Sebastian - Usar taxcollection para consistencia con
+                                                                // impresión normal
+                            script.put("taxeslogic", taxeslogic);
+                            script.put("place", null);
+                            script.put("warranty", false);
+                            script.put("pickupid", getPickupString(ticketInfo));
+
+                            // Sebastian - Cargar puntos reales del cliente para la reimpresión
+                            int puntosActuales = 0;
+                            int puntosOtorgados = 0;
+                            boolean limiteAlcanzado = false;
+
+                            if (ticketInfo.getCustomer() != null && puntosDataLogic != null) {
+                                try {
+                                    puntosActuales = puntosDataLogic.obtenerPuntos(ticketInfo.getCustomer().getId());
+                                    // Intentar obtener los puntos que se otorgaron en este ticket específico
+                                    int pTicket = puntosDataLogic.getPuntosOtorgadosPorTicket(
+                                            String.valueOf(ticketInfo.getTicketId()),
+                                            ticketInfo.getCustomer().getId());
+                                    if (pTicket >= 0) {
+                                        puntosOtorgados = pTicket;
+                                    }
+                                } catch (Exception e) {
+                                    LOGGER.log(System.Logger.Level.WARNING,
+                                            "Error cargando puntos para reimpresión: " + e.getMessage());
+                                }
+                            }
+
+                            script.put("customerPoints", puntosActuales - puntosOtorgados);
+                            script.put("customerPointsAfter", puntosActuales);
+                            script.put("puntosPorCompra", puntosOtorgados);
+                            script.put("limiteAlcanzado", limiteAlcanzado);
+
+                            String processedXml = script.eval(sresourceNoDrawer).toString();
+                            m_TTP.printTicket(processedXml, ticketInfo);
+                            LOGGER.log(System.Logger.Level.INFO, "Reimpresion completada SIN abrir cajón");
+                        } else {
+                            // Fallback: usar el método normal si no se puede obtener el template
+                            printTicket("Printer.Ticket", ticketInfo, null);
+                        }
+                    } catch (Exception ex) {
+                        LOGGER.log(System.Logger.Level.WARNING,
+                                "Error en reimpresión sin cajón, usando método normal: " + ex.getMessage());
+                        printTicket("Printer.Ticket", ticketInfo, null);
+                    }
+                }
+            } catch (BasicException ex) {
+                LOGGER.log(System.Logger.Level.WARNING, "Exception on: ", ex);
+                MessageInf msg = new MessageInf(MessageInf.SGN_WARNING,
+                        AppLocal.getIntString("message.cannotloadticket"), ex);
+                msg.show(this);
+            }
+        } else {
+            javax.swing.JOptionPane.showMessageDialog(this,
+                    "No hay ticket anterior para reimprimir.",
+                    "Reimprimir Ticket",
+                    javax.swing.JOptionPane.WARNING_MESSAGE);
+        }
+    }
 
     private void btnSplitActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_btnSplitActionPerformed
 
@@ -5895,7 +6443,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 LOGGER.log(System.Logger.Level.DEBUG, "Sistema de puntos desactivado");
                 return;
             }
-            System.out.println("✅ procesarPuntosAutomaticos: Configuración activa - Monto: $" + config.getMontoPorPunto() + ", Puntos: " + config.getPuntosOtorgados());
+            System.out.println("✅ procesarPuntosAutomaticos: Configuración activa - Monto: $"
+                    + config.getMontoPorPunto() + ", Puntos: " + config.getPuntosOtorgados());
 
             // Calcular total solo de productos que acumulan puntos
             double totalAcumulable = 0.0;
@@ -5977,7 +6526,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // el acumulable restante del día que puede hacer que se otorguen puntos
             System.out.println("💰 procesarPuntosAutomaticos: Total acumulable de esta compra: $" + totalAcumulable);
 
-            // Calcular puntos según la configuración sobre el monto acumulable (solo para referencia)
+            // Calcular puntos según la configuración sobre el monto acumulable (solo para
+            // referencia)
             int puntosAOtorgar = config.calcularPuntos(totalAcumulable);
 
             // Sebastian - Debug adicional para comparar
@@ -6168,13 +6718,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             boolean esActivo = (i == ventaActualIndex);
 
             javax.swing.JButton tabButton = new javax.swing.JButton("Ticket " + (i + 1));
-            tabButton.setFont(new java.awt.Font("Arial", esActivo ? java.awt.Font.BOLD : java.awt.Font.PLAIN, 11));
+            tabButton.setFont(new java.awt.Font("Arial", esActivo ? java.awt.Font.BOLD : java.awt.Font.PLAIN, esActivo ? 20 : 18));
             tabButton.setFocusPainted(false);
             tabButton.setBorderPainted(false);
             tabButton.setContentAreaFilled(true);
-            tabButton.setPreferredSize(new java.awt.Dimension(100, 30));
-            tabButton.setMaximumSize(new java.awt.Dimension(100, 30));
-            tabButton.setMinimumSize(new java.awt.Dimension(80, 30));
+            tabButton.setPreferredSize(new java.awt.Dimension(160, 48));
+            tabButton.setMaximumSize(new java.awt.Dimension(160, 48));
+            tabButton.setMinimumSize(new java.awt.Dimension(120, 48));
 
             // Estilo diferente para la pestaña activa
             if (esActivo) {
@@ -6217,11 +6767,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Botón + para agregar nueva pestaña
         javax.swing.JButton addTabButton = new javax.swing.JButton("+");
-        addTabButton.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 16));
+        addTabButton.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 22));
         addTabButton.setFocusPainted(false);
         addTabButton.setBorderPainted(true);
         addTabButton.setContentAreaFilled(true);
-        addTabButton.setPreferredSize(new java.awt.Dimension(35, 30));
+        addTabButton.setPreferredSize(new java.awt.Dimension(55, 48));
         addTabButton.setBackground(java.awt.Color.WHITE);
         addTabButton.setForeground(java.awt.Color.BLACK);
         addTabButton.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 10, 5, 10));
@@ -6260,8 +6810,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     private void abrirNuevaVenta() {
         try {
-            // Guardar la venta actual en la lista (siempre, incluso si está vacía)
-            if (m_oTicket != null) {
+            // Guardar la venta actual en la lista (solo si no está ya cerrada/pagada)
+            if (m_oTicket != null && m_oTicket.getLinesCount() > 0 && m_oTicket.getPayments().isEmpty()) {
                 // Verificar si ya existe en la lista
                 boolean yaExiste = false;
                 for (int i = 0; i < ventasActivas.size(); i++) {
@@ -6362,6 +6912,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     private void mostrarModalIdCliente() {
         try {
+            // Sebastian - Sincronizar clientes desde Supabase antes de mostrar la lista
+            try {
+                dlCustomers.refreshLocalCustomersFromSupabase();
+            } catch (Exception e) {
+                System.err.println("Error al sincronizar clientes: " + e.getMessage());
+            }
+
             // Crear diálogo
             javax.swing.JDialog dialog = new javax.swing.JDialog(
                     (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this),
@@ -6385,9 +6942,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Obtener lista de clientes
             java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
 
-            // Modelo de tabla
+            // Modelo de tabla: Mostramos SearchKey como ID principal para el usuario
             javax.swing.table.DefaultTableModel tableModel = new javax.swing.table.DefaultTableModel(
-                    new Object[] { "ID", "Nombre", "SearchKey" }, 0) {
+                    new Object[] { "ID", "Nombre", "Código Interno" }, 0) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
                     return false;
@@ -6397,9 +6954,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Llenar tabla con clientes
             for (CustomerInfo customer : allCustomers) {
                 tableModel.addRow(new Object[] {
-                        customer.getId(),
+                        customer.getSearchkey() != null ? customer.getSearchkey() : "",
                         customer.getName() != null ? customer.getName() : "",
-                        customer.getSearchkey() != null ? customer.getSearchkey() : ""
+                        customer.getId()
                 });
             }
 
@@ -6409,8 +6966,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             table.setRowHeight(25);
             table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
             table.getTableHeader().setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
-            table.getColumnModel().getColumn(0).setPreferredWidth(200);
-            table.getColumnModel().getColumn(1).setPreferredWidth(300);
+            table.getColumnModel().getColumn(0).setPreferredWidth(150);
+            table.getColumnModel().getColumn(1).setPreferredWidth(350);
             table.getColumnModel().getColumn(2).setPreferredWidth(150);
 
             // Scroll pane para la tabla
@@ -6428,16 +6985,16 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     if (searchText.isEmpty()) {
                         currentSorter.setRowFilter(null);
                     } else {
-                        // Crear un filtro que busque en las columnas 1 (Nombre) y 2 (SearchKey)
+                        // Crear un filtro que busque en las columnas 0 (ID/SearchKey) y 1 (Nombre)
                         java.util.List<javax.swing.RowFilter<javax.swing.table.TableModel, Integer>> filters = new java.util.ArrayList<>();
+
+                        // Filtrar por ID/SearchKey (columna 0)
+                        filters.add(javax.swing.RowFilter
+                                .regexFilter("(?i)" + java.util.regex.Pattern.quote(searchText), 0));
 
                         // Filtrar por nombre (columna 1)
                         filters.add(javax.swing.RowFilter
                                 .regexFilter("(?i)" + java.util.regex.Pattern.quote(searchText), 1));
-
-                        // Filtrar por SearchKey (columna 2)
-                        filters.add(javax.swing.RowFilter
-                                .regexFilter("(?i)" + java.util.regex.Pattern.quote(searchText), 2));
 
                         // Combinar filtros con OR (cualquiera de los dos)
                         javax.swing.RowFilter<javax.swing.table.TableModel, Integer> combinedFilter = javax.swing.RowFilter
@@ -6470,7 +7027,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         int selectedRow = table.getSelectedRow();
                         if (selectedRow >= 0) {
                             int modelRow = table.convertRowIndexToModel(selectedRow);
-                            String searchkey = (String) tableModel.getValueAt(modelRow, 2);
+                            String searchkey = (String) tableModel.getValueAt(modelRow, 0); // SearchKey es columna 0
+                                                                                            // ahora
                             if (searchkey != null && !searchkey.trim().isEmpty()) {
                                 asignarClienteDesdeDialogo(searchkey, dialog);
                             }
@@ -6484,7 +7042,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 int selectedRow = table.getSelectedRow();
                 if (selectedRow >= 0) {
                     int modelRow = table.convertRowIndexToModel(selectedRow);
-                    String searchkey = (String) tableModel.getValueAt(modelRow, 2);
+                    String searchkey = (String) tableModel.getValueAt(modelRow, 0); // SearchKey es columna 0 ahora
                     if (searchkey != null && !searchkey.trim().isEmpty()) {
                         asignarClienteDesdeDialogo(searchkey, dialog);
                     } else {
@@ -6512,7 +7070,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     // Si hay un solo resultado después del filtro, seleccionarlo
                     table.setRowSelectionInterval(0, 0);
                     int modelRow = table.convertRowIndexToModel(0);
-                    String searchkey = (String) tableModel.getValueAt(modelRow, 2);
+                    String searchkey = (String) tableModel.getValueAt(modelRow, 0); // SearchKey es columna 0 ahora
                     if (searchkey != null && !searchkey.trim().isEmpty()) {
                         asignarClienteDesdeDialogo(searchkey, dialog);
                     }
@@ -6623,9 +7181,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             searchPanel.add(txtSearch, java.awt.BorderLayout.CENTER);
             leftPanel.add(searchPanel, java.awt.BorderLayout.NORTH);
 
-            // Tabla de tickets
+            // Tabla de tickets con columna de tipo
             javax.swing.table.DefaultTableModel ticketsTableModel = new javax.swing.table.DefaultTableModel(
-                    new Object[] { "Folio", "Arts", "Hora", "Total" }, 0) {
+                    new Object[] { "Folio", "Tipo", "Arts", "Hora", "Total" }, 0) {
                 @Override
                 public boolean isCellEditable(int row, int column) {
                     return false;
@@ -6636,6 +7194,141 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             ticketsTable.setRowHeight(25);
             ticketsTable.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
             ticketsTable.getTableHeader().setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
+
+            // Renderer personalizado para colorear reembolsos en rojo
+            ticketsTable.setDefaultRenderer(Object.class, new javax.swing.table.DefaultTableCellRenderer() {
+                @Override
+                public java.awt.Component getTableCellRendererComponent(javax.swing.JTable table, Object value,
+                        boolean isSelected, boolean hasFocus, int row, int column) {
+                    java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row,
+                            column);
+
+                    // Obtener el tipo de ticket de la columna 1 (Tipo)
+                    String tipo = (String) table.getValueAt(row, 1);
+
+                    if (!isSelected) {
+                        if ("Reembolso".equals(tipo) || "Cancelación".equals(tipo)) {
+                            c.setBackground(new java.awt.Color(255, 200, 200)); // Rojo claro
+                            c.setForeground(new java.awt.Color(180, 0, 0)); // Rojo oscuro
+                        } else {
+                            c.setBackground(java.awt.Color.WHITE);
+                            c.setForeground(java.awt.Color.BLACK);
+                        }
+                    }
+                    return c;
+                }
+            });
+
+            // --- Sebastian: Guardar/restaurar orden y ancho de columnas con Preferences
+            // ---
+            final java.util.prefs.Preferences colPrefs = java.util.prefs.Preferences.userRoot()
+                    .node("com/openbravo/pos/ventas/columnOrder");
+            final String COL_ORDER_KEY = "ticketsTableColumnOrder";
+            final String COL_WIDTH_KEY = "ticketsTableColumnWidths";
+
+            // CLAVE: empieza en TRUE para bloquear eventos del layout inicial de Swing.
+            // Solo se pone en false DESPUÉS de restaurar (en invokeLater).
+            // Esto evita que columnMarginChanged del layout pise las preferencias
+            // guardadas.
+            final boolean[] isRestoring = { true };
+
+            // Leer valores guardados ANTES de mostrar la tabla
+            final String savedOrder = colPrefs.get(COL_ORDER_KEY, null);
+            final String savedWidths = colPrefs.get(COL_WIDTH_KEY, null);
+
+            // Listener para guardar orden y anchos (solo cuando el usuario interactúa)
+            ticketsTable.getColumnModel().addColumnModelListener(new javax.swing.event.TableColumnModelListener() {
+                @Override
+                public void columnMoved(javax.swing.event.TableColumnModelEvent e) {
+                    if (!isRestoring[0] && e.getFromIndex() != e.getToIndex()) {
+                        saveColumnState();
+                    }
+                }
+
+                @Override
+                public void columnMarginChanged(javax.swing.event.ChangeEvent e) {
+                    if (!isRestoring[0]) {
+                        saveColumnState();
+                    }
+                }
+
+                private void saveColumnState() {
+                    javax.swing.table.TableColumnModel cm = ticketsTable.getColumnModel();
+                    StringBuilder sbOrder = new StringBuilder();
+                    StringBuilder sbWidths = new StringBuilder();
+                    for (int i = 0; i < cm.getColumnCount(); i++) {
+                        if (i > 0) {
+                            sbOrder.append(",");
+                            sbWidths.append(",");
+                        }
+                        sbOrder.append(cm.getColumn(i).getModelIndex());
+                        sbWidths.append(cm.getColumn(i).getPreferredWidth());
+                    }
+                    colPrefs.put(COL_ORDER_KEY, sbOrder.toString());
+                    colPrefs.put(COL_WIDTH_KEY, sbWidths.toString());
+                    LOGGER.log(System.Logger.Level.DEBUG,
+                            "Columnas guardadas: orden=" + sbOrder + " anchos=" + sbWidths);
+                }
+
+                @Override
+                public void columnAdded(javax.swing.event.TableColumnModelEvent e) {
+                }
+
+                @Override
+                public void columnRemoved(javax.swing.event.TableColumnModelEvent e) {
+                }
+
+                @Override
+                public void columnSelectionChanged(javax.swing.event.ListSelectionEvent e) {
+                }
+            });
+
+            // Restaurar DESPUÉS del layout inicial. invokeLater garantiza que Swing termina
+            // de pintar la tabla antes de que modifiquemos columnas.
+            javax.swing.SwingUtilities.invokeLater(() -> {
+                try {
+                    if (savedOrder != null && !savedOrder.isEmpty()) {
+                        String[] orderParts = savedOrder.split(",");
+                        javax.swing.table.TableColumnModel colModel = ticketsTable.getColumnModel();
+                        int colCount = colModel.getColumnCount();
+                        if (orderParts.length == colCount) {
+                            // Restaurar orden de columnas
+                            int[] targetOrder = new int[orderParts.length];
+                            for (int i = 0; i < orderParts.length; i++) {
+                                targetOrder[i] = Integer.parseInt(orderParts[i].trim());
+                            }
+                            for (int i = 0; i < targetOrder.length; i++) {
+                                for (int j = i; j < colCount; j++) {
+                                    if (colModel.getColumn(j).getModelIndex() == targetOrder[i]) {
+                                        if (j != i)
+                                            colModel.moveColumn(j, i);
+                                        break;
+                                    }
+                                }
+                            }
+                            // Restaurar anchos de columnas
+                            if (savedWidths != null && !savedWidths.isEmpty()) {
+                                String[] widthParts = savedWidths.split(",");
+                                if (widthParts.length == colCount) {
+                                    for (int i = 0; i < colCount; i++) {
+                                        int w = Integer.parseInt(widthParts[i].trim());
+                                        colModel.getColumn(i).setPreferredWidth(w);
+                                        colModel.getColumn(i).setWidth(w);
+                                    }
+                                }
+                            }
+                            LOGGER.log(System.Logger.Level.DEBUG, "Columnas restauradas: " + savedOrder);
+                        }
+                    }
+                } catch (Exception ex) {
+                    LOGGER.log(System.Logger.Level.WARNING, "Error restaurando columnas: " + ex.getMessage());
+                } finally {
+                    // Sin importar si hay datos guardados o no, liberar el bloqueo
+                    isRestoring[0] = false;
+                }
+            });
+            // --- Fin persistencia de columnas ---
+
             javax.swing.JScrollPane ticketsScroll = new javax.swing.JScrollPane(ticketsTable);
             leftPanel.add(ticketsScroll, java.awt.BorderLayout.CENTER);
 
@@ -6690,7 +7383,55 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             leftPanel.add(filtersPanel, java.awt.BorderLayout.SOUTH);
 
             // === PANEL DERECHO: Detalles del ticket ===
-            javax.swing.JPanel rightPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
+            // Panel con sello de CANCELADO dibujado encima de los hijos (paintChildren)
+            final boolean[] ticketIsCancelled = { false };
+            javax.swing.JPanel rightPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5)) {
+                @Override
+                protected void paintChildren(java.awt.Graphics g) {
+                    // Primero dibujamos todos los hijos normalmente
+                    super.paintChildren(g);
+                    // Luego dibujamos el sello ENCIMA de todo
+                    if (ticketIsCancelled[0]) {
+                        java.awt.Graphics2D g2d = (java.awt.Graphics2D) g.create();
+                        try {
+                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_ANTIALIASING,
+                                    java.awt.RenderingHints.VALUE_ANTIALIAS_ON);
+                            g2d.setRenderingHint(java.awt.RenderingHints.KEY_TEXT_ANTIALIASING,
+                                    java.awt.RenderingHints.VALUE_TEXT_ANTIALIAS_ON);
+                            int cx = getWidth() / 2;
+                            int cy = getHeight() / 2;
+                            g2d.translate(cx, cy);
+                            g2d.rotate(Math.toRadians(-30));
+                            String texto = "CANCELADO";
+                            java.awt.Font f = new java.awt.Font("Arial", java.awt.Font.BOLD, 72);
+                            g2d.setFont(f);
+                            java.awt.FontMetrics fm = g2d.getFontMetrics();
+                            int tw = fm.stringWidth(texto);
+                            int th = fm.getAscent();
+                            int pad = 14;
+                            int rx = -tw / 2 - pad;
+                            int ry = -th - pad;
+                            int rw = tw + pad * 2;
+                            int rh = th + pad * 2 + fm.getDescent();
+                            // Fondo semitransparente rojo
+                            g2d.setColor(new java.awt.Color(210, 0, 0, 35));
+                            g2d.fillRoundRect(rx, ry, rw, rh, 18, 18);
+                            // Borde exterior grueso rojo
+                            g2d.setColor(new java.awt.Color(190, 0, 0, 230));
+                            g2d.setStroke(new java.awt.BasicStroke(5.5f));
+                            g2d.drawRoundRect(rx, ry, rw, rh, 18, 18);
+                            // Borde interior (efecto sello de goma doble)
+                            g2d.setStroke(new java.awt.BasicStroke(2f));
+                            g2d.drawRoundRect(rx + 6, ry + 6, rw - 12, rh - 12, 12, 12);
+                            // Texto CANCELADO
+                            g2d.setColor(new java.awt.Color(185, 0, 0, 220));
+                            g2d.drawString(texto, -tw / 2, 0);
+                        } finally {
+                            g2d.dispose();
+                        }
+                    }
+                }
+            };
             rightPanel.setPreferredSize(new java.awt.Dimension(600, 0));
             rightPanel.setBorder(javax.swing.BorderFactory.createTitledBorder("Ticket 3(1)"));
 
@@ -6778,9 +7519,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Botones de acción
             javax.swing.JPanel buttonsPanel = new javax.swing.JPanel(
                     new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 5));
-            javax.swing.JButton btnDevolver = new javax.swing.JButton("Devolver Artículo seleccionado");
-            btnDevolver.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
-            btnDevolver.setEnabled(false);
+
             javax.swing.JButton btnCancelar = new javax.swing.JButton("Cancelar Venta");
             btnCancelar.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
             btnCancelar.setEnabled(false);
@@ -6791,7 +7530,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             btnImprimir.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 11));
             btnImprimir.setEnabled(false);
 
-            buttonsPanel.add(btnDevolver);
             buttonsPanel.add(btnCancelar);
             buttonsPanel.add(btnFacturar);
             buttonsPanel.add(btnImprimir);
@@ -6858,27 +7596,71 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     java.util.List<FindTicketsInfo> tickets = lpr.loadData();
                     ticketsTableModel.setRowCount(0);
 
+                    // Obtener el ID del turno actual para filtrar
+                    String activeMoney = m_App.getActiveCashIndex();
+
                     SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a",
                             java.util.Locale.forLanguageTag("es-MX"));
 
+                    // Mapa para consolidar tickets por Folio (FolioId -> RowData)
+                    // LinkedHashMap para preservar el orden original (cronológico)
+                    java.util.Map<Integer, Object[]> consolidated = new java.util.LinkedHashMap<>();
+
                     for (FindTicketsInfo ticket : tickets) {
-                        // Contar artículos del ticket
-                        int articlesCount = 0;
                         try {
+                            // Sebastian FIX: Omitir tickets de tipo RECEIPT_REFUND de la lista visual.
+                            // Estos existen en la BD para el corte de cajero, pero visualmente
+                            // el ticket ORIGINAL (STATUS=2) ya aparece en rojo como "Reembolso".
+                            if (ticket.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+                                continue; // No mostrar como fila separada
+                            }
+
+                            // Cargar el ticket completo para obtener su ID de turno (Money)
                             TicketInfo ticketInfo = dlSales.loadTicket(ticket.getTicketType(), ticket.getTicketId());
-                            if (ticketInfo != null) {
-                                articlesCount = ticketInfo.getLinesCount();
+
+                            // Sebastian - Filtrar por turno activo (Money).
+                            if (ticketInfo != null && activeMoney != null
+                                    && activeMoney.equals(ticketInfo.getActiveCash())) {
+                                // Determinar el tipo de ticket
+                                String tipoTicket;
+                                if (ticketInfo.getTicketStatus() == 2) {
+                                    // Ticket cancelado/reembolsado: mostrar en rojo
+                                    tipoTicket = "Reembolso";
+                                } else if (ticket.getTicketType() == TicketInfo.RECEIPT_PAYMENT) {
+                                    tipoTicket = "Pago";
+                                } else {
+                                    tipoTicket = "Venta";
+                                }
+
+                                Object[] row = new Object[] {
+                                        ticket.getTicketId(),
+                                        tipoTicket,
+                                        ticketInfo.getLinesCount(),
+                                        timeFormat.format(ticket.getDate()),
+                                        Formats.CURRENCY.formatValue(ticket.getTotal())
+                                };
+
+                                Integer folio = ticket.getTicketId();
+                                if (!consolidated.containsKey(folio)) {
+                                    consolidated.put(folio, row);
+                                } else {
+                                    // Priorizar Reembolso sobre Venta/Pago si hay colisión
+                                    String existingTipo = (String) consolidated.get(folio)[1];
+                                    if ("Reembolso".equals(tipoTicket)) {
+                                        consolidated.put(folio, row);
+                                    } else if (!"Reembolso".equals(existingTipo)) {
+                                        consolidated.put(folio, row);
+                                    }
+                                }
                             }
                         } catch (Exception e) {
-                            // Si no se puede cargar, usar 0
+                            // Si hay error cargando un ticket individual, simplemente lo ignoramos
                         }
+                    }
 
-                        ticketsTableModel.addRow(new Object[] {
-                                ticket.getTicketId(),
-                                articlesCount,
-                                timeFormat.format(ticket.getDate()),
-                                Formats.CURRENCY.formatValue(ticket.getTotal())
-                        });
+                    // Agregar las filas consolidadas al modelo
+                    for (Object[] row : consolidated.values()) {
+                        ticketsTableModel.addRow(row);
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
@@ -6897,13 +7679,25 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     int selectedRow = ticketsTable.getSelectedRow();
                     if (selectedRow >= 0) {
                         int folio = (Integer) ticketsTableModel.getValueAt(selectedRow, 0);
-                        // Buscar el ticket (puede ser tipo 0 o 1)
+                        String tipoRow = (String) ticketsTableModel.getValueAt(selectedRow, 1);
+                        int typeToSearch = 0;
+                        if ("Reembolso".equals(tipoRow)) {
+                            typeToSearch = TicketInfo.RECEIPT_REFUND; // 1
+                        } else if ("Pago".equals(tipoRow)) {
+                            typeToSearch = TicketInfo.RECEIPT_PAYMENT; // 2
+                        }
+
+                        // Buscar el ticket con el tipo correcto primero
                         TicketInfo ticketInfo = null;
                         try {
-                            ticketInfo = dlSales.loadTicket(0, folio);
+                            ticketInfo = dlSales.loadTicket(typeToSearch, folio);
                         } catch (Exception ex) {
+                        }
+
+                        // Si no lo encuentra y no era venta, intentar con venta como fallback
+                        if (ticketInfo == null && typeToSearch != TicketInfo.RECEIPT_NORMAL) {
                             try {
-                                ticketInfo = dlSales.loadTicket(1, folio);
+                                ticketInfo = dlSales.loadTicket(TicketInfo.RECEIPT_NORMAL, folio);
                             } catch (Exception ex2) {
                                 // No encontrado
                             }
@@ -6939,26 +7733,44 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             lblTotalValor.setText(Formats.CURRENCY.formatValue(ticketInfo.getTotal()));
                             lblPagoConValor.setText(Formats.CURRENCY.formatValue(ticketInfo.getTotalPaid()));
 
+                            // Mostrar sello CANCELADO si aplica (si es reembolso o si es la venta original
+                            // pero tiene status > 0)
+                            boolean esCancelacion = false;
+                            if (ticketInfo.getTicketType() == TicketInfo.RECEIPT_REFUND) {
+                                esCancelacion = true; // Todo reembolso es una cancelación de algo
+                            } else if (ticketInfo.getTicketType() == TicketInfo.RECEIPT_NORMAL
+                                    && ticketInfo.getTicketStatus() > 0) {
+                                esCancelacion = true; // Venta original que ya fue cancelada
+                            } else if ("true".equals(ticketInfo.getProperty("cancelacion"))) {
+                                esCancelacion = true;
+                            }
+                            ticketIsCancelled[0] = esCancelacion;
+                            rightPanel.repaint();
+
                             // Habilitar botones (pero btnDevolver solo si hay un item seleccionado)
-                            btnDevolver.setEnabled(false);
-                            btnCancelar.setEnabled(true);
+                            // btnDevolver.setEnabled(false); // Sebastian - Eliminado
+                            btnCancelar.setEnabled(!esCancelacion); // No cancelar lo ya cancelado
                             btnFacturar.setEnabled(true);
                             btnImprimir.setEnabled(true);
                         } else {
                             selectedTicketRef.set(null);
-                            btnDevolver.setEnabled(false);
+                            ticketIsCancelled[0] = false;
+                            rightPanel.repaint();
+                            // btnDevolver.setEnabled(false); // Sebastian - Eliminado
                         }
                     }
                 }
             });
 
-            // Listener para selección de artículo en la tabla de items
-            itemsTable.getSelectionModel().addListSelectionListener(e -> {
-                if (!e.getValueIsAdjusting()) {
-                    int selectedRow = itemsTable.getSelectedRow();
-                    btnDevolver.setEnabled(selectedRow >= 0 && selectedTicketRef.get() != null);
-                }
-            });
+            // Listener eliminado por Sebastian - Devolución por artículo no disponible
+            /*
+             * itemsTable.getSelectionModel().addListSelectionListener(e -> {
+             * if (!e.getValueIsAdjusting()) {
+             * int selectedRow = itemsTable.getSelectedRow();
+             * btnDevolver.setEnabled(selectedRow >= 0 && selectedTicketRef.get() != null);
+             * }
+             * });
+             */
 
             // Listener para búsqueda
             txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
@@ -6986,73 +7798,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 cargarTickets.accept(null);
             });
 
-            // Listener para botón Devolver Artículo seleccionado
-            btnDevolver.addActionListener(e -> {
-                try {
-                    TicketInfo originalTicket = selectedTicketRef.get();
-                    int selectedItemRow = itemsTable.getSelectedRow();
-
-                    if (originalTicket == null) {
-                        javax.swing.JOptionPane.showMessageDialog(dialog,
-                                "Por favor seleccione un ticket",
-                                "Error",
-                                javax.swing.JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-
-                    if (selectedItemRow < 0) {
-                        javax.swing.JOptionPane.showMessageDialog(dialog,
-                                "Por favor seleccione un artículo para devolver",
-                                "Error",
-                                javax.swing.JOptionPane.WARNING_MESSAGE);
-                        return;
-                    }
-
-                    // Obtener la línea del ticket original
-                    TicketLineInfo originalLine = originalTicket.getLine(selectedItemRow);
-
-                    // Calcular monto acumulable del artículo a devolver
-                    double montoAcumulable = 0.0;
-                    if (originalLine.isProductAccumulatesPoints()) {
-                        montoAcumulable = Math.abs(originalLine.getValue());
-                    }
-
-                    // Crear un nuevo ticket de devolución
-                    TicketInfo refundTicket = new TicketInfo();
-                    refundTicket.setTicketType(TicketInfo.RECEIPT_REFUND);
-                    refundTicket.setTicketStatus(originalTicket.getTicketId());
-                    refundTicket.setCustomer(originalTicket.getCustomer());
-                    refundTicket.setUser(m_App.getAppUserView().getUser().getUserInfo());
-                    refundTicket.setActiveCash(m_App.getActiveCashIndex());
-                    refundTicket.setDate(new java.util.Date());
-                    refundTicket.setOldTicket(true);
-
-                    // Crear una nueva línea con cantidad negativa para la devolución
-                    TicketLineInfo refundLine = new TicketLineInfo(originalLine);
-                    refundLine.setMultiply(-originalLine.getMultiply());
-
-                    // Agregar la línea al ticket de devolución
-                    refundTicket.addLine(refundLine);
-
-                    // Cerrar el diálogo
-                    dialog.dispose();
-
-                    // Activar el ticket de devolución en el panel principal
-                    setActiveTicket(refundTicket, null);
-
-                    // Nota: El mensaje de confirmación se mostrará cuando se guarde el ticket de
-                    // devolución
-                    // en procesarPuntosAutomaticos()
-
-                } catch (Exception ex) {
-                    javax.swing.JOptionPane.showMessageDialog(dialog,
-                            "Error al procesar la devolución: " + ex.getMessage(),
-                            "Error",
-                            javax.swing.JOptionPane.ERROR_MESSAGE);
-                    ex.printStackTrace();
-                }
-            });
-
             // Listener para botón Cancelar Venta
             btnCancelar.addActionListener(e -> {
                 try {
@@ -7063,6 +7808,25 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 "Por favor seleccione un ticket para cancelar",
                                 "Error",
                                 javax.swing.JOptionPane.WARNING_MESSAGE);
+                        return;
+                    }
+
+                    // Sebastian - SIEMPRE pedir contraseña de administrador para cancelar ventas
+                    String sPwd = JPasswordDialog.showEditor(dialog, "Contraseña de Administrador Requerida");
+                    if (sPwd == null) {
+                        return; // Acción cancelada por el usuario
+                    }
+                    try {
+                        if (!dlSystem.authenticateAdmin(sPwd)) {
+                            javax.swing.JOptionPane.showMessageDialog(dialog,
+                                    "Contraseña incorrecta o no es de un administrador.",
+                                    "Error de Autorización", javax.swing.JOptionPane.ERROR_MESSAGE);
+                            return;
+                        }
+                    } catch (BasicException ex2) {
+                        javax.swing.JOptionPane.showMessageDialog(dialog,
+                                "Error al validar contraseña.",
+                                "Error", javax.swing.JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
@@ -7120,9 +7884,66 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         }
                     }
 
-                    // Eliminar el ticket
+                    // Crear un ticket de cancelación (RECEIPT_REFUND) para contabilidad/corte de
+                    // cajero.
+                    // NOTA: Este ticket NO aparecerá en la lista visual de "Ventas del día" (se
+                    // filtra por tipo).
+                    // Lo que sí aparecerá es el ticket ORIGINAL marcado en rojo (STATUS=2).
                     try {
-                        dlSales.deleteTicket(ticketACancelar, m_App.getInventoryLocation());
+                        TicketInfo ticketCancelacion = new TicketInfo();
+                        ticketCancelacion.setTicketType(TicketInfo.RECEIPT_REFUND);
+                        // Sebastian: ticketStatus guarda el TICKETID del ticket original para el UPDATE
+                        // en DataLogicSales
+                        ticketCancelacion.setTicketStatus(ticketACancelar.getTicketId());
+                        ticketCancelacion.setCustomer(ticketACancelar.getCustomer());
+                        ticketCancelacion.setUser(m_App.getAppUserView().getUser().getUserInfo());
+                        ticketCancelacion.setActiveCash(m_App.getActiveCashIndex());
+                        ticketCancelacion.setDate(new java.util.Date());
+                        ticketCancelacion.setOldTicket(true);
+                        ticketCancelacion.setProperty("cancelacion", "true");
+                        ticketCancelacion.setProperty("ticket_original", String.valueOf(ticketACancelar.getTicketId()));
+
+                        // Agregar todas las líneas del ticket original con cantidades negativas
+                        for (int i = 0; i < ticketACancelar.getLinesCount(); i++) {
+                            TicketLineInfo originalLine = ticketACancelar.getLine(i);
+                            TicketLineInfo refundLine = new TicketLineInfo(originalLine);
+                            refundLine.setMultiply(-originalLine.getMultiply()); // Cantidad negativa
+                            ticketCancelacion.addLine(refundLine);
+                        }
+
+                        // Asignar pago automático por el total
+                        double totalCancelacion = ticketCancelacion.getTotal();
+                        java.util.List<com.openbravo.pos.payment.PaymentInfo> pagosReembolso = new java.util.ArrayList<>();
+                        pagosReembolso
+                                .add(new com.openbravo.pos.payment.PaymentInfoCash(totalCancelacion, totalCancelacion));
+                        ticketCancelacion.setPayments(pagosReembolso);
+
+                        // Calcular impuestos
+                        try {
+                            taxeslogic.calculateTaxes(ticketCancelacion);
+                        } catch (TaxesException tex) {
+                            LOGGER.log(System.Logger.Level.WARNING,
+                                    "Error calculando impuestos en cancelación: " + tex.getMessage());
+                        }
+
+                        // Guardar el ticket de cancelación en la base de datos (marca original como
+                        // STATUS=2)
+                        dlSales.saveTicket(ticketCancelacion, m_App.getInventoryLocation());
+
+                        // Limpiar la selección y actualizar la tabla de tickets
+                        selectedTicketRef.set(null);
+                        ticketsTableModel.setRowCount(0);
+                        itemsTableModel.setRowCount(0);
+                        lblFolioValor.setText("");
+                        lblCajeroDetValor.setText("");
+                        lblClienteValor.setText("");
+                        lblFechaDet.setText("");
+                        lblTotalValor.setText("");
+                        lblPagoConValor.setText("");
+                        btnCancelar.setEnabled(false);
+                        btnFacturar.setEnabled(false);
+                        btnImprimir.setEnabled(false);
+                        cargarTickets.accept(null); // Recargar la lista de tickets
 
                         // Actualizar vista de puntos
                         if (clienteId != null) {
@@ -7130,63 +7951,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         }
 
                         // Mostrar mensaje de confirmación
-                        if (resultadoCancelacion != null && clienteId != null) {
-                            String mensajeCancelacion;
-                            if (resultadoCancelacion.seDescontaronPuntos()) {
-                                mensajeCancelacion = String.format(
-                                        "<html><center><h3>✅ Venta Cancelada</h3>" +
-                                                "<p><b>Ticket:</b> #%d</p>" +
-                                                "<p><b>Cliente:</b> %s</p>" +
-                                                "<p><b>Puntos Descontados:</b> %d</p>" +
-                                                "<p><b>Puntos Anteriores:</b> %d → <b>Puntos Actuales:</b> %d</p></center></html>",
-                                        ticketId,
-                                        nombreCliente,
-                                        resultadoCancelacion.getPuntosDescontados(),
-                                        resultadoCancelacion.getPuntosAnteriores(),
-                                        resultadoCancelacion.getPuntosActuales());
-                            } else {
-                                mensajeCancelacion = String.format(
-                                        "<html><center><h3>✅ Venta Cancelada</h3>" +
-                                                "<p><b>Ticket:</b> #%d</p>" +
-                                                "<p><b>Cliente:</b> %s</p>" +
-                                                "<p>No se encontraron puntos para descontar</p></center></html>",
-                                        ticketId,
-                                        nombreCliente);
-                            }
+                        String mensajeCancelacion = String.format(
+                                "<html><center><h3>✅ Venta Cancelada</h3>" +
+                                        "<p>El folio #%d ha sido marcado como reembolsado.</p>" +
+                                        "<p><b>Cliente:</b> %s</p></center></html>",
+                                ticketId,
+                                nombreCliente != null ? nombreCliente : "Al contado");
 
-                            javax.swing.JOptionPane.showMessageDialog(
-                                    dialog,
-                                    mensajeCancelacion,
-                                    "Cancelación Completada",
-                                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                        } else {
-                            // Mensaje simple si no hay cliente o puntos
-                            javax.swing.JOptionPane.showMessageDialog(
-                                    dialog,
-                                    String.format(
-                                            "<html><center><h3>✅ Venta Cancelada</h3>" +
-                                                    "<p><b>Ticket:</b> #%d</p></center></html>",
-                                            ticketId),
-                                    "Cancelación Completada",
-                                    javax.swing.JOptionPane.INFORMATION_MESSAGE);
-                        }
-
-                        // Recargar la lista de tickets
-                        cargarTickets.accept(null);
-                        selectedTicketRef.set(null);
-
-                        // Limpiar la vista de detalles
-                        lblFolioValor.setText("-");
-                        lblCajeroDetValor.setText("-");
-                        lblClienteValor.setText("-");
-                        lblFechaDet.setText("-");
-                        itemsTableModel.setRowCount(0);
-                        lblTotalValor.setText(Formats.CURRENCY.formatValue(0.0));
-                        lblPagoConValor.setText(Formats.CURRENCY.formatValue(0.0));
-                        btnCancelar.setEnabled(false);
-                        btnDevolver.setEnabled(false);
-                        btnFacturar.setEnabled(false);
-                        btnImprimir.setEnabled(false);
+                        javax.swing.JOptionPane.showMessageDialog(
+                                JPanelTicket.this,
+                                mensajeCancelacion,
+                                "Cancelación Exitosa",
+                                javax.swing.JOptionPane.INFORMATION_MESSAGE);
 
                     } catch (Exception ex) {
                         javax.swing.JOptionPane.showMessageDialog(dialog,
@@ -7208,7 +7984,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // Listener para botón Imprimir copia
             btnImprimir.addActionListener(e -> {
                 // #region agent log
-                System.out.println("DEBUG: Button Imprimir copia clicked at " + System.currentTimeMillis());
                 try {
                     String logPath = "c:\\Users\\Usuario\\Documents\\proyecto inicio cursor\\punto-mx\\.cursor\\debug.log";
                     java.io.FileWriter fw = new java.io.FileWriter(logPath, true);
@@ -7488,6 +8263,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
                 // Guardar en la base de datos
                 dlSales.getPaymentMovementInsert().exec(payment);
+
+                // Abrir cajón monedero físicamente al registrar entrada/salida de dinero usando la misma lógica del botón "Probar Cajón"
+                com.openbravo.pos.forms.JDialogCloseShift.openCashDrawer(m_App);
 
                 // Log para depuración
                 LOGGER.log(System.Logger.Level.INFO,

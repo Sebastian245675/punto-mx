@@ -121,6 +121,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
     // Guardar el valor inicial del stock cuando se carga el producto
     private Double initialStockValue = null;
+    private boolean isNewProduct = false;
 
     private final SentenceFind loadimage; // JG 3 feb 16 speedup
 
@@ -219,12 +220,37 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jTax.addActionListener(fm);
         m_jPriceSellTax.getDocument().addDocumentListener(new PriceTaxManager());
         m_jmargin.getDocument().addDocumentListener(new MarginManager());
-        // No agregar listener a m_jGrossProfit ya que es solo lectura y se calcula automáticamente
+        // No agregar listener a m_jGrossProfit ya que es solo lectura y se calcula
+        // automáticamente
 
         m_jdate.getDocument().addDocumentListener(dirty);
 
         init();
         initValidator();
+        setLargeFont(this);
+    }
+
+    private void setLargeFont(java.awt.Component comp) {
+        if (comp == null) return;
+        
+        java.awt.Font currentFont = comp.getFont();
+        if (currentFont == null || currentFont.getSize() < 24) {
+            comp.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 24));
+        }
+        
+        if (comp instanceof javax.swing.JTable) {
+            javax.swing.JTable t = (javax.swing.JTable) comp;
+            t.setRowHeight(32);
+            t.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 24));
+        }
+        if (comp instanceof javax.swing.text.JTextComponent) {
+            comp.setPreferredSize(new java.awt.Dimension(comp.getPreferredSize().width, 36));
+        }
+        if (comp instanceof java.awt.Container) {
+            for (java.awt.Component child : ((java.awt.Container) comp).getComponents()) {
+                setLargeFont(child);
+            }
+        }
     }
 
     private void initValidator() {
@@ -284,7 +310,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                         Double currentStockInField = Formats.DOUBLE.parseValue(m_jStockCurrent.getText());
                         // Solo guardar si el usuario realmente cambió el stock (comparar con valor
                         // inicial)
-                        if (initialStockValue != null && Math.abs(currentStockInField - initialStockValue) > 0.0001) {
+                        if (isNewProduct) {
+                            LOGGER.log(Level.INFO, "refresh: Guardando stock para NUEVO producto: " + currentStockInField);
+                            saveStockValues();
+                        } else if (initialStockValue != null && Math.abs(currentStockInField - initialStockValue) > 0.0001) {
                             LOGGER.log(Level.FINE, "refresh: Guardando stock porque usuario lo cambió de "
                                     + initialStockValue + " a " + currentStockInField);
                             saveStockValues();
@@ -292,6 +321,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                     }
                 } catch (BasicException e) {
                     LOGGER.log(Level.WARNING, "Error al verificar stock en refresh", e);
+                } finally {
+                    isNewProduct = false;
                 }
 
                 // Luego, recargar el stock desde la base de datos para mostrar el valor
@@ -299,9 +330,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 showStockTableAutomatically();
 
                 // NO actualizar initialStockValue aquí porque esto se llama después de guardar
-                // y actualizar el valor inicial haría que el siguiente producto no detecte cambios
-                // initialStockValue solo debe actualizarse cuando se carga un NUEVO producto en setValues()
-                // o cuando se muestra la tabla de stock por primera vez en showStockTableAutomatically()
+                // y actualizar el valor inicial haría que el siguiente producto no detecte
+                // cambios
+                // initialStockValue solo debe actualizarse cuando se carga un NUEVO producto en
+                // setValues()
+                // o cuando se muestra la tabla de stock por primera vez en
+                // showStockTableAutomatically()
             }
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Error al recargar stock en refresh", e);
@@ -315,9 +349,10 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     public void writeValueEOF() {
 
         reportlock = true;
+        isNewProduct = false;
 
         m_jTitle.setText(AppLocal.getIntString("label.recordeof"));
-        
+
         // Actualizar título del formulario
         if (jLabelProductTitle != null) {
             jLabelProductTitle.setText("NUEVO PRODUCTO");
@@ -441,6 +476,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
     public void writeValueInsert() {
 
         reportlock = true;
+        isNewProduct = true;
 
         m_jTitle.setText(AppLocal.getIntString("label.recordnew"));
 
@@ -472,6 +508,15 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jstockvolume.setText("0");
         m_jdate.setText(null);
         m_jAccumulatesPoints.setSelected(true);
+        // Limpiar campos de inventario al crear nuevo producto
+        if (m_jStockCurrent != null)
+            m_jStockCurrent.setText("0");
+        if (m_jStockMinimum != null)
+            m_jStockMinimum.setText("0");
+        if (m_jStockGeneral != null)
+            m_jStockGeneral.setText("0");
+        // Resetear el valor inicial del stock para el nuevo producto
+        initialStockValue = null;
 
         // Tab Image
         m_jImage.setImage(null);
@@ -606,7 +651,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // IMPORTANTE: Guardar el stock ANTES de retornar el objeto
         // Esto asegura que el stock se guarde siempre, incluso si refresh() no se llama
         // o si initialStockValue se actualizó incorrectamente
-        if (productId != null && appView != null) {
+        // Si es un nuevo producto, no llamamos aquí porque fallará por clave foránea (el producto no existe en BD aún)
+        if (productId != null && appView != null && !isNewProduct) {
             try {
                 LOGGER.log(Level.INFO, "createValue: Llamando saveStockValues() para asegurar que el stock se guarde");
                 saveStockValues();
@@ -666,7 +712,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jAccumulatesPoints.setEnabled(true);
         m_jStockCurrent.setEnabled(true);
         m_jStockMinimum.setEnabled(true);
-        // Actualizar si los campos de stock son editables basándose en si usa inventario
+        // Actualizar si los campos de stock son editables basándose en si usa
+        // inventario
         boolean usesInventory = !m_jService.isSelected();
         m_jStockCurrent.setEditable(usesInventory);
         m_jStockMinimum.setEditable(usesInventory);
@@ -776,7 +823,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
 
         m_jTitle.setText(Formats.STRING.formatValue((String) myprod[1])
                 + " - " + Formats.STRING.formatValue((String) myprod[4]));
-        
+
         // Actualizar título del formulario
         if (jLabelProductTitle != null) {
             jLabelProductTitle.setText("EDITAR PRODUCTO");
@@ -798,7 +845,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jComment.setSelected(((Boolean) myprod[13]));
         m_jScale.setSelected(((Boolean) myprod[14]));
         m_jConstant.setSelected(((Boolean) myprod[15]));
-        
+
         // Actualizar radio buttons de tipo de venta
         if (rbSellBulk != null && rbSellPackage != null && rbSellUnit != null) {
             if (m_jScale.isSelected()) {
@@ -809,11 +856,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 rbSellUnit.setSelected(true);
             }
         }
-        
+
         m_jPrintKB.setSelected(((Boolean) myprod[16]));
         m_jSendStatus.setSelected(((Boolean) myprod[17]));
         m_jService.setSelected(((Boolean) myprod[18]));
-        // Actualizar checkbox de inventario y campos de stock después de establecer m_jService
+        // Actualizar checkbox de inventario y campos de stock después de establecer
+        // m_jService
         boolean usesInventory = !m_jService.isSelected();
         if (chkUseInventory != null) {
             chkUseInventory.setSelected(usesInventory);
@@ -851,11 +899,21 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // RESETEAR initialStockValue cuando se carga un nuevo producto
         // Esto asegura que se detecten cambios correctamente para cada producto
         initialStockValue = null;
+        isNewProduct = false;
         LOGGER.log(Level.INFO, "setValues: Reseteado initialStockValue para nuevo producto: " + productId);
-        
+
+        // Limpiar campos de stock inmediatamente para no mostrar valores del producto
+        // anterior
+        if (m_jStockCurrent != null)
+            m_jStockCurrent.setText("0");
+        if (m_jStockMinimum != null)
+            m_jStockMinimum.setText("0");
+        if (m_jStockGeneral != null)
+            m_jStockGeneral.setText("0");
+
         // Cargar valores de stock
         showStockTableAutomatically();
-        
+
         // Calcular ganancia después de cargar los valores
         calculateGP();
     }
@@ -1570,7 +1628,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             if (dPriceBuy == null || dPriceSell == null || dPriceBuy <= 0.0 || dPriceSell <= 0.0) {
                 m_jGrossProfit.setText(null);
             } else {
-                // Calcular porcentaje de ganancia (margen sobre venta): ((venta - costo) / venta) * 100
+                // Calcular porcentaje de ganancia (margen sobre venta): ((venta - costo) /
+                // venta) * 100
                 // Ejemplo: costo=100, venta=150 -> ganancia = (150-100)/150 * 100 = 33.33%
                 double ganancia = ((dPriceSell - dPriceBuy) / dPriceSell) * 100.0;
                 m_jGrossProfit.setText(String.format("%.2f%%", ganancia));
@@ -1899,13 +1958,16 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         LOGGER.log(Level.INFO,
                 "saveStockValues: Math.abs(quantityDifference) > 0.0001 = " + (Math.abs(quantityDifference) > 0.0001));
 
-        // Actualizar o insertar en stockcurrent - CONSOLIDAR todos los registros primero
+        // Actualizar o insertar en stockcurrent - CONSOLIDAR todos los registros
+        // primero
         // para evitar problemas con múltiples registros (con y sin atributos)
-        // IMPORTANTE: Siempre actualizar si el usuario especificó un valor diferente al que está en BD
-        // Esto asegura que el stock se actualice incluso si initialStockValue no se estableció correctamente
+        // IMPORTANTE: Siempre actualizar si el usuario especificó un valor diferente al
+        // que está en BD
+        // Esto asegura que el stock se actualice incluso si initialStockValue no se
+        // estableció correctamente
         // o si el stock en BD cambió después de abrir el editor
         boolean shouldUpdate = Math.abs(actualDifference) > 0.0001;
-        
+
         LOGGER.log(Level.INFO,
                 "saveStockValues: shouldUpdate=" + shouldUpdate);
         LOGGER.log(Level.INFO,
@@ -1913,63 +1975,70 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         LOGGER.log(Level.INFO,
                 "saveStockValues: actualDifference=" + actualDifference + " (UI vs BD actual)");
         LOGGER.log(Level.INFO,
-                "saveStockValues: Decisión: " + (shouldUpdate ? "SÍ actualizar (hay diferencia con BD)" : "NO actualizar (sin diferencia)"));
-        
+                "saveStockValues: Decisión: "
+                        + (shouldUpdate ? "SÍ actualizar (hay diferencia con BD)" : "NO actualizar (sin diferencia)"));
+
         if (shouldUpdate) {
             try {
-                LOGGER.log(Level.INFO, "saveStockValues: Consolidando stock antes de actualizar. Product: " + productId + ", Location: " + locationId);
-                LOGGER.log(Level.INFO, "saveStockValues: currentStock=" + currentStock + ", stockInDB=" + stockInDB + ", actualDifference=" + actualDifference);
-                
+                LOGGER.log(Level.INFO, "saveStockValues: Consolidando stock antes de actualizar. Product: " + productId
+                        + ", Location: " + locationId);
+                LOGGER.log(Level.INFO, "saveStockValues: currentStock=" + currentStock + ", stockInDB=" + stockInDB
+                        + ", actualDifference=" + actualDifference);
+
                 // PASO 1: Obtener la suma de TODOS los registros de stock (con y sin atributos)
                 Double totalStockAll = (Double) new PreparedSentence(dlSales.getSession(),
                         "SELECT SUM(UNITS) FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ?",
                         new SerializerWriteBasic(new Datas[] { Datas.STRING, Datas.STRING }),
                         SerializerReadDouble.INSTANCE)
                         .find(locationId, productId);
-                
+
                 if (totalStockAll == null) {
                     totalStockAll = 0.0;
                 }
-                
-                LOGGER.log(Level.INFO, "saveStockValues: Stock total encontrado (todos los registros): " + totalStockAll);
-                
+
+                LOGGER.log(Level.INFO,
+                        "saveStockValues: Stock total encontrado (todos los registros): " + totalStockAll);
+
                 // PASO 2: Eliminar TODOS los registros existentes (con y sin atributos)
                 int deletedRows = new PreparedSentence(dlSales.getSession(),
                         "DELETE FROM stockcurrent WHERE LOCATION = ? AND PRODUCT = ?",
                         new SerializerWriteBasic(new Datas[] { Datas.STRING, Datas.STRING }))
                         .exec(new Object[] { locationId, productId });
-                
+
                 LOGGER.log(Level.INFO, "saveStockValues: Registros eliminados: " + deletedRows);
-                
-                // PASO 3: Insertar un ÚNICO registro consolidado con el valor que el usuario especificó
+
+                // PASO 3: Insertar un ÚNICO registro consolidado con el valor que el usuario
+                // especificó
                 // El usuario quiere que el stock sea exactamente `currentStock`, no un ajuste
                 PreparedSentence insertStmt = new PreparedSentence(dlSales.getSession(),
                         "INSERT INTO stockcurrent (LOCATION, PRODUCT, ATTRIBUTESETINSTANCE_ID, UNITS) VALUES (?, ?, NULL, ?)",
                         new SerializerWriteBasicExt(new Datas[] { Datas.STRING, Datas.STRING, Datas.DOUBLE },
                                 new int[] { 0, 1, 2 }));
                 insertStmt.exec(new Object[] { locationId, productId, currentStock });
-                
+
                 LOGGER.log(Level.INFO, "saveStockValues: ✓ Stock consolidado INSERTADO con valor: " + currentStock);
-                
+
                 // PASO 4: Verificar que se insertó correctamente
                 Double verifyStock = dlSales.findProductStock(locationId, productId, null);
                 LOGGER.log(Level.INFO, "saveStockValues: ✓ Verificación POST-INSERT: Stock en BD = " + verifyStock);
-                
+
                 if (verifyStock != null && Math.abs(verifyStock - currentStock) > 0.01) {
-                    LOGGER.log(Level.SEVERE, "saveStockValues: ⚠️⚠️⚠️ PROBLEMA DETECTADO: Stock en BD (" + verifyStock + ") no coincide con stock esperado (" + currentStock + ") ⚠️⚠️⚠️");
+                    LOGGER.log(Level.SEVERE, "saveStockValues: ⚠️⚠️⚠️ PROBLEMA DETECTADO: Stock en BD (" + verifyStock
+                            + ") no coincide con stock esperado (" + currentStock + ") ⚠️⚠️⚠️");
                 } else {
                     LOGGER.log(Level.INFO, "saveStockValues: ✓✓✓ Stock guardado CORRECTAMENTE: " + verifyStock);
                 }
-                
+
             } catch (BasicException e) {
-                LOGGER.log(Level.SEVERE, "saveStockValues: ✗ ERROR al consolidar y actualizar stock: " + e.getMessage(), e);
+                LOGGER.log(Level.SEVERE, "saveStockValues: ✗ ERROR al consolidar y actualizar stock: " + e.getMessage(),
+                        e);
                 e.printStackTrace();
                 throw e;
             }
         } else {
             LOGGER.log(Level.INFO, "saveStockValues: NO se actualiza stock (no hay diferencia significativa)");
         }
-        
+
         LOGGER.log(Level.INFO,
                 "═══════════════════════════════════════════════════════════");
         // Si no hay diferencia, no actualizar el stock (preserva el stock actual,
@@ -2456,7 +2525,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                                 .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)));
 
         // NO AGREGAR A PESTAÑAS - SE COMBINARÁ EN UN SOLO PANEL AL FINAL
-        // jTabbedPane1.addTab(AppLocal.getIntString("label.prodgeneral"), jPanel1); // NOI18N
+        // jTabbedPane1.addTab(AppLocal.getIntString("label.prodgeneral"), jPanel1); //
+        // NOI18N
 
         m_jmargin.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         m_jmargin.setHorizontalAlignment(javax.swing.JTextField.RIGHT);
@@ -3209,7 +3279,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jService.getAccessibleContext().setAccessibleDescription("null");
 
         // NO AGREGAR A PESTAÑAS - SE COMBINARÁ EN UN SOLO PANEL AL FINAL
-        // jTabbedPane1.addTab(AppLocal.getIntString("label.prodstock"), jPanel2); // NOI18N
+        // jTabbedPane1.addTab(AppLocal.getIntString("label.prodstock"), jPanel2); //
+        // NOI18N
 
         jPanel3.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 5, 5, 5));
         jPanel3.setToolTipText(bundle.getString("tooltip.product.properties.tab")); // NOI18N
@@ -3565,21 +3636,22 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         mainCombinedPanel.setLayout(new java.awt.BorderLayout());
         mainCombinedPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(5, 20, 20, 20));
         mainCombinedPanel.setBackground(java.awt.Color.WHITE);
-        
-        // Panel de contenido con el diseño combinado
-        javax.swing.JPanel contentPanel = new javax.swing.JPanel();
+
+        // Panel de contenido que implementa Scrollable para controlar el scroll correctamente
+        // CLAVE: getScrollableTracksViewportHeight() retorna false para que el panel NO se estire
+        // al tamaño del viewport, permitiendo que la barra de scroll aparezca cuando el contenido
+        // es más grande que el espacio visible (ej: pantallas con zoom o fuentes grandes)
+        ScrollableContentPanel contentPanel = new ScrollableContentPanel();
         contentPanel.setLayout(new javax.swing.BoxLayout(contentPanel, javax.swing.BoxLayout.Y_AXIS));
         contentPanel.setBackground(java.awt.Color.WHITE);
-        contentPanel.setPreferredSize(new java.awt.Dimension(900, 600)); // Tamaño optimizado para scroll suave
-        contentPanel.setMinimumSize(new java.awt.Dimension(900, 500));
-        
+
         // Título "NUEVO PRODUCTO" o "EDITAR PRODUCTO" en naranja
         jLabelProductTitle = new javax.swing.JLabel("NUEVO PRODUCTO");
         jLabelProductTitle.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 16));
         jLabelProductTitle.setForeground(new java.awt.Color(255, 140, 0)); // Naranja
         jLabelProductTitle.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 15, 3, 0));
         contentPanel.add(jLabelProductTitle);
-        
+
         // Panel principal con todos los campos en un solo GridBagLayout ordenado
         javax.swing.JPanel mainFieldsPanel = new javax.swing.JPanel();
         mainFieldsPanel.setLayout(new java.awt.GridBagLayout());
@@ -3587,11 +3659,12 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         java.awt.GridBagConstraints gbc = new java.awt.GridBagConstraints();
         gbc.anchor = java.awt.GridBagConstraints.WEST;
         gbc.insets = new java.awt.Insets(3, 15, 3, 15);
-        
+
         int row = 0;
-        
+
         // Producto (m_jRef)
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         javax.swing.JLabel lblProducto = new javax.swing.JLabel("Producto:");
         lblProducto.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         lblProducto.setPreferredSize(new java.awt.Dimension(140, 25));
@@ -3600,12 +3673,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jRef.setPreferredSize(new java.awt.Dimension(300, 30));
         m_jRef.setMaximumSize(new java.awt.Dimension(300, 30));
         m_jRef.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jRef.getParent() != null) m_jRef.getParent().remove(m_jRef);
+        if (m_jRef.getParent() != null)
+            m_jRef.getParent().remove(m_jRef);
         mainFieldsPanel.add(m_jRef, gbc);
         row++;
-        
+
         // Código de Barras
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         javax.swing.JLabel lblCodigo = new javax.swing.JLabel("Código de Barras:");
         lblCodigo.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         lblCodigo.setPreferredSize(new java.awt.Dimension(140, 25));
@@ -3614,12 +3689,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jCode.setPreferredSize(new java.awt.Dimension(300, 30));
         m_jCode.setMaximumSize(new java.awt.Dimension(300, 30));
         m_jCode.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jCode.getParent() != null) m_jCode.getParent().remove(m_jCode);
+        if (m_jCode.getParent() != null)
+            m_jCode.getParent().remove(m_jCode);
         mainFieldsPanel.add(m_jCode, gbc);
         row++;
-        
+
         // Descripción (usar m_jName)
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         javax.swing.JLabel lblDescripcion = new javax.swing.JLabel("Descripción:");
         lblDescripcion.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         lblDescripcion.setPreferredSize(new java.awt.Dimension(140, 25));
@@ -3628,12 +3705,14 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jName.setPreferredSize(new java.awt.Dimension(300, 30));
         m_jName.setMaximumSize(new java.awt.Dimension(300, 30));
         m_jName.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jName.getParent() != null) m_jName.getParent().remove(m_jName);
+        if (m_jName.getParent() != null)
+            m_jName.getParent().remove(m_jName);
         mainFieldsPanel.add(m_jName, gbc);
         row++;
-        
+
         // Radio buttons "Se vende"
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         javax.swing.JLabel lblSeVende = new javax.swing.JLabel("Se vende:");
         lblSeVende.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         lblSeVende.setPreferredSize(new java.awt.Dimension(140, 25));
@@ -3649,55 +3728,67 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         sellTypeGroup.add(rbSellUnit);
         sellTypeGroup.add(rbSellBulk);
         sellTypeGroup.add(rbSellPackage);
-        javax.swing.JPanel radioPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 0));
+        javax.swing.JPanel radioPanel = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 15, 0));
         radioPanel.setBackground(java.awt.Color.WHITE);
         radioPanel.add(rbSellUnit);
         radioPanel.add(rbSellBulk);
         radioPanel.add(rbSellPackage);
         rbSellBulk.addActionListener(e -> m_jScale.setSelected(true));
         rbSellPackage.addActionListener(e -> m_jConstant.setSelected(true));
-        rbSellUnit.addActionListener(e -> { m_jScale.setSelected(false); m_jConstant.setSelected(false); });
+        rbSellUnit.addActionListener(e -> {
+            m_jScale.setSelected(false);
+            m_jConstant.setSelected(false);
+        });
         mainFieldsPanel.add(radioPanel, gbc);
         row++;
-        
+
         // Precio Costo
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         jLabel3.setText("Precio Costo:");
         jLabel3.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         jLabel3.setPreferredSize(new java.awt.Dimension(140, 25));
-        if (jLabel3.getParent() != null) jLabel3.getParent().remove(jLabel3);
+        if (jLabel3.getParent() != null)
+            jLabel3.getParent().remove(jLabel3);
         mainFieldsPanel.add(jLabel3, gbc);
         gbc.gridx = 1;
         m_jPriceBuy.setPreferredSize(new java.awt.Dimension(160, 30));
         m_jPriceBuy.setMaximumSize(new java.awt.Dimension(160, 30));
         m_jPriceBuy.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jPriceBuy.getParent() != null) m_jPriceBuy.getParent().remove(m_jPriceBuy);
+        if (m_jPriceBuy.getParent() != null)
+            m_jPriceBuy.getParent().remove(m_jPriceBuy);
         mainFieldsPanel.add(m_jPriceBuy, gbc);
         row++;
-        
+
         // Precio Venta
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         jLabel4.setText("Precio Venta:");
         jLabel4.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         jLabel4.setPreferredSize(new java.awt.Dimension(140, 25));
-        if (jLabel4.getParent() != null) jLabel4.getParent().remove(jLabel4);
+        if (jLabel4.getParent() != null)
+            jLabel4.getParent().remove(jLabel4);
         mainFieldsPanel.add(jLabel4, gbc);
         gbc.gridx = 1;
         m_jPriceSell.setPreferredSize(new java.awt.Dimension(160, 30));
         m_jPriceSell.setMaximumSize(new java.awt.Dimension(160, 30));
         m_jPriceSell.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jPriceSell.getParent() != null) m_jPriceSell.getParent().remove(m_jPriceSell);
+        if (m_jPriceSell.getParent() != null)
+            m_jPriceSell.getParent().remove(m_jPriceSell);
         mainFieldsPanel.add(m_jPriceSell, gbc);
         row++;
-        
+
         // Ganancia (calculada automáticamente)
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         javax.swing.JLabel lblGanancia = new javax.swing.JLabel("Ganancia:");
         lblGanancia.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         lblGanancia.setPreferredSize(new java.awt.Dimension(140, 25));
         mainFieldsPanel.add(lblGanancia, gbc);
         gbc.gridx = 1;
-        if (m_jGrossProfit.getParent() != null) m_jGrossProfit.getParent().remove(m_jGrossProfit);
+        if (m_jGrossProfit.getParent() != null)
+            m_jGrossProfit.getParent().remove(m_jGrossProfit);
         m_jGrossProfit.setPreferredSize(new java.awt.Dimension(160, 30));
         m_jGrossProfit.setMaximumSize(new java.awt.Dimension(160, 30));
         m_jGrossProfit.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
@@ -3706,7 +3797,7 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jGrossProfit.setDisabledTextColor(java.awt.Color.BLACK);
         mainFieldsPanel.add(m_jGrossProfit, gbc);
         row++;
-        
+
         // Precio Mayoreo - OCULTADO
         // gbc.gridx = 0; gbc.gridy = row;
         // javax.swing.JLabel lblMayoreo = new javax.swing.JLabel("Precio Mayoreo:");
@@ -3717,25 +3808,31 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // m_jPriceSellTax.setPreferredSize(new java.awt.Dimension(160, 30));
         // m_jPriceSellTax.setMaximumSize(new java.awt.Dimension(160, 30));
         // m_jPriceSellTax.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        // if (m_jPriceSellTax.getParent() != null) m_jPriceSellTax.getParent().remove(m_jPriceSellTax);
+        // if (m_jPriceSellTax.getParent() != null)
+        // m_jPriceSellTax.getParent().remove(m_jPriceSellTax);
         // mainFieldsPanel.add(m_jPriceSellTax, gbc);
         // row++;
-        
+
         // Checkbox "Acumula Puntos"
-        gbc.gridx = 0; gbc.gridy = row;
-        gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gbc.insets = new java.awt.Insets(3, 15, 3, 15);
-        if (m_jAccumulatesPoints.getParent() != null) m_jAccumulatesPoints.getParent().remove(m_jAccumulatesPoints);
+        if (m_jAccumulatesPoints.getParent() != null)
+            m_jAccumulatesPoints.getParent().remove(m_jAccumulatesPoints);
         m_jAccumulatesPoints.setText(AppLocal.getIntString("label.prodaccumulatespoints"));
         m_jAccumulatesPoints.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         m_jAccumulatesPoints.setBackground(java.awt.Color.WHITE);
         mainFieldsPanel.add(m_jAccumulatesPoints, gbc);
-        gbc.gridwidth = 1; gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.gridwidth = 1;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
         gbc.insets = new java.awt.Insets(6, 15, 6, 15);
         row++;
-        
+
         // Departamento
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         javax.swing.JLabel lblDept = new javax.swing.JLabel("Departamento:");
         lblDept.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         lblDept.setPreferredSize(new java.awt.Dimension(140, 25));
@@ -3744,41 +3841,53 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jCategory.setPreferredSize(new java.awt.Dimension(240, 30));
         m_jCategory.setMaximumSize(new java.awt.Dimension(240, 30));
         m_jCategory.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jCategory.getParent() != null) m_jCategory.getParent().remove(m_jCategory);
+        if (m_jCategory.getParent() != null)
+            m_jCategory.getParent().remove(m_jCategory);
         mainFieldsPanel.add(m_jCategory, gbc);
         row++;
-        
+
         // Categoría de Impuesto
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         jLabel7.setText("Categoría de Impuesto:");
         jLabel7.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         jLabel7.setPreferredSize(new java.awt.Dimension(140, 25));
-        if (jLabel7.getParent() != null) jLabel7.getParent().remove(jLabel7);
+        if (jLabel7.getParent() != null)
+            jLabel7.getParent().remove(jLabel7);
         mainFieldsPanel.add(jLabel7, gbc);
         gbc.gridx = 1;
         m_jTax.setPreferredSize(new java.awt.Dimension(240, 30));
         m_jTax.setMaximumSize(new java.awt.Dimension(240, 30));
         m_jTax.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
-        if (m_jTax.getParent() != null) m_jTax.getParent().remove(m_jTax);
+        if (m_jTax.getParent() != null)
+            m_jTax.getParent().remove(m_jTax);
         mainFieldsPanel.add(m_jTax, gbc);
         row++;
-        
+
         // Línea separadora naranja
-        gbc.gridx = 0; gbc.gridy = row;
-        gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL; gbc.weightx = 1.0;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.weightx = 1.0;
         gbc.insets = new java.awt.Insets(12, 15, 8, 15);
         javax.swing.JSeparator separator = new javax.swing.JSeparator();
         separator.setForeground(new java.awt.Color(255, 140, 0));
         separator.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 2));
         mainFieldsPanel.add(separator, gbc);
-        gbc.gridwidth = 1; gbc.fill = java.awt.GridBagConstraints.NONE; gbc.weightx = 0.0;
+        gbc.gridwidth = 1;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.weightx = 0.0;
         row++;
-        
+
         // Título "Inventario" con líneas decorativas
-        gbc.gridx = 0; gbc.gridy = row;
-        gbc.gridwidth = 2; gbc.anchor = java.awt.GridBagConstraints.CENTER;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.anchor = java.awt.GridBagConstraints.CENTER;
         gbc.insets = new java.awt.Insets(3, 15, 6, 15);
-        javax.swing.JPanel inventarioTitlePanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 12, 0));
+        javax.swing.JPanel inventarioTitlePanel = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 12, 0));
         inventarioTitlePanel.setBackground(java.awt.Color.WHITE);
         javax.swing.JSeparator sep1 = new javax.swing.JSeparator();
         sep1.setPreferredSize(new java.awt.Dimension(60, 2));
@@ -3793,19 +3902,23 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         inventarioTitlePanel.add(lblInventario);
         inventarioTitlePanel.add(sep2);
         mainFieldsPanel.add(inventarioTitlePanel, gbc);
-        gbc.gridwidth = 1; gbc.anchor = java.awt.GridBagConstraints.WEST;
+        gbc.gridwidth = 1;
+        gbc.anchor = java.awt.GridBagConstraints.WEST;
         gbc.insets = new java.awt.Insets(3, 15, 3, 15);
         row++;
-        
+
         // Checkbox "Este producto SI utiliza inventario"
-        gbc.gridx = 0; gbc.gridy = row;
-        gbc.gridwidth = 2; gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
+        gbc.gridx = 0;
+        gbc.gridy = row;
+        gbc.gridwidth = 2;
+        gbc.fill = java.awt.GridBagConstraints.HORIZONTAL;
         gbc.insets = new java.awt.Insets(3, 15, 3, 15);
         boolean initialUsesInventory = !m_jService.isSelected();
         chkUseInventory = new javax.swing.JCheckBox("Este producto SI utiliza inventario.", initialUsesInventory);
         chkUseInventory.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         chkUseInventory.setBackground(java.awt.Color.WHITE);
-        // Listener para actualizar m_jService y campos de stock cuando cambia el checkbox
+        // Listener para actualizar m_jService y campos de stock cuando cambia el
+        // checkbox
         chkUseInventory.addActionListener(e -> {
             boolean useInventory = chkUseInventory.isSelected();
             m_jService.setSelected(!useInventory);
@@ -3814,7 +3927,8 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             m_jStockCurrent.setEditable(useInventory);
             m_jStockMinimum.setEditable(useInventory);
         });
-        // También escuchar cambios en m_jService directamente para mantener sincronización
+        // También escuchar cambios en m_jService directamente para mantener
+        // sincronización
         java.awt.event.ActionListener serviceListener = e -> {
             boolean useInventory = !m_jService.isSelected();
             if (chkUseInventory != null && chkUseInventory.isSelected() != useInventory) {
@@ -3828,40 +3942,48 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // (evitar duplicar listeners)
         m_jService.addActionListener(serviceListener);
         mainFieldsPanel.add(chkUseInventory, gbc);
-        gbc.gridwidth = 1; gbc.fill = java.awt.GridBagConstraints.NONE;
+        gbc.gridwidth = 1;
+        gbc.fill = java.awt.GridBagConstraints.NONE;
         gbc.insets = new java.awt.Insets(6, 15, 6, 15);
         row++;
-        
+
         // Cantidad Actual
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         jLabelStockCurrent.setText("Cantidad Actual:");
         jLabelStockCurrent.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         jLabelStockCurrent.setPreferredSize(new java.awt.Dimension(140, 25));
-        if (jLabelStockCurrent.getParent() != null) jLabelStockCurrent.getParent().remove(jLabelStockCurrent);
+        if (jLabelStockCurrent.getParent() != null)
+            jLabelStockCurrent.getParent().remove(jLabelStockCurrent);
         mainFieldsPanel.add(jLabelStockCurrent, gbc);
         gbc.gridx = 1;
-        if (m_jStockCurrent.getParent() != null) m_jStockCurrent.getParent().remove(m_jStockCurrent);
+        if (m_jStockCurrent.getParent() != null)
+            m_jStockCurrent.getParent().remove(m_jStockCurrent);
         m_jStockCurrent.setPreferredSize(new java.awt.Dimension(160, 30));
         m_jStockCurrent.setMaximumSize(new java.awt.Dimension(160, 30));
         m_jStockCurrent.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         m_jStockCurrent.setHorizontalAlignment(javax.swing.JTextField.RIGHT); // Mantener alineación derecha
         // Configurar estado inicial basado en si usa inventario
-        // Los campos son editables solo si el producto usa inventario (m_jService no está seleccionado)
+        // Los campos son editables solo si el producto usa inventario (m_jService no
+        // está seleccionado)
         m_jStockCurrent.setEditable(initialUsesInventory);
         m_jStockCurrent.setEnabled(true); // Siempre habilitado visualmente, pero editable solo si usa inventario
         m_jStockCurrent.setFocusable(true); // Asegurar que pueda recibir foco
         mainFieldsPanel.add(m_jStockCurrent, gbc);
         row++;
-        
+
         // Mínimo
-        gbc.gridx = 0; gbc.gridy = row;
+        gbc.gridx = 0;
+        gbc.gridy = row;
         jLabelStockMinimum.setText("Mínimo:");
         jLabelStockMinimum.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
         jLabelStockMinimum.setPreferredSize(new java.awt.Dimension(140, 25));
-        if (jLabelStockMinimum.getParent() != null) jLabelStockMinimum.getParent().remove(jLabelStockMinimum);
+        if (jLabelStockMinimum.getParent() != null)
+            jLabelStockMinimum.getParent().remove(jLabelStockMinimum);
         mainFieldsPanel.add(jLabelStockMinimum, gbc);
         gbc.gridx = 1;
-        if (m_jStockMinimum.getParent() != null) m_jStockMinimum.getParent().remove(m_jStockMinimum);
+        if (m_jStockMinimum.getParent() != null)
+            m_jStockMinimum.getParent().remove(m_jStockMinimum);
         m_jStockMinimum.setPreferredSize(new java.awt.Dimension(160, 30));
         m_jStockMinimum.setMaximumSize(new java.awt.Dimension(160, 30));
         m_jStockMinimum.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 13));
@@ -3871,58 +3993,69 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         m_jStockMinimum.setEnabled(true); // Siempre habilitado visualmente, pero editable solo si usa inventario
         m_jStockMinimum.setFocusable(true); // Asegurar que pueda recibir foco
         mainFieldsPanel.add(m_jStockMinimum, gbc);
-        
+
         contentPanel.add(mainFieldsPanel);
-        
+
         // Scroll pane para el contenido con scroll suave
         javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(contentPanel);
         scrollPane.setBorder(null);
-        scrollPane.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setVerticalScrollBarPolicy(javax.swing.JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
         scrollPane.setHorizontalScrollBarPolicy(javax.swing.JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
-        // Configurar scroll suave y unidades de scroll más pequeñas para navegación con teclado
-        scrollPane.getVerticalScrollBar().setUnitIncrement(12); // Scroll más suave con flechas (menor = más suave)
-        scrollPane.getVerticalScrollBar().setBlockIncrement(50); // Scroll por bloque más pequeño
+        // Configurar scroll suave y unidades de scroll
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16); // Incremento unitario adaptado para scroll rápido
+        scrollPane.getVerticalScrollBar().setBlockIncrement(60); // Incremento de bloque adaptado para Page Up/Down
         scrollPane.setWheelScrollingEnabled(true);
-        // Permitir scroll con flechas del teclado y rueda del mouse
-        // NO hacer el scrollPane focusable para evitar que robe el foco de los campos
         scrollPane.setFocusable(false);
         scrollPane.setRequestFocusEnabled(false);
-        // Habilitar scroll con teclado (flechas arriba/abajo, Page Up/Down) en el scroll pane
-        scrollPane.addKeyListener(new java.awt.event.KeyAdapter() {
+
+        // Habilitar bindings de teclado en scrollPane a nivel de ventana para navegación rápida
+        scrollPane.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+            javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_PAGE_UP, 0), "scrollPageUp"
+        );
+        scrollPane.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+            javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_PAGE_DOWN, 0), "scrollPageDown"
+        );
+        scrollPane.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+            javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_UP, java.awt.event.InputEvent.CTRL_DOWN_MASK), "scrollUpCtrl"
+        );
+        scrollPane.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW).put(
+            javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DOWN, java.awt.event.InputEvent.CTRL_DOWN_MASK), "scrollDownCtrl"
+        );
+
+        scrollPane.getActionMap().put("scrollPageUp", new javax.swing.AbstractAction() {
             @Override
-            public void keyPressed(java.awt.event.KeyEvent e) {
-                int keyCode = e.getKeyCode();
+            public void actionPerformed(java.awt.event.ActionEvent e) {
                 javax.swing.JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
-                int currentValue = verticalBar.getValue();
-                int unitIncrement = verticalBar.getUnitIncrement();
-                int blockIncrement = verticalBar.getBlockIncrement();
-                
-                if (keyCode == java.awt.event.KeyEvent.VK_UP || keyCode == java.awt.event.KeyEvent.VK_KP_UP) {
-                    verticalBar.setValue(currentValue - unitIncrement);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_DOWN || keyCode == java.awt.event.KeyEvent.VK_KP_DOWN) {
-                    verticalBar.setValue(currentValue + unitIncrement);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_PAGE_UP) {
-                    verticalBar.setValue(currentValue - blockIncrement);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_PAGE_DOWN) {
-                    verticalBar.setValue(currentValue + blockIncrement);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_HOME) {
-                    verticalBar.setValue(0);
-                    e.consume();
-                } else if (keyCode == java.awt.event.KeyEvent.VK_END) {
-                    verticalBar.setValue(verticalBar.getMaximum());
-                    e.consume();
-                }
+                verticalBar.setValue(verticalBar.getValue() - verticalBar.getBlockIncrement());
             }
         });
+        scrollPane.getActionMap().put("scrollPageDown", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                javax.swing.JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
+                verticalBar.setValue(verticalBar.getValue() + verticalBar.getBlockIncrement());
+            }
+        });
+        scrollPane.getActionMap().put("scrollUpCtrl", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                javax.swing.JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
+                verticalBar.setValue(verticalBar.getValue() - verticalBar.getUnitIncrement() * 4);
+            }
+        });
+        scrollPane.getActionMap().put("scrollDownCtrl", new javax.swing.AbstractAction() {
+            @Override
+            public void actionPerformed(java.awt.event.ActionEvent e) {
+                javax.swing.JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
+                verticalBar.setValue(verticalBar.getValue() + verticalBar.getUnitIncrement() * 4);
+            }
+        });
+
         // NO hacer el contentPanel focusable para evitar que intercepte el foco de los campos
         contentPanel.setFocusable(false);
-        
+
         mainCombinedPanel.add(scrollPane, java.awt.BorderLayout.CENTER);
-        
+
         // Agregar el panel combinado en lugar del tabbed pane
         // Ocultar las pestañas y mostrar solo el panel combinado
         jTabbedPane1.setVisible(false);
@@ -3932,21 +4065,61 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
         // Asegurar que el panel combinado sea visible y tenga el tamaño correcto
         mainCombinedPanel.setVisible(true);
         mainCombinedPanel.setOpaque(true);
-        // Establecer tamaño preferido del panel principal para que el contenido se muestre
-        mainCombinedPanel.setPreferredSize(new java.awt.Dimension(1000, 650));
+        // No fijar tamaño preferido - dejar que el layout manager determine el tamaño
+        // para que el JScrollPane pueda mostrar la barra de desplazamiento correctamente
         revalidate();
         repaint();
-        
-        // Configurar scroll automático cuando los campos reciben foco (después de revalidate)
+
+        // Configurar scroll automático cuando los campos reciben foco (después de
+        // revalidate)
         java.util.List<javax.swing.JComponent> focusableComponents = new java.util.ArrayList<>();
         collectFocusableComponents(mainFieldsPanel, focusableComponents);
+
+        // Listener de teclado para permitir scroll con las flechas arriba/abajo en los campos del formulario
+        java.awt.event.KeyAdapter scrollKeyAdapter = new java.awt.event.KeyAdapter() {
+            @Override
+            public void keyPressed(java.awt.event.KeyEvent e) {
+                int keyCode = e.getKeyCode();
+                java.awt.Component src = e.getComponent();
+
+                // Evitar hacer scroll con las flechas si estamos en un JComboBox o JRadioButton
+                if (src instanceof javax.swing.JComboBox ||
+                    src instanceof javax.swing.JRadioButton ||
+                    (src != null && src.getParent() instanceof javax.swing.JComboBox)) {
+                    if (keyCode == java.awt.event.KeyEvent.VK_UP || keyCode == java.awt.event.KeyEvent.VK_KP_UP ||
+                        keyCode == java.awt.event.KeyEvent.VK_DOWN || keyCode == java.awt.event.KeyEvent.VK_KP_DOWN) {
+                        return;
+                    }
+                }
+
+                javax.swing.JScrollBar verticalBar = scrollPane.getVerticalScrollBar();
+                int currentValue = verticalBar.getValue();
+                int unitIncrement = verticalBar.getUnitIncrement() * 3; // Scroll un poco más rápido para navegación cómoda
+
+                if (keyCode == java.awt.event.KeyEvent.VK_UP || keyCode == java.awt.event.KeyEvent.VK_KP_UP) {
+                    verticalBar.setValue(currentValue - unitIncrement);
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_DOWN || keyCode == java.awt.event.KeyEvent.VK_KP_DOWN) {
+                    verticalBar.setValue(currentValue + unitIncrement);
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_PAGE_UP) {
+                    verticalBar.setValue(currentValue - verticalBar.getBlockIncrement());
+                    e.consume();
+                } else if (keyCode == java.awt.event.KeyEvent.VK_PAGE_DOWN) {
+                    verticalBar.setValue(currentValue + verticalBar.getBlockIncrement());
+                    e.consume();
+                }
+            }
+        };
+
         for (javax.swing.JComponent comp : focusableComponents) {
             comp.addFocusListener(new java.awt.event.FocusAdapter() {
                 @Override
                 public void focusGained(java.awt.event.FocusEvent e) {
                     // Hacer scroll para que el componente sea visible
                     java.awt.Rectangle rect = comp.getBounds();
-                    java.awt.Point loc = javax.swing.SwingUtilities.convertPoint(comp.getParent(), rect.getLocation(), contentPanel);
+                    java.awt.Point loc = javax.swing.SwingUtilities.convertPoint(comp.getParent(), rect.getLocation(),
+                            contentPanel);
                     rect.setLocation(loc);
                     rect.setSize(comp.getSize());
                     // Agregar un margen para mejor visibilidad
@@ -3955,14 +4128,15 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                     // NO robar el foco del componente - dejar que el usuario edite el campo
                 }
             });
+            comp.addKeyListener(scrollKeyAdapter);
         }
-        
+
         // Cargar tabla de stock automáticamente cuando hay un producto
         if (productId != null) {
             showStockTableAutomatically();
         }
     }// </editor-fold>//GEN-END:initComponents
-    
+
     // Método helper para recolectar componentes que pueden recibir foco
     private void collectFocusableComponents(java.awt.Container container, java.util.List<javax.swing.JComponent> list) {
         for (java.awt.Component comp : container.getComponents()) {
@@ -3977,6 +4151,37 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
             }
         }
     }
+
+    /**
+     * Panel que implementa Scrollable para controlar correctamente el comportamiento
+     * del JScrollPane. El método clave es getScrollableTracksViewportHeight() que
+     * retorna false, evitando que el panel se estire al tamaño del viewport.
+     * Esto permite que la barra de scroll aparezca cuando el contenido es más grande
+     * que el espacio visible (ej: pantallas con zoom, fuentes grandes, resoluciones bajas).
+     */
+    private static class ScrollableContentPanel extends javax.swing.JPanel implements javax.swing.Scrollable {
+        @Override
+        public java.awt.Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+        @Override
+        public int getScrollableUnitIncrement(java.awt.Rectangle visibleRect, int orientation, int direction) {
+            return 16;
+        }
+        @Override
+        public int getScrollableBlockIncrement(java.awt.Rectangle visibleRect, int orientation, int direction) {
+            return 60;
+        }
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true; // Expandir horizontalmente para llenar el ancho disponible
+        }
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            return false; // NO expandir verticalmente - permite que aparezca el scrollbar
+        }
+    }
+
 
     private void jButtonHTMLActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_jButtonHTMLActionPerformed
         setButtonHTML();
@@ -4089,12 +4294,15 @@ public final class ProductsEditor extends com.openbravo.pos.panels.ValidationPan
                 LOGGER.log(Level.FINE,
                         "showStockTableAutomatically: Total Current: " + totalCurrent + ", Text: " + stockCurrentText);
 
-                // Guardar el valor inicial del stock (solo la primera vez que se carga para este producto)
-                // IMPORTANTE: Solo establecer si es null (fue reseteado en setValues() para un nuevo producto)
+                // Guardar el valor inicial del stock (solo la primera vez que se carga para
+                // este producto)
+                // IMPORTANTE: Solo establecer si es null (fue reseteado en setValues() para un
+                // nuevo producto)
                 if (initialStockValue == null) {
                     initialStockValue = totalCurrent;
                     LOGGER.log(Level.INFO,
-                            "showStockTableAutomatically: Guardado valor inicial del stock: " + initialStockValue + " para producto: " + productId);
+                            "showStockTableAutomatically: Guardado valor inicial del stock: " + initialStockValue
+                                    + " para producto: " + productId);
                 }
 
                 // Forzar actualización del campo de texto

@@ -19,6 +19,7 @@ import com.openbravo.basic.BasicException;
 import com.openbravo.data.gui.JMessageDialog;
 import com.openbravo.data.gui.MessageInf;
 import java.awt.BorderLayout;
+import java.awt.Frame;
 import java.io.IOException;
 import java.rmi.RemoteException;
 import javax.imageio.ImageIO;
@@ -58,29 +59,30 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
 
     public void initFrame() {
 
-        setTitle(AppLocal.APP_NAME + " - " + AppLocal.APP_VERSION);
-        
+        setTitle(AppLocal.APP_NAME);
+
         // FORZAR ICONO PERSONALIZADO CON MÁXIMA AGRESIVIDAD
         try {
             // Intentar cargar desde múltiples ubicaciones
             String[] iconPaths = {
-                "/com/openbravo/images/connecting_pos_icon.png",
-                "/com/openbravo/images/app_logo_48x48.png",
-                "/com/openbravo/pos/templates/app_logo_48x48.png",
-                "/images/app_logo_48x48.png",
-                "/app_logo_48x48.png"
+                    "/com/openbravo/images/connecting_pos_icon.png",
+                    "/com/openbravo/images/app_logo_48x48.png",
+                    "/com/openbravo/pos/templates/app_logo_48x48.png",
+                    "/images/app_logo_48x48.png",
+                    "/app_logo_48x48.png"
             };
-            
+
             java.awt.Image iconImage = null;
             for (String path : iconPaths) {
                 try {
                     iconImage = ImageIO.read(JRootFrame.class.getResourceAsStream(path));
-                    if (iconImage != null) break;
+                    if (iconImage != null)
+                        break;
                 } catch (Exception e) {
                     // Intentar siguiente ruta
                 }
             }
-            
+
             if (iconImage != null) {
                 // Configurar múltiples tamaños de iconos
                 java.util.List<java.awt.Image> iconList = new java.util.ArrayList<>();
@@ -90,10 +92,10 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
                 iconList.add(iconImage.getScaledInstance(48, 48, java.awt.Image.SCALE_SMOOTH));
                 iconList.add(iconImage.getScaledInstance(64, 64, java.awt.Image.SCALE_SMOOTH));
                 iconList.add(iconImage.getScaledInstance(128, 128, java.awt.Image.SCALE_SMOOTH));
-                
+
                 this.setIconImages(iconList);
                 this.setIconImage(iconImage);
-                
+
                 // También configurar para la barra de tareas agresivamente
                 try {
                     if (java.awt.Taskbar.isTaskbarSupported()) {
@@ -105,48 +107,107 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
                 } catch (Exception e) {
                     // Ignorar si la plataforma no soporta taskbar
                 }
-                
+
                 // Forzar refresco del frame
                 SwingUtilities.invokeLater(() -> {
                     this.repaint();
                     this.revalidate();
                 });
             }
-            
+
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "Exception load icon", e);
         }
 
-        //SHOW SPLASH
-        getContentPane().add(splashScreen, BorderLayout.CENTER);
+        // Determinar modo de pantalla y aplicar ANTES de que el frame sea displayable
+        // (antes de diálogos)
+        // para evitar IllegalComponentStateException
+        String screenmode = m_props.getProperty("machine.screenmode");
+        if ("fullscreen".equals(screenmode)) {
+            try {
+                if (!this.isDisplayable()) {
+                    this.setUndecorated(true);
+                    this.setResizable(false);
+                }
+            } catch (java.awt.IllegalComponentStateException | java.lang.SecurityException e) {
+                java.util.logging.Logger.getLogger(JRootFrame.class.getName()).log(java.util.logging.Level.WARNING,
+                        "Error al establecer modo sin bordes: " + e.getMessage());
+            }
+        }
 
-        //LOAD APP PANEL
+        // JRootFrame permanece OCULTO (setVisible(false) por defecto)
+        // No añadimos nada al contentPane todavía para evitar "fondos blancos"
+
+        // LOAD APP PANEL
         try {
             m_rootapp.initApp();
-            getContentPane().remove(splashScreen);
 
-            getContentPane().add(m_rootapp, BorderLayout.CENTER);
+            // Sebastian - Mostrar diálogo de login estilo eleventa
+            // Pasamos 'null' como padre para que el diálogo sea independiente de la ventana
+            // principal
+            // y no provoque que esta se muestre o parpadee de fondo.
+            JLogonDialog logonDialog = new JLogonDialog(null, m_rootapp.getDataLogicSystem(), m_rootapp.getSession());
+            logonDialog.setVisible(true);
+
+            AppUser loggedUser = logonDialog.getLoggedUser();
+            if (loggedUser == null) {
+                // Usuario canceló el login (cerró la ventana o presionó Salir)
+                System.exit(0);
+                return;
+            }
+
+            // Login exitoso, poner m_rootapp en el contentPane
+            this.getContentPane().add(m_rootapp, java.awt.BorderLayout.CENTER);
+
+            // AHORA configurar y mostrar la ventana principal según el modo elegido
+            if (null == screenmode) {
+                this.modeWindow();
+            } else {
+                switch (screenmode) {
+                    case "fullscreen":
+                        this.modeKiosk();
+                        break;
+                    case "windowmaximised":
+                        this.modeWindowMaximized();
+                        break;
+                    default:
+                        this.modeWindow();
+                        break;
+                }
+            }
+
+            // Revalidar el diseño (la ventana ya es visible)
+            this.validate();
+            this.repaint();
+
+            // Abrir la vista de la aplicación (esto pedirá monto inicial si es necesario)
+            m_rootapp.openAppView(loggedUser);
+
             sendInitEnvent();
+            return; // Éxito
 
         } catch (BasicException ex) {
-            //LOAD CONFIG PANEL
+            // LOAD CONFIG PANEL
 
-            int opionRes = JMessageDialog.showConfirmDialog(this, 
-                    new MessageInf(MessageInf.SGN_DANGER, 
+            int opionRes = JMessageDialog.showConfirmDialog(this,
+                    new MessageInf(MessageInf.SGN_DANGER,
                             "<html>Application fail to start<br>Do you want to open the configuration panel?", ex));
 
-            /*opionRes = JOptionPane.showConfirmDialog(this,
-                    "<html>Application fail to start<br>Do you want to open the configuration panel?",
-                    "Application Error", JOptionPane.YES_NO_OPTION, JOptionPane.INFORMATION_MESSAGE);
-            
-            */
+            /*
+             * opionRes = JOptionPane.showConfirmDialog(this,
+             * "<html>Application fail to start<br>Do you want to open the configuration panel?"
+             * ,
+             * "Application Error", JOptionPane.YES_NO_OPTION,
+             * JOptionPane.INFORMATION_MESSAGE);
+             * 
+             */
             if (opionRes == JOptionPane.YES_OPTION) {
-                //JFrmConfig jFrmConfig = new JFrmConfig(m_props);
-                //jFrmConfig.setVisible(true);
+                // JFrmConfig jFrmConfig = new JFrmConfig(m_props);
+                // jFrmConfig.setVisible(true);
 
                 JPanelConfiguration config = new JPanelConfiguration(m_props);
                 config.setCloseListener((JPanelConfiguration.CloseEvent e) -> {
-                    //This will be call when user press save or close button on config panel
+                    // This will be call when user press save or close button on config panel
                     dispose();
                     System.exit(0);
                 });
@@ -159,41 +220,45 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
             }
         }
 
-        // THIS IS NEED HERE TO PRESENT CONFIG PANEL
-        String screenmode = m_props.getProperty("machine.screenmode");
-        if (null == screenmode) {
-            modeWindow();
-        } else {
-            switch (screenmode) {
-                case "fullscreen":
-                    modeKiosk();
-                    break;
-                case "windowmaximised":
-                    modeWindowMaximized();
-                    break;
-                default:
-                    modeWindow();
-                    break;
-            }
-        }
     }
 
     private void modeWindowMaximized() {
-        setExtendedState(MAXIMIZED_BOTH);
-        setLocationRelativeTo(null); //center
-        setVisible(true);
+        this.setMinimumSize(new java.awt.Dimension(1024, 700)); // Tamaño mínimo para evitar vistas cortadas
+        if (this.getExtendedState() != MAXIMIZED_BOTH) {
+            this.setExtendedState(MAXIMIZED_BOTH);
+        }
+        this.setLocationRelativeTo(null); // center
+        if (!this.isVisible()) {
+            this.setVisible(true);
+        }
     }
 
     private void modeWindow() {
-        pack();
-        setLocationRelativeTo(null); //center
-        setVisible(true);
+        this.setMinimumSize(new java.awt.Dimension(1024, 700)); // Tamaño mínimo para evitar vistas cortadas
+        if (!this.isDisplayable()) {
+            this.pack();
+        }
+        // Si pack() resultó en algo más pequeño que el mínimo, ajustar
+        java.awt.Dimension size = this.getSize();
+        if (size.width < 1280 || size.height < 750) {
+            this.setSize(Math.max(size.width, 1280), Math.max(size.height, 750));
+        }
+        this.setLocationRelativeTo(null); // center
+        if (!this.isVisible()) {
+            this.setVisible(true);
+        }
     }
 
     private void modeKiosk() {
-
-        setUndecorated(true);
-        setResizable(false);
+        if (!this.isDisplayable()) {
+            try {
+                this.setUndecorated(true);
+                this.setResizable(false);
+            } catch (java.awt.IllegalComponentStateException e) {
+                java.util.logging.Logger.getLogger(JRootFrame.class.getName())
+                        .warning("Could not set kiosk mode: frame is already displayable.");
+            }
+        }
 
         // LINUX/UNIX
         if (new OSValidator().isUnix()) {
@@ -259,7 +324,8 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
      * WARNING: Do NOT modify this code. The content of this method is always
      * regenerated by the Form Editor.
      */
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
+    // <editor-fold defaultstate="collapsed" desc="Generated
+    // Code">//GEN-BEGIN:initComponents
     private void initComponents() {
 
         setDefaultCloseOperation(javax.swing.WindowConstants.DO_NOTHING_ON_CLOSE);
@@ -274,17 +340,17 @@ public class JRootFrame extends javax.swing.JFrame implements AppMessage {
         });
     }// </editor-fold>//GEN-END:initComponents
 
-    private void formWindowClosing(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosing
+    private void formWindowClosing(java.awt.event.WindowEvent evt) {// GEN-FIRST:event_formWindowClosing
 
         m_rootapp.tryToClose();
 
-    }//GEN-LAST:event_formWindowClosing
+    }// GEN-LAST:event_formWindowClosing
 
-    private void formWindowClosed(java.awt.event.WindowEvent evt) {//GEN-FIRST:event_formWindowClosed
+    private void formWindowClosed(java.awt.event.WindowEvent evt) {// GEN-FIRST:event_formWindowClosed
 
         System.exit(0);
 
-    }//GEN-LAST:event_formWindowClosed
+    }// GEN-LAST:event_formWindowClosed
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     // End of variables declaration//GEN-END:variables

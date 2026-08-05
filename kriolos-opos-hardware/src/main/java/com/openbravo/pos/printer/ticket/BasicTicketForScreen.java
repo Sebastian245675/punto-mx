@@ -25,23 +25,48 @@ import java.awt.geom.AffineTransform;
  */
 public class BasicTicketForScreen extends BasicTicket {
 
-    private static final Font BASEFONT = new Font("Courier New",
-            Font.PLAIN, 12).deriveFont(AffineTransform.getScaleInstance(1.0, 1.40));
-    private static final int FONTHEIGHT = 20;
-    private static final double IMAGE_SCALE = 1.0;
+    private final Font baseFont;
+    private final int fontHeight;
+    private final double imageScale;
+    private final boolean normalTotals;
+
+    public BasicTicketForScreen() {
+        this("Courier New", 7, false, false);
+    }
+
+    public BasicTicketForScreen(String fontName, int fontSize, boolean fontBold, boolean normalTotals) {
+        int style = fontBold ? Font.BOLD : Font.PLAIN;
+        // Scale the printer font size up to screen size (base printer size is 7, base
+        // screen size is 12)
+        double screenScale = 12.0 / 7.0;
+        int screenFontSize = (int) Math.round(fontSize * screenScale);
+
+        this.baseFont = new Font(fontName, style, screenFontSize)
+                .deriveFont(AffineTransform.getScaleInstance(1.65, 1.40));
+        this.fontHeight = (int) Math.round(screenFontSize * 1.7);
+        this.imageScale = 1.0;
+        this.normalTotals = normalTotals;
+
+        TicketPrintLogger.logTicketCreated(fontName, fontSize, fontBold, normalTotals);
+    }
 
     @Override
     protected Font getBaseFont() {
-        return BASEFONT;
+        return baseFont;
     }
 
     @Override
     protected int getFontHeight() {
-        return FONTHEIGHT;
+        return fontHeight;
     }
 
     @Override
     protected double getImageScale() {
-        return IMAGE_SCALE;
+        return imageScale;
+    }
+
+    @Override
+    protected boolean isNormalTotals() {
+        return normalTotals;
     }
 }

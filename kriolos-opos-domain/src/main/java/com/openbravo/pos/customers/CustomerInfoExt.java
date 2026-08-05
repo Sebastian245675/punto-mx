@@ -51,9 +51,18 @@ public class CustomerInfoExt extends CustomerInfo {
     protected Double discount;
     protected String prepay;
     protected String memodate;    
+    protected Integer puntos;
 
     public CustomerInfoExt(String id) {
         super(id);
+    }
+
+    public Integer getPuntos() {
+        return puntos;
+    }
+
+    public void setPuntos(Integer puntos) {
+        this.puntos = puntos;
     }
 
     public String getTaxCustCategoryID() {
@@ -399,6 +408,10 @@ public class CustomerInfoExt extends CustomerInfo {
     } 
     public String printMemoDate() {       
         return Formats.STRING.formatValue(memodate);
-    }        
+    }
 
+    @Override
+    public String toString() {
+        return name + (puntos != null ? " (" + puntos + " pts)" : " (0 pts)");
+    }
 }

@@ -176,6 +176,7 @@
     <class name="/com/openbravo/reports/tools_invaliddata.bs"/>
 
     <!-- EPM -->
+    <class name="com.openbravo.pos.admin.BirthdaysPanel"/>
     <class name="com.openbravo.pos.forms.MenuEmployees" />
     <class name="com.openbravo.pos.epm.BreaksPanel" /> 
     <class name="com.openbravo.pos.epm.LeavesPanel" />

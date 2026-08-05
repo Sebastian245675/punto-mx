@@ -44,6 +44,10 @@ public abstract class BasicTicket implements PrintItem {
     protected abstract int getFontHeight();
     protected abstract double getImageScale();
     
+    protected boolean isNormalTotals() {
+        return false;
+    }
+    
     @Override
     public int getHeight() {
         return m_iBodyHeight;
@@ -79,17 +83,27 @@ public abstract class BasicTicket implements PrintItem {
     }
 
     public void beginLine(int iTextSize) {
-        printItemLine = new PrintItemLine(iTextSize, getBaseFont(), getFontHeight());
+        int size = iTextSize;
+        if (isNormalTotals() && size > 0) {
+            size = 0;
+        }
+        // LOGGING: Este es el punto CLAVE donde normalTotals puede cancelar el tamaño grande
+        TicketPrintLogger.logBeginLine(iTextSize, size, isNormalTotals());
+        printItemLine = new PrintItemLine(size, getBaseFont(), getFontHeight());
     }
 
     public void printText(int iStyle, String sText) {
         if (printItemLine != null) {
+            // LOGGING: Registrar cada texto que se agrega
+            TicketPrintLogger.logPrintText(iStyle, sText);
             printItemLine.addText(iStyle, sText);
         }
     }
 
     public void endLine() {
         if (printItemLine != null) {
+            // LOGGING: fin de línea
+            TicketPrintLogger.logEndLine();
             printItems.add(printItemLine);
             m_iBodyHeight += printItemLine.getHeight();
             printItemLine = null;

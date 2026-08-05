@@ -47,8 +47,8 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     public static final int RECEIPT_PAYMENT = 2;
     public static final int RECEIPT_NOSALE = 3;
 
-// JG Jun 2017 - contain partial/full refunds    
-    public static final int REFUND_NOT = 0; // is a non-refunded ticket    
+    // JG Jun 2017 - contain partial/full refunds
+    public static final int REFUND_NOT = 0; // is a non-refunded ticket
     public static final int REFUND_PARTIAL = 1;
     public static final int REFUND_ALL = 2;
 
@@ -225,7 +225,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     }
 
     public String getName(String info) {
-// JG Aug 2014 - Add User info
+        // JG Aug 2014 - Add User info
         List<String> name = new ArrayList<>();
 
         String nameprop = getProperty("name");
@@ -299,7 +299,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
     public String getTransactionID() {
         return (getPayments().size() > 0)
                 ? (getPayments().get(getPayments().size() - 1)).getTransactionID()
-                : StringUtils.getCardNumber(); //random transaction ID
+                : StringUtils.getCardNumber(); // random transaction ID
     }
 
     public String getReturnMessage() {
@@ -381,9 +381,8 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     public double getSubTotal() {
         double sum = 0.0;
-        sum = m_aLines.stream().map((line)
-                -> line.getSubValue()).reduce(sum, (accumulator, _item)
-                -> accumulator + _item);
+        sum = m_aLines.stream().map((line) -> line.getSubValue()).reduce(sum,
+                (accumulator, _item) -> accumulator + _item);
         // Redondear el subtotal a 2 decimales para evitar errores de precisión
         return RoundUtils.round(sum);
     }
@@ -396,9 +395,8 @@ public final class TicketInfo implements SerializableRead, Externalizable {
                 sum += tax.getTax(); // Taxes are already rounded...
             }
         } else {
-            sum = m_aLines.stream().map((line)
-                    -> line.getTax()).reduce(sum, (accumulator, _item)
-                    -> accumulator + _item);
+            sum = m_aLines.stream().map((line) -> line.getTax()).reduce(sum,
+                    (accumulator, _item) -> accumulator + _item);
         }
         // Redondear los impuestos a 2 decimales para evitar errores de precisión
         return RoundUtils.round(sum);
@@ -409,9 +407,8 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         double subtotal = RoundUtils.round(getSubTotal());
         double tax = RoundUtils.round(getTax());
         double total = subtotal + tax;
-        // Redondear el total final a 2 decimales para evitar errores de precisión
-        // Esto asegura que $50.00 se muestre como $50.00 y no como $50.01
-        return RoundUtils.round(total);
+        // Redondear al 0.50 más cercano (ej: 14.45 -> 14.50, 14.99 -> 15.00)
+        return Math.round(total * 2.0) / 2.0;
     }
 
     public double getServiceCharge() {
@@ -421,14 +418,13 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     /**
      * Total paid, Exclude payment with name "debtpaid"
+     * 
      * @return total payd
      */
     public double getTotalPaid() {
         double sum = 0.0;
-        sum = payments.stream().filter((p)
-                -> (!"debtpaid".equals(p.getName()))).map((p)
-                -> p.getTotal()).reduce(sum, (accumulator, _item)
-                -> accumulator + _item);
+        sum = payments.stream().filter((p) -> (!"debtpaid".equals(p.getName()))).map((p) -> p.getTotal()).reduce(sum,
+                (accumulator, _item) -> accumulator + _item);
         return sum;
     }
 
@@ -507,7 +503,7 @@ public final class TicketInfo implements SerializableRead, Externalizable {
             t.add(oLine.getSubValue());
         }
 
-        // return dSuma;       
+        // return dSuma;
         Collection<TicketTaxInfo> avalues = m.values();
         return avalues.toArray(new TicketTaxInfo[avalues.size()]);
     }
@@ -549,20 +545,21 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         int day = cal.get(Calendar.DAY_OF_MONTH);
         int month = cal.get(Calendar.MONTH) + 1; // Calendar.MONTH es 0-based
         int year = cal.get(Calendar.YEAR);
-        
+
         // Convertir a formato 12 horas
         int hour12 = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
         String amPm = hour < 12 ? "a.m." : "p.m.";
-        
-        // Formatear la fecha sin usar SimpleDateFormat para evitar caracteres problemáticos
-        String formattedDate = String.format("%02d/%02d/%04d, %d:%02d:%02d %s", 
-            day, month, year, hour12, minute, second, amPm);
-        
+
+        // Formatear la fecha sin usar SimpleDateFormat para evitar caracteres
+        // problemáticos
+        String formattedDate = String.format("%02d/%02d/%04d, %d:%02d:%02d %s",
+                day, month, year, hour12, minute, second, amPm);
+
         // Limpiar cualquier carácter especial o invisible que pueda causar problemas
         formattedDate = formattedDate.replaceAll("[\\p{Cntrl}]", "");
         formattedDate = formattedDate.replaceAll("\\u200B", ""); // Zero-width space
         formattedDate = formattedDate.replaceAll("\\uFEFF", ""); // Zero-width no-break space
-        
+
         return formattedDate;
     }
 

@@ -23,7 +23,6 @@ import java.awt.geom.AffineTransform;
 import java.util.HashMap;
 import java.util.Map;
 
-
 /**
  * Manages the font state (font derivation process).
  * 
@@ -64,17 +63,17 @@ public class PrinterFontState {
      *
      *
      * @param baseFont The starting font.
-     * @param iStyle A bitmask integer for bold and underline styles.
+     * @param iStyle   A bitmask integer for bold and underline styles.
      * @return A new Font instance with all attributes applied.
      */
     public Font getFont(Font baseFont, int iStyle) {
         Map<TextAttribute, Object> attributes = new HashMap<>();
 
-        // Apply scaling via AffineTransform, pre-concatenating with the base font's transform.
+        // Apply scaling via AffineTransform, pre-concatenating with the base font's
+        // transform.
         AffineTransform affineTransform = AffineTransform.getScaleInstance(
                 m_fontSize.getWidthScale(),
-                m_fontSize.getHeightScale()
-        );
+                m_fontSize.getHeightScale());
         if (baseFont.getTransform() != null && !baseFont.getTransform().isIdentity()) {
             affineTransform.preConcatenate(baseFont.getTransform());
         }
@@ -91,6 +90,13 @@ public class PrinterFontState {
         }
 
         // Derive the new font using the single map of attributes.
-        return baseFont.deriveFont(attributes);
+        Font derived = baseFont.deriveFont(attributes);
+
+        // LOGGING: Registrar la fuente derivada
+        TicketPrintLogger.logFontStateCalculation(
+                m_fontSize.ordinal(), m_fontSize.getWidthScale(), m_fontSize.getHeightScale(),
+                baseFont, derived, iStyle);
+
+        return derived;
     }
 }

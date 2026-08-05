@@ -17,36 +17,107 @@ package com.openbravo.pos.forms;
 
 import com.openbravo.pos.instance.InstanceManager;
 import com.openbravo.pos.util.ModernLookAndFeel;
-import static java.awt.Frame.MAXIMIZED_BOTH;
 import java.io.File;
-import java.rmi.RemoteException;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.rmi.AlreadyBoundException;
 import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.time.LocalDateTime;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 
 public class StartPOS {
 
     private static final Logger LOGGER = Logger.getLogger(StartPOS.class.getName());
+    private static final String APP_WINDOW_TITLE = "Tortillería La Conchita";
 
     public static void main(final String args[]) {
+        Thread.setDefaultUncaughtExceptionHandler((thread, throwable) ->
+                writeStartupDebug("Uncaught exception en hilo " + thread.getName(), throwable));
 
-        // Aplicar estilo moderno antes de crear cualquier componente
+        writeStartupDebug("=== StartPOS.main iniciado ===");
+        writeStartupDebug("args.length=" + args.length);
+        for (int i = 0; i < args.length; i++) {
+            writeStartupDebug("arg[" + i + "]=" + args[i]);
+        }
+        writeStartupDebug("java.version=" + System.getProperty("java.version"));
+        writeStartupDebug("java.home=" + System.getProperty("java.home"));
+        writeStartupDebug("java.vendor=" + System.getProperty("java.vendor"));
+        writeStartupDebug("java.class.path=" + System.getProperty("java.class.path"));
+        writeStartupDebug("user.home=" + System.getProperty("user.home"));
+        writeStartupDebug("user.dir=" + System.getProperty("user.dir"));
+        writeStartupDebug("os.name=" + System.getProperty("os.name"));
+        writeStartupDebug("os.version=" + System.getProperty("os.version"));
+        writeStartupDebug("os.arch=" + System.getProperty("os.arch"));
+
+        if (System.getProperty("sun.java2d.uiScale") == null) {
+            System.setProperty("sun.java2d.uiScale", "1.0");
+        }
+        writeStartupDebug("sun.java2d.uiScale=" + System.getProperty("sun.java2d.uiScale"));
+
         ModernLookAndFeel.aplicarEstiloModerno();
+        writeStartupDebug("Estilo moderno aplicado");
+
+        com.openbravo.pos.printer.ticket.TicketPrintLogger.info(">>> APLICACION StartPOS INICIADA EXITOSAMENTE <<<");
+        writeStartupDebug("TicketPrintLogger inicializado");
 
         File configFile = (args.length > 0 ? new File(args[0]) : null);
         AppConfig config = new AppConfig(configFile);
         config.load();
+        writeStartupDebug("Config cargada desde: " + config.getConfigFile().getAbsolutePath());
+        writeStartupDebug("Config existe=" + config.getConfigFile().exists());
         AppConfig.applySystemProperties(config);
+        writeStartupDebug("System properties aplicadas");
+
+        String fontSizeStr = config.getProperty("font.size");
+        String fontName = config.getProperty("font.name");
+        if (fontName == null || fontName.isBlank()) {
+            fontName = "Segoe UI";
+            config.setProperty("font.name", fontName);
+        }
+        int fontSize = 32;
+        if (fontSizeStr == null || fontSizeStr.isBlank()) {
+            config.setProperty("font.size", String.valueOf(fontSize));
+            try {
+                config.save();
+            } catch (Exception e) {
+                LOGGER.log(Level.WARNING, "Error al guardar el tamaño de fuente por defecto", e);
+                writeStartupDebug("Error guardando font.size por defecto: " + e.getMessage(), e);
+            }
+        } else {
+            try {
+                fontSize = Integer.parseInt(fontSizeStr.trim());
+            } catch (NumberFormatException e) {
+                LOGGER.log(Level.WARNING, "Error al parsear el tamaño de fuente: " + fontSizeStr, e);
+                writeStartupDebug("Error parseando font.size=" + fontSizeStr, e);
+            }
+        }
+
+        ModernLookAndFeel.aplicarFuenteGlobal(new java.awt.Font(fontName, java.awt.Font.PLAIN, fontSize));
+        writeStartupDebug("Fuente global aplicada: " + fontName + " " + fontSize);
 
         SwingUtilities.invokeLater(new Runnable() {
 
             @Override
             public void run() {
+                writeStartupDebug("Entrando a SwingUtilities.invokeLater");
 
-                final JRootFrame rootframe = new JRootFrame(config);
+                final JRootFrame rootframe;
+                try {
+                    rootframe = new JRootFrame(config);
+                    writeStartupDebug("JRootFrame creado");
+                } catch (Throwable t) {
+                    writeStartupDebug("Error creando JRootFrame", t);
+                    throw t;
+                }
                 if (1 != 1 && "true".equals(config.getProperty("machine.uniqueinstance"))) {
 
                     try {
@@ -54,15 +125,13 @@ public class StartPOS {
                     } catch (RemoteException | NotBoundException e) {
                         String msg = "Cannot start the application. Another instance is alreday running";
                         LOGGER.log(Level.WARNING, msg, e);
-                        //Open A Window a Present a message to User
-                        //Wait maximun 30 second and close
+                        writeStartupDebug(msg, e);
                         JOptionPane.showMessageDialog(null,
                                 msg,
-                                AppLocal.APP_NAME, JOptionPane.WARNING_MESSAGE);
+                                APP_WINDOW_TITLE, JOptionPane.WARNING_MESSAGE);
                         System.exit(-1000);
                     }
 
-                    // Register the running application
                     try {
                         final InstanceManager instmanager = new InstanceManager(rootframe);
                         instmanager.registerInstance();
@@ -70,17 +139,56 @@ public class StartPOS {
                     } catch (RemoteException | AlreadyBoundException e) {
                         String msg = "Cannot start the application. Cannot register a new instance";
                         LOGGER.log(Level.WARNING, msg, e);
-                        //Open A Window a Present a message to User
-                        //Wait maximun 30 second and close
+                        writeStartupDebug(msg, e);
                         JOptionPane.showMessageDialog(null,
                                 msg,
-                                AppLocal.APP_NAME, JOptionPane.WARNING_MESSAGE);
+                                APP_WINDOW_TITLE, JOptionPane.WARNING_MESSAGE);
                         System.exit(-1001);
                     }
                 }
-                
-                rootframe.initFrame();
+
+                try {
+                    writeStartupDebug("Llamando rootframe.initFrame()");
+                    rootframe.initFrame();
+                    writeStartupDebug("rootframe.initFrame() completado");
+                } catch (Throwable t) {
+                    writeStartupDebug("Error en rootframe.initFrame(): " + t.getMessage(), t);
+                    throw t;
+                }
             }
         });
+    }
+
+    private static void writeStartupDebug(String message) {
+        writeStartupDebug(message, null);
+    }
+
+    private static void writeStartupDebug(String message, Throwable throwable) {
+        try {
+            String customPath = System.getProperty("ticket.debug.file");
+            Path logPath = (customPath == null || customPath.isBlank())
+                    ? Path.of(System.getProperty("user.home"), "Downloads", "ticket prinf.debug")
+                    : Path.of(customPath);
+            Path parent = logPath.getParent();
+            if (parent != null) {
+                Files.createDirectories(parent);
+            }
+            StringBuilder line = new StringBuilder()
+                    .append(LocalDateTime.now())
+                    .append(" [StartPOS] ")
+                    .append(message)
+                    .append(System.lineSeparator());
+            if (throwable != null) {
+                line.append(throwable.toString()).append(System.lineSeparator());
+                StringWriter sw = new StringWriter();
+                PrintWriter pw = new PrintWriter(sw);
+                throwable.printStackTrace(pw);
+                pw.flush();
+                line.append(sw).append(System.lineSeparator());
+            }
+            Files.writeString(logPath, line.toString(), StandardCharsets.UTF_8,
+                    StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+        } catch (IOException ignored) {
+        }
     }
 }

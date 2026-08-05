@@ -52,10 +52,15 @@ public class PrintItemLine implements PrintItem {
 
         PrinterFontState ps = new PrinterFontState(textsize);
         double left = x;
+        int lineMult = DevicePrinter.FontSize.getLineMultiplier(textsize);
+        int totalHeight = fontheight * lineMult;
+        float baselineY = (float) (y + (totalHeight * 0.78));
+
         for (int i = 0; i < m_atext.size(); i++) {
             StyledText text = m_atext.get(i);
-            g.setFont(ps.getFont(font, text.style));
-            g.drawString(text.text, (float)left, y);
+            Font f = ps.getFont(font, text.style);
+            g.setFont(f);
+            g.drawString(text.text, (float) left, baselineY);
             left += g.getFontMetrics().getStringBounds(text.text, g).getWidth();
         }
     }

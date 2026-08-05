@@ -136,6 +136,8 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         }
 
         loadProperties();
+        // Restyle all components recursively to force larger and modern fonts!
+        com.openbravo.pos.util.ModernLookAndFeel.estilizarComponentes(this);
     }
 
     /**
@@ -191,7 +193,8 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         jPanelCompany.add(panel.getConfigComponent());
         
         loadProperties();
-
+        // Restyle all components recursively to force larger and modern fonts!
+        com.openbravo.pos.util.ModernLookAndFeel.estilizarComponentes(this);
     }
 
     private void restoreProperties() {
@@ -329,13 +332,14 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         jbtnSave = new javax.swing.JButton();
 
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        setMinimumSize(new java.awt.Dimension(0, 0));
-        setPreferredSize(new java.awt.Dimension(950, 600));
+        setMinimumSize(new java.awt.Dimension(900, 550));
+        setPreferredSize(new java.awt.Dimension(1000, 650));
 
         jTabbedPane1.setAutoscrolls(true);
         jTabbedPane1.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jTabbedPane1.setOpaque(true);
-        jTabbedPane1.setPreferredSize(new java.awt.Dimension(930, 530));
+        jTabbedPane1.setMinimumSize(new java.awt.Dimension(880, 500));
+        jTabbedPane1.setPreferredSize(new java.awt.Dimension(980, 580));
 
         jPanelGeneral.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         jPanelGeneral.setPreferredSize(new java.awt.Dimension(0, 400));
@@ -373,7 +377,7 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
         jTabbedPane1.addTab(bundle.getString("jpanelconfiguration.tab.company.title"), jPanelCompany); // NOI18N
 
         jPanelDatabase.setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
-        jPanelDatabase.setPreferredSize(new java.awt.Dimension(0, 400));
+        jPanelDatabase.setPreferredSize(new java.awt.Dimension(0, 520));
         jPanelDatabase.setLayout(new javax.swing.BoxLayout(jPanelDatabase, javax.swing.BoxLayout.LINE_AXIS));
         jTabbedPane1.addTab(bundle.getString("jpanelconfiguration.tab.database.title"), jPanelDatabase); // NOI18N
 
@@ -447,15 +451,15 @@ public class JPanelConfiguration extends JPanel implements JPanelView {
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                     .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addContainerGap(javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                    .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(javax.swing.GroupLayout.Alignment.TRAILING, layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(jTabbedPane1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addComponent(jTabbedPane1, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addComponent(jPanel1, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addContainerGap())
         );

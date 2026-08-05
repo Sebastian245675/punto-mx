@@ -223,7 +223,8 @@ public class JPanelConfigDatabase extends javax.swing.JPanel implements PanelCon
 
         setFont(new java.awt.Font("Arial", 0, 12)); // NOI18N
         setOpaque(false);
-        setPreferredSize(new java.awt.Dimension(900, 500));
+        setMinimumSize(new java.awt.Dimension(850, 480));
+        setPreferredSize(new java.awt.Dimension(950, 520));
 
         jLabel6.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
         java.util.ResourceBundle bundle = java.util.ResourceBundle.getBundle("pos_messages"); // NOI18N

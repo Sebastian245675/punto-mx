@@ -63,4 +63,54 @@
             <column name="content" valueBlobFile="../com/openbravo/pos/templates/Printer.Ticket.xml"/>
         </insert>
     </changeSet>
+    
+    <!-- Antigravity - Agregar campos de cumpleaños y expediente de empleados a la tabla people -->
+    <changeSet author="antigravity (punto-mx)" id="20260606-birthdays">
+        <addColumn tableName="people">
+            <column name="phone" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="email" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="address" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="colonia" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="birthday" type="datetime">
+                <constraints nullable="true"/>
+            </column>
+            <column name="favorite_movie" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="favorite_book" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="hire_date" type="datetime">
+                <constraints nullable="true"/>
+            </column>
+            <column name="job_title" type="VARCHAR(255)">
+                <constraints nullable="true"/>
+            </column>
+            <column name="notes" type="VARCHAR(1000)">
+                <constraints nullable="true"/>
+            </column>
+        </addColumn>
+    </changeSet>
+
+    <!-- Antigravity - Actualizar template Printer.Ticket con fuente ancha size="3" -->
+    <changeSet author="antigravity (punto-mx)" id="20260723-printer-ticket-wide-font">
+        <comment>Actualizar template Printer.Ticket con fuente ancha y prominente size="3"</comment>
+        <delete tableName="resources">
+            <where>name = 'Printer.Ticket'</where>
+        </delete>
+        <insert tableName="resources">
+            <column name="id" value="48"/>
+            <column name="name" value="Printer.Ticket"/>
+            <column name="restype" value="0"/>
+            <column name="content" valueBlobFile="../com/openbravo/pos/templates/Printer.Ticket.xml"/>
+        </insert>
+    </changeSet>
 </databaseChangeLog>

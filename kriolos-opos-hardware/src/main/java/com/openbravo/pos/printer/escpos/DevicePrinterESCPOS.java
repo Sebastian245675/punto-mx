@@ -199,9 +199,6 @@ public class DevicePrinterESCPOS implements DevicePrinter {
 
         m_PrinterWriter.write(m_codes.getNewLine());
         m_PrinterWriter.write(m_codes.getNewLine());
-        m_PrinterWriter.write(m_codes.getNewLine());
-        m_PrinterWriter.write(m_codes.getNewLine());
-        m_PrinterWriter.write(m_codes.getNewLine());
 
         m_PrinterWriter.write(m_codes.getCutReceipt());
         m_PrinterWriter.flush();

@@ -51,11 +51,22 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     public JPanelTicketSetup() {
 
         initComponents();
+        jComboFontName.setEditable(true);
 
         jReceiptSize.addChangeListener(dirty);
         jPickupSize.addChangeListener(dirty);
         jTextReceiptPrefix.getDocument().addDocumentListener(dirty);
         m_jReceiptPrintOff.addActionListener(dirty);
+
+        jSpinnerWidth.addChangeListener(dirty);
+        jSpinnerHeight.addChangeListener(dirty);
+        jSpinnerX.addChangeListener(dirty);
+        jSpinnerY.addChangeListener(dirty);
+        jComboFontName.addActionListener(dirty);
+        jSpinnerFontSize.addChangeListener(dirty);
+        jSpinnerColumns.addChangeListener(dirty);
+        jCheckBold.addActionListener(dirty);
+        jCheckNormalTotals.addActionListener(dirty);
 
         jbtnReset.setVisible(true);
     }
@@ -112,6 +123,52 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         
         receiptPrefixExample();
 
+        String widthProp = config.getProperty("paper.receipt.width");
+        try {
+            jSpinnerWidth.setValue(Integer.parseInt(widthProp != null ? widthProp : "262"));
+        } catch (Exception ex) {
+            jSpinnerWidth.setValue(262);
+        }
+        String heightProp = config.getProperty("paper.receipt.height");
+        try {
+            jSpinnerHeight.setValue(Integer.parseInt(heightProp != null ? heightProp : "546"));
+        } catch (Exception ex) {
+            jSpinnerHeight.setValue(546);
+        }
+        String xProp = config.getProperty("paper.receipt.x");
+        try {
+            jSpinnerX.setValue(Integer.parseInt(xProp != null ? xProp : "10"));
+        } catch (Exception ex) {
+            jSpinnerX.setValue(10);
+        }
+        String yProp = config.getProperty("paper.receipt.y");
+        try {
+            jSpinnerY.setValue(Integer.parseInt(yProp != null ? yProp : "10"));
+        } catch (Exception ex) {
+            jSpinnerY.setValue(10);
+        }
+        
+        String fontNameProp = config.getProperty("paper.receipt.fontname");
+        jComboFontName.setSelectedItem(fontNameProp != null ? fontNameProp : "Courier New");
+        
+        String fontSizeProp = config.getProperty("paper.receipt.fontsize");
+        try {
+            jSpinnerFontSize.setValue(Integer.parseInt(fontSizeProp != null ? fontSizeProp : "7"));
+        } catch (Exception ex) {
+            jSpinnerFontSize.setValue(7);
+        }
+        String columnsProp = config.getProperty("paper.receipt.columns");
+        try {
+            jSpinnerColumns.setValue(Integer.parseInt(columnsProp != null ? columnsProp : "42"));
+        } catch (Exception ex) {
+            jSpinnerColumns.setValue(42);
+        }
+        
+        String fontBoldProp = config.getProperty("paper.receipt.fontbold");
+        jCheckBold.setSelected(Boolean.parseBoolean(fontBoldProp != null ? fontBoldProp : "false"));
+        String normalTotalsProp = config.getProperty("paper.receipt.normaltotals");
+        jCheckNormalTotals.setSelected(Boolean.parseBoolean(normalTotalsProp != null ? normalTotalsProp : "false"));
+
         dirty.setDirty(false);
 
     }
@@ -152,6 +209,16 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         config.setProperty("till.pickupsize", jPickupSize.getValue().toString());
         config.setProperty("till.receiptprintoff", Boolean.toString(m_jReceiptPrintOff.isSelected()));
 
+        config.setProperty("paper.receipt.width", jSpinnerWidth.getValue().toString());
+        config.setProperty("paper.receipt.height", jSpinnerHeight.getValue().toString());
+        config.setProperty("paper.receipt.x", jSpinnerX.getValue().toString());
+        config.setProperty("paper.receipt.y", jSpinnerY.getValue().toString());
+        config.setProperty("paper.receipt.fontname", jComboFontName.getSelectedItem().toString());
+        config.setProperty("paper.receipt.fontsize", jSpinnerFontSize.getValue().toString());
+        config.setProperty("paper.receipt.columns", jSpinnerColumns.getValue().toString());
+        config.setProperty("paper.receipt.fontbold", Boolean.toString(jCheckBold.isSelected()));
+        config.setProperty("paper.receipt.normaltotals", Boolean.toString(jCheckNormalTotals.isSelected()));
+
         dirty.setDirty(false);
     }
 
@@ -173,6 +240,23 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
         jPickupSize = new javax.swing.JSpinner();
         m_jReceiptPrintOff = new javax.swing.JCheckBox();
         jbtnReset = new javax.swing.JButton();
+        jPanelTicketParams = new javax.swing.JPanel();
+        jLabelWidth = new javax.swing.JLabel();
+        jSpinnerWidth = new javax.swing.JSpinner();
+        jLabelX = new javax.swing.JLabel();
+        jSpinnerX = new javax.swing.JSpinner();
+        jLabelHeight = new javax.swing.JLabel();
+        jSpinnerHeight = new javax.swing.JSpinner();
+        jLabelY = new javax.swing.JLabel();
+        jSpinnerY = new javax.swing.JSpinner();
+        jLabelFontName = new javax.swing.JLabel();
+        jComboFontName = new javax.swing.JComboBox<>();
+        jLabelFontSize = new javax.swing.JLabel();
+        jSpinnerFontSize = new javax.swing.JSpinner();
+        jLabelColumns = new javax.swing.JLabel();
+        jSpinnerColumns = new javax.swing.JSpinner();
+        jCheckBold = new javax.swing.JCheckBox();
+        jCheckNormalTotals = new javax.swing.JCheckBox();
 
         jTextField2.setText("jTextField2");
 
@@ -254,6 +338,76 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
             }
         });
 
+        jPanelTicketParams.setBorder(javax.swing.BorderFactory.createTitledBorder(null, "Configuración del Ancho y Fuente del Ticket", javax.swing.border.TitledBorder.DEFAULT_JUSTIFICATION, javax.swing.border.TitledBorder.DEFAULT_POSITION, new java.awt.Font("Arial", 1, 14))); // NOI18N
+        jPanelTicketParams.setOpaque(false);
+        jPanelTicketParams.setLayout(new java.awt.GridLayout(4, 4, 10, 10));
+
+        jLabelWidth.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelWidth.setText("Ancho Papel (puntos):");
+        jPanelTicketParams.add(jLabelWidth);
+
+        jSpinnerWidth.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jSpinnerWidth.setModel(new javax.swing.SpinnerNumberModel(262, 100, 800, 1));
+        jPanelTicketParams.add(jSpinnerWidth);
+
+        jLabelX.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelX.setText("Margen Izq. (X):");
+        jPanelTicketParams.add(jLabelX);
+
+        jSpinnerX.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jSpinnerX.setModel(new javax.swing.SpinnerNumberModel(10, 0, 100, 1));
+        jPanelTicketParams.add(jSpinnerX);
+
+        jLabelHeight.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelHeight.setText("Alto Papel (puntos):");
+        jPanelTicketParams.add(jLabelHeight);
+
+        jSpinnerHeight.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jSpinnerHeight.setModel(new javax.swing.SpinnerNumberModel(546, 100, 2000, 1));
+        jPanelTicketParams.add(jSpinnerHeight);
+
+        jLabelY.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelY.setText("Margen Sup. (Y):");
+        jPanelTicketParams.add(jLabelY);
+
+        jSpinnerY.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jSpinnerY.setModel(new javax.swing.SpinnerNumberModel(10, 0, 100, 1));
+        jPanelTicketParams.add(jSpinnerY);
+
+        jLabelFontName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelFontName.setText("Fuente de Impresión:");
+        jPanelTicketParams.add(jLabelFontName);
+
+        jComboFontName.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jComboFontName.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Courier New", "Monospaced", "Arial", "Lucida Console", "Segoe UI", "Tahoma" }));
+        jPanelTicketParams.add(jComboFontName);
+
+        jLabelFontSize.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelFontSize.setText("Tamaño de Fuente:");
+        jPanelTicketParams.add(jLabelFontSize);
+
+        jSpinnerFontSize.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jSpinnerFontSize.setModel(new javax.swing.SpinnerNumberModel(7, 5, 24, 1));
+        jPanelTicketParams.add(jSpinnerFontSize);
+
+        jLabelColumns.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jLabelColumns.setText("Columnas de Texto:");
+        jPanelTicketParams.add(jLabelColumns);
+
+        jSpinnerColumns.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jSpinnerColumns.setModel(new javax.swing.SpinnerNumberModel(42, 20, 100, 1));
+        jPanelTicketParams.add(jSpinnerColumns);
+
+        jCheckBold.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jCheckBold.setText("Poner todo en Negritas");
+        jCheckBold.setOpaque(false);
+        jPanelTicketParams.add(jCheckBold);
+
+        jCheckNormalTotals.setFont(new java.awt.Font("Arial", 0, 14)); // NOI18N
+        jCheckNormalTotals.setText("Fuente normal en totales");
+        jCheckNormalTotals.setOpaque(false);
+        jPanelTicketParams.add(jCheckNormalTotals);
+
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
@@ -280,6 +434,10 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
                     .addComponent(jbtnReset, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                     .addComponent(jTicketExample, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
                 .addContainerGap(247, Short.MAX_VALUE))
+            .addGroup(layout.createSequentialGroup()
+                .addContainerGap()
+                .addComponent(jPanelTicketParams, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                .addContainerGap())
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -300,7 +458,9 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
                     .addComponent(jbtnReset, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(18, 18, 18)
                 .addComponent(m_jReceiptPrintOff, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addContainerGap(316, Short.MAX_VALUE))
+                .addGap(18, 18, 18)
+                .addComponent(jPanelTicketParams, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addContainerGap(120, Short.MAX_VALUE))
         );
     }// </editor-fold>//GEN-END:initComponents
 
@@ -369,6 +529,24 @@ public class JPanelTicketSetup extends javax.swing.JPanel implements PanelConfig
     private javax.swing.JTextField jTicketExample;
     private javax.swing.JButton jbtnReset;
     private javax.swing.JCheckBox m_jReceiptPrintOff;
+    
+    private javax.swing.JPanel jPanelTicketParams;
+    private javax.swing.JLabel jLabelWidth;
+    private javax.swing.JSpinner jSpinnerWidth;
+    private javax.swing.JLabel jLabelHeight;
+    private javax.swing.JSpinner jSpinnerHeight;
+    private javax.swing.JLabel jLabelX;
+    private javax.swing.JSpinner jSpinnerX;
+    private javax.swing.JLabel jLabelY;
+    private javax.swing.JSpinner jSpinnerY;
+    private javax.swing.JLabel jLabelFontName;
+    private javax.swing.JComboBox<String> jComboFontName;
+    private javax.swing.JLabel jLabelFontSize;
+    private javax.swing.JSpinner jSpinnerFontSize;
+    private javax.swing.JLabel jLabelColumns;
+    private javax.swing.JSpinner jSpinnerColumns;
+    private javax.swing.JCheckBox jCheckBold;
+    private javax.swing.JCheckBox jCheckNormalTotals;
     // End of variables declaration//GEN-END:variables
 
 }

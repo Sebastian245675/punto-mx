@@ -33,21 +33,22 @@ import java.io.File;
 
 /**
  * Panel de configuración para Firebase - Almacenamiento en la nube
+ * 
  * @author Sebastian
  */
 public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelConfig {
-    
+
     private final DirtyManager dirty = new DirtyManager();
     private boolean userIdValidated = false;
     private String validatedUserId = null;
     private String hayCajasAbiertasDetalle = null;
-    
+
     private com.openbravo.pos.forms.AppView m_App;
 
     /** Creates new form JPanelConfigFirebase */
     public JPanelConfigFirebase() {
         initComponents();
-        
+
         // Ocultar campos de configuración de Firebase - solo mostrar ID Usuario
         jtxtProjectId.setVisible(false);
         jtxtApiKey.setVisible(false);
@@ -67,32 +68,34 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         jchkSyncCustomers.setVisible(false);
         jchkSyncProducts.setVisible(false);
         jchkSyncSales.setVisible(false);
-        
+
         // Configuración por defecto - Supabase siempre habilitado
         jchkFirebaseEnabled.setSelected(true);
         jchkSyncCustomers.setSelected(true);
         jchkSyncProducts.setSelected(true);
         jchkSyncSales.setSelected(true);
-        
+
         // Solo escuchar cambios en el ID Usuario
         jtxtUserId.getDocument().addDocumentListener(dirty);
-        
+
         // Listener para invalidar la validación cuando cambie el ID de usuario
         jtxtUserId.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
             @Override
             public void insertUpdate(javax.swing.event.DocumentEvent e) {
                 invalidateUserValidation();
             }
+
             @Override
             public void removeUpdate(javax.swing.event.DocumentEvent e) {
                 invalidateUserValidation();
             }
+
             @Override
             public void changedUpdate(javax.swing.event.DocumentEvent e) {
                 invalidateUserValidation();
             }
         });
-        
+
         // Deshabilitar los botones de subida/descarga hasta que se valide el ID
         updateButtonsState();
     }
@@ -101,7 +104,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         this();
         this.m_App = app;
     }
-    
+
     /**
      * Invalida la validación del usuario cuando se cambia el ID
      */
@@ -119,7 +122,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
      * This method is called from within the constructor to initialize the form.
      */
     @SuppressWarnings("unchecked")
-    // <editor-fold defaultstate="collapsed" desc="Generated Code">                          
+    // <editor-fold defaultstate="collapsed" desc="Generated Code">
     private void initComponents() {
 
         jLabel1 = new javax.swing.JLabel();
@@ -241,236 +244,275 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         });
 
         jLabel10.setFont(new java.awt.Font("Arial", 0, 11)); // NOI18N
-        jLabel10.setText("<html>El sistema está conectado automáticamente. Solo ingrese su código de usuario para habilitar la sincronización de datos.</html>");
+        jLabel10.setText(
+                "<html>El sistema está conectado automáticamente. Solo ingrese su código de usuario para habilitar la sincronización de datos.</html>");
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(this);
         this.setLayout(layout);
         layout.setHorizontalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(20, 20, 20)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 450, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel1)
-                    .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 450, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(layout.createSequentialGroup()
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE, 150, Short.MAX_VALUE)
-                            .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jLabel11, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
-                        .addGap(18, 18, 18)
-                        .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING, false)
-                            .addComponent(jtxtProjectId)
-                            .addComponent(jtxtApiKey)
-                            .addComponent(jtxtAuthDomain)
-                            .addComponent(jtxtStorageBucket)
-                            .addComponent(jtxtMessagingSenderId)
-                            .addComponent(jtxtAppId, javax.swing.GroupLayout.PREFERRED_SIZE, 280, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGroup(layout.createSequentialGroup()
-                                .addComponent(jtxtUserId, javax.swing.GroupLayout.PREFERRED_SIZE, 180, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButtonValidateUser, javax.swing.GroupLayout.PREFERRED_SIZE, 90, javax.swing.GroupLayout.PREFERRED_SIZE))))
-                    .addGroup(layout.createSequentialGroup()
-                        .addGap(168, 168, 168)
-                        .addComponent(jLabelUserStatus, javax.swing.GroupLayout.PREFERRED_SIZE, 280, javax.swing.GroupLayout.PREFERRED_SIZE))
-                    .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 450, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jLabel8)
-                    .addComponent(jchkFirebaseEnabled)
-                    .addComponent(jLabel9)
-                    .addComponent(jchkSyncCustomers)
-                    .addComponent(jchkSyncProducts)
-                    .addComponent(jchkSyncSales)
-                    .addGroup(layout.createSequentialGroup()
-                        .addComponent(jButtonTest)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButtonUpload)))
-                .addContainerGap(30, Short.MAX_VALUE))
-        );
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addGap(20, 20, 20)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                                        .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 450,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel1)
+                                        .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 450,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addGroup(layout.createSequentialGroup()
+                                                .addGroup(layout
+                                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING,
+                                                                false)
+                                                        .addComponent(jLabel2, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                        .addComponent(jLabel3, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                        .addComponent(jLabel4, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                        .addComponent(jLabel5, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                        .addComponent(jLabel6, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                150, Short.MAX_VALUE)
+                                                        .addComponent(jLabel7, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                                                        .addComponent(jLabel11, javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                                javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))
+                                                .addGap(18, 18, 18)
+                                                .addGroup(layout
+                                                        .createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING,
+                                                                false)
+                                                        .addComponent(jtxtProjectId)
+                                                        .addComponent(jtxtApiKey)
+                                                        .addComponent(jtxtAuthDomain)
+                                                        .addComponent(jtxtStorageBucket)
+                                                        .addComponent(jtxtMessagingSenderId)
+                                                        .addComponent(jtxtAppId, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                                280, javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                        .addGroup(layout.createSequentialGroup()
+                                                                .addComponent(jtxtUserId,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE, 180,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                                                .addPreferredGap(
+                                                                        javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                                .addComponent(jButtonValidateUser,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE, 90,
+                                                                        javax.swing.GroupLayout.PREFERRED_SIZE))))
+                                        .addGroup(layout.createSequentialGroup()
+                                                .addGap(168, 168, 168)
+                                                .addComponent(jLabelUserStatus, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                        280, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                        .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 450,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jLabel8)
+                                        .addComponent(jchkFirebaseEnabled)
+                                        .addComponent(jLabel9)
+                                        .addComponent(jchkSyncCustomers)
+                                        .addComponent(jchkSyncProducts)
+                                        .addComponent(jchkSyncSales)
+                                        .addGroup(layout.createSequentialGroup()
+                                                .addComponent(jButtonTest)
+                                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                                                .addComponent(jButtonUpload)))
+                                .addContainerGap(30, Short.MAX_VALUE)));
         layout.setVerticalGroup(
-            layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addGap(15, 15, 15)
-                .addComponent(jLabel1)
-                .addGap(8, 8, 8)
-                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 35, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(8, 8, 8)
-                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 8, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(8, 8, 8)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel2)
-                    .addComponent(jtxtProjectId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(8, 8, 8)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel3)
-                    .addComponent(jtxtApiKey, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(8, 8, 8)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel4)
-                    .addComponent(jtxtAuthDomain, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(8, 8, 8)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel5)
-                    .addComponent(jtxtStorageBucket, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(8, 8, 8)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel6)
-                    .addComponent(jtxtMessagingSenderId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(8, 8, 8)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel7)
-                    .addComponent(jtxtAppId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                .addGap(8, 8, 8)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jLabel11)
-                    .addComponent(jtxtUserId, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(jButtonValidateUser))
-                .addGap(3, 3, 3)
-                .addComponent(jLabelUserStatus)
-                .addGap(8, 8, 8)
-                .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 8, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(8, 8, 8)
-                .addComponent(jLabel8)
-                .addGap(3, 3, 3)
-                .addComponent(jchkFirebaseEnabled)
-                .addGap(10, 10, 10)
-                .addComponent(jLabel9)
-                .addGap(3, 3, 3)
-                .addComponent(jchkSyncCustomers)
-                .addGap(3, 3, 3)
-                .addComponent(jchkSyncProducts)
-                .addGap(3, 3, 3)
-                .addComponent(jchkSyncSales)
-                .addGap(15, 15, 15)
-                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                    .addComponent(jButtonTest)
-                    .addComponent(jButtonUpload))
-                .addContainerGap(15, Short.MAX_VALUE))
-        );
-    }// </editor-fold>                        
+                layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                        .addGroup(layout.createSequentialGroup()
+                                .addGap(15, 15, 15)
+                                .addComponent(jLabel1)
+                                .addGap(8, 8, 8)
+                                .addComponent(jLabel10, javax.swing.GroupLayout.PREFERRED_SIZE, 35,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(8, 8, 8)
+                                .addComponent(jSeparator1, javax.swing.GroupLayout.PREFERRED_SIZE, 8,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(8, 8, 8)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel2)
+                                        .addComponent(jtxtProjectId, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(8, 8, 8)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel3)
+                                        .addComponent(jtxtApiKey, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(8, 8, 8)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel4)
+                                        .addComponent(jtxtAuthDomain, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(8, 8, 8)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel5)
+                                        .addComponent(jtxtStorageBucket, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(8, 8, 8)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel6)
+                                        .addComponent(jtxtMessagingSenderId, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(8, 8, 8)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel7)
+                                        .addComponent(jtxtAppId, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addGap(8, 8, 8)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jLabel11)
+                                        .addComponent(jtxtUserId, javax.swing.GroupLayout.PREFERRED_SIZE,
+                                                javax.swing.GroupLayout.DEFAULT_SIZE,
+                                                javax.swing.GroupLayout.PREFERRED_SIZE)
+                                        .addComponent(jButtonValidateUser))
+                                .addGap(3, 3, 3)
+                                .addComponent(jLabelUserStatus)
+                                .addGap(8, 8, 8)
+                                .addComponent(jSeparator2, javax.swing.GroupLayout.PREFERRED_SIZE, 8,
+                                        javax.swing.GroupLayout.PREFERRED_SIZE)
+                                .addGap(8, 8, 8)
+                                .addComponent(jLabel8)
+                                .addGap(3, 3, 3)
+                                .addComponent(jchkFirebaseEnabled)
+                                .addGap(10, 10, 10)
+                                .addComponent(jLabel9)
+                                .addGap(3, 3, 3)
+                                .addComponent(jchkSyncCustomers)
+                                .addGap(3, 3, 3)
+                                .addComponent(jchkSyncProducts)
+                                .addGap(3, 3, 3)
+                                .addComponent(jchkSyncSales)
+                                .addGap(15, 15, 15)
+                                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                                        .addComponent(jButtonTest)
+                                        .addComponent(jButtonUpload))
+                                .addContainerGap(15, Short.MAX_VALUE)));
+    }// </editor-fold>
 
     private void jButtonValidateUserActionPerformed(java.awt.event.ActionEvent evt) {
         String userId = jtxtUserId.getText().trim();
-        
+
         // Validar que el campo no esté vacío
         if (userId.isEmpty()) {
             jLabelUserStatus.setText("⚠️ Ingrese un ID de usuario");
             jLabelUserStatus.setForeground(java.awt.Color.ORANGE);
             return;
         }
-        
+
         // Deshabilitar el botón durante la validación
         jButtonValidateUser.setEnabled(false);
         jButtonValidateUser.setText("Validando...");
         jLabelUserStatus.setText("⏳ Verificando...");
         jLabelUserStatus.setForeground(java.awt.Color.BLUE);
-        
+
         // Ejecutar validación en background consultando Supabase (validación por CARD)
         SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
             private String userName = null;
-            
+
             @Override
             protected Boolean doInBackground() throws Exception {
                 try {
                     // Usar SupabaseServiceManager con conexión interna
-                    com.openbravo.pos.supabase.SupabaseServiceManager manager = 
-                        com.openbravo.pos.supabase.SupabaseServiceManager.getInstance();
+                    com.openbravo.pos.supabase.SupabaseServiceManager manager = com.openbravo.pos.supabase.SupabaseServiceManager
+                            .getInstance();
                     AppConfig tempConfig = new AppConfig(null);
                     tempConfig.load();
                     manager.initialize(tempConfig);
                     com.openbravo.pos.supabase.SupabaseServiceREST supabase = manager.getService();
                     java.util.List<java.util.Map<String, Object>> usuarios = supabase.fetchData("usuarios");
-                    
+
                     // Buscar el card en la lista de usuarios - solo verificar que exista
                     for (java.util.Map<String, Object> u : usuarios) {
                         Object card = u.get("tarjeta");
-                        if (card == null) card = u.get("card");
+                        if (card == null)
+                            card = u.get("card");
                         if (card != null && userId.equals(card.toString())) {
                             // Si encontramos el card, obtener el nombre y retornar true
                             Object nombre = u.get("nombre");
-                            if (nombre == null) nombre = u.get("name");
+                            if (nombre == null)
+                                nombre = u.get("name");
                             userName = nombre != null ? nombre.toString() : null;
                             return true; // Card existe, validación exitosa
-                            }
                         }
+                    }
                     return false; // Card no encontrado
                 } catch (Exception ex) {
                     java.util.logging.Logger.getLogger(JPanelConfigFirebase.class.getName())
-                        .log(java.util.logging.Level.SEVERE, "Error validando CARD contra Supabase", ex);
+                            .log(java.util.logging.Level.SEVERE, "Error validando CARD contra Supabase", ex);
                     return false;
                 }
             }
-            
+
             @Override
             protected void done() {
                 // Rehabilitar el botón
                 jButtonValidateUser.setEnabled(true);
                 jButtonValidateUser.setText("Validar");
-                
+
                 try {
                     boolean exists = get();
                     if (exists) {
                         jLabelUserStatus.setText("✓ Código validado correctamente");
                         jLabelUserStatus.setForeground(new java.awt.Color(0, 150, 0));
-                        
+
                         // Marcar como validado
                         userIdValidated = true;
                         validatedUserId = userId; // Usamos el CARD como código habilitante
-                        
+
                         // NO guardar en configuración - el código debe validarse cada vez
                         // Esto asegura que cada sesión requiera validación manual
-                        
+
                         // Habilitar los botones de subida/descarga
                         updateButtonsState();
-                        
-                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "Usuario validado correctamente.\n\n" +
-                            "Ahora puede subir datos.",
-                            "Validación Exitosa", 
-                            JOptionPane.INFORMATION_MESSAGE);
+
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                                "Usuario validado correctamente.\n\n" +
+                                        "Ahora puede subir datos.",
+                                "Validación Exitosa",
+                                JOptionPane.INFORMATION_MESSAGE);
                     } else {
                         jLabelUserStatus.setText("✗ Código no encontrado");
                         jLabelUserStatus.setForeground(java.awt.Color.RED);
-                        
+
                         // Marcar como no validado
                         userIdValidated = false;
                         validatedUserId = null;
                         updateButtonsState();
-                        
-                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "El código ingresado no es válido o no está activo.",
-                            "Código No Válido", 
-                            JOptionPane.WARNING_MESSAGE);
+
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                                "El código ingresado no es válido o no está activo.",
+                                "Código No Válido",
+                                JOptionPane.WARNING_MESSAGE);
                     }
                 } catch (Exception e) {
                     jLabelUserStatus.setText("✗ Error al validar");
                     jLabelUserStatus.setForeground(java.awt.Color.RED);
-                    
+
                     // Marcar como no validado
                     userIdValidated = false;
                     validatedUserId = null;
                     updateButtonsState();
-                    
-                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error al validar el usuario.\n\nPor favor, verifique su conexión e intente nuevamente.",
-                        "Error", 
-                        JOptionPane.ERROR_MESSAGE);
+
+                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                            "Error al validar el usuario.\n\nPor favor, verifique su conexión e intente nuevamente.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
-        
+
         worker.execute();
     }
-    
+
     /**
      * Actualiza el estado de los botones según si el ID está validado
      */
     private void updateButtonsState() {
         jButtonUpload.setEnabled(userIdValidated);
-        
+
         if (!userIdValidated) {
             jButtonUpload.setToolTipText("Debe validar el ID de usuario antes de subir datos");
         } else {
@@ -478,29 +520,29 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         }
     }
 
-    private void jButtonTestActionPerformed(java.awt.event.ActionEvent evt) {                                            
+    private void jButtonTestActionPerformed(java.awt.event.ActionEvent evt) {
         // Usar configuración temporal para la prueba
         AppConfig tempConfig = new AppConfig(null);
         tempConfig.load();
-        
+
         // Deshabilitar el botón durante la prueba
         jButtonTest.setEnabled(false);
         jButtonTest.setText("Probando...");
-        
+
         // Ejecutar prueba en background
         SwingWorker<Boolean, Void> worker = new SwingWorker<Boolean, Void>() {
             @Override
             protected Boolean doInBackground() throws Exception {
                 try {
                     // Usar SupabaseServiceManager con conexión interna
-                    com.openbravo.pos.supabase.SupabaseServiceManager manager = 
-                        com.openbravo.pos.supabase.SupabaseServiceManager.getInstance();
-                    
+                    com.openbravo.pos.supabase.SupabaseServiceManager manager = com.openbravo.pos.supabase.SupabaseServiceManager
+                            .getInstance();
+
                     // Inicializar el servicio con la configuración temporal
                     if (!manager.initialize(tempConfig)) {
                         return false;
                     }
-                    
+
                     // Probar conexión intentando obtener datos
                     com.openbravo.pos.supabase.SupabaseServiceREST supabase = manager.getService();
                     java.util.List<java.util.Map<String, Object>> test = supabase.fetchData("usuarios");
@@ -509,42 +551,43 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     return false;
                 }
             }
-            
+
             @Override
             protected void done() {
                 // Rehabilitar el botón
                 jButtonTest.setEnabled(true);
                 jButtonTest.setText("Probar Conexión");
-                
+
                 try {
                     boolean success = get();
                     if (success) {
-                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "¡Conexión exitosa!\n" +
-                            "El sistema está conectado correctamente.",
-                            "Prueba de Conexión", 
-                            JOptionPane.INFORMATION_MESSAGE);
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                                "¡Conexión exitosa!\n" +
+                                        "El sistema está conectado correctamente.",
+                                "Prueba de Conexión",
+                                JOptionPane.INFORMATION_MESSAGE);
                     } else {
-                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "Error de conexión.\n" +
-                            "Verifique su conexión a internet e intente nuevamente.",
-                            "Error de Conexión", 
-                            JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                                "Error de conexión.\n" +
+                                        "Verifique su conexión a internet e intente nuevamente.",
+                                "Error de Conexión",
+                                JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error inesperado durante la prueba de conexión.\n\nPor favor, intente nuevamente.",
-                        "Error", 
-                        JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                            "Error inesperado durante la prueba de conexión.\n\nPor favor, intente nuevamente.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
-        
+
         worker.execute();
-    }                                           
+    }
 
     /**
      * Verifica cuántas ventas hay disponibles para subir (ventas de cajas cerradas)
+     * 
      * @return número de ventas disponibles para subir
      */
     private int verificarVentasDisponibles() {
@@ -552,7 +595,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
             // Obtener la configuración de la base de datos
             com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
             config.load();
-            
+
             // Crear una sesión de base de datos
             com.openbravo.data.loader.Session session = null;
             try {
@@ -561,72 +604,89 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 System.err.println("Error creando sesión de BD para verificar ventas: " + e.getMessage());
                 return 0;
             }
-            
+
             if (session == null) {
                 return 0;
             }
-            
+
             java.sql.PreparedStatement stmt = null;
             java.sql.ResultSet rs = null;
             try {
                 // Contar ventas de cajas cerradas (solo estas se pueden subir)
                 String sql = "SELECT COUNT(*) FROM receipts r " +
-                           "INNER JOIN closedcash cc ON r.MONEY = cc.MONEY " +
-                           "WHERE cc.DATEEND IS NOT NULL";
-                
+                        "INNER JOIN closedcash cc ON r.MONEY = cc.MONEY " +
+                        "WHERE cc.DATEEND IS NOT NULL";
+
                 stmt = session.getConnection().prepareStatement(sql);
                 rs = stmt.executeQuery();
-                
+
                 if (rs.next()) {
                     int count = rs.getInt(1);
                     return count;
                 }
-                
+
                 return 0;
             } catch (Exception e) {
                 System.err.println("Error verificando ventas disponibles: " + e.getMessage());
                 return 0;
             } finally {
-                if (rs != null) { try { rs.close(); } catch (Exception e) {} }
-                if (stmt != null) { try { stmt.close(); } catch (Exception e) {} }
-                if (session != null) { try { session.close(); } catch (Exception e) {} }
+                if (rs != null) {
+                    try {
+                        rs.close();
+                    } catch (Exception e) {
+                    }
+                }
+                if (stmt != null) {
+                    try {
+                        stmt.close();
+                    } catch (Exception e) {
+                    }
+                }
+                if (session != null) {
+                    try {
+                        session.close();
+                    } catch (Exception e) {
+                    }
+                }
             }
         } catch (Exception e) {
             System.err.println("Error en verificarVentasDisponibles: " + e.getMessage());
             return 0;
         }
     }
-    
+
     /**
      * Verifica si hay cajas abiertas (DATEEND IS NULL) en la base de datos
+     * 
      * @return true si hay cajas abiertas, false en caso contrario
      */
     private boolean hayCajasAbiertas() {
         try {
             // Obtener la configuración de la base de datos
-                    com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
-                    config.load();
-                    
+            com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
+            config.load();
+
             // Crear una sesión de base de datos
-                    com.openbravo.data.loader.Session session = null;
-                    try {
-                        session = com.openbravo.pos.forms.AppViewConnection.createSession(null, config);
-                    } catch (Exception e) {
+            com.openbravo.data.loader.Session session = null;
+            try {
+                session = com.openbravo.pos.forms.AppViewConnection.createSession(null, config);
+            } catch (Exception e) {
                 System.err.println("Error creando sesión de BD para verificar cajas: " + e.getMessage());
-                // Si no se puede crear la sesión, asumimos que no hay cajas abiertas para permitir la subida
-                        return false;
-                    }
-                    
-                    if (session == null) {
-                        return false;
-                    }
-                    
+                // Si no se puede crear la sesión, asumimos que no hay cajas abiertas para
+                // permitir la subida
+                return false;
+            }
+
+            if (session == null) {
+                return false;
+            }
+
             java.sql.PreparedStatement stmt = null;
             java.sql.ResultSet rs = null;
             try {
                 // Asegurar que obtenemos datos frescos (sin caché)
                 java.sql.Connection conn = session.getConnection();
-                
+
                 // Forzar actualización de datos (si la BD lo soporta)
                 try {
                     // Pequeña pausa para asegurar que los cambios se hayan guardado
@@ -634,25 +694,25 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 } catch (InterruptedException ie) {
                     Thread.currentThread().interrupt();
                 }
-                
+
                 // Consultar detalles de cajas abiertas y sus ventas para depuración
                 String debugSql = "SELECT cc.MONEY, cc.DATEEND, COUNT(r.ID) as ventas_count " +
-                                "FROM closedcash cc " +
-                                "LEFT JOIN receipts r ON r.MONEY = cc.MONEY " +
-                                "WHERE cc.DATEEND IS NULL " +
-                                "GROUP BY cc.MONEY, cc.DATEEND";
-                
+                        "FROM closedcash cc " +
+                        "LEFT JOIN receipts r ON r.MONEY = cc.MONEY " +
+                        "WHERE cc.DATEEND IS NULL " +
+                        "GROUP BY cc.MONEY, cc.DATEEND";
+
                 java.sql.PreparedStatement debugStmt = conn.prepareStatement(debugSql);
                 java.sql.ResultSet debugRs = debugStmt.executeQuery();
-                
+
                 int totalVentasEnCajasAbiertas = 0;
                 java.util.List<String> cajasInfo = new java.util.ArrayList<>();
-                
+
                 while (debugRs.next()) {
                     String moneyId = debugRs.getString("MONEY");
                     java.sql.Timestamp dateEnd = debugRs.getTimestamp("DATEEND");
                     int ventasCount = debugRs.getInt("ventas_count");
-                    
+
                     if (ventasCount > 0) {
                         totalVentasEnCajasAbiertas += ventasCount;
                         cajasInfo.add("Caja: " + moneyId + " - Ventas: " + ventasCount);
@@ -660,10 +720,10 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 }
                 debugRs.close();
                 debugStmt.close();
-                
+
                 System.out.println("=== DEPURACIÓN: Verificación de cajas ===");
                 System.out.println("Total de ventas en cajas abiertas: " + totalVentasEnCajasAbiertas);
-                
+
                 // Guardar detalles para mostrar en el mensaje
                 String detalles = "";
                 if (!cajasInfo.isEmpty()) {
@@ -675,7 +735,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 } else {
                     System.out.println("No hay cajas abiertas con ventas");
                 }
-                
+
                 // Guardar detalle de forma thread-safe usando publish
                 if (totalVentasEnCajasAbiertas > 0 && !detalles.isEmpty()) {
                     // Guardar en variable de instancia para acceso desde otro hilo
@@ -683,14 +743,14 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                         hayCajasAbiertasDetalle = detalles;
                     }
                 }
-                
+
                 return totalVentasEnCajasAbiertas > 0;
-                    
-                } catch (Exception e) {
+
+            } catch (Exception e) {
                 System.err.println("Error verificando cajas abiertas: " + e.getMessage());
-                    e.printStackTrace();
+                e.printStackTrace();
                 // En caso de error, permitimos la subida para no bloquear al usuario
-                    return false;
+                return false;
             } finally {
                 // Cerrar recursos en orden inverso
                 if (rs != null) {
@@ -710,7 +770,7 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 if (session != null) {
                     try {
                         session.close();
-                } catch (Exception e) {
+                    } catch (Exception e) {
                         // Ignorar errores al cerrar
                     }
                 }
@@ -723,21 +783,22 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         }
     }
 
-    private void jButtonUploadActionPerformed(java.awt.event.ActionEvent evt) {                                              
+    private void jButtonUploadActionPerformed(java.awt.event.ActionEvent evt) {
         // Verificar que el ID esté validado
         if (!userIdValidated || validatedUserId == null) {
-            JOptionPane.showMessageDialog(this, 
-                "Debe validar el código de usuario antes de subir datos.\n" +
-                "Ingrese un código y haga clic en 'Validar'.",
-                "Código No Validado", 
-                JOptionPane.WARNING_MESSAGE);
+            JOptionPane.showMessageDialog(this,
+                    "Debe validar el código de usuario antes de subir datos.\n" +
+                            "Ingrese un código y haga clic en 'Validar'.",
+                    "Código No Validado",
+                    JOptionPane.WARNING_MESSAGE);
             return;
         }
-        
+
         // Limpiar detalle anterior
         hayCajasAbiertasDetalle = null;
-        
-        // Verificar si hay cajas abiertas antes de permitir la subida (en background para no bloquear UI)
+
+        // Verificar si hay cajas abiertas antes de permitir la subida (en background
+        // para no bloquear UI)
         SwingWorker<Boolean, String> checkWorker = new SwingWorker<Boolean, String>() {
             @Override
             protected Boolean doInBackground() throws Exception {
@@ -745,32 +806,32 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 synchronized (JPanelConfigFirebase.this) {
                     hayCajasAbiertasDetalle = null;
                 }
-                
+
                 boolean resultado = hayCajasAbiertas();
-                
+
                 return resultado;
             }
-            
+
             @Override
             protected void done() {
                 try {
                     boolean hayCajasAbiertas = get();
                     if (hayCajasAbiertas) {
                         String mensaje = "No se puede subir datos porque hay ventas en cajas abiertas.\n\n" +
-                                        "Por favor, cierre la caja actual antes de subir datos.\n" +
-                                        "Las ventas de cajas abiertas no se subirán hasta que se cierre la caja.\n\n" +
-                                        "NOTA: Si acaba de cerrar la caja, espere unos segundos y vuelva a intentar.";
-                        
-                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            mensaje,
-                            "Caja con Ventas Abierta", 
-                            JOptionPane.WARNING_MESSAGE);
+                                "Por favor, cierre la caja actual antes de subir datos.\n" +
+                                "Las ventas de cajas abiertas no se subirán hasta que se cierre la caja.\n\n" +
+                                "NOTA: Si acaba de cerrar la caja, espere unos segundos y vuelva a intentar.";
+
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                                mensaje,
+                                "Caja con Ventas Abierta",
+                                JOptionPane.WARNING_MESSAGE);
                         return;
                     }
-                    
+
                     // Limpiar detalle si no hay cajas abiertas
                     hayCajasAbiertasDetalle = null;
-                    
+
                     // Continuar con la confirmación si no hay cajas abiertas
                     continuarConSubida();
                 } catch (Exception e) {
@@ -781,83 +842,86 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                 }
             }
         };
-        
+
         checkWorker.execute();
     }
-    
+
     /**
-     * Continúa con el proceso de subida después de verificar que no hay cajas abiertas
+     * Continúa con el proceso de subida después de verificar que no hay cajas
+     * abiertas
      */
     private void continuarConSubida() {
         // Supabase siempre está habilitado - no necesitamos verificar
-        
+
         // Verificar primero si hay ventas disponibles para subir
         int ventasDisponibles = verificarVentasDisponibles();
-        
+
         if (ventasDisponibles == 0) {
             JOptionPane.showMessageDialog(this,
-                "No hay ventas nuevas para subir.\n\n" +
-                "Todas las ventas disponibles ya han sido sincronizadas.\n" +
-                "Para subir nuevas ventas, primero debe cerrar la caja actual.",
-                "Sin Ventas para Subir",
-                JOptionPane.INFORMATION_MESSAGE);
-                return;
-            }
-            
+                    "No hay ventas nuevas para subir.\n\n" +
+                            "Todas las ventas disponibles ya han sido sincronizadas.\n" +
+                            "Para subir nuevas ventas, primero debe cerrar la caja actual.",
+                    "Sin Ventas para Subir",
+                    JOptionPane.INFORMATION_MESSAGE);
+            return;
+        }
+
         // Confirmar la operación
         int choice = JOptionPane.showConfirmDialog(this,
-            "¿Está seguro de que desea subir los datos?\n" +
-            "Esta operación puede tomar varios minutos dependiendo de la cantidad de datos.\n\n" +
-            "Ventas disponibles para subir: " + ventasDisponibles,
-            "Confirmar Subida de Datos",
-            JOptionPane.YES_NO_OPTION,
-            JOptionPane.QUESTION_MESSAGE);
-            
+                "¿Está seguro de que desea subir los datos?\n" +
+                        "Esta operación puede tomar varios minutos dependiendo de la cantidad de datos.\n\n" +
+                        "Ventas disponibles para subir: " + ventasDisponibles,
+                "Confirmar Subida de Datos",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE);
+
         if (choice != JOptionPane.YES_OPTION) {
             return;
         }
-        
+
         // Crear diálogo de progreso
-        JDialog progressDialog = new JDialog((java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this), "Subiendo Datos", true);
+        JDialog progressDialog = new JDialog((java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this),
+                "Subiendo Datos", true);
         progressDialog.setSize(400, 150);
         progressDialog.setLocationRelativeTo(this);
         progressDialog.setDefaultCloseOperation(JDialog.DO_NOTHING_ON_CLOSE);
-        
+
         JPanel progressPanel = new JPanel(new BorderLayout(10, 10));
         progressPanel.setBorder(BorderFactory.createEmptyBorder(20, 20, 20, 20));
-        
+
         JLabel statusLabel = new JLabel("Iniciando subida de datos...");
         statusLabel.setFont(new Font("Arial", Font.PLAIN, 12));
         progressPanel.add(statusLabel, BorderLayout.NORTH);
-        
+
         JProgressBar progressBar = new JProgressBar();
         progressBar.setIndeterminate(true);
         progressBar.setStringPainted(false);
         progressPanel.add(progressBar, BorderLayout.CENTER);
-        
+
         progressDialog.add(progressPanel);
-        
+
         // Ejecutar la subida en background
         SwingWorker<Boolean, String> uploadWorker = new SwingWorker<Boolean, String>() {
             @Override
             protected Boolean doInBackground() throws Exception {
                 // Mostrar diálogo de progreso
-                    SwingUtilities.invokeLater(() -> {
+                SwingUtilities.invokeLater(() -> {
                     progressDialog.setVisible(true);
                 });
-                
+
                 // Deshabilitar el botón durante la subida
                 SwingUtilities.invokeLater(() -> {
                     jButtonUpload.setEnabled(false);
                     jButtonUpload.setText("Subiendo...");
                 });
-                
+
                 try {
                     publish("Preparando sincronización...");
-                    // Obtener la configuración de la base de datos desde el archivo de configuración
+                    // Obtener la configuración de la base de datos desde el archivo de
+                    // configuración
                     com.openbravo.pos.forms.AppConfig config = new com.openbravo.pos.forms.AppConfig(null);
                     config.load();
-                    
+
                     // Crear una sesión directamente usando la configuración
                     com.openbravo.data.loader.Session session = null;
                     try {
@@ -866,45 +930,46 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                         publish("Error: No se pudo conectar al sistema");
                         return false;
                     }
-                        
-                        if (session == null) {
+
+                    if (session == null) {
                         publish("Error: No se pudo inicializar el sistema");
                         return false;
                     }
-                    
+
                     publish("Iniciando sincronización...");
-                    
+
                     // Verificar que el código de usuario esté validado
                     if (!userIdValidated || validatedUserId == null || validatedUserId.trim().isEmpty()) {
                         publish("Error: Debe validar el código de usuario antes de subir datos");
                         return false;
                     }
-                    
+
                     // Crear una instancia del sync manager con la sesión obtenida
-                    com.openbravo.pos.firebase.FirebaseSyncManagerREST syncManager = 
-                        new com.openbravo.pos.firebase.FirebaseSyncManagerREST(session);
-                    
+                    com.openbravo.pos.firebase.FirebaseSyncManagerREST syncManager = new com.openbravo.pos.firebase.FirebaseSyncManagerREST(
+                            session);
+
                     // Establecer el código validado en el sync manager
                     syncManager.setValidatedUserId(validatedUserId);
-                    
+
                     publish("Sincronizando datos... (esto puede tomar varios minutos)");
-                    
+
                     // Ejecutar la sincronización completa pasando el código validado
                     var syncFuture = syncManager.performFullSync(validatedUserId);
                     var result = syncFuture.get(10, java.util.concurrent.TimeUnit.MINUTES); // Timeout de 10 minutos
-                    
+
                     // Determinar si la sincronización fue exitosa
-                    // Considerar éxito si las operaciones críticas (ventas, cierres, pagos) fueron exitosas
+                    // Considerar éxito si las operaciones críticas (ventas, cierres, pagos) fueron
+                    // exitosas
                     boolean exitoReal = result.success;
-                    
+
                     if (exitoReal) {
                         publish("¡Sincronización completada exitosamente!");
                     } else {
                         // Verificar si al menos las operaciones críticas fueron exitosas
-                        boolean operacionesCriticasOk = result.ventasSincronizadas && 
-                                                       result.cierresSincronizados && 
-                                                       result.pagosSincronizados;
-                        
+                        boolean operacionesCriticasOk = result.ventasSincronizadas &&
+                                result.cierresSincronizados &&
+                                result.pagosSincronizados;
+
                         if (operacionesCriticasOk) {
                             publish("Sincronización completada. Operaciones principales exitosas.");
                             // Considerar éxito si las operaciones críticas están OK
@@ -913,18 +978,18 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                             publish("Error: La sincronización no se completó correctamente.");
                         }
                     }
-                    
+
                     return exitoReal;
-                        
+
                 } catch (java.util.concurrent.TimeoutException e) {
                     publish("Error: La operación tardó demasiado tiempo. Intente nuevamente.");
                     return false;
-                    } catch (Exception e) {
+                } catch (Exception e) {
                     publish("Error durante la sincronización. Intente nuevamente.");
-                        return false;
+                    return false;
                 }
             }
-            
+
             @Override
             protected void process(java.util.List<String> chunks) {
                 if (!chunks.isEmpty()) {
@@ -932,67 +997,66 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
                     statusLabel.setText(lastMessage);
                 }
             }
-            
+
             @Override
             protected void done() {
                 // Cerrar diálogo de progreso
                 SwingUtilities.invokeLater(() -> {
                     progressDialog.dispose();
                 });
-                
+
                 // Rehabilitar el botón
                 jButtonUpload.setEnabled(true);
                 jButtonUpload.setText("Subir Datos");
-                
+
                 try {
                     boolean success = get();
-                    
+
                     // Verificar si hay ventas después de la subida
                     final int ventasRestantes = JPanelConfigFirebase.this.verificarVentasDisponibles();
-                    
+
                     if (success) {
                         String mensaje = "¡Datos subidos exitosamente!\n\n" +
-                            "Los datos se sincronizaron correctamente.";
-                        
+                                "Los datos se sincronizaron correctamente.";
+
                         if (ventasRestantes == 0) {
                             mensaje += "\n\n✓ Todas las ventas disponibles han sido subidas.\n" +
-                                      "No hay más ventas para subir en este momento.";
+                                    "No hay más ventas para subir en este momento.";
                         } else {
                             mensaje += "\n\n⚠ Aún hay " + ventasRestantes + " venta(s) disponible(s) para subir.\n" +
-                                      "Esto puede deberse a que:\n" +
-                                      "- Se crearon nuevas ventas durante la subida\n" +
-                                      "- Hay ventas en cajas que aún no han sido cerradas";
+                                    "Esto puede deberse a que:\n" +
+                                    "- Se crearon nuevas ventas durante la subida\n" +
+                                    "- Hay ventas en cajas que aún no han sido cerradas";
                         }
-                        
-                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            mensaje,
-                            "Subida Completada", 
-                            ventasRestantes == 0 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
+
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                                mensaje,
+                                "Subida Completada",
+                                ventasRestantes == 0 ? JOptionPane.INFORMATION_MESSAGE : JOptionPane.WARNING_MESSAGE);
                     } else {
-                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                            "Error durante la subida de datos.\n\n" +
-                            "La sincronización no se completó correctamente.\n" +
-                            "Por favor, intente nuevamente.\n\n" +
-                            (ventasRestantes > 0 ? 
-                                "Ventas restantes: " + ventasRestantes : 
-                                "No hay más ventas disponibles para subir."),
-                            "Error en la Subida", 
-                            JOptionPane.ERROR_MESSAGE);
+                        JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                                "Error durante la subida de datos.\n\n" +
+                                        "La sincronización no se completó correctamente.\n" +
+                                        "Por favor, intente nuevamente.\n\n" +
+                                        (ventasRestantes > 0 ? "Ventas restantes: " + ventasRestantes
+                                                : "No hay más ventas disponibles para subir."),
+                                "Error en la Subida",
+                                JOptionPane.ERROR_MESSAGE);
                     }
                 } catch (java.util.concurrent.ExecutionException e) {
-                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error durante la subida de datos.\n\nPor favor, verifique su conexión e intente nuevamente.",
-                        "Error", 
-                        JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                            "Error durante la subida de datos.\n\nPor favor, verifique su conexión e intente nuevamente.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this, 
-                        "Error inesperado durante la subida.\n\nPor favor, intente nuevamente.",
-                        "Error", 
-                        JOptionPane.ERROR_MESSAGE);
+                    JOptionPane.showMessageDialog(JPanelConfigFirebase.this,
+                            "Error inesperado durante la subida.\n\nPor favor, intente nuevamente.",
+                            "Error",
+                            JOptionPane.ERROR_MESSAGE);
                 }
             }
         };
-        
+
         uploadWorker.execute();
     }
 
@@ -1011,44 +1075,44 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
         // Cargar configuración de Firebase
         String projectId = config.getProperty("firebase.projectid");
         jtxtProjectId.setText(projectId != null ? projectId : "");
-        
+
         String apiKey = config.getProperty("firebase.apikey");
         jtxtApiKey.setText(apiKey != null ? apiKey : "");
-        
+
         String authDomain = config.getProperty("firebase.authdomain");
         jtxtAuthDomain.setText(authDomain != null ? authDomain : "");
-        
+
         String storageBucket = config.getProperty("firebase.storagebucket");
         jtxtStorageBucket.setText(storageBucket != null ? storageBucket : "");
-        
+
         String messagingSenderId = config.getProperty("firebase.messagingsenderid");
         jtxtMessagingSenderId.setText(messagingSenderId != null ? messagingSenderId : "");
-        
+
         String appId = config.getProperty("firebase.appid");
         jtxtAppId.setText(appId != null ? appId : "");
-        
+
         // NO cargar el ID de usuario desde configuración - siempre empezar vacío
         // El usuario debe ingresar el código cada vez
         jtxtUserId.setText("");
-        
+
         // Limpiar el estado de validación
         userIdValidated = false;
         validatedUserId = null;
         jLabelUserStatus.setText("⚠️ Ingrese y valide el código de usuario para habilitar la subida de datos");
         jLabelUserStatus.setForeground(java.awt.Color.ORANGE);
-        
+
         String enabled = config.getProperty("firebase.enabled");
         jchkFirebaseEnabled.setSelected("true".equals(enabled));
-        
+
         String syncCustomers = config.getProperty("firebase.sync.customers");
         jchkSyncCustomers.setSelected("true".equals(syncCustomers));
-        
+
         String syncProducts = config.getProperty("firebase.sync.products");
         jchkSyncProducts.setSelected("true".equals(syncProducts));
-        
+
         String syncSales = config.getProperty("firebase.sync.sales");
         jchkSyncSales.setSelected("true".equals(syncSales));
-        
+
         dirty.setDirty(false);
     }
 
@@ -1056,17 +1120,17 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     public void saveProperties(AppConfig config) {
         // NO guardar el ID Usuario en configuración - debe ingresarse cada vez
         // Esto asegura que cada sesión requiera validación manual
-        
+
         // Siempre habilitado - Supabase está conectado automáticamente
         config.setProperty("firebase.enabled", "true");
         config.setProperty("firebase.sync.customers", Boolean.toString(jchkSyncCustomers.isSelected()));
         config.setProperty("firebase.sync.products", Boolean.toString(jchkSyncProducts.isSelected()));
         config.setProperty("firebase.sync.sales", Boolean.toString(jchkSyncSales.isSelected()));
-        
+
         dirty.setDirty(false);
     }
 
-    // Variables declaration - do not modify                     
+    // Variables declaration - do not modify
     private javax.swing.JButton jButtonTest;
     private javax.swing.JButton jButtonUpload;
     private javax.swing.JButton jButtonValidateUser;
@@ -1095,5 +1159,5 @@ public class JPanelConfigFirebase extends javax.swing.JPanel implements PanelCon
     private javax.swing.JTextField jtxtProjectId;
     private javax.swing.JTextField jtxtStorageBucket;
     private javax.swing.JTextField jtxtUserId;
-    // End of variables declaration                   
+    // End of variables declaration
 }

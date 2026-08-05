@@ -191,7 +191,7 @@ public class JDialogNewCustomer extends javax.swing.JDialog {
                 Object customer = createValue();
                 String m_oId = ((Object[]) customer)[0].toString();
 
-                int status = dlCustomer.getTableCustomers().getInsertSentence().exec(customer);
+                int status = dlCustomer.getCustomerSaveProvider().insertData((Object[]) customer);
 
                 if (status > 0) {
                     selectedCustomer = dlSales.loadCustomerExt(m_oId);

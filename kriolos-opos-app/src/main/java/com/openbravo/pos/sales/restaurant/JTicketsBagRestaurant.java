@@ -93,7 +93,7 @@ public class JTicketsBagRestaurant extends javax.swing.JPanel {
         m_dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
         dlSales = (DataLogicSales) m_App.getBean("com.openbravo.pos.forms.DataLogicSales");
 
-        m_TP = new DeviceTicket();
+        m_TP = new DeviceTicket(null, m_App.getProperties());
         m_TTP2 = new TicketParser(m_App.getDeviceTicket(), m_dlSystem);
         j_btnKitchen.setVisible(true);
 

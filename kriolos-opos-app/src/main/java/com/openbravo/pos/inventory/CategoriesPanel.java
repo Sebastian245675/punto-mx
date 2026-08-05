@@ -45,25 +45,25 @@ import javax.swing.ListCellRenderer;
 public class CategoriesPanel extends JPanelTable {
 
     private static final long serialVersionUID = 1L;
-    
+
     private TableDefinition tcategories;
     private CategoriesEditor jeditor;
     private JTextField searchField;
-    
+
     /** Creates a new instance of JPanelCategories */
-    public CategoriesPanel() {        
+    public CategoriesPanel() {
     }
 
     /**
      *
      */
     @Override
-    protected void init() {   
-        DataLogicSales dlSales = (DataLogicSales) app.getBean("com.openbravo.pos.forms.DataLogicSales");           
+    protected void init() {
+        DataLogicSales dlSales = (DataLogicSales) app.getBean("com.openbravo.pos.forms.DataLogicSales");
         tcategories = dlSales.getTableCategories();
-        jeditor = new CategoriesEditor(app, dirty);    
+        jeditor = new CategoriesEditor(app, dirty);
     }
-    
+
     /**
      *
      * @return
@@ -72,34 +72,34 @@ public class CategoriesPanel extends JPanelTable {
     public ListProvider getListProvider() {
         return new ListProviderCreator(tcategories);
     }
-    
+
     /**
      *
      * @return
      */
     @Override
-    public DefaultSaveProvider getSaveProvider() {
-        return new DefaultSaveProvider(tcategories);      
+    public CategorySaveProviderWithSync getSaveProvider() {
+        return new CategorySaveProviderWithSync(new DefaultSaveProvider(tcategories), this);
     }
-    
+
     /**
      *
      * @return
      */
     @Override
     public Vectorer getVectorer() {
-        return tcategories.getVectorerBasic(new int[]{1});
+        return tcategories.getVectorerBasic(new int[] { 1 });
     }
-    
+
     /**
      *
      * @return
      */
     @Override
     public ComparatorCreator getComparatorCreator() {
-        return tcategories.getComparatorCreator(new int[]{1});
+        return tcategories.getComparatorCreator(new int[] { 1 });
     }
-    
+
     /**
      *
      * @return
@@ -108,7 +108,7 @@ public class CategoriesPanel extends JPanelTable {
     public ListCellRenderer getListCellRenderer() {
         return new DepartamentoRenderer();
     }
-    
+
     /**
      *
      * @return
@@ -117,7 +117,7 @@ public class CategoriesPanel extends JPanelTable {
     public EditorRecord getEditor() {
         return jeditor;
     }
-    
+
     /**
      * Panel de filtro personalizado con título "DEPARTAMENTOS" y campo de búsqueda
      */
@@ -127,40 +127,39 @@ public class CategoriesPanel extends JPanelTable {
         filterPanel.setBackground(new Color(240, 240, 240));
         filterPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
         filterPanel.setPreferredSize(new Dimension(300, 80));
-        
+
         // Título "DEPARTAMENTOS" en amarillo
         JLabel titleLabel = new JLabel("DEPARTAMENTOS");
         titleLabel.setFont(new Font("Arial", Font.BOLD, 18));
         titleLabel.setForeground(new Color(255, 200, 0)); // Amarillo
         titleLabel.setBorder(BorderFactory.createEmptyBorder(0, 0, 8, 0));
         filterPanel.add(titleLabel, BorderLayout.NORTH);
-        
+
         // Panel para el campo de búsqueda
         JPanel searchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 5, 0));
         searchPanel.setOpaque(false);
-        
+
         // Campo de búsqueda con placeholder
         searchField = new JTextField(20);
         searchField.setFont(new Font("Arial", Font.PLAIN, 14));
         searchField.setBorder(BorderFactory.createCompoundBorder(
-            BorderFactory.createLineBorder(new Color(200, 200, 200)),
-            BorderFactory.createEmptyBorder(5, 30, 5, 5)
-        ));
+                BorderFactory.createLineBorder(new Color(200, 200, 200)),
+                BorderFactory.createEmptyBorder(5, 30, 5, 5)));
         searchField.putClientProperty("JTextField.placeholderText", "Buscar...");
         searchField.setPreferredSize(new Dimension(250, 30));
-        
+
         // Icono de búsqueda (usando un símbolo de texto por ahora)
         JLabel searchIcon = new JLabel("🔍");
         searchIcon.setFont(new Font("Arial", Font.PLAIN, 14));
         searchIcon.setBorder(BorderFactory.createEmptyBorder(0, 8, 0, 0));
         searchPanel.add(searchIcon);
         searchPanel.add(searchField);
-        
+
         filterPanel.add(searchPanel, BorderLayout.CENTER);
-        
+
         return filterPanel;
     }
-    
+
     /**
      *
      * @return
@@ -168,5 +167,5 @@ public class CategoriesPanel extends JPanelTable {
     @Override
     public String getTitle() {
         return AppLocal.getIntString("Menu.Categories");
-    }        
+    }
 }

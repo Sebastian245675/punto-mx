@@ -58,9 +58,11 @@ public abstract class Formats<T> {
     
     /**
      * Crea un formato de moneda con exactamente 2 decimales
+     * Usa patrón explícito con $ para evitar que el locale del sistema
+     * cambie el símbolo de moneda (ej: Q para Guatemala)
      */
     private static NumberFormat createCurrencyFormat() {
-        NumberFormat format = NumberFormat.getCurrencyInstance();
+        NumberFormat format = new DecimalFormat("$#,##0.00");
         format.setMinimumFractionDigits(2);
         format.setMaximumFractionDigits(2);
         return format;
@@ -120,7 +122,8 @@ public abstract class Formats<T> {
 
     public static void setCurrencyPattern(String pattern) {
         if (pattern == null || pattern.equals("")) {
-            m_currencyformat = NumberFormat.getCurrencyInstance();
+            // Usar patrón explícito con $ para evitar que el locale cambie el símbolo
+            m_currencyformat = new DecimalFormat("$#,##0.00");
             // Asegurar que siempre muestre exactamente 2 decimales
             m_currencyformat.setMinimumFractionDigits(2);
             m_currencyformat.setMaximumFractionDigits(2);

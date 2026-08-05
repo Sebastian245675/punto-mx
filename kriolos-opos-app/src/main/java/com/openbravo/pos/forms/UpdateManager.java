@@ -90,15 +90,34 @@ public class UpdateManager {
             progressCallback.onProgress(90, "Aplicando actualización...");
             
             // En Windows, necesitamos renombrar en lugar de reemplazar directamente
+            // Esto funciona tanto si se ejecuta desde JAR como desde cualquier ubicación
             if (System.getProperty("os.name").toLowerCase().contains("win")) {
-                // Cerrar la aplicación actual primero (se hará desde el diálogo)
                 File tempOld = new File(currentJarPath + ".old");
-                if (currentJar.exists()) {
-                    currentJar.renameTo(tempOld);
+                // Eliminar archivo .old anterior si existe
+                if (tempOld.exists()) {
+                    tempOld.delete();
                 }
-                newJar.renameTo(currentJar);
+                // Renombrar JAR actual a .old
+                if (currentJar.exists()) {
+                    if (!currentJar.renameTo(tempOld)) {
+                        // Si falla el rename, intentar copiar y luego eliminar
+                        Files.copy(currentJar.toPath(), tempOld.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                }
+                }
+                // Renombrar nuevo JAR a actual
+                if (!newJar.renameTo(currentJar)) {
+                    // Si falla, intentar copiar
+                    Files.copy(newJar.toPath(), currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                    newJar.delete();
+                }
             } else {
+                // En Linux/Mac, usar move directamente
                 Files.move(newJar.toPath(), currentJar.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            }
+            
+            // Limpiar archivo temporal si aún existe
+            if (newJar.exists()) {
+                newJar.delete();
             }
             
             progressCallback.onProgress(100, "¡Actualización completada!");
@@ -160,12 +179,19 @@ public class UpdateManager {
     
     /**
      * Obtiene la ruta del JAR actual
+     * Funciona tanto si se ejecuta desde JAR como desde IDE
      */
     private static String getCurrentJarPath() {
         try {
             // Obtener la ruta del JAR desde la clase
-            String path = UpdateManager.class.getProtectionDomain()
-                    .getCodeSource().getLocation().toURI().getPath();
+            java.net.URL location = UpdateManager.class.getProtectionDomain()
+                    .getCodeSource().getLocation();
+            
+            if (location == null) {
+                throw new Exception("No se pudo obtener la ubicación del código");
+            }
+            
+            String path = location.toURI().getPath();
             
             // Decodificar URL encoding
             path = java.net.URLDecoder.decode(path, "UTF-8");
@@ -175,11 +201,44 @@ public class UpdateManager {
                 path = path.substring(1);
             }
             
-            return path;
+            // Verificar que el archivo existe y es un JAR
+            File jarFile = new File(path);
+            if (jarFile.exists() && (path.toLowerCase().endsWith(".jar") || path.toLowerCase().endsWith(".exe"))) {
+                // Si es .exe, buscar el JAR asociado en la misma carpeta
+                if (path.toLowerCase().endsWith(".exe")) {
+                    File jarInSameDir = new File(jarFile.getParent(), "kriolos-pos.jar");
+                    if (jarInSameDir.exists()) {
+                        return jarInSameDir.getAbsolutePath();
+                    }
+                }
+                return jarFile.getAbsolutePath();
+            }
+            
+            // Si no es un JAR válido, buscar en ubicaciones comunes
+            String[] possiblePaths = {
+                "kriolos-pos.jar",
+                "target/kriolos-pos.jar",
+                "kriolos-opos-app/target/kriolos-pos.jar"
+            };
+            
+            for (String possiblePath : possiblePaths) {
+                File possibleFile = new File(possiblePath);
+                if (possibleFile.exists() && possibleFile.getName().endsWith(".jar")) {
+                    return possibleFile.getAbsolutePath();
+                }
+            }
+            
+            throw new Exception("No se encontró el archivo JAR");
+            
         } catch (Exception e) {
             LOGGER.log(Level.WARNING, "No se pudo obtener ruta del JAR: " + e.getMessage());
-            // Intentar método alternativo
-            return new File("kriolos-opos-app/target/kriolos-pos.jar").getAbsolutePath();
+            // Último recurso: buscar en el directorio actual
+            File currentDir = new File(System.getProperty("user.dir"));
+            File[] jars = currentDir.listFiles((dir, name) -> name.endsWith(".jar") && name.contains("kriolos"));
+            if (jars != null && jars.length > 0) {
+                return jars[0].getAbsolutePath();
+            }
+            return null;
         }
     }
     
