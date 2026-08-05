@@ -1,137 +1,180 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- CONNECTING-POS-VERSION-2 -->
-<!-- Formato de ticket copia estilo Eleventa de 42 columnas -->
+<!-- CONNECTING-POS-VERSION-4 -->
+<!-- Ticket copia estilo Eleventa, grande y compacto -->
 <output>
 
     <ticket>
-        <line></line>
-        <line size="1"><text align="center" length="42" bold="true">COPIA</text></line>
-        <line></line>
+        <line size="3"><text align="center" length="30" bold="true">COPIA</text></line>
+
         #if (${ticket.printTicketHeaderLine1()} != "")
-            <line size="1"><text align="center" length="42" bold="true">${ticket.printTicketHeaderLine1()}</text></line>
+        <line size="3">
+            <text align="center" length="30" bold="true">${ticket.printTicketHeaderLine1()}</text>
+        </line>
         #end
         #if (${ticket.printTicketHeaderLine2()} != "")
-            <line><text align="center" length="42" bold="true">${ticket.printTicketHeaderLine2()}</text></line>
+        <line size="3">
+            <text align="center" length="30" bold="true">${ticket.printTicketHeaderLine2()}</text>
+        </line>
         #end
         #if (${ticket.printTicketHeaderLine3()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine3()}</text></line>
+        <line size="3">
+            <text align="center" length="30">${ticket.printTicketHeaderLine3()}</text>
+        </line>
         #end
         #if (${ticket.printTicketHeaderLine4()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine4()}</text></line>
+        <line size="3">
+            <text align="center" length="30">${ticket.printTicketHeaderLine4()}</text>
+        </line>
         #end
         #if (${ticket.printTicketHeaderLine5()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine5()}</text></line>
+        <line size="3">
+            <text align="center" length="30">${ticket.printTicketHeaderLine5()}</text>
+        </line>
         #end
         #if (${ticket.printTicketHeaderLine6()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine6()}</text></line>
+        <line size="3">
+            <text align="center" length="30">${ticket.printTicketHeaderLine6()}</text>
+        </line>
         #end
 
-        <line></line>
         #if (${ticket.ticketType} == 0)
-            <line><text align="left" length="16" bold="true">FOLIO / RECIBO:</text><text align="right" length="26" bold="true">${ticket.printId()}</text></line>
+        <line size="3">
+            <text align="left" length="10" bold="true">Recibo:</text>
+            <text align="left" length="20" bold="true">${ticket.printId()}</text>
+        </line>
         #end
         #if (${ticket.ticketType} == 1)
-            <line><text align="left" length="16" bold="true">DEVOLUCION:</text><text align="right" length="26" bold="true">${ticket.printId()}</text></line>
+        <line size="3">
+            <text align="left" length="10" bold="true">Dev.:</text>
+            <text align="left" length="20" bold="true">${ticket.printId()}</text>
+        </line>
         #end
-	
-        <line><text align="left" length="16">FECHA:</text><text align="right" length="26">${ticket.printDate()}</text></line>
-        <line><text align="left" length="16">TERMINAL:</text><text align="right" length="26">${ticket.getHost()}</text></line>
-        <line><text align="left" length="16">CAJERO:</text><text align="right" length="26">${ticket.printUser()}</text></line>
+
+        <line size="3">
+            <text align="left" length="10">Fecha:</text>
+            <text align="left" length="20">${ticket.printDate()}</text>
+        </line>
+        <line size="3">
+            <text align="left" length="10">Atendido</text>
+            <text align="left" length="20">${ticket.printUser()}</text>
+        </line>
 
         #if ($ticket.getCustomer())
-            <line><text align="left" length="16">CLIENTE:</text><text align="right" length="26">${ticket.getCustomer().printName()}</text></line>
-        #end     
+        <line size="3">
+            <text align="left" length="10">Cliente:</text>
+            <text align="left" length="20">${ticket.getCustomer().printName()}</text>
+        </line>
+        #end
 
         #if (${tickettext.place} != ${place})
-            <line><text align="left" length="16">MESA:</text><text align="right" length="26">${place}</text></line>
-	#end
-	<line></line>
-
-        <line>
-            <text align="left" length="8" bold="true">CANT.</text>
-            <text align="left" length="22" bold="true">DESCRIPCION</text>
-            <text align="right" length="12" bold="true">IMPORTE</text>
+        <line size="3">
+            <text align="left" length="10">Mesa:</text>
+            <text align="left" length="20">${place}</text>
         </line>
-        <line><text>------------------------------------------</text></line>
-    
+        #end
+
+        <line></line>
+        <line size="3">
+            <text align="left" length="14" bold="true">Artículo</text>
+            <text align="right" length="4" bold="true">Cant</text>
+            <text align="right" length="12" bold="true">Valor</text>
+        </line>
+        <line size="3">
+            <text align="left" length="30">------------------------------</text>
+        </line>
+
         #foreach ($ticketline in $ticket.getLines())
         #set($nombre = $ticketline.printName())
-        #if($nombre && $nombre.length() > 22)
-            #set($nombre = $nombre.substring(0, 20) + "..")
+        #if($nombre && $nombre.length() > 14)
+            #set($nombre = $nombre.substring(0, 12) + "..")
         #end
-        <line>
+        <line size="3">
             #if ($ticketline.isProductCom())
-                <text align="left" length="8">*${ticketline.printMultiply()}</text>
+                <text align="left" length="14" bold="true">*${nombre}</text>
             #else
-                <text align="left" length="8">${ticketline.printMultiply()}</text>
+                <text align="left" length="14" bold="true">${nombre}</text>
             #end
-            <text align="left" length="22" bold="true">${nombre}</text>
+            <text align="right" length="4">${ticketline.printMultiply()}</text>
             <text align="right" length="12" bold="true">${ticketline.printValue()}</text>
         </line>
-        
-            #if ($ticketline.productAttSetInstId)
-                <line><text align="left" length="42">  ${ticketline.productAttSetInstDesc}</text></line>
-            #end
+
+        #if ($ticketline.productAttSetInstId)
+        <line size="3">
+            <text align="left" length="30">${ticketline.productAttSetInstDesc}</text>
+        </line>
+        #end
         #end
 
-        <line><text>------------------------------------------</text></line>
-        <line><text align="left" length="24" bold="true">NO. DE ARTICULOS:</text><text align="right" length="18" bold="true">${ticket.printArticlesCount()}</text></line>
-        <line></line>
-
-        <line size="1">
-            <text align="left" length="20" bold="true">TOTAL:</text>
-            <text align="right" length="22" bold="true">${ticket.printTotal()}</text>
+        <line size="3">
+            <text align="left" length="30">------------------------------</text>
         </line>
+        <line size="3">
+            <text align="left" length="18">Cant. artículos:</text>
+            <text align="right" length="12" bold="true">${ticket.printArticlesCount()}</text>
+        </line>
+        <line></line>
+        <line size="3">
+            <text align="left" length="12" bold="true">Subtotal</text>
+            <text align="right" length="18" bold="true">${ticket.printSubTotal()}</text>
+        </line>
+        <line size="3">
+            <text align="left" length="12">Impuesto</text>
+            <text align="right" length="18">${ticket.printTax()}</text>
+        </line>
+        <line></line>
+        <line size="3">
+            <text align="left" length="12" bold="true">TOTAL</text>
+            <text align="right" length="18" bold="true">${ticket.printTotal()}</text>
+        </line>
+        <line></line>
 
         #foreach ($paymentline in $ticket.payments)
             #if ($paymentline.name == "cash")
-                <line size="1">
-                    <text align="left" length="20" bold="true">PAGO CON:</text>
-                    <text align="right" length="22" bold="true">${paymentline.printPaid()}</text>
-                </line>
-                <line size="1">
-                    <text align="left" length="20" bold="true">SU CAMBIO:</text>
-                    <text align="right" length="22" bold="true">${paymentline.printChange()}</text>
-                </line>
+                <line size="3"><text bold="true">Efectivo</text></line>
+                <line size="3"><text align="left" length="14">Recibido:</text><text align="right" length="16" bold="true">${paymentline.printPaid()}</text></line>
+                <line size="3"><text align="left" length="14">Cambio:</text><text align="right" length="16" bold="true">${paymentline.printChange()}</text></line>
             #end
-          	
+
             #if ($paymentline.name == "cashrefund")
-                <line size="1"><text align="left" length="20" bold="true">DEVOLUCION:</text><text align="right" length="22" bold="true">${paymentline.printTotal()}</text></line>
+                <line size="3"><text align="left" length="14" bold="true">Dev.:</text><text align="right" length="16" bold="true">${paymentline.printTotal()}</text></line>
             #end
             #if ($paymentline.name == "cheque")
-                <line size="1"><text align="left" length="20" bold="true">CHEQUE:</text><text align="right" length="22" bold="true">${paymentline.printTotal()}</text></line>
+                <line size="3"><text align="left" length="14" bold="true">Cheque</text><text align="right" length="16" bold="true">${paymentline.printTotal()}</text></line>
             #end
-            #if ($paymentline.name == "voucherin" || $paymentline.name == "slip")
-                <line size="1"><text align="left" length="20" bold="true">VALE:</text><text align="right" length="22" bold="true">${paymentline.printTotal()}</text></line>
+            #if ($paymentline.name == "paperin" || $paymentline.name == "voucherin" || $paymentline.name == "slip")
+                <line size="3"><text align="left" length="14" bold="true">Vale</text><text align="right" length="16" bold="true">${paymentline.printTotal()}</text></line>
+            #end
+            #if ($paymentline.name == "magcard")
+                <line size="3"><text align="left" length="14" bold="true">Tarjeta</text><text align="right" length="16" bold="true">${paymentline.printTotal()}</text></line>
             #end
             #if ($paymentline.name == "free")
-                <line size="1"><text align="left" length="20" bold="true">GRATIS:</text><text align="right" length="22" bold="true">${paymentline.printTotal()}</text></line>
+                <line size="3"><text align="left" length="14" bold="true">Gratis</text><text align="right" length="16" bold="true">${paymentline.printTotal()}</text></line>
             #end
             #if ($paymentline.name == "debt")
-                <line size="1"><text align="left" length="20" bold="true">A CUENTA:</text><text align="right" length="22" bold="true">${paymentline.printTotal()}</text></line>
+                <line size="3"><text align="left" length="14" bold="true">Crédito</text><text align="right" length="16" bold="true">${paymentline.printTotal()}</text></line>
             #end
         #end
 
         #if (${ticket.printTicketFooterLine1()} != "")
             <line></line>
-            <line size="1"><text align="center" length="42" bold="true">${ticket.printTicketFooterLine1()}</text></line>  
+            <line size="3"><text align="center" length="30" bold="true">${ticket.printTicketFooterLine1()}</text></line>
+            <line size="3"><text align="center" length="30">==============================</text></line>
         #end
         #if (${ticket.printTicketFooterLine2()} != "")
-            <line><text align="center" length="42">${ticket.printTicketFooterLine2()}</text></line>
+            <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine2()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine3()} != "")
-            <line><text align="center" length="42">${ticket.printTicketFooterLine3()}</text></line>
+            <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine3()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine4()} != "")
-            <line><text align="center" length="42">${ticket.printTicketFooterLine4()}</text></line>
+            <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine4()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine5()} != "")
-            <line><text align="center" length="42">${ticket.printTicketFooterLine5()}</text></line>
+            <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine5()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine6()} != "")
-            <line><text align="center" length="42">${ticket.printTicketFooterLine6()}</text></line>
+            <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine6()}</text></line>
         #end
-        <line></line>
 
     </ticket>
 
