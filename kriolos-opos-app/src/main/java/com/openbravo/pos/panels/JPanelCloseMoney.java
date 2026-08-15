@@ -1706,18 +1706,20 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                                 // Para cada MONEY, obtener las ventas por categoría
                                 for (String money : moneyList) {
                                     java.util.List<CategorySalesData> categorySales = new StaticSentence(session,
-                                            "SELECT COALESCE(categories.NAME, 'Sin Departamento') as CATEGORY_NAME, " +
+                                            "SELECT COALESCE(categories.NAME, " +
+                                                    "CASE WHEN ticketlines.PRODUCT IS NULL THEN 'OTROS / CARGOS' ELSE 'Sin Departamento' END) as CATEGORY_NAME, " +
                                                     "SUM(ticketlines.UNITS) as TOTAL_UNITS, " +
-                                                    "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE) * ticketlines.UNITS) as TOTAL_VALUE "
+                                                    "SUM((ticketlines.PRICE + ticketlines.PRICE * COALESCE(taxes.RATE, 0)) * ticketlines.UNITS) as TOTAL_VALUE "
                                                     +
                                                     "FROM ticketlines " +
                                                     "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID " +
                                                     "INNER JOIN receipts ON tickets.ID = receipts.ID " +
-                                                    "INNER JOIN products ON ticketlines.PRODUCT = products.ID " +
+                                                    "LEFT JOIN products ON ticketlines.PRODUCT = products.ID " +
                                                     "LEFT JOIN categories ON products.CATEGORY = categories.ID " +
-                                                    "INNER JOIN taxes ON ticketlines.TAXID = taxes.ID " +
+                                                    "LEFT JOIN taxes ON ticketlines.TAXID = taxes.ID " +
                                                     "WHERE receipts.MONEY = ? " +
-                                                    "GROUP BY COALESCE(categories.NAME, 'Sin Departamento')",
+                                                    "GROUP BY COALESCE(categories.NAME, " +
+                                                    "CASE WHEN ticketlines.PRODUCT IS NULL THEN 'OTROS / CARGOS' ELSE 'Sin Departamento' END)",
                                             SerializerWriteString.INSTANCE,
                                             new SerializerReadClass(CategorySalesData.class))
                                             .list(money);

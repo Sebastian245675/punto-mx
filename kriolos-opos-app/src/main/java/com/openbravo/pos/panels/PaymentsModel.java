@@ -155,12 +155,12 @@ public class PaymentsModel {
         Object[] valcategorysales = (Object[]) new StaticSentence(app.getSession(),
                 "SELECT COUNT(*), "
                         + "SUM(ticketlines.UNITS), "
-                        + "SUM((ticketlines.PRICE + ticketlines.PRICE * taxes.RATE ) * ticketlines.UNITS) "
-                        + "FROM ticketlines, tickets, receipts, taxes "
-                        + "WHERE ticketlines.TICKET = tickets.ID AND tickets.ID = receipts.ID "
-                        + "AND ticketlines.TAXID = taxes.ID "
-                        + "AND ticketlines.PRODUCT IS NOT NULL "
-                        + "AND receipts.MONEY = ? "
+                        + "SUM((ticketlines.PRICE + ticketlines.PRICE * COALESCE(taxes.RATE, 0)) * ticketlines.UNITS) "
+                        + "FROM ticketlines "
+                        + "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID "
+                        + "INNER JOIN receipts ON tickets.ID = receipts.ID "
+                        + "LEFT JOIN taxes ON ticketlines.TAXID = taxes.ID "
+                        + "WHERE receipts.MONEY = ? "
                         + "GROUP BY receipts.MONEY",
                 SerializerWriteString.INSTANCE,
                 new SerializerReadBasic(new Datas[] { Datas.INT, Datas.DOUBLE, Datas.DOUBLE }))
@@ -177,14 +177,20 @@ public class PaymentsModel {
         }
 
         List categorys = new StaticSentence(app.getSession(),
-                "SELECT a.NAME, sum(c.UNITS), sum(c.UNITS * (c.PRICE + (c.PRICE * d.RATE))) "
-                        + "FROM categories as a "
-                        + "LEFT JOIN products as b on a.id = b.CATEGORY "
-                        + "LEFT JOIN ticketlines as c on b.id = c.PRODUCT "
-                        + "LEFT JOIN taxes as d on c.TAXID = d.ID "
-                        + "LEFT JOIN receipts as e on c.TICKET = e.ID "
-                        + "WHERE e.MONEY = ? "
-                        + "GROUP BY a.NAME",
+                "SELECT COALESCE(categories.NAME, "
+                        + "CASE WHEN ticketlines.PRODUCT IS NULL THEN 'OTROS / CARGOS' ELSE 'SIN DEPARTAMENTO' END), "
+                        + "SUM(ticketlines.UNITS), "
+                        + "SUM(ticketlines.UNITS * (ticketlines.PRICE + (ticketlines.PRICE * COALESCE(taxes.RATE, 0)))) "
+                        + "FROM ticketlines "
+                        + "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID "
+                        + "INNER JOIN receipts ON tickets.ID = receipts.ID "
+                        + "LEFT JOIN products ON ticketlines.PRODUCT = products.ID "
+                        + "LEFT JOIN categories ON products.CATEGORY = categories.ID "
+                        + "LEFT JOIN taxes ON ticketlines.TAXID = taxes.ID "
+                        + "WHERE receipts.MONEY = ? "
+                        + "GROUP BY COALESCE(categories.NAME, "
+                        + "CASE WHEN ticketlines.PRODUCT IS NULL THEN 'OTROS / CARGOS' ELSE 'SIN DEPARTAMENTO' END) "
+                        + "HAVING SUM(ticketlines.UNITS) <> 0",
                 SerializerWriteString.INSTANCE,
                 new SerializerReadClass(PaymentsModel.CategorySalesLine.class))
                 .list(app.getActiveCashIndex());

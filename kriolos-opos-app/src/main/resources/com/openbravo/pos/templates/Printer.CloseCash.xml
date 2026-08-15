@@ -1,9 +1,9 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Formato de Reporte de Cierre de Turno grande y legible de 42 columnas -->
+<!-- Formato de cierre de turno grande, uniforme y legible de 30 columnas -->
 <output>
     <ticket>
-        <line size="3"><text align="center" length="42" bold="true">CIERRE DE TURNO</text></line>
-        <line><text bold="true">==========================================</text></line>
+        <line size="3"><text align="center" length="30" bold="true">CIERRE DE TURNO</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
 
         #if ($isDayClose && $allShifts && !$allShifts.isEmpty())
         <line size="3"><text align="center" length="42" bold="true">CORTE DEL DIA</text></line>
@@ -28,53 +28,54 @@
         <line size="3"><text align="left" length="20" bold="true">EFECTIVO ESP.:</text><text align="right" length="22" bold="true">$totalDayCashTotal</text></line>
 
         #else
-        <line size="2"><text align="left" length="18" bold="true">CAJERO:</text><text align="right" length="24" bold="true">${payments.printUser()}</text></line>
-        <line size="2"><text align="left" length="18" bold="true">TURNO #:</text><text align="right" length="24" bold="true">${payments.printSequence()}</text></line>
-        <line size="2"><text align="left" length="18" bold="true">INICIO:</text><text align="right" length="24" bold="true">${payments.printDateStart()}</text></line>
-        <line size="2"><text align="left" length="18" bold="true">FIN:</text><text align="right" length="24" bold="true">${payments.printDateEnd()}</text></line>
-        <line><text bold="true">==========================================</text></line>
+        <line size="3"><text align="left" length="8" bold="true">CAJERO:</text><text align="right" length="22" bold="true">${payments.printUser()}</text></line>
+        <line size="3"><text align="left" length="8" bold="true">TURNO #:</text><text align="right" length="22" bold="true">${payments.printSequence()}</text></line>
+        <line size="3"><text align="left" length="8" bold="true">INICIO:</text><text align="right" length="22" bold="true">${payments.printDateStart()}</text></line>
+        <line size="3"><text align="left" length="8" bold="true">FIN:</text><text align="right" length="22" bold="true">${payments.printDateEnd()}</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
 
-        <line size="3"><text align="center" length="42" bold="true">VENTAS DEL TURNO</text></line>
-        <line><text bold="true">==========================================</text></line>
+        <line size="3"><text align="center" length="30" bold="true">VENTAS DEL TURNO</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
         #foreach ($line in $payments.getPaymentLines())
         #if (${line.getType()} != "cashin" && ${line.getType()} != "cashout")
-        <line size="2"><text align="left" length="18" bold="true">${line.printType()}</text><text align="right" length="24" bold="true">${line.printValue()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">${line.printType()}</text><text align="right" length="12" bold="true">${line.printValue()}</text></line>
         #end
         #end
-        <line><text bold="true">------------------------------------------</text></line>
-        <line size="3"><text align="left" length="18" bold="true">TOTAL:</text><text align="right" length="24" bold="true">${payments.printPaymentsTotal()}</text></line>
-        <line size="2"><text align="left" length="18" bold="true">RECIBOS:</text><text align="right" length="24" bold="true">${payments.printSales()}</text></line>
+        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
+        <line size="3"><text align="left" length="18" bold="true">TOTAL:</text><text align="right" length="12" bold="true">${payments.printPaymentsTotal()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">RECIBOS:</text><text align="right" length="12" bold="true">${payments.printSales()}</text></line>
 
         #set($catLines = $payments.getCategorySalesLines())
         #if($catLines.size() > 0)
-        <line size="3"><text align="center" length="42" bold="true">VENTAS POR CATEGORIA</text></line>
-        <line><text bold="true">==========================================</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+        <line size="3"><text align="center" length="30" bold="true">VENTAS POR CATEGORIA</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
         #foreach ($cat in $catLines)
-        <line size="2"><text align="left" length="42" bold="true">${cat.printCategoryName()}</text></line>
-        <line size="2"><text align="left" length="18" bold="true">CANTIDAD:</text><text align="right" length="24" bold="true">${cat.printCategoryUnits()}</text></line>
-        <line size="2"><text align="left" length="18" bold="true">TOTAL:</text><text align="right" length="24" bold="true">${cat.printCategorySum()}</text></line>
-        <line><text bold="true">------------------------------------------</text></line>
+        <line size="3"><text align="center" length="30" bold="true">${cat.printCategoryName()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">CANTIDAD:</text><text align="right" length="12" bold="true">${cat.printCategoryUnits()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">TOTAL:</text><text align="right" length="12" bold="true">${cat.printCategorySum()}</text></line>
+        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
         #end
-        <line size="3"><text align="left" length="18" bold="true">TOTAL:</text><text align="right" length="24" bold="true">${payments.printSalesTotal()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">TOTAL CATEGORIAS:</text><text align="right" length="12" bold="true">${payments.printCategorySalesTotal()}</text></line>
         #end
 
-        <line size="3"><text align="center" length="42" bold="true">MOVIMIENTOS EFECTIVO</text></line>
-        <line><text bold="true">==========================================</text></line>
-        <line size="2"><text align="left" length="18" bold="true">FONDO INICIAL:</text><text align="right" length="24" bold="true">${payments.printInitialAmount()}</text></line>
-        <line size="2"><text align="left" length="18" bold="true">VTAS EFECTIVO:</text><text align="right" length="24" bold="true">${payments.printCashTotal()}</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+        <line size="3"><text align="center" length="30" bold="true">MOVIMIENTOS EFECTIVO</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+        <line size="3"><text align="left" length="18" bold="true">FONDO INICIAL:</text><text align="right" length="12" bold="true">${payments.printInitialAmount()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">VTAS EFECTIVO:</text><text align="right" length="12" bold="true">${payments.printCashTotal()}</text></line>
         #foreach ($line in $payments.getPaymentLines())
         #if (${line.getType()} == "cashin")
-        <line size="2"><text align="left" length="18" bold="true">${line.printReason()}</text><text align="right" length="24" bold="true">${line.printValue()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">${line.printReason()}</text><text align="right" length="12" bold="true">${line.printValue()}</text></line>
         #end
         #end
         #foreach ($line in $payments.getPaymentLines())
         #if (${line.getType()} == "cashout")
-        <line size="2"><text align="left" length="18" bold="true">${line.printReason()}</text><text align="right" length="24" bold="true">${line.printValue()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">${line.printReason()}</text><text align="right" length="12" bold="true">${line.printValue()}</text></line>
         #end
         #end
-        <line><text bold="true">------------------------------------------</text></line>
-        <line size="2"><text align="left" length="42" bold="true">EFECTIVO ESP.:</text></line>
-        <line size="3"><text align="center" length="42" bold="true">${payments.printExpectedCash()}</text></line>
+        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
+        <line size="3"><text align="left" length="18" bold="true">EFECTIVO ESP.:</text><text align="right" length="12" bold="true">${payments.printExpectedCash()}</text></line>
         #end
     </ticket>
 </output>
