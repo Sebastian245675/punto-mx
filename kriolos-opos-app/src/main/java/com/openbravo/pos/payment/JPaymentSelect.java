@@ -634,7 +634,7 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
         m_jLblTotalEuros1.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 24)); // NOI18N
         m_jLblTotalEuros1.setText("Cantidad a pagar:"); // Sebastian - Título solicitado
         m_jLblTotalEuros1.setVisible(true);
-        m_jLblTotalEuros1.setPreferredSize(new java.awt.Dimension(220, 35));
+        m_jLblTotalEuros1.setPreferredSize(new java.awt.Dimension(300, 40));
 
         // Sebastian - Total en azul estilo Eleventa - MUY GRANDE
         m_jTotalEuros.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 72)); // NOI18N - Tamaño muy grande

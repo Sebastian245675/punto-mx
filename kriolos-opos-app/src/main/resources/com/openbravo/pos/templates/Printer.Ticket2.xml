@@ -176,6 +176,9 @@
             <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine6()}</text></line>
         #end
 
+        <line></line>
+        <line></line>
+
     </ticket>
 
 </output>

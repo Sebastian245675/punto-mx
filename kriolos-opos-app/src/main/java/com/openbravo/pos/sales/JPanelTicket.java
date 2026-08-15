@@ -136,6 +136,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
     private String lastSaleTotalText = null;
     private String lastSalePagoConText = null;
     private String lastSaleCambioText = null;
+    private String lastSaleUserId = null;
+    private String lastSaleCashIndex = null;
     // Sebastian - Panel de botones de acción
     private javax.swing.JPanel actionButtonsPanel;
     protected TicketsEditor m_panelticket;
@@ -1412,12 +1414,35 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         return getAppProperty("override.check").equals("true");
     }
 
+    private String getCurrentUserId() {
+        if (m_App == null || m_App.getAppUserView() == null || m_App.getAppUserView().getUser() == null) {
+            return null;
+        }
+        return m_App.getAppUserView().getUser().getId();
+    }
+
+    private boolean isLastSaleFromCurrentSession() {
+        return Objects.equals(lastSaleUserId, getCurrentUserId())
+                && Objects.equals(lastSaleCashIndex, m_App != null ? m_App.getActiveCashIndex() : null);
+    }
+
+    private void clearLastSaleState() {
+        lastSaleTotalText = null;
+        lastSalePagoConText = null;
+        lastSaleCambioText = null;
+        lastSaleUserId = null;
+        lastSaleCashIndex = null;
+    }
+
     private void printPartialTotals() {
 
         if (m_oTicket == null || m_oTicket.getLinesCount() == 0) {
             // m_jSubtotalEuros.setText(null); // Ya no se muestra
             // m_jTaxesEuros.setText(null); // Ya no se muestra
             // Sebastian - Si hay valores de la última venta guardados, mostrarlos
+            if (!isLastSaleFromCurrentSession()) {
+                clearLastSaleState();
+            }
             if (lastSaleTotalText != null) {
                 m_jTotalEuros.setText(lastSaleTotalText);
                 if (lblTotalValue != null)
@@ -1576,9 +1601,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         if (m_oTicket != null) {
             // Sebastian - Limpiar valores de la última venta cuando se agrega un producto
             // (indica que se inicia una nueva venta)
-            lastSaleTotalText = null;
-            lastSalePagoConText = null;
-            lastSaleCambioText = null;
+            clearLastSaleState();
 
             boolean foundMatchingLine = false;
 
@@ -3245,11 +3268,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 if (cambio < 0) cambio = 0;
                                 lastSalePagoConText = Formats.CURRENCY.formatValue(pagado);
                                 lastSaleCambioText = Formats.CURRENCY.formatValue(cambio);
+                                lastSaleUserId = getCurrentUserId();
+                                lastSaleCashIndex = m_App.getActiveCashIndex();
                             } catch (Exception ex) {
                                 // Si falla, no guardar nada
-                                lastSaleTotalText = null;
-                                lastSalePagoConText = null;
-                                lastSaleCambioText = null;
+                                clearLastSaleState();
                             }
 
                             // Sebastian - Restaurar foco en campo de búsqueda después de procesar pago
@@ -6924,20 +6947,34 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     (java.awt.Frame) javax.swing.SwingUtilities.getWindowAncestor(this),
                     "Seleccionar Cliente",
                     true);
-            dialog.setSize(700, 500);
+            java.awt.Rectangle usableBounds = java.awt.GraphicsEnvironment.getLocalGraphicsEnvironment()
+                    .getMaximumWindowBounds();
+            int dialogWidth = Math.max(1100, (int) (usableBounds.width * 0.85));
+            int dialogHeight = Math.max(720, (int) (usableBounds.height * 0.82));
+            dialog.setSize(
+                    Math.min(dialogWidth, usableBounds.width),
+                    Math.min(dialogHeight, usableBounds.height));
+            dialog.setMinimumSize(new java.awt.Dimension(1050, 700));
+            dialog.setResizable(true);
             dialog.setLocationRelativeTo(this);
 
             // Panel principal
             javax.swing.JPanel mainPanel = new javax.swing.JPanel(new java.awt.BorderLayout(10, 10));
-            mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(10, 10, 10, 10));
+            mainPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(18, 18, 18, 18));
 
             // Panel de búsqueda
-            javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT));
+            javax.swing.JPanel searchPanel = new javax.swing.JPanel(new java.awt.BorderLayout(12, 0));
             javax.swing.JLabel lblSearch = new javax.swing.JLabel("Buscar por Nombre o ID:");
-            javax.swing.JTextField txtSearch = new javax.swing.JTextField(20);
-            txtSearch.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
-            searchPanel.add(lblSearch);
-            searchPanel.add(txtSearch);
+            lblSearch.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
+            lblSearch.setPreferredSize(new java.awt.Dimension(290, 46));
+            javax.swing.JTextField txtSearch = new javax.swing.JTextField(32);
+            txtSearch.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 20));
+            txtSearch.setPreferredSize(new java.awt.Dimension(520, 46));
+            txtSearch.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                    javax.swing.BorderFactory.createLineBorder(new java.awt.Color(150, 150, 150)),
+                    javax.swing.BorderFactory.createEmptyBorder(8, 12, 8, 12)));
+            searchPanel.add(lblSearch, java.awt.BorderLayout.WEST);
+            searchPanel.add(txtSearch, java.awt.BorderLayout.CENTER);
 
             // Obtener lista de clientes
             java.util.List<CustomerInfo> allCustomers = dlCustomers.getCustomerList().list();
@@ -6962,17 +6999,17 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
             // Tabla de clientes
             javax.swing.JTable table = new javax.swing.JTable(tableModel);
-            table.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
-            table.setRowHeight(25);
+            table.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 20));
+            table.setRowHeight(34);
             table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
-            table.getTableHeader().setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 12));
-            table.getColumnModel().getColumn(0).setPreferredWidth(150);
-            table.getColumnModel().getColumn(1).setPreferredWidth(350);
-            table.getColumnModel().getColumn(2).setPreferredWidth(150);
+            table.getTableHeader().setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
+            table.getColumnModel().getColumn(0).setPreferredWidth(180);
+            table.getColumnModel().getColumn(1).setPreferredWidth(420);
+            table.getColumnModel().getColumn(2).setPreferredWidth(260);
 
             // Scroll pane para la tabla
             javax.swing.JScrollPane scrollPane = new javax.swing.JScrollPane(table);
-            scrollPane.setPreferredSize(new java.awt.Dimension(680, 350));
+            scrollPane.setPreferredSize(new java.awt.Dimension(1100, 560));
 
             // Filtro de búsqueda - busca por nombre (columna 1) y SearchKey (columna 2)
             txtSearch.addKeyListener(new java.awt.event.KeyAdapter() {
@@ -7010,12 +7047,52 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     tableModel);
             table.setRowSorter(sorter);
 
+            txtSearch.getDocument().addDocumentListener(new javax.swing.event.DocumentListener() {
+                private void applyFilter() {
+                    String searchText = txtSearch.getText().trim();
+
+                    if (searchText.isEmpty()) {
+                        sorter.setRowFilter(null);
+                    } else {
+                        java.util.List<javax.swing.RowFilter<javax.swing.table.TableModel, Integer>> filters = new java.util.ArrayList<>();
+                        filters.add(javax.swing.RowFilter
+                                .regexFilter("(?i)" + java.util.regex.Pattern.quote(searchText), 0));
+                        filters.add(javax.swing.RowFilter
+                                .regexFilter("(?i)" + java.util.regex.Pattern.quote(searchText), 1));
+                        sorter.setRowFilter(javax.swing.RowFilter.orFilter(filters));
+                    }
+
+                    if (table.getRowCount() > 0) {
+                        table.setRowSelectionInterval(0, 0);
+                    } else {
+                        table.clearSelection();
+                    }
+                }
+
+                @Override
+                public void insertUpdate(javax.swing.event.DocumentEvent e) {
+                    applyFilter();
+                }
+
+                @Override
+                public void removeUpdate(javax.swing.event.DocumentEvent e) {
+                    applyFilter();
+                }
+
+                @Override
+                public void changedUpdate(javax.swing.event.DocumentEvent e) {
+                    applyFilter();
+                }
+            });
+
             // Panel de botones
             javax.swing.JPanel buttonPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT));
             javax.swing.JButton btnSelect = new javax.swing.JButton("Seleccionar");
             javax.swing.JButton btnCancel = new javax.swing.JButton("Cancelar");
-            btnSelect.setPreferredSize(new java.awt.Dimension(100, 30));
-            btnCancel.setPreferredSize(new java.awt.Dimension(100, 30));
+            btnSelect.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+            btnCancel.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 18));
+            btnSelect.setPreferredSize(new java.awt.Dimension(200, 46));
+            btnCancel.setPreferredSize(new java.awt.Dimension(200, 46));
             buttonPanel.add(btnSelect);
             buttonPanel.add(btnCancel);
 
@@ -7088,6 +7165,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             mainPanel.add(buttonPanel, java.awt.BorderLayout.SOUTH);
 
             dialog.add(mainPanel);
+            javax.swing.SwingUtilities.invokeLater(txtSearch::requestFocusInWindow);
             dialog.setVisible(true);
 
         } catch (Exception e) {

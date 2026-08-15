@@ -2,3 +2,591 @@
 [2026-08-04 17:06:51.204] [INFO] [TICKET-PRINT] TicketPrintLogger INICIALIZADO CORRECTAMENTE
 [2026-08-04 17:06:51.209] [INFO] [TICKET-PRINT] =========================================================
 [2026-08-04 17:06:51.211] [INFO] [TICKET-PRINT] >>> APLICACION StartPOS INICIADA EXITOSAMENTE <<<
+[2026-08-12 19:49:59.370] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-12 19:49:59.378] [INFO] [TICKET-PRINT] TicketPrintLogger INICIALIZADO CORRECTAMENTE
+[2026-08-12 19:49:59.381] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-12 19:49:59.384] [INFO] [TICKET-PRINT] >>> APLICACION StartPOS INICIADA EXITOSAMENTE <<<
+[2026-08-12 19:51:47.788] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-12 19:51:47.790] [INFO] [TICKET-PRINT] NUEVO TICKET #1 CREADO
+[2026-08-12 19:51:47.791] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-12 19:51:47.793] [INFO] [TICKET-PRINT]   Parámetros de construcción:
+[2026-08-12 19:51:47.795] [INFO] [TICKET-PRINT]     fontName     = Arial
+[2026-08-12 19:51:47.796] [INFO] [TICKET-PRINT]     fontSize     = 16
+[2026-08-12 19:51:47.798] [INFO] [TICKET-PRINT]     fontBold     = true
+[2026-08-12 19:51:47.799] [INFO] [TICKET-PRINT]     normalTotals = false
+[2026-08-12 19:51:47.800] [INFO] [TICKET-PRINT]   normalTotals=FALSE: Las líneas con size>0 se imprimirán con escala ampliada. ¡CORRECTO!
+[2026-08-12 19:51:47.803] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.804] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.806] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.807] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.809] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="              CIERRE DE TURNO             "
+[2026-08-12 19:51:47.812] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.813] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.814] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.817] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.818] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.820] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:51:47.820] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.823] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.824] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.826] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.827] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.829] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="CAJERO:           "
+[2026-08-12 19:51:47.830] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   admin"
+[2026-08-12 19:51:47.831] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.833] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.834] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.835] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.836] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.838] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TURNO #:          "
+[2026-08-12 19:51:47.839] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       2"
+[2026-08-12 19:51:47.841] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.842] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.843] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.844] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.845] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.847] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="INICIO:           "
+[2026-08-12 19:51:47.849] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="   12/08/2026, 7:50 p.m."
+[2026-08-12 19:51:47.850] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.852] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.853] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.855] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.856] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.857] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="FIN:              "
+[2026-08-12 19:51:47.859] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="   12/08/2026, 7:51 p.m."
+[2026-08-12 19:51:47.859] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.861] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.862] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.863] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.864] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.867] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:51:47.869] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.871] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.871] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.873] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.874] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.876] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="             VENTAS DEL TURNO             "
+[2026-08-12 19:51:47.877] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.878] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.879] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.880] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.882] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.884] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:51:47.886] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.887] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.888] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.889] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.890] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.892] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="Efectivo          "
+[2026-08-12 19:51:47.893] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $100,00"
+[2026-08-12 19:51:47.894] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.895] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.897] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.898] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.900] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.902] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-12 19:51:47.903] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.905] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.906] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.907] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.908] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.909] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TOTAL:            "
+[2026-08-12 19:51:47.911] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $100,00"
+[2026-08-12 19:51:47.913] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.914] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.914] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.916] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.917] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.919] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="RECIBOS:          "
+[2026-08-12 19:51:47.920] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       2"
+[2026-08-12 19:51:47.921] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.923] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.924] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.925] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.926] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.927] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="           VENTAS POR CATEGORIA           "
+[2026-08-12 19:51:47.928] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.929] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.930] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.931] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.933] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.934] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:51:47.935] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.937] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.938] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.938] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.940] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.941] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="Category Standard                         "
+[2026-08-12 19:51:47.942] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.943] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.944] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.945] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.946] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.947] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="CANTIDAD:         "
+[2026-08-12 19:51:47.949] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       2"
+[2026-08-12 19:51:47.950] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.952] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.953] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.954] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.955] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.956] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TOTAL:            "
+[2026-08-12 19:51:47.957] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $100,00"
+[2026-08-12 19:51:47.957] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.959] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.960] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.961] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.962] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.963] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-12 19:51:47.965] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.966] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.967] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.968] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.969] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.970] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TOTAL:            "
+[2026-08-12 19:51:47.971] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $100,00"
+[2026-08-12 19:51:47.971] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.974] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.975] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.976] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.977] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:47.978] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="           MOVIMIENTOS EFECTIVO           "
+[2026-08-12 19:51:47.979] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.980] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.981] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.982] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.983] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:51:47.984] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:51:47.985] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.987] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.988] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.989] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.990] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.990] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="FONDO INICIAL:    "
+[2026-08-12 19:51:47.991] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $232,00"
+[2026-08-12 19:51:47.992] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:47.994] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:47.994] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.995] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:47.996] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:47.998] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="VTAS EFECTIVO:    "
+[2026-08-12 19:51:47.999] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $100,00"
+[2026-08-12 19:51:48.000] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:48.002] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:48.003] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:51:48.003] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:48.005] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:51:48.006] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-12 19:51:48.007] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:48.008] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:48.009] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:48.010] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:48.010] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:51:48.011] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="EFECTIVO ESP.:                            "
+[2026-08-12 19:51:48.013] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:51:48.014] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:51:48.015] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:48.016] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:51:48.017] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:51:48.018] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                  $332,00                 "
+[2026-08-12 19:51:48.020] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.867] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-12 19:52:01.868] [INFO] [TICKET-PRINT] NUEVO TICKET #2 CREADO
+[2026-08-12 19:52:01.869] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-12 19:52:01.870] [INFO] [TICKET-PRINT]   Parámetros de construcción:
+[2026-08-12 19:52:01.871] [INFO] [TICKET-PRINT]     fontName     = Arial
+[2026-08-12 19:52:01.873] [INFO] [TICKET-PRINT]     fontSize     = 16
+[2026-08-12 19:52:01.874] [INFO] [TICKET-PRINT]     fontBold     = true
+[2026-08-12 19:52:01.875] [INFO] [TICKET-PRINT]     normalTotals = false
+[2026-08-12 19:52:01.876] [INFO] [TICKET-PRINT]   normalTotals=FALSE: Las líneas con size>0 se imprimirán con escala ampliada. ¡CORRECTO!
+[2026-08-12 19:52:01.877] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.879] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:01.880] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.882] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:01.884] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="              CIERRE DE TURNO             "
+[2026-08-12 19:52:01.886] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.888] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.889] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.891] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.892] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.894] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:52:01.896] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.897] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.899] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.901] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.903] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.904] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="CAJERO:           "
+[2026-08-12 19:52:01.905] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                    juan"
+[2026-08-12 19:52:01.907] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.908] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.909] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.910] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.912] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.914] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TURNO #:          "
+[2026-08-12 19:52:01.915] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       3"
+[2026-08-12 19:52:01.918] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.919] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.920] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.922] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.924] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.925] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="INICIO:           "
+[2026-08-12 19:52:01.927] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="   12/08/2026, 7:51 p.m."
+[2026-08-12 19:52:01.927] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.929] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.930] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.932] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.934] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.936] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="FIN:              "
+[2026-08-12 19:52:01.938] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="   12/08/2026, 7:52 p.m."
+[2026-08-12 19:52:01.939] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.940] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.941] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.942] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.943] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.945] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:52:01.946] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.947] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.948] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:01.949] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.951] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:01.952] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="             VENTAS DEL TURNO             "
+[2026-08-12 19:52:01.953] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.954] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.955] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.956] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.958] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.959] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:52:01.960] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.962] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.962] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.964] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.965] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.966] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-12 19:52:01.968] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.969] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.971] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:01.972] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.973] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:01.974] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TOTAL:            "
+[2026-08-12 19:52:01.976] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   $0,00"
+[2026-08-12 19:52:01.977] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.978] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.979] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.980] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.981] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:01.982] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="RECIBOS:          "
+[2026-08-12 19:52:01.983] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       0"
+[2026-08-12 19:52:01.985] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.986] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.987] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:01.988] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.989] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:01.991] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="           MOVIMIENTOS EFECTIVO           "
+[2026-08-12 19:52:01.992] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:01.993] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:01.994] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.995] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:01.996] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:52:01.998] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-12 19:52:01.999] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:02.000] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:02.001] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:02.002] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:02.003] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:02.004] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="FONDO INICIAL:    "
+[2026-08-12 19:52:02.005] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $343,00"
+[2026-08-12 19:52:02.006] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:02.007] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:02.008] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:02.009] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:02.010] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:02.011] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="VTAS EFECTIVO:    "
+[2026-08-12 19:52:02.012] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   $0,00"
+[2026-08-12 19:52:02.013] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:02.013] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:02.014] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-12 19:52:02.015] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:02.016] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-12 19:52:02.017] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-12 19:52:02.019] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:02.020] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:02.021] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:02.022] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:02.023] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-12 19:52:02.024] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="EFECTIVO ESP.:                            "
+[2026-08-12 19:52:02.025] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-12 19:52:02.025] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-12 19:52:02.026] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:02.027] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-12 19:52:02.027] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-12 19:52:02.029] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                  $343,00                 "
+[2026-08-12 19:52:02.030] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:27:36.487] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-15 14:27:36.492] [INFO] [TICKET-PRINT] TicketPrintLogger INICIALIZADO CORRECTAMENTE
+[2026-08-15 14:27:36.494] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-15 14:27:36.495] [INFO] [TICKET-PRINT] >>> APLICACION StartPOS INICIADA EXITOSAMENTE <<<
+[2026-08-15 14:28:27.056] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-15 14:28:27.058] [INFO] [TICKET-PRINT] NUEVO TICKET #1 CREADO
+[2026-08-15 14:28:27.060] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-15 14:28:27.062] [INFO] [TICKET-PRINT]   Parámetros de construcción:
+[2026-08-15 14:28:27.064] [INFO] [TICKET-PRINT]     fontName     = Arial
+[2026-08-15 14:28:27.066] [INFO] [TICKET-PRINT]     fontSize     = 16
+[2026-08-15 14:28:27.068] [INFO] [TICKET-PRINT]     fontBold     = true
+[2026-08-15 14:28:27.070] [INFO] [TICKET-PRINT]     normalTotals = false
+[2026-08-15 14:28:27.072] [INFO] [TICKET-PRINT]   normalTotals=FALSE: Las líneas con size>0 se imprimirán con escala ampliada. ¡CORRECTO!
+[2026-08-15 14:28:27.074] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.076] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.077] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.080] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.082] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="              CIERRE DE TURNO             "
+[2026-08-15 14:28:27.084] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.086] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.086] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.088] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.090] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.093] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-15 14:28:27.094] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.095] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.096] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.098] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.099] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.100] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="CAJERO:           "
+[2026-08-15 14:28:27.101] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   admin"
+[2026-08-15 14:28:27.102] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.103] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.105] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.106] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.107] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.109] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TURNO #:          "
+[2026-08-15 14:28:27.110] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       2"
+[2026-08-15 14:28:27.111] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.113] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.113] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.115] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.116] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.117] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="INICIO:           "
+[2026-08-15 14:28:27.118] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="   15/08/2026, 2:27 p.m."
+[2026-08-15 14:28:27.119] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.120] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.122] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.123] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.123] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.126] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="FIN:              "
+[2026-08-15 14:28:27.127] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="   15/08/2026, 2:28 p.m."
+[2026-08-15 14:28:27.128] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.129] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.129] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.130] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.131] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.133] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-15 14:28:27.134] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.135] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.136] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.137] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.138] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.140] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="             VENTAS DEL TURNO             "
+[2026-08-15 14:28:27.141] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.142] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.143] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.145] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.146] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.146] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-15 14:28:27.148] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.149] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.150] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.151] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.152] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.153] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-15 14:28:27.154] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.155] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.157] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.158] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.159] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.160] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TOTAL:            "
+[2026-08-15 14:28:27.161] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   $0,00"
+[2026-08-15 14:28:27.162] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.163] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.163] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.164] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.165] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.166] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="RECIBOS:          "
+[2026-08-15 14:28:27.167] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       0"
+[2026-08-15 14:28:27.168] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.169] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.170] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.171] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.172] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.174] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="           MOVIMIENTOS EFECTIVO           "
+[2026-08-15 14:28:27.175] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.176] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.177] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.178] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.179] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.180] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-15 14:28:27.182] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.183] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.184] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.184] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.185] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.186] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="FONDO INICIAL:    "
+[2026-08-15 14:28:27.189] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $343,00"
+[2026-08-15 14:28:27.189] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.191] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.192] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.193] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.194] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.195] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="VTAS EFECTIVO:    "
+[2026-08-15 14:28:27.196] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   $0,00"
+[2026-08-15 14:28:27.197] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.198] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.198] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.199] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.200] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:28:27.201] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-15 14:28:27.202] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.202] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.204] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.206] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.208] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:28:27.209] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="EFECTIVO ESP.:                            "
+[2026-08-15 14:28:27.211] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:28:27.211] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:28:27.212] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.213] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:28:27.214] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:28:27.215] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                  $343,00                 "
+[2026-08-15 14:28:27.216] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:32:45.828] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-15 14:32:45.833] [INFO] [TICKET-PRINT] TicketPrintLogger INICIALIZADO CORRECTAMENTE
+[2026-08-15 14:32:45.836] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-15 14:32:45.839] [INFO] [TICKET-PRINT] >>> APLICACION StartPOS INICIADA EXITOSAMENTE <<<
+[2026-08-15 14:36:34.344] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-15 14:36:34.345] [INFO] [TICKET-PRINT] NUEVO TICKET #1 CREADO
+[2026-08-15 14:36:34.347] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-15 14:36:34.348] [INFO] [TICKET-PRINT]   Parámetros de construcción:
+[2026-08-15 14:36:34.350] [INFO] [TICKET-PRINT]     fontName     = Arial
+[2026-08-15 14:36:34.352] [INFO] [TICKET-PRINT]     fontSize     = 16
+[2026-08-15 14:36:34.353] [INFO] [TICKET-PRINT]     fontBold     = true
+[2026-08-15 14:36:34.355] [INFO] [TICKET-PRINT]     normalTotals = false
+[2026-08-15 14:36:34.356] [INFO] [TICKET-PRINT]   normalTotals=FALSE: Las líneas con size>0 se imprimirán con escala ampliada. ¡CORRECTO!
+[2026-08-15 14:36:34.358] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.359] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.361] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.362] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.365] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="              CIERRE DE TURNO             "
+[2026-08-15 14:36:34.367] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.369] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.371] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.372] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.373] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.375] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-15 14:36:34.376] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.378] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.379] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.380] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.382] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.383] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="CAJERO:           "
+[2026-08-15 14:36:34.385] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   admin"
+[2026-08-15 14:36:34.386] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.387] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.389] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.390] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.392] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.393] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TURNO #:          "
+[2026-08-15 14:36:34.394] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       2"
+[2026-08-15 14:36:34.395] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.396] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.397] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.398] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.400] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.402] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="INICIO:           "
+[2026-08-15 14:36:34.403] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="   15/08/2026, 2:32 p.m."
+[2026-08-15 14:36:34.404] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.406] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.407] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.408] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.409] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.410] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="FIN:              "
+[2026-08-15 14:36:34.411] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="   15/08/2026, 2:36 p.m."
+[2026-08-15 14:36:34.412] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.413] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.414] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.415] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.417] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.418] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-15 14:36:34.419] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.421] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.422] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.423] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.424] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.426] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="             VENTAS DEL TURNO             "
+[2026-08-15 14:36:34.427] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.428] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.429] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.430] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.432] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.433] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-15 14:36:34.434] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.436] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.437] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.439] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.440] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.441] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-15 14:36:34.442] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.443] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.444] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.445] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.446] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.448] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="TOTAL:            "
+[2026-08-15 14:36:34.449] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   $0,00"
+[2026-08-15 14:36:34.450] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.451] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.453] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.454] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.455] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.456] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="RECIBOS:          "
+[2026-08-15 14:36:34.457] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                       0"
+[2026-08-15 14:36:34.459] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.460] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.461] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.462] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.463] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.464] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="           MOVIMIENTOS EFECTIVO           "
+[2026-08-15 14:36:34.465] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.466] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.467] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.469] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.470] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.471] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="=========================================="
+[2026-08-15 14:36:34.472] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.473] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.474] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.475] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.476] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.477] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="FONDO INICIAL:    "
+[2026-08-15 14:36:34.478] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                 $232,00"
+[2026-08-15 14:36:34.479] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.480] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.482] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.482] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.483] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.484] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="VTAS EFECTIVO:    "
+[2026-08-15 14:36:34.485] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                   $0,00"
+[2026-08-15 14:36:34.489] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.490] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.491] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.493] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.493] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 0 (NORMAL (1x1))
+[2026-08-15 14:36:34.494] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="------------------------------------------"
+[2026-08-15 14:36:34.495] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.496] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.497] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.498] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.499] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 2 (DOUBLE_WIDTH (2x1) - Letras anchas)
+[2026-08-15 14:36:34.500] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="EFECTIVO ESP.:                            "
+[2026-08-15 14:36:34.501] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-15 14:36:34.502] [INFO] [TICKET-PRINT]   --- beginLine() ---
+[2026-08-15 14:36:34.503] [INFO] [TICKET-PRINT]     size solicitado (del XML)  = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.504] [INFO] [TICKET-PRINT]     normalTotals               = false
+[2026-08-15 14:36:34.505] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
+[2026-08-15 14:36:34.506] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                  $232,00                 "
+[2026-08-15 14:36:34.508] [INFO] [TICKET-PRINT]   --- endLine() ---
