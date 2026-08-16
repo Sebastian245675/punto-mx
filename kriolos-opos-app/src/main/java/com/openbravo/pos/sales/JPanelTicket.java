@@ -4673,67 +4673,57 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
         // Panel para área inferior completa estilo Eleventa
         // Sebastian - Reducir padding al mínimo para acercarlo a la barra inferior
-        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 190)); // Altura aumentada a 190 para evitar recortes
+        m_jPanelTotals.setPreferredSize(new java.awt.Dimension(Integer.MAX_VALUE, 130));
+        m_jPanelTotals.setMinimumSize(new java.awt.Dimension(0, 130));
         // Sebastian - Sin padding para acercarlo lo más posible a la barra inferior
         m_jPanelTotals.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
         m_jPanelTotals.setBackground(java.awt.Color.WHITE); // Fondo blanco como Eleventa
         m_jPanelTotals.setOpaque(true);
-        // Sebastian - Usar BorderLayout para que leftPanel esté pegado al borde
-        // izquierdo
         m_jPanelTotals.setLayout(new java.awt.BorderLayout(0, 0)); // Sin gaps
-
-        // === COLUMNA IZQUIERDA: Información y botones ===
-        javax.swing.JPanel leftPanel = new javax.swing.JPanel();
-        leftPanel.setLayout(new java.awt.BorderLayout(0, 0)); // BorderLayout para alinear abajo
-        leftPanel.setOpaque(false);
-        // Sebastian - Sin padding ni bordes para que esté completamente a la izquierda
-        leftPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0));
-
-        // Panel contenedor para el contenido izquierdo (infoPanel + botones)
-        javax.swing.JPanel leftContentPanel = new javax.swing.JPanel();
-        leftContentPanel.setLayout(new javax.swing.BoxLayout(leftContentPanel, javax.swing.BoxLayout.Y_AXIS));
-        leftContentPanel.setOpaque(false);
 
         // Sebastian - Remover "productos de la venta actual" de aquí, se moverá arriba
         // del panel de botones
 
         // Panel con Total, Pago Con, Cambio
-        javax.swing.JPanel infoPanel = new javax.swing.JPanel(new java.awt.GridLayout(3, 2, 5, 2));
+        javax.swing.JPanel infoPanel = new javax.swing.JPanel();
+        infoPanel.setLayout(new javax.swing.BoxLayout(infoPanel, javax.swing.BoxLayout.X_AXIS));
         infoPanel.setOpaque(false);
-        infoPanel.setPreferredSize(new java.awt.Dimension(320, 130));
-        infoPanel.setMinimumSize(new java.awt.Dimension(320, 130));
-        infoPanel.setMaximumSize(new java.awt.Dimension(320, 130));
+        infoPanel.setPreferredSize(new java.awt.Dimension(810, 42));
+        infoPanel.setMinimumSize(new java.awt.Dimension(810, 42));
+        infoPanel.setMaximumSize(new java.awt.Dimension(810, 42));
         infoPanel.setAlignmentX(java.awt.Component.LEFT_ALIGNMENT);
 
         javax.swing.JLabel lblTotal = new javax.swing.JLabel("Total:");
         lblTotal.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
         lblTotal.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblTotal);
+        infoPanel.add(javax.swing.Box.createHorizontalStrut(8));
         lblTotalValue = new javax.swing.JLabel("$0.00");
         lblTotalValue.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
         lblTotalValue.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblTotalValue);
+        infoPanel.add(javax.swing.Box.createHorizontalStrut(16));
 
         javax.swing.JLabel lblPagoCon = new javax.swing.JLabel("Pago Con:");
         lblPagoCon.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
         lblPagoCon.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblPagoCon);
+        infoPanel.add(javax.swing.Box.createHorizontalStrut(8));
         lblPagoConValue = new javax.swing.JLabel("$0.00");
         lblPagoConValue.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
         lblPagoConValue.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblPagoConValue);
+        infoPanel.add(javax.swing.Box.createHorizontalStrut(16));
 
         javax.swing.JLabel lblCambio = new javax.swing.JLabel("Cambio:");
         lblCambio.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
         lblCambio.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblCambio);
+        infoPanel.add(javax.swing.Box.createHorizontalStrut(8));
         lblCambioValue = new javax.swing.JLabel("$0.00");
         lblCambioValue.putClientProperty("isBottomInfoLabel", Boolean.TRUE);
         lblCambioValue.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 18));
         infoPanel.add(lblCambioValue);
-
-        leftContentPanel.add(infoPanel);
-        leftContentPanel.add(javax.swing.Box.createVerticalStrut(5)); // Reducir espacio
 
         // Panel de botones pequeños (F5 Cambiar, Eliminar)
         javax.swing.JPanel smallButtonsPanel = new javax.swing.JPanel(
@@ -4759,30 +4749,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnAsignarCliente.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(200, 200, 200), 1));
         btnAsignarCliente.addActionListener(e -> mostrarModalIdCliente());
         smallButtonsPanel.add(btnAsignarCliente);
-
-        leftContentPanel.add(smallButtonsPanel);
-
-        // Agregar contenido al leftPanel en SOUTH para alinearlo abajo
-        leftPanel.add(leftContentPanel, java.awt.BorderLayout.SOUTH);
-
-        // === COLUMNA DERECHA: Botón Cobrar + Total + Ventas del día y Devoluciones ===
-        javax.swing.JPanel rightPanel = new javax.swing.JPanel();
-        rightPanel.setLayout(new java.awt.BorderLayout(0, 0)); // Sin espacio vertical, todo pegado abajo
-        rightPanel.setOpaque(false);
-        rightPanel.setBorder(null); // Sin bordes que creen espacio
-
-        // === Panel superior: Botón Cobrar y Total (horizontal) ===
-        javax.swing.JPanel topRightPanel = new javax.swing.JPanel();
-        topRightPanel.setLayout(new java.awt.BorderLayout(0, 0));
-        topRightPanel.setOpaque(false);
-        topRightPanel.setBorder(null); // Sin bordes que creen espacio
-
-        // Panel para el total y el botón "Ventas del día y Devoluciones" (vertical,
-        // alineado a la derecha)
-        javax.swing.JPanel totalAndButtonPanel = new javax.swing.JPanel();
-        totalAndButtonPanel.setLayout(new java.awt.BorderLayout(0, 2)); // 2px de espacio vertical mínimo entre total y
-                                                                        // botón
-        totalAndButtonPanel.setOpaque(false);
 
         // Total exactamente como Eleventa - número grande en azul, estilo delgado pero
         // legible
@@ -4925,16 +4891,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         totalPanel.setLayout(new javax.swing.BoxLayout(totalPanel, javax.swing.BoxLayout.X_AXIS));
         totalPanel.setOpaque(false);
         totalPanel.add(javax.swing.Box.createHorizontalGlue()); // Empujar todo el grupo al extremo derecho
-        totalPanel.add(m_jReprint);
-        totalPanel.add(javax.swing.Box.createHorizontalStrut(10));
-        totalPanel.add(m_jPayNow); // Botón cobrar
-        totalPanel.add(javax.swing.Box.createHorizontalStrut(10)); // Espacio entre botón cobrar y la cifra total
         totalPanel.add(m_jTotalEuros); // Total al extremo derecho del grupo
         totalPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 20)); // Padding derecho para espacio
                                                                                         // cuando crezca la cifra
-
-        // Agregar total y botón cobrar al panel (arriba)
-        totalAndButtonPanel.add(totalPanel, java.awt.BorderLayout.NORTH);
 
         // === Botón "Ventas del día y Devoluciones" directamente debajo del total ===
         javax.swing.JButton btnVentasDelDia = new javax.swing.JButton();
@@ -4960,24 +4919,25 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         btnVentasPanel.setLayout(new javax.swing.BoxLayout(btnVentasPanel, javax.swing.BoxLayout.X_AXIS));
         btnVentasPanel.setOpaque(false);
         btnVentasPanel.add(javax.swing.Box.createHorizontalGlue()); // Empujar el botón al extremo derecho
+        btnVentasPanel.add(m_jReprint);
+        btnVentasPanel.add(javax.swing.Box.createHorizontalStrut(10));
+        btnVentasPanel.add(m_jPayNow);
+        btnVentasPanel.add(javax.swing.Box.createHorizontalStrut(10));
         btnVentasPanel.add(btnVentasDelDia);
         btnVentasPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 20)); // Padding derecho idéntico al del total
 
-        // Agregar botón al panel (debajo del total)
-        totalAndButtonPanel.add(btnVentasPanel, java.awt.BorderLayout.SOUTH);
+        javax.swing.JPanel summaryRowPanel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 0));
+        summaryRowPanel.setOpaque(false);
+        summaryRowPanel.add(infoPanel, java.awt.BorderLayout.WEST);
+        summaryRowPanel.add(totalPanel, java.awt.BorderLayout.CENTER);
 
-        // Agregar panel de total y botón cobrar al panel superior
-        topRightPanel.add(totalAndButtonPanel, java.awt.BorderLayout.CENTER);
+        javax.swing.JPanel actionsRowPanel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 0));
+        actionsRowPanel.setOpaque(false);
+        actionsRowPanel.add(smallButtonsPanel, java.awt.BorderLayout.WEST);
+        actionsRowPanel.add(btnVentasPanel, java.awt.BorderLayout.CENTER);
 
-        // Agregar panel superior al rightPanel en SOUTH para que esté pegado abajo
-        rightPanel.add(topRightPanel, java.awt.BorderLayout.SOUTH);
-
-        // Agregar paneles al m_jPanelTotals usando BorderLayout
-        // leftPanel completamente a la izquierda
-        m_jPanelTotals.add(leftPanel, java.awt.BorderLayout.WEST);
-
-        // rightPanel (total grande en su posición original + botón cobrar al lado) al centro (estirado)
-        m_jPanelTotals.add(rightPanel, java.awt.BorderLayout.CENTER);
+        m_jPanelTotals.add(summaryRowPanel, java.awt.BorderLayout.NORTH);
+        m_jPanelTotals.add(actionsRowPanel, java.awt.BorderLayout.SOUTH);
 
         // Sebastian - Panel original del botón comentado porque ya está arriba
         /*

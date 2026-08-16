@@ -2192,10 +2192,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     }
                     // Complementar con ventas por departamento de consolidatedProductList
                     java.util.List<java.util.Map<String, String>> dayDeptLinesMap = new java.util.ArrayList<>();
+                    double totalDayDepartmentSales = 0.0;
                     for (ConsolidatedProduct cp : consolidatedProductList) {
                         java.util.Map<String, String> row = new java.util.HashMap<>();
                         row.put("name", cp.getName());
+                        row.put("compactName",
+                                StringUtils.encodeXML(PaymentsModel.compactCategoryName(cp.getName())));
                         row.put("sales", Formats.CURRENCY.formatValue(cp.getTotalValue()));
+                        totalDayDepartmentSales += cp.getTotalValue();
                         // find profit from deptProfitList
                         String profitStr = Formats.CURRENCY.formatValue(0.0);
                         for (DeptProfitData dp : deptProfitList) {
@@ -2208,6 +2212,12 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         dayDeptLinesMap.add(row);
                     }
                     script.put("dayDeptLines", dayDeptLinesMap);
+                    script.put("totalDayDepartmentSales", Formats.CURRENCY.formatValue(totalDayDepartmentSales));
+
+                    if (Math.abs(totalDayDepartmentSales - totalDaySales) > 0.01) {
+                        LOGGER.warning("Diferencia entre ventas del dia y departamentos: ventas=" + totalDaySales
+                                + ", departamentos=" + totalDayDepartmentSales);
+                    }
 
                     LOGGER.info("Totales del día - Ventas: " + totalDaySales + ", Pagos: " + totalDayPayments);
                     LOGGER.info("Productos consolidados: " + consolidatedProductList.size());
@@ -2556,6 +2566,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
         public String printUser() {
             return printUserName();
+        }
+
+        public String printCompactLabel() {
+            String shiftLabel = "TURNO #" + sequence + " " + getUserName();
+            if (shiftLabel.length() > 18) {
+                shiftLabel = shiftLabel.substring(0, 16).trim() + "..";
+            }
+            return StringUtils.encodeXML(shiftLabel);
         }
 
         public String getMoney() {
@@ -2980,6 +2998,26 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 } catch (Exception e) {
                     LOGGER.log(Level.SEVERE,
                             "Error obteniendo productos para turno #" + sequence + ": " + e.getMessage(), e);
+                }
+
+                try {
+                    java.sql.PreparedStatement salesTotalStatement = session.getConnection().prepareStatement(
+                            "SELECT COALESCE(SUM((ticketlines.PRICE + ticketlines.PRICE * COALESCE(taxes.RATE, 0)) * ticketlines.UNITS), 0) AS TOTAL "
+                                    + "FROM ticketlines "
+                                    + "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID "
+                                    + "INNER JOIN receipts ON tickets.ID = receipts.ID "
+                                    + "LEFT JOIN taxes ON ticketlines.TAXID = taxes.ID "
+                                    + "WHERE receipts.MONEY = ?");
+                    salesTotalStatement.setString(1, money);
+                    java.sql.ResultSet salesTotalResult = salesTotalStatement.executeQuery();
+                    if (salesTotalResult.next()) {
+                        shift.setTotalSales(salesTotalResult.getDouble("TOTAL"));
+                    }
+                    salesTotalResult.close();
+                    salesTotalStatement.close();
+                } catch (Exception e) {
+                    LOGGER.log(Level.WARNING,
+                            "Error calculando total completo del turno #" + sequence + ": " + e.getMessage(), e);
                 }
 
                 shifts.add(shift);
