@@ -787,6 +787,10 @@ public class PaymentsReprintModel {
             return m_CategoryName;
         }
 
+        public String printCompactCategoryName() {
+            return PaymentsModel.compactCategoryName(m_CategoryName);
+        }
+
         /**
          *
          * @return

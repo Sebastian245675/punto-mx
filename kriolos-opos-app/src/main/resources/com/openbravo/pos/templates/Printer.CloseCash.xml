@@ -48,14 +48,15 @@
         #set($catLines = $payments.getCategorySalesLines())
         #if($catLines.size() > 0)
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="center" length="30" bold="true">VENTAS POR CATEGORIA</text></line>
+        <line size="3"><text align="center" length="30" bold="true">VENTAS POR DEPTO</text></line>
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
         #foreach ($cat in $catLines)
-        <line size="3"><text align="center" length="30" bold="true">${cat.printCategoryName()}</text></line>
-        <line size="3"><text align="left" length="18" bold="true">CANTIDAD:</text><text align="right" length="12" bold="true">${cat.printCategoryUnits()}</text></line>
-        <line size="3"><text align="left" length="18" bold="true">TOTAL:</text><text align="right" length="12" bold="true">${cat.printCategorySum()}</text></line>
-        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
+        <line size="3"><text align="left" length="18" bold="true">${cat.printCompactCategoryName()}</text><text align="right" length="12" bold="true">${cat.printCategorySum()}</text></line>
+        #if($foreach.hasNext)
+        <line></line>
         #end
+        #end
+        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
         <line size="3"><text align="left" length="18" bold="true">TOTAL CATEGORIAS:</text><text align="right" length="12" bold="true">${payments.printCategorySalesTotal()}</text></line>
         #end
 
@@ -76,6 +77,12 @@
         #end
         <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
         <line size="3"><text align="left" length="18" bold="true">EFECTIVO ESP.:</text><text align="right" length="12" bold="true">${payments.printExpectedCash()}</text></line>
+        <line></line>
+        <line></line>
+        <line></line>
+        <line></line>
+        <line></line>
+        <line></line>
         #end
     </ticket>
 </output>

@@ -857,6 +857,30 @@ public class PaymentsModel {
         };
     }
 
+    static String compactCategoryName(String categoryName) {
+        if (categoryName == null) {
+            return "";
+        }
+
+        String compactName = categoryName.trim().replaceAll("\\s+", " ");
+        if (compactName.length() <= 18) {
+            return compactName;
+        }
+
+        compactName = compactName
+                .replaceAll("(?i)SEMIMAYOREO", "S.MAY.")
+                .replaceAll("(?i)MAYOREO", "MAY.")
+                .replaceAll("(?i)MOSTRADOR", "MOST.")
+                .replaceAll("(?i)ESPECIAL", "ESP.")
+                .replaceAll("(?i)TORTILLA", "TORT.");
+
+        if (compactName.length() <= 18) {
+            return compactName;
+        }
+
+        return compactName.substring(0, 16).trim() + "..";
+    }
+
     // JG 9 Nov 12
     // Products category sales class
     /**
@@ -886,6 +910,10 @@ public class PaymentsModel {
          */
         public String printCategoryName() {
             return m_CategoryName;
+        }
+
+        public String printCompactCategoryName() {
+            return compactCategoryName(m_CategoryName);
         }
 
         /**
