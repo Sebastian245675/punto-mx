@@ -7204,7 +7204,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             leftPanel.setPreferredSize(new java.awt.Dimension(500, 0));
 
             // Título "VENTAS DEL DIA"
-            javax.swing.JLabel lblTitulo = new javax.swing.JLabel("VENTAS DEL DIA");
+            javax.swing.JLabel lblTitulo = new javax.swing.JLabel("VENTAS DEL DIA - MIS TURNOS");
             lblTitulo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
             lblTitulo.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
             leftPanel.add(lblTitulo, java.awt.BorderLayout.NORTH);
@@ -7584,6 +7584,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // === FUNCIONALIDAD ===
             // Variable para el checkbox (debe ser final para usar en la clase anónima)
             final javax.swing.JCheckBox finalChkVentasCredito = chkVentasCredito;
+            final String currentUserId = m_App.getAppUserView().getUser().getId();
+            final String currentUserName = m_App.getAppUserView().getUser().getName();
 
             // Cargar tickets del día
             ListProviderCreator<FindTicketsInfo> lpr = new ListProviderCreator<FindTicketsInfo>(
@@ -7619,8 +7621,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             afilter[7] = startDate;
                             afilter[8] = QBFCompareEnum.COMP_LESS; // EndDate
                             afilter[9] = endDate;
-                            afilter[10] = QBFCompareEnum.COMP_NONE; // User
-                            afilter[11] = null;
+                            afilter[10] = QBFCompareEnum.COMP_EQUALS; // User
+                            afilter[11] = currentUserName;
                             afilter[12] = QBFCompareEnum.COMP_NONE; // Customer
                             afilter[13] = null;
 
@@ -7633,9 +7635,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                 try {
                     java.util.List<FindTicketsInfo> tickets = lpr.loadData();
                     ticketsTableModel.setRowCount(0);
-
-                    // Obtener el ID del turno actual para filtrar
-                    String activeMoney = m_App.getActiveCashIndex();
 
                     SimpleDateFormat timeFormat = new SimpleDateFormat("h:mm a",
                             java.util.Locale.forLanguageTag("es-MX"));
@@ -7653,12 +7652,13 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 continue; // No mostrar como fila separada
                             }
 
-                            // Cargar el ticket completo para obtener su ID de turno (Money)
+                            // Cargar el ticket completo sin limitarlo al turno abierto. La fecha y el
+                            // usuario ya fueron filtrados arriba, por lo que se muestran todos los
+                            // turnos del dia pertenecientes al usuario conectado.
                             TicketInfo ticketInfo = dlSales.loadTicket(ticket.getTicketType(), ticket.getTicketId());
 
-                            // Sebastian - Filtrar por turno activo (Money).
-                            if (ticketInfo != null && activeMoney != null
-                                    && activeMoney.equals(ticketInfo.getActiveCash())) {
+                            if (ticketInfo != null && ticketInfo.getUser() != null
+                                    && java.util.Objects.equals(currentUserId, ticketInfo.getUser().getId())) {
                                 // Determinar el tipo de ticket
                                 String tipoTicket;
                                 if (ticketInfo.getTicketStatus() == 2) {

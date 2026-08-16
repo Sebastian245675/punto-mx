@@ -6,12 +6,6 @@ import com.openbravo.data.loader.SerializerWriteBasic;
 import com.openbravo.data.loader.StaticSentence;
 import com.openbravo.format.Formats;
 import com.openbravo.pos.panels.PaymentsModel;
-import com.openbravo.pos.printer.TicketParser;
-import com.openbravo.pos.printer.TicketPrinterException;
-import com.openbravo.pos.scripting.ScriptEngine;
-import com.openbravo.pos.scripting.ScriptException;
-import com.openbravo.pos.scripting.ScriptFactory;
-import com.openbravo.data.gui.MessageInf;
 import java.awt.*;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
@@ -54,7 +48,6 @@ public class JDialogCloseShift extends JDialog {
     private final AppView m_App;
     private DataLogicSystem m_dlSystem;
     private PaymentsModel m_PaymentsToClose;
-    private TicketParser m_TTP;
 
     // Componentes
     private JLabel lblEsperadoValor;
@@ -74,7 +67,6 @@ public class JDialogCloseShift extends JDialog {
         try {
             m_dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
             m_PaymentsToClose = PaymentsModel.loadInstance(m_App);
-            m_TTP = new TicketParser(m_App.getDeviceTicket(), m_dlSystem);
         } catch (BasicException e) {
             LOGGER.log(Level.SEVERE, "Error cargando datos", e);
             JOptionPane.showMessageDialog(parent, "Error al cargar datos: " + e.getMessage(), "Error",
@@ -463,8 +455,7 @@ public class JDialogCloseShift extends JDialog {
             // Abrir cajón de dinero físicamente al cerrar turno usando la misma lógica del botón "Probar Cajón" de Configuración
             openCashDrawer(m_App);
 
-            // Imprimir reporte de cierre de turno (que también incluye <opendrawer/>)
-            printCloseCashReport();
+            LOGGER.info("Turno cerrado sin impresión automática. El reporte queda disponible desde el botón Imprimir.");
 
             this.closed = true;
             this.shouldCloseShift = true;
@@ -474,63 +465,6 @@ public class JDialogCloseShift extends JDialog {
             LOGGER.log(Level.SEVERE, "Error cerrando turno", e);
             JOptionPane.showMessageDialog(this, "Error al cerrar el turno:\n" + e.getMessage(),
                     "Error", JOptionPane.ERROR_MESSAGE);
-        }
-    }
-
-    private void actualizarTemplateEnBD() {
-        try {
-            java.io.InputStream is = getClass().getResourceAsStream("/com/openbravo/pos/templates/Printer.CloseCash.xml");
-            if (is != null) {
-                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                byte[] buffer = new byte[4096];
-                int bytesRead;
-                while ((bytesRead = is.read(buffer)) != -1) {
-                    baos.write(buffer, 0, bytesRead);
-                }
-                byte[] templateContent = baos.toByteArray();
-                is.close();
-                baos.close();
-                m_dlSystem.setResource("Printer.CloseCash", 0, templateContent);
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Error al actualizar template Printer.CloseCash en BD: " + e.getMessage(), e);
-        }
-    }
-
-    private void printCloseCashReport() {
-        try {
-            String sresource = null;
-            try (java.io.InputStream is = getClass().getResourceAsStream("/com/openbravo/pos/templates/Printer.CloseCash.xml")) {
-                if (is != null) {
-                    byte[] templateBytes = is.readAllBytes();
-                    sresource = new String(templateBytes, java.nio.charset.StandardCharsets.UTF_8);
-                    m_dlSystem.setResource("Printer.CloseCash", 0, templateBytes);
-                }
-            } catch (Exception exIs) {
-                LOGGER.log(Level.WARNING, "No se pudo leer template desde classpath: " + exIs.getMessage());
-            }
-
-            if (sresource == null) {
-                sresource = m_dlSystem.getResourceAsXML("Printer.CloseCash");
-            }
-
-            if (sresource != null) {
-                ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
-                script.put("payments", m_PaymentsToClose);
-                script.put("nosales", String.valueOf(m_PaymentsToClose != null ? m_PaymentsToClose.getSales() : 0));
-                script.put("isDayClose", Boolean.FALSE);
-                script.put("allShifts", null);
-                script.put("consolidatedProducts", new java.util.ArrayList<>());
-                java.util.List<PaymentsModel.ProductSalesLine> currentShiftProducts =
-                        m_PaymentsToClose != null ? m_PaymentsToClose.getProductSalesLines() : new java.util.ArrayList<>();
-                script.put("currentShiftProducts", currentShiftProducts);
-
-                String ticketOutput = script.eval(sresource).toString();
-                m_TTP.printTicket(ticketOutput);
-                LOGGER.info("Reporte de cierre de turno impreso exitosamente.");
-            }
-        } catch (Exception e) {
-            LOGGER.log(Level.WARNING, "Error al imprimir ticket de cierre de turno en JDialogCloseShift: " + e.getMessage(), e);
         }
     }
 
