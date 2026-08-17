@@ -1,104 +1,108 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- 
-    KriolOS POS - Open Source Point Of Sale
-    Copyright (c) 2019-2023 KriolOS.
-
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    (at your option) any later version.
-
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU General Public License for more details.
-
-    You should have received a copy of the GNU General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
--->
-
+<!-- Comprobante de puntos grande, uniforme y legible de 30 columnas -->
 <output>
-
     <display>
         <line><text align="center" length="20">Puntos Redimidos</text></line>
     </display>
 
     <ticket>
-        <line></line>
         #if (${ticket.printTicketHeaderLine1()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine1()}</text></line>
+        <line size="3"><text align="center" length="30" bold="true">${ticket.printTicketHeaderLine1()}</text></line>
+        <line></line>
         #end
         #if (${ticket.printTicketHeaderLine2()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine2()}</text></line>
+        <line size="3"><text align="center" length="30" bold="true">${ticket.printTicketHeaderLine2()}</text></line>
+        <line></line>
         #end
         #if (${ticket.printTicketHeaderLine3()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine3()}</text></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketHeaderLine3()}</text></line>
+        <line></line>
         #end
         #if (${ticket.printTicketHeaderLine4()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine4()}</text></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketHeaderLine4()}</text></line>
+        <line></line>
         #end
         #if (${ticket.printTicketHeaderLine5()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine5()}</text></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketHeaderLine5()}</text></line>
+        <line></line>
         #end
         #if (${ticket.printTicketHeaderLine6()} != "")
-            <line><text align="center" length="42">${ticket.printTicketHeaderLine6()}</text></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketHeaderLine6()}</text></line>
+        <line></line>
         #end
 
-        <line></line>
         #if ($esCopia && $esCopia == true)
-            <line size="1"><text align="center" length="42" bold="true">COPIA</text></line>
-            <line></line>
-        #end
-        <line><text align="center" length="42" bold="true">COMPROBANTE DE PUNTOS REDIMIDOS</text></line>
+        <line size="3"><text align="center" length="30" bold="true">*** COPIA ***</text></line>
         <line></line>
-        
+        #end
+
+        <line size="3"><text align="center" length="30" bold="true">COMPROBANTE DE PUNTOS</text></line>
+        <line size="3"><text align="center" length="30" bold="true">REDIMIDOS</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+
         #set($fecha = $ticket.printDate())
         #if($fecha && $fecha != "")
-            <line><text align="left" length="15">Fecha:</text><text>${fecha}</text></line>
+        <line size="3"><text align="left" length="8" bold="true">FECHA:</text><text align="right" length="22">${fecha}</text></line>
+        <line></line>
         #end
         #set($host = $ticket.getHost())
         #if($host && $host != "")
-            <line><text align="left" length="15">Terminal:</text><text>${host}</text></line>
+        <line size="3"><text align="left" length="10" bold="true">TERMINAL:</text><text align="right" length="20">${host}</text></line>
+        <line></line>
         #end
         #set($usuario = $ticket.printUser())
         #if($usuario && $usuario != "")
-            <line><text align="left" length="15">Atendido por:</text><text>${usuario}</text></line>
+        <line size="3"><text align="left" length="10" bold="true">ATENDIO:</text><text align="right" length="20">${usuario}</text></line>
+        <line></line>
         #end
-        
+
         #if ($customerName && $customerName != "")
-            <line><text align="left" length="15">Cliente:</text><text>${customerName}</text></line>
+        <line size="3"><text align="left" length="30" bold="true">CLIENTE:</text></line>
+        <line></line>
+        #if ($customerName.length() > 30)
+        <line size="3"><text align="left" length="30">${customerName.substring(0, 30)}</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="30">${customerName.substring(30)}</text></line>
+        #else
+        <line size="3"><text align="left" length="30">${customerName}</text></line>
         #end
         <line></line>
-        <line><text align="left" length="42">------------------------------------------</text></line>
+        #end
+
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+        <line size="3"><text align="center" length="30" bold="true">PUNTOS REDIMIDOS</text></line>
         <line></line>
-        <line size="1">
-            <text align="center" length="42" bold="true">Puntos Redimidos: ${puntosRedimidos}</text>
-        </line>
-        <line></line>
-        <line><text align="left" length="42">------------------------------------------</text></line>
-        <line></line>
-        
+        <line size="3"><text align="center" length="30" bold="true">${puntosRedimidos} PUNTOS</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+
         #if (${ticket.printTicketFooterLine1()} != "")
-            <line></line>
-            <line><text align="center" length="42">${ticket.printTicketFooterLine1()}</text></line>
+        <line></line>
+        <line size="3"><text align="center" length="30" bold="true">${ticket.printTicketFooterLine1()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine2()} != "")
-            <line><text>${ticket.printTicketFooterLine2()}</text></line>
+        <line></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine2()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine3()} != "")
-            <line><text>${ticket.printTicketFooterLine3()}</text></line>
+        <line></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine3()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine4()} != "")
-            <line><text>${ticket.printTicketFooterLine4()}</text></line>
+        <line></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine4()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine5()} != "")
-            <line><text>${ticket.printTicketFooterLine5()}</text></line>
+        <line></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine5()}</text></line>
         #end
         #if (${ticket.printTicketFooterLine6()} != "")
-            <line><text>${ticket.printTicketFooterLine6()}</text></line>
+        <line></line>
+        <line size="3"><text align="center" length="30">${ticket.printTicketFooterLine6()}</text></line>
         #end
+
+        <line></line>
+        <line></line>
+        <line></line>
         <line></line>
     </ticket>
-
 </output>
-

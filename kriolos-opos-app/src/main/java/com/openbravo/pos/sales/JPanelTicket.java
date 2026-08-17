@@ -62,6 +62,7 @@ import com.openbravo.pos.sales.JDialogUnits;
 
 import com.openbravo.pos.ticket.TicketLineInfo;
 import com.openbravo.pos.util.InactivityListener;
+import com.openbravo.pos.util.DayCloseTicketScope;
 import com.openbravo.pos.reports.JRPrinterAWT300;
 import com.openbravo.pos.util.ReportUtils;
 import com.openbravo.beans.JCalendarDialog;
@@ -7203,8 +7204,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             javax.swing.JPanel leftPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
             leftPanel.setPreferredSize(new java.awt.Dimension(500, 0));
 
+            final boolean mostrarTodosLosTurnos = DayCloseTicketScope.isCompleted(new java.util.Date());
+
             // Título "VENTAS DEL DIA"
-            javax.swing.JLabel lblTitulo = new javax.swing.JLabel("VENTAS DEL DIA - MIS TURNOS");
+            javax.swing.JLabel lblTitulo = new javax.swing.JLabel(
+                    mostrarTodosLosTurnos ? "VENTAS DEL DIA - TODOS LOS TURNOS" : "VENTAS DEL DIA - MIS TURNOS");
             lblTitulo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
             lblTitulo.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
             leftPanel.add(lblTitulo, java.awt.BorderLayout.NORTH);
@@ -7406,7 +7410,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
 
             gbc.gridx = 1;
             gbc.gridwidth = 2;
-            javax.swing.JLabel lblCajeroValor = new javax.swing.JLabel(m_App.getAppUserView().getUser().getName());
+            javax.swing.JLabel lblCajeroValor = new javax.swing.JLabel(
+                    mostrarTodosLosTurnos ? "Todos los cajeros (corte del día realizado)"
+                            : m_App.getAppUserView().getUser().getName());
             lblCajeroValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
             filtersPanel.add(lblCajeroValor, gbc);
 
@@ -7621,8 +7627,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             afilter[7] = startDate;
                             afilter[8] = QBFCompareEnum.COMP_LESS; // EndDate
                             afilter[9] = endDate;
-                            afilter[10] = QBFCompareEnum.COMP_EQUALS; // User
-                            afilter[11] = currentUserName;
+                            afilter[10] = mostrarTodosLosTurnos ? QBFCompareEnum.COMP_NONE
+                                    : QBFCompareEnum.COMP_EQUALS; // User
+                            afilter[11] = mostrarTodosLosTurnos ? null : currentUserName;
                             afilter[12] = QBFCompareEnum.COMP_NONE; // Customer
                             afilter[13] = null;
 
@@ -7658,7 +7665,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             TicketInfo ticketInfo = dlSales.loadTicket(ticket.getTicketType(), ticket.getTicketId());
 
                             if (ticketInfo != null && ticketInfo.getUser() != null
-                                    && java.util.Objects.equals(currentUserId, ticketInfo.getUser().getId())) {
+                                    && (mostrarTodosLosTurnos
+                                            || java.util.Objects.equals(currentUserId, ticketInfo.getUser().getId()))) {
                                 // Determinar el tipo de ticket
                                 String tipoTicket;
                                 if (ticketInfo.getTicketStatus() == 2) {
@@ -7719,9 +7727,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         int folio = (Integer) ticketsTableModel.getValueAt(selectedRow, 0);
                         String tipoRow = (String) ticketsTableModel.getValueAt(selectedRow, 1);
                         int typeToSearch = 0;
-                        if ("Reembolso".equals(tipoRow)) {
-                            typeToSearch = TicketInfo.RECEIPT_REFUND; // 1
-                        } else if ("Pago".equals(tipoRow)) {
+                        if ("Pago".equals(tipoRow)) {
                             typeToSearch = TicketInfo.RECEIPT_PAYMENT; // 2
                         }
 

@@ -32,7 +32,6 @@ import java.io.StringReader;
 import java.util.*;
 import java.util.List;
 import javax.swing.*;
-import javax.swing.border.TitledBorder;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.Attributes;
@@ -61,9 +60,47 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
 
         private final ComboBoxValModel<String> m_ReasonModel;
 
+        private static final String TAB_SALES = "Ventas";
+        private static final String TAB_CUSTOMERS = "Clientes";
+        private static final String TAB_PRODUCTS = "Productos";
+        private static final String TAB_INVENTORY = "Inventario";
+        private static final String TAB_OTHER = "Otros";
+        private static final List<String> PERMISSION_TAB_ORDER = Arrays.asList(
+                        TAB_SALES, TAB_CUSTOMERS, TAB_PRODUCTS, TAB_INVENTORY, TAB_OTHER);
+        private static final Set<String> SALES_CATEGORIES = new HashSet<>(Arrays.asList(
+                        "Ventas", "Métodos de Pago", "Reembolsos", "Botones Especiales"));
+        private static final Set<String> PRODUCT_PERMISSIONS = new HashSet<>(Arrays.asList(
+                        "com.openbravo.pos.inventory.ProductsPanel",
+                        "com.openbravo.pos.inventory.CategoriesPanel",
+                        "com.openbravo.pos.inventory.AttributesPanel",
+                        "com.openbravo.pos.inventory.AttributeValuesPanel",
+                        "com.openbravo.pos.inventory.AttributeSetsPanel",
+                        "com.openbravo.pos.inventory.AttributeUsePanel",
+                        "com.openbravo.pos.inventory.AuxiliarPanel",
+                        "com.openbravo.pos.inventory.BundlePanel",
+                        "com.openbravo.pos.inventory.TaxCategoriesPanel",
+                        "com.openbravo.pos.inventory.TaxCustCategoriesPanel",
+                        "com.openbravo.pos.inventory.TaxPanel",
+                        "com.openbravo.pos.inventory.UomPanel",
+                        "/com/openbravo/reports/products.bs",
+                        "/com/openbravo/reports/productscatalog.bs",
+                        "/com/openbravo/reports/productlabels.bs",
+                        "/com/openbravo/reports/salecatalog.bs",
+                        "/com/openbravo/reports/barcode_sheet.bs",
+                        "/com/openbravo/reports/barcode_shelfedgelabels.bs",
+                        "/com/openbravo/reports/tools_newproducts.bs",
+                        "/com/openbravo/reports/tools_updatedprices.bs",
+                        "/com/openbravo/reports/tools_badprice.bs",
+                        "/com/openbravo/reports/tools_invalidcategory.bs",
+                        "/com/openbravo/reports/tools_missingdata.bs",
+                        "/com/openbravo/reports/tools_invaliddata.bs"));
+
         // Panel de permisos con tabs
         private JTabbedPane permissionsTabbedPane;
-        private final Map<String, JCheckBox> permissionCheckboxes = new HashMap<>();
+        private final Map<String, JCheckBox> bundleCheckboxes = new LinkedHashMap<>();
+        private final Map<String, PermissionBundle> permissionBundles = new LinkedHashMap<>();
+        private final Set<String> selectedPermissionNames = new LinkedHashSet<>();
+        private final List<JButton> permissionActionButtons = new ArrayList<>();
 
         // Componentes UI principales
         private JTabbedPane jTabbedPane1;
@@ -83,6 +120,18 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         // Colores
         private static final Color PRIMARY_COLOR = new Color(41, 128, 185);
         private static final Color HEADER_BG = new Color(245, 245, 245);
+
+        private static final class PermissionBundle {
+                private final String key;
+                private final String displayName;
+                private final List<PermissionInfo> permissions;
+
+                private PermissionBundle(String key, String displayName, List<PermissionInfo> permissions) {
+                        this.key = key;
+                        this.displayName = displayName;
+                        this.permissions = new ArrayList<>(permissions);
+                }
+        }
 
         public PeopleView(DataLogicAdmin dlAdmin, DirtyManager dirty) {
                 this.dlAdmin = dlAdmin;
@@ -119,10 +168,10 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jImage = new com.openbravo.data.gui.JImageEditor();
 
                 setFont(new Font("Arial", Font.PLAIN, 12));
-                setPreferredSize(new Dimension(800, 600));
+                setPreferredSize(new Dimension(900, 640));
 
-                jTabbedPane1.setMinimumSize(new Dimension(750, 550));
-                jTabbedPane1.setPreferredSize(new Dimension(780, 580));
+                jTabbedPane1.setMinimumSize(new Dimension(760, 560));
+                jTabbedPane1.setPreferredSize(new Dimension(880, 620));
 
                 // General Panel Layout
                 generalPanel.setLayout(new BorderLayout(0, 15));
@@ -130,7 +179,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 generalPanel.setBackground(Color.WHITE);
 
                 // Header Title
-                JLabel headerTitle = new JLabel("GESTIÓN DE USUARIO");
+                JLabel headerTitle = new JLabel("USUARIOS Y PERMISOS");
                 headerTitle.setFont(new Font("Arial", Font.BOLD, 22));
                 headerTitle.setForeground(PRIMARY_COLOR);
                 headerTitle.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
@@ -145,13 +194,13 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 generalPanel.add(northContainer, BorderLayout.NORTH);
 
                 // Permissions Tabs
-                permissionsTabbedPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.SCROLL_TAB_LAYOUT);
-                permissionsTabbedPane.setFont(new Font("Arial", Font.BOLD, 12));
+                permissionsTabbedPane = new JTabbedPane(JTabbedPane.TOP, JTabbedPane.WRAP_TAB_LAYOUT);
+                permissionsTabbedPane.setFont(new Font("Arial", Font.BOLD, 15));
                 permissionsTabbedPane.setBorder(BorderFactory.createEmptyBorder(5, 0, 0, 0));
 
                 generalPanel.add(permissionsTabbedPane, BorderLayout.CENTER);
 
-                jTabbedPane1.addTab(AppLocal.getIntString("label.general"), generalPanel);
+                jTabbedPane1.addTab("Datos y permisos", generalPanel);
 
                 // Image Panel
                 m_jImage.setFont(new Font("Arial", Font.PLAIN, 12));
@@ -290,76 +339,302 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         }
 
         private void createPermissionsTabs() {
-                Map<String, List<PermissionInfo>> allPermissions = PermissionsCatalog.getAllPermissions();
+                bundleCheckboxes.clear();
+                permissionBundles.clear();
+                permissionActionButtons.clear();
+                permissionsTabbedPane.removeAll();
 
-                for (Map.Entry<String, List<PermissionInfo>> entry : allPermissions.entrySet()) {
-                        String category = entry.getKey();
-                        List<PermissionInfo> permissions = entry.getValue();
+                Map<String, List<PermissionBundle>> groupedPermissions = createPermissionBundles();
+                for (String tabName : PERMISSION_TAB_ORDER) {
+                        permissionsTabbedPane.addTab(tabName, createPermissionTab(groupedPermissions.get(tabName)));
+                }
+        }
 
-                        // Panel para la pestaña
-                        JPanel tabContent = new JPanel(new BorderLayout());
-                        tabContent.setBackground(Color.WHITE);
-                        tabContent.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        private Map<String, List<PermissionBundle>> createPermissionBundles() {
+                Map<String, Map<String, List<PermissionInfo>>> technicalGroups = new LinkedHashMap<>();
+                for (String tabName : PERMISSION_TAB_ORDER) {
+                        technicalGroups.put(tabName, new LinkedHashMap<>());
+                }
 
-                        // Opciones de acción masiva
-                        JPanel actionsPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 10, 5));
-                        actionsPanel.setBackground(Color.WHITE);
-
-                        JButton selectAllBtn = new JButton("Seleccionar Todo");
-                        selectAllBtn.setFont(new Font("Arial", Font.PLAIN, 11));
-                        selectAllBtn.setBackground(new Color(230, 240, 250));
-                        selectAllBtn.addActionListener(e -> {
-                                for (PermissionInfo perm : permissions) {
-                                        JCheckBox cb = permissionCheckboxes.get(perm.getClassName());
-                                        if (cb != null)
-                                                cb.setSelected(true);
-                                }
-                                m_Dirty.setDirty(true);
-                        });
-
-                        JButton deselectAllBtn = new JButton("Ninguno");
-                        deselectAllBtn.setFont(new Font("Arial", Font.PLAIN, 11));
-                        deselectAllBtn.setBackground(new Color(250, 230, 230));
-                        deselectAllBtn.addActionListener(e -> {
-                                for (PermissionInfo perm : permissions) {
-                                        JCheckBox cb = permissionCheckboxes.get(perm.getClassName());
-                                        if (cb != null)
-                                                cb.setSelected(false);
-                                }
-                                m_Dirty.setDirty(true);
-                        });
-
-                        actionsPanel.add(selectAllBtn);
-                        actionsPanel.add(deselectAllBtn);
-                        tabContent.add(actionsPanel, BorderLayout.NORTH);
-
-                        // Checkboxes en Grid
-                        JPanel checksPanel = new JPanel(new GridLayout(0, 2, 10, 5)); // 2 columnas
-                        checksPanel.setBackground(Color.WHITE);
-
-                        for (PermissionInfo perm : permissions) {
-                                JCheckBox checkBox = new JCheckBox(perm.getDisplayName());
-                                checkBox.setFont(new Font("Arial", Font.PLAIN, 13));
-                                checkBox.setBackground(Color.WHITE);
-                                checkBox.setCursor(new Cursor(Cursor.HAND_CURSOR));
-                                checkBox.addActionListener(e -> m_Dirty.setDirty(true));
-
-                                permissionCheckboxes.put(perm.getClassName(), checkBox);
-                                checksPanel.add(checkBox);
+                for (Map.Entry<String, List<PermissionInfo>> entry : PermissionsCatalog.getAllPermissions().entrySet()) {
+                        for (PermissionInfo permission : entry.getValue()) {
+                                String tabName = getPermissionTab(entry.getKey(), permission);
+                                String sectionName = getPermissionSection(entry.getKey(), tabName, permission);
+                                technicalGroups.get(tabName)
+                                                .computeIfAbsent(sectionName, key -> new ArrayList<>())
+                                                .add(permission);
                         }
+                }
 
-                        // Wrapper para alinear arriba
-                        JPanel checksWrapper = new JPanel(new BorderLayout());
-                        checksWrapper.setBackground(Color.WHITE);
-                        checksWrapper.add(checksPanel, BorderLayout.NORTH);
+                Map<String, List<PermissionBundle>> bundlesByTab = new LinkedHashMap<>();
+                for (String tabName : PERMISSION_TAB_ORDER) {
+                        List<PermissionBundle> bundles = new ArrayList<>();
+                        for (Map.Entry<String, List<PermissionInfo>> section : technicalGroups.get(tabName).entrySet()) {
+                                String key = tabName + ":" + section.getKey();
+                                PermissionBundle bundle = new PermissionBundle(
+                                                key,
+                                                getBundleDisplayName(tabName, section.getKey()),
+                                                section.getValue());
+                                bundles.add(bundle);
+                                permissionBundles.put(key, bundle);
+                        }
+                        bundlesByTab.put(tabName, bundles);
+                }
+                return bundlesByTab;
+        }
 
-                        JScrollPane scrollPane = new JScrollPane(checksWrapper);
-                        scrollPane.setBorder(null);
-                        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        private static String getPermissionTab(String category, PermissionInfo permission) {
+                if (SALES_CATEGORIES.contains(category)) {
+                        return TAB_SALES;
+                }
+                if ("Caja".equals(category)
+                                && "com.openbravo.pos.panels.JPanelPayments".equals(permission.getClassName())) {
+                        return TAB_SALES;
+                }
+                if (TAB_CUSTOMERS.equals(category)) {
+                        return TAB_CUSTOMERS;
+                }
+                if ("Inventario".equals(category)
+                                || "Reportes de Inventario".equals(category)
+                                || "Herramientas".equals(category)) {
+                        return PRODUCT_PERMISSIONS.contains(permission.getClassName())
+                                        ? TAB_PRODUCTS
+                                        : TAB_INVENTORY;
+                }
+                return TAB_OTHER;
+        }
 
-                        tabContent.add(scrollPane, BorderLayout.CENTER);
+        private static String getPermissionSection(String category, String tabName, PermissionInfo permission) {
+                String permissionName = permission.getClassName();
+                if (TAB_SALES.equals(tabName)) {
+                        if ("com.openbravo.pos.panels.JPanelPayments".equals(permissionName)) {
+                                return "Registrar entradas y salidas de efectivo";
+                        }
+                        if ("Métodos de Pago".equals(category)) {
+                                return "payment.debt".equals(permissionName)
+                                                ? "Cobrar ventas a crédito"
+                                                : "Cobrar en efectivo, tarjeta y otros medios";
+                        }
+                        if ("Reembolsos".equals(category)
+                                        || "sales.RefundTicket".equals(permissionName)
+                                        || "button.refundit".equals(permissionName)) {
+                                return "Cancelar tickets y realizar devoluciones";
+                        }
+                        if ("button.totaldiscount".equals(permissionName)
+                                        || "button.linediscount".equals(permissionName)) {
+                                return "Aplicar descuentos a las ventas";
+                        }
+                        if ("com.openbravo.pos.sales.JPanelTicketEdits".equals(permissionName)
+                                        || "sales.EditTicket".equals(permissionName)
+                                        || "sales.PrintTicket".equals(permissionName)
+                                        || "sales.ShowList".equals(permissionName)
+                                        || "sales.ViewSharedTicket".equals(permissionName)) {
+                                return "Revisar el historial y reimprimir ventas";
+                        }
+                        if ("sales.DeleteLines".equals(permissionName)
+                                        || "sales.EditLines".equals(permissionName)
+                                        || "sales.DeleteTicket".equals(permissionName)) {
+                                return "Modificar o eliminar artículos de una venta";
+                        }
+                        if ("com.openbravo.pos.sales.JPanelTicketSales".equals(permissionName)
+                                        || "sales.Total".equals(permissionName)) {
+                                return "Realizar y cobrar ventas";
+                        }
+                        return "Usar herramientas avanzadas de venta";
+                }
 
-                        permissionsTabbedPane.addTab(category, tabContent);
+                if (TAB_CUSTOMERS.equals(tabName)) {
+                        if ("com.openbravo.pos.customers.CustomersPayment".equals(permissionName)) {
+                                return "Recibir pagos y abonos de clientes";
+                        }
+                        if (permissionName.startsWith("/com/openbravo/reports/")) {
+                                return "Ver reportes y cuentas de clientes";
+                        }
+                        return "Crear, modificar y consultar clientes";
+                }
+
+                if (TAB_PRODUCTS.equals(tabName)) {
+                        if ("Inventario".equals(category)) {
+                                if ("com.openbravo.pos.inventory.ProductsPanel".equals(permissionName)) {
+                                        return "Crear, modificar y eliminar productos";
+                                }
+                                return "Configurar categorías, atributos e impuestos";
+                        }
+                        if ("Reportes de Inventario".equals(category)) {
+                                return "Consultar catálogos e imprimir etiquetas";
+                        }
+                        if ("Herramientas".equals(category)) {
+                                return "Revisar precios y datos de productos";
+                        }
+                }
+                if (TAB_INVENTORY.equals(tabName)) {
+                        if ("Inventario".equals(category)) {
+                                if ("com.openbravo.pos.inventory.StockManagement".equals(permissionName)) {
+                                        return "Ajustar las existencias del inventario";
+                                }
+                                if ("com.openbravo.pos.inventory.LocationsPanel".equals(permissionName)) {
+                                        return "Administrar almacenes y ubicaciones";
+                                }
+                                return "Consultar existencias y movimientos de inventario";
+                        }
+                        if ("Reportes de Inventario".equals(category)) {
+                                return "Ver reportes de existencias y diferencias";
+                        }
+                        if ("Herramientas".equals(category)) {
+                                return "Actualizar cantidades de inventario";
+                        }
+                }
+
+                if ("Caja".equals(category)) {
+                        return "com.openbravo.pos.panels.JPanelCloseMoneyReprint".equals(permissionName)
+                                        ? "Reimprimir cortes de caja"
+                                        : "Realizar cortes de turno y del día";
+                }
+                if ("Proveedores".equals(category)) {
+                        return "Gestionar proveedores y consultar sus reportes";
+                }
+                if ("Reportes de Ventas".equals(category) || "Gráficos".equals(category)) {
+                        return "Ver reportes de ventas y ganancias";
+                }
+                if ("Mantenimiento".equals(category)) {
+                        if ("com.openbravo.pos.admin.PeoplePanel".equals(permissionName)
+                                        || "com.openbravo.pos.admin.RolesPanel".equals(permissionName)
+                                        || "com.openbravo.pos.admin.ResourcesPanel".equals(permissionName)) {
+                                return "Administrar usuarios y permisos";
+                        }
+                        if ("com.openbravo.pos.config.JPanelConfiguration".equals(permissionName)
+                                        || "com.openbravo.pos.panels.JPanelPrinter".equals(permissionName)
+                                        || "Menu.ChangePassword".equals(permissionName)
+                                        || "com.openbravo.pos.forms.MenuMaintenance".equals(permissionName)) {
+                                return "Cambiar la configuración del programa";
+                        }
+                        if ("com.openbravo.pos.sales.restaurant.JPanelFloors".equals(permissionName)
+                                        || "com.openbravo.pos.sales.restaurant.JPanelPlaces".equals(permissionName)) {
+                                return "Administrar pisos y mesas del restaurante";
+                        }
+                        if ("com.openbravo.pos.voucher.VoucherPanel".equals(permissionName)) {
+                                return "Administrar vales";
+                        }
+                        if ("com.openbravo.pos.branches.JPanelBranchesManagement".equals(permissionName)) {
+                                return "Administrar sucursales";
+                        }
+                }
+                if ("Reportes de Usuarios".equals(category)) {
+                        return "Ver reportes de usuarios y sus ventas";
+                }
+                if ("Importación/Exportación".equals(category)) {
+                        return "Importar y exportar información";
+                }
+                if ("Gestión de Empleados".equals(category)) {
+                        return "Gestionar empleados, horarios y asistencia";
+                }
+                return category;
+        }
+
+        private static String getBundleDisplayName(String tabName, String sectionName) {
+                return sectionName;
+        }
+
+        private JPanel createPermissionTab(List<PermissionBundle> bundles) {
+                JPanel tabContent = new JPanel(new BorderLayout(0, 8));
+                tabContent.setBackground(Color.WHITE);
+                tabContent.setBorder(BorderFactory.createEmptyBorder(10, 12, 10, 12));
+
+                tabContent.add(createPermissionActions(bundles), BorderLayout.NORTH);
+
+                JPanel checksPanel = new JPanel(new GridLayout(0, 1, 8, 10));
+                checksPanel.setBackground(Color.WHITE);
+                checksPanel.setBorder(BorderFactory.createEmptyBorder(15, 18, 15, 18));
+                for (PermissionBundle bundle : bundles) {
+                        JCheckBox checkBox = new JCheckBox(bundle.displayName);
+                        checkBox.setFont(new Font("Arial", Font.PLAIN, 16));
+                        checkBox.setBackground(Color.WHITE);
+                        checkBox.setCursor(new Cursor(Cursor.HAND_CURSOR));
+                        checkBox.setToolTipText("Activa todos los permisos necesarios para: " + bundle.displayName);
+                        checkBox.addActionListener(event -> {
+                                applyBundleSelection(bundle, checkBox.isSelected());
+                                m_Dirty.setDirty(true);
+                        });
+                        bundleCheckboxes.put(bundle.key, checkBox);
+                        checksPanel.add(checkBox);
+                }
+
+                JPanel topAlignedChecks = new JPanel(new BorderLayout());
+                topAlignedChecks.setBackground(Color.WHITE);
+                topAlignedChecks.add(checksPanel, BorderLayout.NORTH);
+
+                JScrollPane scrollPane = new JScrollPane(topAlignedChecks);
+                scrollPane.setBorder(BorderFactory.createLineBorder(new Color(220, 220, 220)));
+                scrollPane.getVerticalScrollBar().setUnitIncrement(18);
+                scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_NEVER);
+                tabContent.add(scrollPane, BorderLayout.CENTER);
+                return tabContent;
+        }
+
+        private JPanel createPermissionActions(List<PermissionBundle> bundles) {
+                JPanel actionsPanel = new JPanel(new BorderLayout());
+                actionsPanel.setBackground(Color.WHITE);
+
+                JLabel instruction = new JLabel("Cada casilla activa un grupo completo de permisos relacionados.");
+                instruction.setFont(new Font("Arial", Font.PLAIN, 13));
+                instruction.setForeground(new Color(80, 80, 80));
+                actionsPanel.add(instruction, BorderLayout.WEST);
+
+                JPanel buttonsPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 8, 0));
+                buttonsPanel.setBackground(Color.WHITE);
+                JButton selectAllButton = createPermissionActionButton("Seleccionar todo", new Color(230, 240, 250));
+                JButton clearButton = createPermissionActionButton("Ninguno", new Color(250, 230, 230));
+                selectAllButton.addActionListener(event -> setBundleSelections(bundles, true));
+                clearButton.addActionListener(event -> setBundleSelections(bundles, false));
+                buttonsPanel.add(selectAllButton);
+                buttonsPanel.add(clearButton);
+                actionsPanel.add(buttonsPanel, BorderLayout.EAST);
+                return actionsPanel;
+        }
+
+        private JButton createPermissionActionButton(String text, Color background) {
+                JButton button = new JButton(text);
+                button.setFont(new Font("Arial", Font.PLAIN, 12));
+                button.setBackground(background);
+                button.setFocusable(false);
+                permissionActionButtons.add(button);
+                return button;
+        }
+
+        private void setBundleSelections(List<PermissionBundle> bundles, boolean selected) {
+                for (PermissionBundle bundle : bundles) {
+                        JCheckBox checkBox = bundleCheckboxes.get(bundle.key);
+                        if (checkBox != null) {
+                                checkBox.setSelected(selected);
+                        }
+                        applyBundleSelection(bundle, selected);
+                }
+                m_Dirty.setDirty(true);
+        }
+
+        private void applyBundleSelection(PermissionBundle bundle, boolean selected) {
+                for (PermissionInfo permission : bundle.permissions) {
+                        if (selected) {
+                                selectedPermissionNames.add(permission.getClassName());
+                        } else {
+                                selectedPermissionNames.remove(permission.getClassName());
+                        }
+                }
+        }
+
+        private void syncBundleCheckboxes() {
+                for (PermissionBundle bundle : permissionBundles.values()) {
+                        boolean hasAnyPermission = false;
+                        for (PermissionInfo permission : bundle.permissions) {
+                                if (selectedPermissionNames.contains(permission.getClassName())) {
+                                        hasAnyPermission = true;
+                                        break;
+                                }
+                        }
+                        JCheckBox checkBox = bundleCheckboxes.get(bundle.key);
+                        if (checkBox != null) {
+                                checkBox.setSelected(hasAnyPermission);
+                        }
                 }
         }
 
@@ -372,9 +647,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 m_jcard.setText(null);
                 m_jImage.setImage(null);
 
-                for (JCheckBox cb : permissionCheckboxes.values()) {
-                        cb.setSelected(false);
-                }
+                clearPermissions();
 
                 if (permissionsTabbedPane.getTabCount() > 0) {
                         permissionsTabbedPane.setSelectedIndex(0);
@@ -404,8 +677,11 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         }
 
         private void setPermissionsEnabled(boolean enabled) {
-                for (JCheckBox cb : permissionCheckboxes.values()) {
+                for (JCheckBox cb : bundleCheckboxes.values()) {
                         cb.setEnabled(enabled);
+                }
+                for (JButton button : permissionActionButtons) {
+                        button.setEnabled(enabled);
                 }
         }
 
@@ -462,6 +738,7 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         }
 
         private void loadPermissionsFromRole(String roleId) {
+                clearPermissions();
                 if (roleId == null) {
                         return;
                 }
@@ -491,12 +768,9 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
         }
 
         private void loadPermissionsFromXML(String xml) {
+                clearPermissions();
                 if (xml == null || xml.isEmpty()) {
                         return;
-                }
-
-                for (JCheckBox cb : permissionCheckboxes.values()) {
-                        cb.setSelected(false);
                 }
 
                 try {
@@ -510,18 +784,23 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                                         if ("class".equals(qName)) {
                                                 String className = attributes.getValue("name");
                                                 if (className != null) {
-                                                        JCheckBox cb = permissionCheckboxes.get(className);
-                                                        if (cb != null) {
-                                                                cb.setSelected(true);
-                                                        }
+                                                        selectedPermissionNames.add(className);
                                                 }
                                         }
                                 }
                         };
 
                         saxParser.parse(new InputSource(new StringReader(xml)), handler);
+                        syncBundleCheckboxes();
                 } catch (Exception e) {
                         System.err.println("Error al parsear XML de permisos: " + e.getMessage());
+                }
+        }
+
+        private void clearPermissions() {
+                selectedPermissionNames.clear();
+                for (JCheckBox checkBox : bundleCheckboxes.values()) {
+                        checkBox.setSelected(false);
                 }
         }
 
@@ -530,10 +809,8 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
                 xml.append("<permissions>\n");
 
-                for (Map.Entry<String, JCheckBox> entry : permissionCheckboxes.entrySet()) {
-                        if (entry.getValue().isSelected()) {
-                                xml.append("  <class name=\"").append(entry.getKey()).append("\"/>\n");
-                        }
+                for (String permissionName : selectedPermissionNames) {
+                        xml.append("  <class name=\"").append(permissionName).append("\"/>\n");
                 }
 
                 xml.append("</permissions>");

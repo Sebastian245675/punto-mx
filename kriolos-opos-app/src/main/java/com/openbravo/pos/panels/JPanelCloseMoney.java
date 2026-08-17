@@ -47,6 +47,7 @@ import com.openbravo.pos.scripting.ScriptEngine;
 import com.openbravo.pos.scripting.ScriptException;
 import com.openbravo.pos.scripting.ScriptFactory;
 import com.openbravo.pos.util.StringUtils;
+import com.openbravo.pos.util.DayCloseTicketScope;
 import java.awt.Dimension;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -7399,6 +7400,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 });
             }
             m_isDayMode = true;
+            DayCloseTicketScope.markCompleted(dayDate);
             LOGGER.info("Corte del Dia cargado. Turnos: " + allShifts.size());
 
         } catch (Exception ex) {

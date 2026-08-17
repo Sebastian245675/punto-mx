@@ -545,10 +545,14 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         leftMenuPanel.setOpaque(false);
 
         // Panel derecho con puntos del cliente y botón cerrar
-        javax.swing.JPanel rightPanel = new javax.swing.JPanel();
-        rightPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.RIGHT, 3, 2));
+        javax.swing.JPanel rightPanel = new javax.swing.JPanel(new java.awt.BorderLayout());
         rightPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave
         rightPanel.setOpaque(false);
+
+        javax.swing.JPanel ticketActionToolbarHost = new javax.swing.JPanel(new java.awt.BorderLayout());
+        ticketActionToolbarHost.setOpaque(false);
+        rightPanel.add(ticketActionToolbarHost, java.awt.BorderLayout.CENTER);
+        this.putClientProperty("ticketActionToolbarHost", ticketActionToolbarHost);
 
         // ========== MENU.MAIN - Elementos principales ==========
         // Botón Ventas (Menu.Ticket) - Solo mostrar si tiene permiso
@@ -711,7 +715,7 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         m_jCustomerPoints.setPreferredSize(new java.awt.Dimension(600, 25));
         m_jCustomerPoints.setForeground(java.awt.Color.BLACK);
         m_jCustomerPoints.setVisible(false); // Inicialmente oculto
-        rightPanel.add(m_jCustomerPoints);
+        rightPanel.add(m_jCustomerPoints, java.awt.BorderLayout.EAST);
 
         // Botón Salir removido de aquí para ponerlo arriba en el panel artístico (como
         // solicitó el usuario)
@@ -1246,6 +1250,43 @@ public class JPrincipalApp extends JPanel implements AppUserView {
         if (m_jCustomerPoints != null) {
             m_jCustomerPoints.setText(text);
             m_jCustomerPoints.setVisible(visible);
+        }
+    }
+
+    public void showTicketActionToolbar(javax.swing.JPanel toolbar) {
+        Object hostProperty = getClientProperty("ticketActionToolbarHost");
+        if (!(hostProperty instanceof javax.swing.JPanel) || toolbar == null) {
+            return;
+        }
+
+        javax.swing.JPanel host = (javax.swing.JPanel) hostProperty;
+        java.awt.Container oldParent = toolbar.getParent();
+        if (oldParent != null && oldParent != host) {
+            oldParent.remove(toolbar);
+            oldParent.revalidate();
+            oldParent.repaint();
+        }
+
+        if (toolbar.getParent() != host) {
+            host.removeAll();
+            host.add(toolbar, java.awt.BorderLayout.CENTER);
+        }
+        toolbar.setVisible(true);
+        host.revalidate();
+        host.repaint();
+    }
+
+    public void hideTicketActionToolbar(javax.swing.JPanel toolbar) {
+        Object hostProperty = getClientProperty("ticketActionToolbarHost");
+        if (!(hostProperty instanceof javax.swing.JPanel) || toolbar == null) {
+            return;
+        }
+
+        javax.swing.JPanel host = (javax.swing.JPanel) hostProperty;
+        if (toolbar.getParent() == host) {
+            host.remove(toolbar);
+            host.revalidate();
+            host.repaint();
         }
     }
 
