@@ -66,6 +66,9 @@ public class StartPOS {
         ModernLookAndFeel.aplicarEstiloModerno();
         writeStartupDebug("Estilo moderno aplicado");
 
+        installEscapeToCloseDialogs();
+        writeStartupDebug("Cierre global de diálogos con ESC instalado");
+
         com.openbravo.pos.printer.ticket.TicketPrintLogger.info(">>> APLICACION StartPOS INICIADA EXITOSAMENTE <<<");
         writeStartupDebug("TicketPrintLogger inicializado");
 
@@ -156,6 +159,28 @@ public class StartPOS {
                     throw t;
                 }
             }
+        });
+    }
+
+    private static void installEscapeToCloseDialogs() {
+        java.awt.KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventPostProcessor(event -> {
+            if (event.isConsumed()
+                    || event.getID() != java.awt.event.KeyEvent.KEY_PRESSED
+                    || event.getKeyCode() != java.awt.event.KeyEvent.VK_ESCAPE) {
+                return false;
+            }
+
+            java.awt.Window activeWindow = java.awt.KeyboardFocusManager
+                    .getCurrentKeyboardFocusManager()
+                    .getActiveWindow();
+            if (!(activeWindow instanceof java.awt.Dialog) || !activeWindow.isShowing()) {
+                return false;
+            }
+
+            activeWindow.dispatchEvent(new java.awt.event.WindowEvent(
+                    activeWindow, java.awt.event.WindowEvent.WINDOW_CLOSING));
+            event.consume();
+            return true;
         });
     }
 

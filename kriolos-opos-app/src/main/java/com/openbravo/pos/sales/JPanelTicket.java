@@ -1435,31 +1435,37 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         lastSaleCashIndex = null;
     }
 
+    private void refreshLastSaleSummary() {
+        if (!isLastSaleFromCurrentSession()) {
+            clearLastSaleState();
+        }
+
+        String totalText = lastSaleTotalText != null ? lastSaleTotalText : "$0.00";
+        String paidText = lastSalePagoConText != null ? lastSalePagoConText : "$0.00";
+        String changeText = lastSaleCambioText != null ? lastSaleCambioText : "$0.00";
+
+        if (lblTotalValue != null) {
+            lblTotalValue.setText(totalText);
+        }
+        if (lblPagoConValue != null) {
+            lblPagoConValue.setText(paidText);
+        }
+        if (lblCambioValue != null) {
+            lblCambioValue.setText(changeText);
+        }
+    }
+
     private void printPartialTotals() {
 
         if (m_oTicket == null || m_oTicket.getLinesCount() == 0) {
             // m_jSubtotalEuros.setText(null); // Ya no se muestra
             // m_jTaxesEuros.setText(null); // Ya no se muestra
             // Sebastian - Si hay valores de la última venta guardados, mostrarlos
-            if (!isLastSaleFromCurrentSession()) {
-                clearLastSaleState();
-            }
+            refreshLastSaleSummary();
             if (lastSaleTotalText != null) {
                 m_jTotalEuros.setText(lastSaleTotalText);
-                if (lblTotalValue != null)
-                    lblTotalValue.setText(lastSaleTotalText);
-                if (lblPagoConValue != null)
-                    lblPagoConValue.setText(lastSalePagoConText != null ? lastSalePagoConText : "$0.00");
-                if (lblCambioValue != null)
-                    lblCambioValue.setText(lastSaleCambioText != null ? lastSaleCambioText : "$0.00");
             } else {
                 m_jTotalEuros.setText("$0.00");
-                if (lblTotalValue != null)
-                    lblTotalValue.setText("$0.00");
-                if (lblPagoConValue != null)
-                    lblPagoConValue.setText("$0.00");
-                if (lblCambioValue != null)
-                    lblCambioValue.setText("$0.00");
             }
             if (m_jProductosVenta != null) {
                 m_jProductosVenta.setText("0 productos en la venta actual.");
@@ -1468,18 +1474,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // m_jSubtotalEuros.setText(m_oTicket.printSubTotal()); // Ya no se muestra
             // m_jTaxesEuros.setText(m_oTicket.printTax()); // Ya no se muestra
             m_jTotalEuros.setText(m_oTicket.printTotal());
-
-            // Actualizar labels de información estilo Eleventa
-            if (lblTotalValue != null) {
-                lblTotalValue.setText(m_oTicket.printTotal());
-            }
-            // Sebastian - Limpiar Pago Con y Cambio cuando hay productos (venta en curso)
-            if (lblPagoConValue != null) {
-                lblPagoConValue.setText("$0.00");
-            }
-            if (lblCambioValue != null) {
-                lblCambioValue.setText("$0.00");
-            }
+            refreshLastSaleSummary();
 
             if (m_jProductosVenta != null) {
                 int productosCount = m_oTicket.getLinesCount();
@@ -1600,10 +1595,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
      */
     protected void addTicketLine(TicketLineInfo oLine) {
         if (m_oTicket != null) {
-            // Sebastian - Limpiar valores de la última venta cuando se agrega un producto
-            // (indica que se inicia una nueva venta)
-            clearLastSaleState();
-
             boolean foundMatchingLine = false;
 
             if (oLine.isProductCom()) {
@@ -3192,6 +3183,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 MessageInf msg = new MessageInf(MessageInf.SGN_NOTICE,
                                         AppLocal.getIntString("message.nosaveticket"), ex);
                                 msg.show(this);
+                                return false;
                             }
 
                             String eventName = TicketConstants.EV_TICKET_CLOSE;
@@ -3275,6 +3267,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                                 // Si falla, no guardar nada
                                 clearLastSaleState();
                             }
+                            refreshLastSaleSummary();
 
                             // Sebastian - Restaurar foco en campo de búsqueda después de procesar pago
                             setSearchFieldFocus();
@@ -5012,13 +5005,18 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelLines.add(m_jPanelLinesSum, java.awt.BorderLayout.SOUTH);
 
         // Sebastian - Crear barra de pestañas sobre la tabla de ventas
-        javax.swing.JPanel tabsPanel = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 2));
+        javax.swing.JPanel tabsPanel = new javax.swing.JPanel(new java.awt.BorderLayout(4, 0));
         tabsPanel.setBorder(javax.swing.BorderFactory.createMatteBorder(0, 0, 1, 0, new java.awt.Color(200, 200, 200)));
         tabsPanel.setBackground(new java.awt.Color(220, 220, 220)); // Gris suave para continuar el fondo
         tabsPanel.setPreferredSize(new java.awt.Dimension(0, 55));
         tabsPanel.setMaximumSize(new java.awt.Dimension(Integer.MAX_VALUE, 55)); // Limitar altura máxima
         tabsPanel.setMinimumSize(new java.awt.Dimension(0, 55)); // Limitar altura mínima
         tabsPanel.setName("tabsPanel"); // Para poder encontrarlo después
+
+        javax.swing.JPanel ticketTabsButtonsPanel = new javax.swing.JPanel(
+                new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 2, 2));
+        ticketTabsButtonsPanel.setOpaque(false);
+        tabsPanel.add(ticketTabsButtonsPanel, java.awt.BorderLayout.WEST);
 
         // Panel contenedor para la barra de pestañas y la tabla
         javax.swing.JPanel linesWithTabsPanel = new javax.swing.JPanel(new java.awt.BorderLayout(0, 0)); // Sin gaps
@@ -5034,7 +5032,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         m_jPanelTicket.add(linesWithTabsPanel, java.awt.BorderLayout.CENTER);
 
         // Guardar referencia al panel de pestañas para poder actualizarlo
-        m_jTabsPanel = tabsPanel;
+        m_jTabsPanel = ticketTabsButtonsPanel;
 
         // La barra de pestañas se inicializa al final del constructor después de que
         // m_App esté listo
@@ -5361,15 +5359,11 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Agregar directamente sin wrapper para ocupar todo el ancho
         searchPanel.add(scannerContainerPanel, java.awt.BorderLayout.CENTER);
 
-        // Sebastian - Crear barra de botones de acción debajo del campo de búsqueda
+        // Acciones ubicadas en el espacio libre junto a las pestañas de venta.
         actionButtonsPanel = new javax.swing.JPanel();
-        actionButtonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.CENTER, 8, 5));
-        actionButtonsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(4, 20, 12, 20)); // Padding superior
-                                                                                                  // reducido para
-                                                                                                  // acercar a la barra
-                                                                                                  // de búsqueda
-        actionButtonsPanel.setBackground(new java.awt.Color(245, 245, 245)); // Mismo fondo que searchPanel
-        actionButtonsPanel.setOpaque(true);
+        actionButtonsPanel.setLayout(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 5, 2));
+        actionButtonsPanel.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 4, 0, 0));
+        actionButtonsPanel.setOpaque(false);
         actionButtonsPanel.setVisible(true);
 
         // Estilo común para todos los botones
@@ -5492,6 +5486,8 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         });
         actionButtonsPanel.add(btnF4Nueva);
 
+        tabsPanel.add(actionButtonsPanel, java.awt.BorderLayout.CENTER);
+
         // Botones de la barra lateral movidos aquí
         // (Botón ID Cliente movido a la parte inferior)
 
@@ -5518,12 +5514,12 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         // Agregar la barra VENTA - Ticket primero, desde el borde izquierdo
         searchAndActionsPanel.add(ticketIndicatorPanel, java.awt.BorderLayout.NORTH);
 
-        // Panel para searchPanel y actionButtonsPanel
+        // La fila independiente de acciones se elimina: sus botones ocupan el espacio
+        // libre junto a las pestañas, sin alterar cliente ni puntos.
         javax.swing.JPanel searchAndButtonsContainer = new javax.swing.JPanel(new java.awt.BorderLayout());
         searchAndButtonsContainer.setOpaque(false);
         searchAndButtonsContainer.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 0, 0)); // Sin padding
-        searchAndButtonsContainer.add(searchPanel, java.awt.BorderLayout.NORTH);
-        searchAndButtonsContainer.add(actionButtonsPanel, java.awt.BorderLayout.SOUTH);
+        searchAndButtonsContainer.add(searchPanel, java.awt.BorderLayout.CENTER);
 
         searchAndActionsPanel.add(searchAndButtonsContainer, java.awt.BorderLayout.CENTER);
 

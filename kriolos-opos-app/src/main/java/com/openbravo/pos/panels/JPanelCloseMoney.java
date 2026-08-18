@@ -16,6 +16,7 @@
 
 package com.openbravo.pos.panels;
 
+import com.openbravo.pos.admin.PermissionsCatalog;
 import com.openbravo.pos.forms.DataLogicSystem;
 import com.openbravo.pos.forms.AppUser;
 import com.openbravo.pos.forms.AppView;
@@ -23,6 +24,7 @@ import com.openbravo.pos.forms.BeanFactoryException;
 import com.openbravo.pos.forms.BeanFactoryApp;
 import com.openbravo.pos.forms.AppLocal;
 import com.openbravo.basic.BasicException;
+import com.openbravo.beans.JPasswordDialog;
 import com.openbravo.data.gui.ComboBoxValModel;
 import com.openbravo.data.gui.MessageInf;
 import com.openbravo.data.gui.TableRendererBasic;
@@ -128,6 +130,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private ResultSet rs;
 
     private AppUser m_User;
+    private final java.util.List<JButton> dayCloseButtons = new java.util.ArrayList<>();
 
     /** Creates new form JPanelCloseMoney */
     public JPanelCloseMoney() {
@@ -177,6 +180,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         m_App = app;
         m_dlSystem = (DataLogicSystem) m_App.getBean("com.openbravo.pos.forms.DataLogicSystem");
         m_TTP = new TicketParser(m_App.getDeviceTicket(), m_dlSystem);
+        updateDayClosePermissionState();
 
         m_jTicketTable.setDefaultRenderer(Object.class, new TableRendererBasic(
                 new Formats[] { new FormatsPayment(), Formats.CURRENCY, Formats.INT }));
@@ -233,6 +237,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      */
     @Override
     public void activate() throws BasicException {
+        updateDayClosePermissionState();
+
         // Verificar y crear las columnas faltante_cierre y sobrante_cierre si no
         // existen
         verificarColumnasFaltanteSobrante();
@@ -1920,8 +1926,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             String sql = "SELECT COALESCE(SUM(payments.TOTAL), 0.0) as TOTAL " +
                                     "FROM payments " +
                                     "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                                    "INNER JOIN tickets ON receipts.ID = tickets.ID " +
                                     "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
-                                    "AND payments.PAYMENT = 'cash'";
+                                    "AND payments.PAYMENT = 'cash' " +
+                                    "AND tickets.TICKETTYPE = 0 " +
+                                    "AND NOT EXISTS (SELECT 1 FROM payments debt_payment " +
+                                    "WHERE debt_payment.RECEIPT = payments.RECEIPT " +
+                                    "AND debt_payment.PAYMENT = 'debtpaid')";
                             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
                             for (int i = 0; i < moneyList.size(); i++) {
                                 pstmt.setString(i + 1, moneyList.get(i));
@@ -1938,7 +1949,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                                     "FROM payments " +
                                     "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
                                     "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
-                                    "AND payments.PAYMENT = 'debt'";
+                                    "AND payments.PAYMENT = 'cash' " +
+                                    "AND EXISTS (SELECT 1 FROM payments debt_payment " +
+                                    "WHERE debt_payment.RECEIPT = payments.RECEIPT " +
+                                    "AND debt_payment.PAYMENT = 'debtpaid')";
                             pstmt = conn.prepareStatement(sql);
                             for (int i = 0; i < moneyList.size(); i++) {
                                 pstmt.setString(i + 1, moneyList.get(i));
@@ -2119,7 +2133,15 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         LOGGER.log(Level.WARNING, "Error extras printPayments dia", ex2);
                     }
                     double totalDayCashTotalRaw = totalDayInitialAmountRaw + totalDayCashSales + totalDayCreditPayments
-                            + totalDayCashIn - totalDayCashOut;
+                            + totalDayCashIn - totalDayCashOut - totalDayReturnsRaw;
+
+                    LOGGER.info("Corte del dia - conciliacion de efectivo: fondo=" + totalDayInitialAmountRaw
+                            + ", ventas=" + totalDayCashSales
+                            + ", abonos=" + totalDayCreditPayments
+                            + ", entradas=" + totalDayCashIn
+                            + ", salidas=" + totalDayCashOut
+                            + ", devoluciones=" + totalDayReturnsRaw
+                            + ", esperado=" + totalDayCashTotalRaw);
 
                     script.put("totalDayCardSales", Formats.CURRENCY.formatValue(totalDayCardSalesRaw));
                     script.put("totalDayCreditSales", Formats.CURRENCY.formatValue(totalDayCreditSalesRaw));
@@ -3143,6 +3165,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         btnDay.addActionListener(e -> {
             performDayCloseReport();
         });
+        dayCloseButtons.add(btnDay);
         leftPanel.add(btnDay);
 
         buttonPanel.add(leftPanel, BorderLayout.WEST);
@@ -3220,6 +3243,56 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private JEditorPane m_htmlViewer;
     /** Sebastian - true cuando el panel está mostrando el corte del día */
     private boolean m_isDayMode = false;
+
+    private boolean canPerformDayClose() {
+        return m_App != null && m_App.hasPermission(PermissionsCatalog.DAY_CLOSE_PERMISSION);
+    }
+
+    private void updateDayClosePermissionState() {
+        boolean directAccess = canPerformDayClose();
+        for (JButton button : dayCloseButtons) {
+            button.setVisible(true);
+            button.setEnabled(m_App != null);
+            button.setToolTipText(directAccess
+                    ? "Realizar el corte del día"
+                    : "Requiere contraseña de administrador");
+            if (button.getParent() != null) {
+                button.getParent().revalidate();
+                button.getParent().repaint();
+            }
+        }
+    }
+
+    private boolean authorizeDayClose() {
+        if (canPerformDayClose()) {
+            return true;
+        }
+
+        String password = JPasswordDialog.showEditor(this, "Contraseña de Administrador Requerida");
+        if (password == null) {
+            LOGGER.info("Autorización de corte del día cancelada por el usuario");
+            return false;
+        }
+
+        try {
+            if (!m_dlSystem.authenticateAdmin(password)) {
+                JOptionPane.showMessageDialog(this,
+                        "Contraseña incorrecta o no es de un administrador.",
+                        "Error de Autorización", JOptionPane.ERROR_MESSAGE);
+                LOGGER.warning("Contraseña administrativa inválida para corte del día");
+                return false;
+            }
+        } catch (BasicException ex) {
+            LOGGER.log(Level.WARNING, "Error al validar contraseña de administrador para corte del día", ex);
+            JOptionPane.showMessageDialog(this,
+                    "Error al validar la contraseña de administrador.",
+                    "Error", JOptionPane.ERROR_MESSAGE);
+            return false;
+        }
+
+        LOGGER.info("Corte del día autorizado mediante contraseña de administrador");
+        return true;
+    }
 
     /**
      * Genera el contenido HTML completo con el diseño exacto de la imagen
@@ -4001,6 +4074,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Corte del día: solo mostrar reporte, sin validaciones ni cerrar turno
             performDayCloseReport();
         });
+        dayCloseButtons.add(btnDay);
         buttonPanel.add(btnDay);
 
         panel.add(buttonPanel, BorderLayout.CENTER);
@@ -7012,6 +7086,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
      * diario.
      */
     private void performDayCloseReport() {
+        if (!authorizeDayClose()) {
+            return;
+        }
+
         try {
             LOGGER.info("Iniciando Corte del Dia...");
             Date dayDate = new Date();
@@ -7038,7 +7116,6 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 if (money == null || money.isEmpty())
                     continue;
                 dayInitialAmount += shift.getInitialAmount();
-                dayCashSales += shift.getTotalPayments();
                 dayCashIn += shift.getCashIn();
                 dayCashOut += shift.getCashOut();
                 try {
@@ -7046,13 +7123,19 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             "SELECT payments.PAYMENT, COALESCE(SUM(payments.TOTAL),0) AS TOTAL " +
                                     "FROM payments INNER JOIN receipts ON payments.RECEIPT=receipts.ID " +
                                     "INNER JOIN tickets ON receipts.ID=tickets.ID " +
-                                    "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 GROUP BY payments.PAYMENT");
+                                    "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 " +
+                                    "AND NOT EXISTS (SELECT 1 FROM payments debt_payment " +
+                                    "WHERE debt_payment.RECEIPT=payments.RECEIPT " +
+                                    "AND debt_payment.PAYMENT='debtpaid') " +
+                                    "GROUP BY payments.PAYMENT");
                     ps.setString(1, money);
                     java.sql.ResultSet rs = ps.executeQuery();
                     while (rs.next()) {
                         String pt = rs.getString("PAYMENT");
                         double pv = rs.getDouble("TOTAL");
-                        if ("card".equals(pt) || "magcard".equals(pt))
+                        if ("cash".equals(pt))
+                            dayCashSales += pv;
+                        else if ("card".equals(pt) || "magcard".equals(pt))
                             dayCardSales += pv;
                         else if ("debt".equals(pt))
                             dayCreditSales += pv;
@@ -7084,7 +7167,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     java.sql.PreparedStatement ps = conn.prepareStatement(
                             "SELECT COALESCE(SUM(payments.TOTAL),0) FROM receipts " +
                                     "INNER JOIN payments ON receipts.ID=payments.RECEIPT " +
-                                    "WHERE receipts.MONEY=? AND payments.PAYMENT='debt'");
+                                    "WHERE receipts.MONEY=? AND payments.PAYMENT='cash' " +
+                                    "AND EXISTS (SELECT 1 FROM payments debt_payment " +
+                                    "WHERE debt_payment.RECEIPT=payments.RECEIPT " +
+                                    "AND debt_payment.PAYMENT='debtpaid')");
                     ps.setString(1, money);
                     java.sql.ResultSet rs = ps.executeQuery();
                     if (rs.next())
@@ -7234,8 +7320,17 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 LOGGER.log(Level.WARNING, "Error detalle listas dia", ex);
             }
 
-            double dayTotalSales = dayCashSales + dayCardSales + dayCreditSales + dayVoucherSales;
-            double dayCashTotal = dayInitialAmount + dayCashSales + dayCreditPay + dayCashIn - dayCashOut;
+            double dayTotalSales = dayCashSales + dayCardSales + dayCreditSales + dayVoucherSales - dayReturns;
+            double dayCashTotal = dayInitialAmount + dayCashSales + dayCreditPay + dayCashIn - dayCashOut
+                    - dayReturns;
+
+            LOGGER.info("Reporte corte del dia - conciliacion de efectivo: fondo=" + dayInitialAmount
+                    + ", ventas=" + dayCashSales
+                    + ", abonos=" + dayCreditPay
+                    + ", entradas=" + dayCashIn
+                    + ", salidas=" + dayCashOut
+                    + ", devoluciones=" + dayReturns
+                    + ", esperado=" + dayCashTotal);
 
             java.text.SimpleDateFormat sdfDay = new java.text.SimpleDateFormat("dd/MM/yyyy");
             java.text.SimpleDateFormat sdfTime = new java.text.SimpleDateFormat("h:mm a");

@@ -123,17 +123,54 @@ public class JPasswordDialogSimple extends JDialog {
         JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         buttonPanel.setOpaque(false);
 
-        JButton cancelBtn = new JButton("Cancelar");
-        cancelBtn.setPreferredSize(new Dimension(100, 35));
+        JButton cancelBtn = new JButton("No");
+        cancelBtn.setFont(new Font("Arial", Font.BOLD, 18));
+        cancelBtn.setPreferredSize(new Dimension(110, 42));
+        cancelBtn.setToolTipText("No, cancelar");
         cancelBtn.setFocusPainted(false);
         cancelBtn.addActionListener(e -> cancelPassword());
 
-        JButton okBtn = new JButton("Aceptar");
-        okBtn.setPreferredSize(new Dimension(100, 35));
+        JButton okBtn = new JButton("Sí");
+        okBtn.setFont(new Font("Arial", Font.BOLD, 18));
+        okBtn.setPreferredSize(new Dimension(110, 42));
+        okBtn.setToolTipText("Sí, continuar");
         okBtn.setBackground(new Color(59, 130, 246));
         okBtn.setForeground(Color.WHITE);
         okBtn.setFocusPainted(false);
         okBtn.addActionListener(e -> acceptPassword());
+
+        Action selectNoAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                cancelBtn.requestFocusInWindow();
+                getRootPane().setDefaultButton(cancelBtn);
+            }
+        };
+        Action selectYesAction = new AbstractAction() {
+            @Override
+            public void actionPerformed(ActionEvent event) {
+                okBtn.requestFocusInWindow();
+                getRootPane().setDefaultButton(okBtn);
+            }
+        };
+
+        configureArrowNavigation(getRootPane(), JComponent.WHEN_IN_FOCUSED_WINDOW,
+                selectNoAction, selectYesAction);
+        configureArrowNavigation(passwordField, JComponent.WHEN_FOCUSED,
+                selectNoAction, selectYesAction);
+
+        cancelBtn.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent event) {
+                getRootPane().setDefaultButton(cancelBtn);
+            }
+        });
+        okBtn.addFocusListener(new FocusAdapter() {
+            @Override
+            public void focusGained(FocusEvent event) {
+                getRootPane().setDefaultButton(okBtn);
+            }
+        });
 
         buttonPanel.add(cancelBtn);
         buttonPanel.add(okBtn);
@@ -158,6 +195,19 @@ public class JPasswordDialogSimple extends JDialog {
         setSize(450, 360);
         setLocationRelativeTo(null);
         getRootPane().setDefaultButton(okBtn);
+    }
+
+    private void configureArrowNavigation(JComponent component, int condition,
+            Action selectNoAction, Action selectYesAction) {
+        InputMap inputMap = component.getInputMap(condition);
+        ActionMap actionMap = component.getActionMap();
+
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_LEFT, 0), "selectNo");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_UP, 0), "selectNo");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_RIGHT, 0), "selectYes");
+        inputMap.put(KeyStroke.getKeyStroke(KeyEvent.VK_DOWN, 0), "selectYes");
+        actionMap.put("selectNo", selectNoAction);
+        actionMap.put("selectYes", selectYesAction);
     }
 
     public void setMessage(String userName, Icon userIcon) {

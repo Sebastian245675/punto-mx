@@ -27,6 +27,8 @@ import java.util.Map;
  * @author Sebastian
  */
 public class PermissionsCatalog {
+
+    public static final String DAY_CLOSE_PERMISSION = "close.day";
     
     private static final Map<String, List<PermissionInfo>> PERMISSIONS = new LinkedHashMap<>();
     
@@ -87,6 +89,7 @@ public class PermissionsCatalog {
         List<PermissionInfo> cashManagement = new ArrayList<>();
         cashManagement.add(new PermissionInfo("com.openbravo.pos.panels.JPanelPayments", "Gestión de Pagos", "Caja"));
         cashManagement.add(new PermissionInfo("com.openbravo.pos.panels.JPanelCloseMoney", "Cierre de Caja", "Caja"));
+        cashManagement.add(new PermissionInfo(DAY_CLOSE_PERMISSION, "Corte del Día", "Caja"));
         cashManagement.add(new PermissionInfo("com.openbravo.pos.panels.JPanelCloseMoneyReprint", "Reimprimir Cierre", "Caja"));
         PERMISSIONS.put("Caja", cashManagement);
         

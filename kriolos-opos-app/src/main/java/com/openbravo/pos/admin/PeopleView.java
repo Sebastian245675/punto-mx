@@ -486,9 +486,13 @@ public class PeopleView extends JPanel implements EditorRecord<Object> {
                 }
 
                 if ("Caja".equals(category)) {
-                        return "com.openbravo.pos.panels.JPanelCloseMoneyReprint".equals(permissionName)
-                                        ? "Reimprimir cortes de caja"
-                                        : "Realizar cortes de turno y del día";
+                        if ("com.openbravo.pos.panels.JPanelCloseMoneyReprint".equals(permissionName)) {
+                                return "Reimprimir cortes de caja";
+                        }
+                        if (PermissionsCatalog.DAY_CLOSE_PERMISSION.equals(permissionName)) {
+                                return "Realizar corte del día (solo administrador)";
+                        }
+                        return "Realizar corte de turno";
                 }
                 if ("Proveedores".equals(category)) {
                         return "Gestionar proveedores y consultar sus reportes";
