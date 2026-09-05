@@ -4,24 +4,40 @@
     <ticket>
         #if ($isDayClose && $allShifts && !$allShifts.isEmpty())
         <line size="3"><text align="center" length="30" bold="true">CORTE DEL DIA</text></line>
-        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-
-        <line size="3"><text align="center" length="30" bold="true">VENTAS DEL DIA</text></line>
-        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="left" length="18" bold="true">EFECTIVO:</text><text align="right" length="12" bold="true">$totalDayCashSales</text></line>
+        <line size="3"><text align="center" length="30" bold="true">$dayCloseDate</text></line>
         <line></line>
-        <line size="3"><text align="left" length="18" bold="true">TARJETA:</text><text align="right" length="12" bold="true">$totalDayCardSales</text></line>
+        <line size="3"><text align="left" length="10" bold="true">REALIZADO:</text><text align="right" length="20" bold="true">$dayClosePerformedAt</text></line>
         <line></line>
-        <line size="3"><text align="left" length="18" bold="true">CREDITO:</text><text align="right" length="12" bold="true">$totalDayCreditSales</text></line>
-        <line></line>
-        <line size="3"><text align="left" length="18" bold="true">VALES:</text><text align="right" length="12" bold="true">$totalDayVoucherSales</text></line>
-        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
-        <line size="3"><text align="left" length="18" bold="true">TOTAL:</text><text align="right" length="12" bold="true">$totalDaySales</text></line>
+        <line size="3"><text align="left" length="18" bold="true">VENTAS TOTALES:</text><text align="right" length="12" bold="true">$totalDaySales</text></line>
         <line></line>
         <line size="3"><text align="left" length="18" bold="true">GANANCIA:</text><text align="right" length="12" bold="true">$totalDayProfit</text></line>
+        <line size="3"><text align="center" length="30" bold="true">$totalDayReceiptCount VENTAS EN EL DIA</text></line>
 
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="center" length="30" bold="true">VENTAS POR TURNO</text></line>
+        <line size="3"><text align="center" length="30" bold="true">== VENTAS ==</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+        <line size="3"><text align="left" length="18" bold="true">EN EFECTIVO:</text><text align="right" length="12" bold="true">$totalDayCashGross</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">CON TARJETA:</text><text align="right" length="12" bold="true">$totalDayCardSales</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">A CREDITO:</text><text align="right" length="12" bold="true">$totalDayCreditSales</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">CON VALES:</text><text align="right" length="12" bold="true">$totalDayVoucherSales</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">TRANSFERENCIA:</text><text align="right" length="12" bold="true">$totalDayTransferSales</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">CHEQUE:</text><text align="right" length="12" bold="true">$totalDayChequeSales</text></line>
+        #if($showTotalDayOtherSales)
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">OTROS:</text><text align="right" length="12" bold="true">$totalDayOtherSales</text></line>
+        #end
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">DEV. DE VENTAS:</text><text align="right" length="12" bold="true">- $totalDayReturns</text></line>
+        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
+        <line size="3"><text align="left" length="18" bold="true">TOTAL VENTAS:</text><text align="right" length="12" bold="true">$totalDaySales</text></line>
+
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+        <line size="3"><text align="center" length="30" bold="true">== VENTAS POR TURNO ==</text></line>
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
         #foreach ($shift in $allShifts)
         <line size="3"><text align="left" length="18" bold="true">${shift.printCompactLabel()}</text><text align="right" length="12" bold="true">${shift.printTotalSales()}</text></line>
@@ -33,7 +49,7 @@
         <line size="3"><text align="left" length="18" bold="true">TOTAL TURNOS:</text><text align="right" length="12" bold="true">$totalDaySales</text></line>
 
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="center" length="30" bold="true">VENTAS POR DEPTO</text></line>
+        <line size="3"><text align="center" length="30" bold="true">== VENTAS POR DEPTO ==</text></line>
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
         #if($dayDeptLines && !$dayDeptLines.isEmpty())
         #foreach ($dept in $dayDeptLines)
@@ -49,19 +65,13 @@
         <line size="3"><text align="left" length="18" bold="true">TOTAL DEPTOS:</text><text align="right" length="12" bold="true">$totalDayDepartmentSales</text></line>
 
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="center" length="30" bold="true">EFECTIVO EN CAJA</text></line>
+        <line size="3"><text align="center" length="30" bold="true">== MOVIMIENTOS CAJA ==</text></line>
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="left" length="18" bold="true">FONDO INICIAL:</text><text align="right" length="12" bold="true">$totalDayInitialAmount</text></line>
-        <line></line>
-        <line size="3"><text align="left" length="18" bold="true">VTAS EFECTIVO:</text><text align="right" length="12" bold="true">$totalDayCashSales</text></line>
-        <line></line>
         <line size="3"><text align="left" length="18" bold="true">ABONOS CRED.:</text><text align="right" length="12" bold="true">$totalDayCreditPay</text></line>
         <line></line>
-        <line size="3"><text align="left" length="18" bold="true">ENTRADAS:</text><text align="right" length="12" bold="true">$totalDayCashIn</text></line>
+        <line size="3"><text align="left" length="18" bold="true">ENTRADAS EFEC.:</text><text align="right" length="12" bold="true">$totalDayCashIn</text></line>
         <line></line>
-        <line size="3"><text align="left" length="18" bold="true">SALIDAS:</text><text align="right" length="12" bold="true">$totalDayCashOut</text></line>
-        <line></line>
-        <line size="3"><text align="left" length="18" bold="true">DEVOLUCIONES:</text><text align="right" length="12" bold="true">$totalDayReturns</text></line>
+        <line size="3"><text align="left" length="18" bold="true">SALIDAS EFEC.:</text><text align="right" length="12" bold="true">$totalDayCashOut</text></line>
         <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
         <line size="3"><text align="left" length="18" bold="true">EFECTIVO ESP.:</text><text align="right" length="12" bold="true">$totalDayCashTotal</text></line>
         <line></line>
@@ -84,58 +94,62 @@
         <line size="3"><text align="left" length="8" bold="true">FIN:</text><text align="right" length="22" bold="true">${payments.printDateEnd()}</text></line>
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
 
-        <line size="3"><text align="center" length="30" bold="true">VENTAS DEL TURNO</text></line>
-        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        #set($printedPayment = false)
-        #foreach ($line in $payments.getPaymentLines())
-        #if (${line.getType()} != "cashin" && ${line.getType()} != "cashout")
-        #if($printedPayment)
-        <line></line>
-        #end
-        <line size="3"><text align="left" length="18" bold="true">${line.printType()}</text><text align="right" length="12" bold="true">${line.printValue()}</text></line>
-        #set($printedPayment = true)
-        #end
-        #end
-        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
-        <line size="3"><text align="left" length="18" bold="true">TOTAL:</text><text align="right" length="12" bold="true">${payments.printPaymentsTotal()}</text></line>
-        <line></line>
-        <line size="3"><text align="left" length="18" bold="true">RECIBOS:</text><text align="right" length="12" bold="true">${payments.printSales()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">VENTAS TOTALES:</text><text align="right" length="12" bold="true">$shiftTotalSales</text></line>
+        <line size="3"><text align="center" length="30" bold="true">$shiftReceiptCount VENTAS EN EL TURNO</text></line>
 
-        #set($catLines = $payments.getCategorySalesLines())
-        #if($catLines.size() > 0)
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="center" length="30" bold="true">VENTAS POR DEPTO</text></line>
+        <line size="3"><text align="center" length="30" bold="true">== VENTAS ==</text></line>
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        #foreach ($cat in $catLines)
-        <line size="3"><text align="left" length="18" bold="true">${cat.printCompactCategoryName()}</text><text align="right" length="12" bold="true">${cat.printCategorySum()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">EN EFECTIVO:</text><text align="right" length="12" bold="true">$shiftCashGross</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">CON TARJETA:</text><text align="right" length="12" bold="true">$shiftCardSales</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">A CREDITO:</text><text align="right" length="12" bold="true">$shiftCreditSales</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">CON VALES:</text><text align="right" length="12" bold="true">$shiftVoucherSales</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">TRANSFERENCIA:</text><text align="right" length="12" bold="true">$shiftTransferSales</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">CHEQUE:</text><text align="right" length="12" bold="true">$shiftChequeSales</text></line>
+        #if($showShiftOtherSales)
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">OTROS:</text><text align="right" length="12" bold="true">$shiftOtherSales</text></line>
+        #end
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">DEV. DE VENTAS:</text><text align="right" length="12" bold="true">- $shiftReturns</text></line>
+        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
+        <line size="3"><text align="left" length="18" bold="true">TOTAL VENTAS:</text><text align="right" length="12" bold="true">$shiftTotalSales</text></line>
+
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+        <line size="3"><text align="center" length="30" bold="true">== VENTAS POR DEPTO ==</text></line>
+        <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
+        #if($shiftDeptLines && !$shiftDeptLines.isEmpty())
+        #foreach ($dept in $shiftDeptLines)
+        <line size="3"><text align="left" length="18" bold="true">${dept.compactName}</text><text align="right" length="12" bold="true">${dept.sales}</text></line>
         #if($foreach.hasNext)
         <line></line>
         #end
         #end
-        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
-        <line size="3"><text align="left" length="18" bold="true">TOTAL CATEGORIAS:</text><text align="right" length="12" bold="true">${payments.printCategorySalesTotal()}</text></line>
+        #else
+        <line size="3"><text align="center" length="30" bold="true">SIN VENTAS POR DEPTO</text></line>
         #end
+        <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
+        <line size="3"><text align="left" length="18" bold="true">TOTAL DEPTOS:</text><text align="right" length="12" bold="true">$shiftDepartmentSales</text></line>
 
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="center" length="30" bold="true">MOVIMIENTOS EFECTIVO</text></line>
+        <line size="3"><text align="center" length="30" bold="true">== MOVIMIENTOS CAJA ==</text></line>
         <line size="3"><text align="left" length="30" bold="true">==============================</text></line>
-        <line size="3"><text align="left" length="18" bold="true">FONDO INICIAL:</text><text align="right" length="12" bold="true">${payments.printInitialAmount()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">FONDO INICIAL:</text><text align="right" length="12" bold="true">$shiftInitialAmount</text></line>
         <line></line>
-        <line size="3"><text align="left" length="18" bold="true">VTAS EFECTIVO:</text><text align="right" length="12" bold="true">${payments.printCashTotal()}</text></line>
-        #foreach ($line in $payments.getPaymentLines())
-        #if (${line.getType()} == "cashin")
+        <line size="3"><text align="left" length="18" bold="true">VTAS EFEC. NETAS:</text><text align="right" length="12" bold="true">$shiftCashNet</text></line>
         <line></line>
-        <line size="3"><text align="left" length="18" bold="true">${line.printReason()}</text><text align="right" length="12" bold="true">${line.printValue()}</text></line>
-        #end
-        #end
-        #foreach ($line in $payments.getPaymentLines())
-        #if (${line.getType()} == "cashout")
+        <line size="3"><text align="left" length="18" bold="true">ABONOS CRED.:</text><text align="right" length="12" bold="true">$shiftCreditPay</text></line>
         <line></line>
-        <line size="3"><text align="left" length="18" bold="true">${line.printReason()}</text><text align="right" length="12" bold="true">${line.printValue()}</text></line>
-        #end
-        #end
+        <line size="3"><text align="left" length="18" bold="true">ENTRADAS EFEC.:</text><text align="right" length="12" bold="true">$shiftCashIn</text></line>
+        <line></line>
+        <line size="3"><text align="left" length="18" bold="true">SALIDAS EFEC.:</text><text align="right" length="12" bold="true">$shiftCashOut</text></line>
         <line size="3"><text align="left" length="30" bold="true">------------------------------</text></line>
-        <line size="3"><text align="left" length="18" bold="true">EFECTIVO ESP.:</text><text align="right" length="12" bold="true">${payments.printExpectedCash()}</text></line>
+        <line size="3"><text align="left" length="18" bold="true">EFECTIVO ESP.:</text><text align="right" length="12" bold="true">$shiftExpectedCash</text></line>
         <line></line>
         <line></line>
         <line></line>

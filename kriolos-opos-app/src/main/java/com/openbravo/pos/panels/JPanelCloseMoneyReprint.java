@@ -36,6 +36,7 @@ import com.openbravo.pos.printer.TicketPrinterException;
 import com.openbravo.pos.scripting.ScriptEngine;
 import com.openbravo.pos.scripting.ScriptException;
 import com.openbravo.pos.scripting.ScriptFactory;
+import com.openbravo.pos.util.StringUtils;
 import java.awt.Dimension;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -255,6 +256,83 @@ public class JPanelCloseMoneyReprint extends JPanel implements JPanelView, BeanF
         }          
     }   
     
+    private void putShiftCloseScriptValues(ScriptEngine script, PaymentsReprintModel payments) {
+        double shiftSales = payments.getSalesTotal();
+        double shiftReturns = payments.getReturnsTotal();
+        CloseCashAccounting.PaymentTotals paymentTotals = new CloseCashAccounting.PaymentTotals();
+        paymentTotals.add("cash", payments.getCashTotal());
+
+        double shiftCashIn = 0.0;
+        double shiftCashOut = 0.0;
+        for (PaymentsReprintModel.PaymentsLine line : payments.getPaymentLines()) {
+            String paymentType = line.getType();
+            double value = line.getValue() != null ? line.getValue() : 0.0;
+            if ("cashin".equals(paymentType)) {
+                shiftCashIn += Math.abs(value);
+            } else if ("cashout".equals(paymentType)) {
+                shiftCashOut += Math.abs(value);
+            } else if (!"cash".equals(paymentType) && !"cashrefund".equals(paymentType)
+                    && !"debtpaid".equals(paymentType)) {
+                paymentTotals.add(paymentType, value);
+            }
+        }
+
+        paymentTotals.reconcileToSales(shiftSales);
+        double shiftCashGross = CloseCashAccounting.grossCashSales(paymentTotals.getCash(), shiftReturns);
+        double displayedShiftSales = CloseCashAccounting.netSalesAfterReturns(
+                shiftCashGross, paymentTotals.getCard(), paymentTotals.getCredit(), paymentTotals.getVoucher(),
+                paymentTotals.getTransfer(), paymentTotals.getCheque(), paymentTotals.getOther(), shiftReturns);
+        if (Math.abs(displayedShiftSales - shiftSales) > 0.01) {
+            throw new IllegalStateException("El desglose reimpreso del turno no coincide con las ventas: "
+                    + displayedShiftSales + " != " + shiftSales);
+        }
+
+        java.util.List<java.util.Map<String, String>> shiftDeptLines = new java.util.ArrayList<>();
+        double shiftDepartmentSales = 0.0;
+        for (PaymentsReprintModel.CategorySalesLine category : payments.getCategorySalesLines()) {
+            double categorySales = category.getCategorySum() != null ? category.getCategorySum() : 0.0;
+            java.util.Map<String, String> row = new java.util.HashMap<>();
+            row.put("compactName", StringUtils.encodeXML(
+                    PaymentsModel.compactCategoryName(category.printCategoryName())));
+            row.put("sales", Formats.CURRENCY.formatValue(categorySales));
+            shiftDeptLines.add(row);
+            shiftDepartmentSales += categorySales;
+        }
+
+        double departmentAdjustment = shiftSales - shiftDepartmentSales;
+        if (Math.abs(departmentAdjustment) >= 0.005) {
+            java.util.Map<String, String> adjustment = new java.util.HashMap<>();
+            adjustment.put("compactName", "AJUSTE REDONDEO");
+            adjustment.put("sales", Formats.CURRENCY.formatValue(departmentAdjustment));
+            shiftDeptLines.add(adjustment);
+            shiftDepartmentSales += departmentAdjustment;
+        }
+
+        double expectedCash = CloseCashAccounting.expectedCash(
+                payments.getInitialAmount(), paymentTotals.getCash(), payments.getCashCreditPayments(),
+                shiftCashIn, shiftCashOut);
+
+        script.put("shiftTotalSales", Formats.CURRENCY.formatValue(shiftSales));
+        script.put("shiftReceiptCount", payments.getSales());
+        script.put("shiftCashGross", Formats.CURRENCY.formatValue(shiftCashGross));
+        script.put("shiftCashNet", Formats.CURRENCY.formatValue(paymentTotals.getCash()));
+        script.put("shiftCardSales", Formats.CURRENCY.formatValue(paymentTotals.getCard()));
+        script.put("shiftCreditSales", Formats.CURRENCY.formatValue(paymentTotals.getCredit()));
+        script.put("shiftVoucherSales", Formats.CURRENCY.formatValue(paymentTotals.getVoucher()));
+        script.put("shiftTransferSales", Formats.CURRENCY.formatValue(paymentTotals.getTransfer()));
+        script.put("shiftChequeSales", Formats.CURRENCY.formatValue(paymentTotals.getCheque()));
+        script.put("shiftOtherSales", Formats.CURRENCY.formatValue(paymentTotals.getOther()));
+        script.put("showShiftOtherSales", Math.abs(paymentTotals.getOther()) >= 0.005);
+        script.put("shiftReturns", Formats.CURRENCY.formatValue(shiftReturns));
+        script.put("shiftDeptLines", shiftDeptLines);
+        script.put("shiftDepartmentSales", Formats.CURRENCY.formatValue(shiftDepartmentSales));
+        script.put("shiftInitialAmount", Formats.CURRENCY.formatValue(payments.getInitialAmount()));
+        script.put("shiftCreditPay", Formats.CURRENCY.formatValue(payments.getCashCreditPayments()));
+        script.put("shiftCashIn", Formats.CURRENCY.formatValue(shiftCashIn));
+        script.put("shiftCashOut", Formats.CURRENCY.formatValue(shiftCashOut));
+        script.put("shiftExpectedCash", Formats.CURRENCY.formatValue(expectedCash));
+    }
+
     private void printPayments(String report) {
         
         String sresource = m_dlSystem.getResourceAsXML(report);
@@ -266,7 +344,10 @@ public class JPanelCloseMoneyReprint extends JPanel implements JPanelView, BeanF
             try {
                 ScriptEngine script = ScriptFactory.getScriptEngine(ScriptFactory.VELOCITY);
                 script.put("payments", m_PaymentsClosed);
-                script.put("nosales",result.toString());                
+                script.put("nosales",result.toString());
+                script.put("isDayClose", Boolean.FALSE);
+                script.put("allShifts", null);
+                putShiftCloseScriptValues(script, m_PaymentsClosed);
                 m_TTP.printTicket(script.eval(sresource).toString());
             } catch (ScriptException | TicketPrinterException e) {
                 LOGGER.log(Level.SEVERE, "Exception printPayments: ", e);

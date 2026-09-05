@@ -282,9 +282,7 @@ public class JDialogCloseShift extends JDialog {
     // ── datos ─────────────────────────────────────────────────────────────────
     private void loadData() {
         try {
-            double fondoInicial = getInitialAmount();
-            double efectivoRecibido = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
-            m_totalEsperado = fondoInicial + efectivoRecibido;
+            m_totalEsperado = m_PaymentsToClose.getExpectedCash();
 
             String fmt = Formats.CURRENCY.formatValue(m_totalEsperado);
             lblEsperadoValor.setText(fmt + "  ");

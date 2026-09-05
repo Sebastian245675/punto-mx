@@ -1703,6 +1703,7 @@ public class DataLogicSales extends BeanFactoryDataSingle {
          * @throws BasicException
          */
         public final void saveTicket(final TicketInfo ticket, final String location) throws BasicException {
+                validateTicketPaymentTotal(ticket);
 
                 Transaction t = new Transaction(s) {
                         @Override
@@ -2041,6 +2042,17 @@ public class DataLogicSales extends BeanFactoryDataSingle {
                 };
 
                 t.execute();
+        }
+
+        private static void validateTicketPaymentTotal(TicketInfo ticket) throws BasicException {
+                if ((ticket.getTicketType() == TicketInfo.RECEIPT_NORMAL
+                                || ticket.getTicketType() == TicketInfo.RECEIPT_REFUND)
+                                && Math.abs(ticket.getTotal() - ticket.getTotalPaid()) > 0.01) {
+                        throw new BasicException(
+                                        "Ticket payment total does not match sale total. Ticket total: "
+                                                        + ticket.getTotal() + "; Payment total: "
+                                                        + ticket.getTotalPaid());
+                }
         }
 
         /**

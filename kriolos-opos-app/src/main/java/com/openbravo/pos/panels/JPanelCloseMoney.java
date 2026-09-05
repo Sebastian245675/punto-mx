@@ -871,10 +871,11 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                         ? Formats.CURRENCY.parseValue(m_jInitialAmountLabel.getText())
                         : 0.0;
                 double cashSales = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
-                double total = initialAmount + cashSales + inflowsTotal - outflowsTotal;
+                double total = m_PaymentsToClose.getExpectedCash();
                 m_jCashTotalLabel.setText(Formats.CURRENCY.formatValue(total));
                 LOGGER.info("updateInflowsOutflowsTotals: Total actualizado = " + total +
                         " (inicial=" + initialAmount + ", ventas=" + cashSales +
+                        ", abonos=" + m_PaymentsToClose.getCashCreditPayments() +
                         ", entradas=" + inflowsTotal + ", salidas=" + outflowsTotal + ")");
             }
 
@@ -1062,7 +1063,9 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             }
 
             double efectivoRecibido = m_PaymentsToClose.getCashTotal() != null ? m_PaymentsToClose.getCashTotal() : 0.0;
-            double dineroEsperado = fondoInicial + efectivoRecibido;
+            double movimientosEfectivo = m_PaymentsToClose.getExpectedCash() - m_PaymentsToClose.getInitialAmount()
+                    - efectivoRecibido;
+            double dineroEsperado = fondoInicial + efectivoRecibido + movimientosEfectivo;
 
             LOGGER.info(String.format("Validación dinero: Fondo inicial=%.2f, Efectivo recibido=%.2f, Esperado=%.2f",
                     fondoInicial, efectivoRecibido, dineroEsperado));
@@ -1577,6 +1580,88 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
         printPayments(report, false);
     }
 
+    private void putShiftCloseScriptValues(ScriptEngine script, PaymentsModel payments) {
+        double shiftSales = payments.getSalesTotal();
+        double shiftReturns = payments.getReturnsTotal();
+        CloseCashAccounting.PaymentTotals paymentTotals = new CloseCashAccounting.PaymentTotals();
+        paymentTotals.add("cash", payments.getCashTotal());
+
+        double shiftCashIn = 0.0;
+        double shiftCashOut = 0.0;
+        for (PaymentsModel.PaymentsLine line : payments.getPaymentLines()) {
+            String paymentType = line.getType();
+            double value = line.getValue() != null ? line.getValue() : 0.0;
+            if ("cashin".equals(paymentType)) {
+                shiftCashIn += Math.abs(value);
+            } else if ("cashout".equals(paymentType)) {
+                shiftCashOut += Math.abs(value);
+            } else if (!"cash".equals(paymentType) && !"cashrefund".equals(paymentType)
+                    && !"debtpaid".equals(paymentType)) {
+                paymentTotals.add(paymentType, value);
+            }
+        }
+
+        double paymentAdjustment = paymentTotals.reconcileToSales(shiftSales);
+        if (Math.abs(paymentAdjustment) >= 0.005) {
+            LOGGER.warning("Pagos conciliados contra ventas del turno. Ajuste aplicado a efectivo: "
+                    + paymentAdjustment);
+        }
+
+        double shiftCashGross = CloseCashAccounting.grossCashSales(paymentTotals.getCash(), shiftReturns);
+        double displayedShiftSales = CloseCashAccounting.netSalesAfterReturns(
+                shiftCashGross, paymentTotals.getCard(), paymentTotals.getCredit(), paymentTotals.getVoucher(),
+                paymentTotals.getTransfer(), paymentTotals.getCheque(), paymentTotals.getOther(), shiftReturns);
+        if (Math.abs(displayedShiftSales - shiftSales) > 0.01) {
+            throw new IllegalStateException("El desglose del corte de turno no coincide con las ventas: "
+                    + displayedShiftSales + " != " + shiftSales);
+        }
+
+        java.util.List<java.util.Map<String, String>> shiftDeptLines = new java.util.ArrayList<>();
+        double shiftDepartmentSales = 0.0;
+        for (PaymentsModel.CategorySalesLine category : payments.getCategorySalesLines()) {
+            double categorySales = category.getCategorySum() != null ? category.getCategorySum() : 0.0;
+            java.util.Map<String, String> row = new java.util.HashMap<>();
+            row.put("compactName", StringUtils.encodeXML(
+                    PaymentsModel.compactCategoryName(category.printCategoryName())));
+            row.put("sales", Formats.CURRENCY.formatValue(categorySales));
+            shiftDeptLines.add(row);
+            shiftDepartmentSales += categorySales;
+        }
+
+        double departmentAdjustment = shiftSales - shiftDepartmentSales;
+        if (Math.abs(departmentAdjustment) >= 0.005) {
+            java.util.Map<String, String> adjustment = new java.util.HashMap<>();
+            adjustment.put("compactName", "AJUSTE REDONDEO");
+            adjustment.put("sales", Formats.CURRENCY.formatValue(departmentAdjustment));
+            shiftDeptLines.add(adjustment);
+            shiftDepartmentSales += departmentAdjustment;
+        }
+
+        double expectedCash = CloseCashAccounting.expectedCash(
+                payments.getInitialAmount(), paymentTotals.getCash(), payments.getCashCreditPayments(),
+                shiftCashIn, shiftCashOut);
+
+        script.put("shiftTotalSales", Formats.CURRENCY.formatValue(shiftSales));
+        script.put("shiftReceiptCount", payments.getSales());
+        script.put("shiftCashGross", Formats.CURRENCY.formatValue(shiftCashGross));
+        script.put("shiftCashNet", Formats.CURRENCY.formatValue(paymentTotals.getCash()));
+        script.put("shiftCardSales", Formats.CURRENCY.formatValue(paymentTotals.getCard()));
+        script.put("shiftCreditSales", Formats.CURRENCY.formatValue(paymentTotals.getCredit()));
+        script.put("shiftVoucherSales", Formats.CURRENCY.formatValue(paymentTotals.getVoucher()));
+        script.put("shiftTransferSales", Formats.CURRENCY.formatValue(paymentTotals.getTransfer()));
+        script.put("shiftChequeSales", Formats.CURRENCY.formatValue(paymentTotals.getCheque()));
+        script.put("shiftOtherSales", Formats.CURRENCY.formatValue(paymentTotals.getOther()));
+        script.put("showShiftOtherSales", Math.abs(paymentTotals.getOther()) >= 0.005);
+        script.put("shiftReturns", Formats.CURRENCY.formatValue(shiftReturns));
+        script.put("shiftDeptLines", shiftDeptLines);
+        script.put("shiftDepartmentSales", Formats.CURRENCY.formatValue(shiftDepartmentSales));
+        script.put("shiftInitialAmount", Formats.CURRENCY.formatValue(payments.getInitialAmount()));
+        script.put("shiftCreditPay", Formats.CURRENCY.formatValue(payments.getCashCreditPayments()));
+        script.put("shiftCashIn", Formats.CURRENCY.formatValue(shiftCashIn));
+        script.put("shiftCashOut", Formats.CURRENCY.formatValue(shiftCashOut));
+        script.put("shiftExpectedCash", Formats.CURRENCY.formatValue(expectedCash));
+    }
+
     private void printPayments(String report, boolean isDayClose) {
 
         String sresource = null;
@@ -1620,6 +1705,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
                 if (isDayClose && closeDate != null) {
                     LOGGER.info("Es cierre del día, obteniendo todos los turnos...");
+                    Locale spanishLocale = new Locale("es", "MX");
+                    String dayCloseDate = new java.text.SimpleDateFormat("dd/MMM/yyyy", spanishLocale)
+                            .format(closeDate).toUpperCase(spanishLocale);
+                    String dayClosePerformedAt = dayCloseDate + " "
+                            + new java.text.SimpleDateFormat("h:mm a", Locale.US).format(new Date());
+                    script.put("dayCloseDate", dayCloseDate);
+                    script.put("dayClosePerformedAt", dayClosePerformedAt);
                     java.util.List<ShiftData> allShifts = getAllShiftsForDay(closeDate);
                     LOGGER.info("Turnos obtenidos: " + (allShifts != null ? allShifts.size() : 0));
 
@@ -1801,6 +1893,18 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             LOGGER.info("Usando consolidación por PRODUCTO (fallback): " + consolidatedProducts.size()
                                     + " productos");
                         }
+
+                        double rawDepartmentSales = 0.0;
+                        for (ConsolidatedProduct department : consolidatedProducts.values()) {
+                            rawDepartmentSales += department.getTotalValue();
+                        }
+                        double roundingAdjustment = totalDaySales - rawDepartmentSales;
+                        if (Math.abs(roundingAdjustment) >= 0.005) {
+                            ConsolidatedProduct adjustment = new ConsolidatedProduct("AJUSTE REDONDEO");
+                            adjustment.addTotal(roundingAdjustment);
+                            consolidatedProducts.put(adjustment.getName(), adjustment);
+                            LOGGER.info("Ajuste de redondeo agregado a departamentos: " + roundingAdjustment);
+                        }
                     }
 
                     LOGGER.info("Total productos consolidados desde turnos: " + consolidatedProducts.size());
@@ -1895,6 +1999,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     double totalDayCashOut = 0.0;
                     double totalDayCashSales = 0.0;
                     double totalDayCreditPayments = 0.0;
+                    int totalDayReceiptCount = 0;
+                    CloseCashAccounting.PaymentTotals totalDayPaymentTotals = new CloseCashAccounting.PaymentTotals();
 
                     if (allShifts != null) {
                         for (ShiftData shift : allShifts) {
@@ -1923,26 +2029,26 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                                     placeholders.append(",");
                                 placeholders.append("?");
                             }
-                            String sql = "SELECT COALESCE(SUM(payments.TOTAL), 0.0) as TOTAL " +
+                            String sql = "SELECT payments.PAYMENT, COALESCE(SUM(payments.TOTAL), 0.0) as TOTAL " +
                                     "FROM payments " +
                                     "INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
                                     "INNER JOIN tickets ON receipts.ID = tickets.ID " +
                                     "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
-                                    "AND payments.PAYMENT = 'cash' " +
-                                    "AND tickets.TICKETTYPE = 0 " +
                                     "AND NOT EXISTS (SELECT 1 FROM payments debt_payment " +
                                     "WHERE debt_payment.RECEIPT = payments.RECEIPT " +
-                                    "AND debt_payment.PAYMENT = 'debtpaid')";
+                                    "AND debt_payment.PAYMENT = 'debtpaid') " +
+                                    "GROUP BY payments.PAYMENT";
                             java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
                             for (int i = 0; i < moneyList.size(); i++) {
                                 pstmt.setString(i + 1, moneyList.get(i));
                             }
                             java.sql.ResultSet rs = pstmt.executeQuery();
-                            if (rs.next()) {
-                                totalDayCashSales = rs.getDouble("TOTAL");
+                            while (rs.next()) {
+                                totalDayPaymentTotals.add(rs.getString("PAYMENT"), rs.getDouble("TOTAL"));
                             }
                             rs.close();
                             pstmt.close();
+                            totalDayCashSales = totalDayPaymentTotals.getCash();
 
                             // Obtener pagos de créditos del día
                             sql = "SELECT COALESCE(SUM(payments.TOTAL), 0.0) as TOTAL " +
@@ -1963,10 +2069,32 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             }
                             rs.close();
                             pstmt.close();
+
+                            sql = "SELECT COUNT(*) AS TOTAL FROM tickets " +
+                                    "INNER JOIN receipts ON tickets.ID = receipts.ID " +
+                                    "WHERE receipts.MONEY IN (" + placeholders.toString() + ") " +
+                                    "AND tickets.TICKETTYPE = 0";
+                            pstmt = conn.prepareStatement(sql);
+                            for (int i = 0; i < moneyList.size(); i++) {
+                                pstmt.setString(i + 1, moneyList.get(i));
+                            }
+                            rs = pstmt.executeQuery();
+                            if (rs.next()) {
+                                totalDayReceiptCount = rs.getInt("TOTAL");
+                            }
+                            rs.close();
+                            pstmt.close();
                         }
                     } catch (Exception e) {
                         LOGGER.log(Level.WARNING, "Error obteniendo datos de efectivo y créditos: " + e.getMessage(),
                                 e);
+                    }
+
+                    double paymentAdjustment = totalDayPaymentTotals.reconcileToSales(totalDaySales);
+                    totalDayCashSales = totalDayPaymentTotals.getCash();
+                    if (Math.abs(paymentAdjustment) >= 0.005) {
+                        LOGGER.warning("Pagos conciliados contra ventas del día. Ajuste aplicado a efectivo: "
+                                + paymentAdjustment);
                     }
 
                     // Obtener ganancias por departamento (no solo ventas)
@@ -2065,43 +2193,24 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     script.put("deptProfitList", deptProfitList);
 
                     // --- Variables adicionales para el nuevo template del corte del dia ---
-                    double totalDayCardSalesRaw = 0.0;
-                    double totalDayCreditSalesRaw = 0.0;
-                    double totalDayVoucherSalesRaw = 0.0;
+                    double totalDayCardSalesRaw = totalDayPaymentTotals.getCard();
+                    double totalDayCreditSalesRaw = totalDayPaymentTotals.getCredit();
+                    double totalDayVoucherSalesRaw = totalDayPaymentTotals.getVoucher();
+                    double totalDayTransferSalesRaw = totalDayPaymentTotals.getTransfer();
+                    double totalDayChequeSalesRaw = totalDayPaymentTotals.getCheque();
+                    double totalDayOtherSalesRaw = totalDayPaymentTotals.getOther();
                     double totalDayProfitRaw = 0.0;
-                    double totalDayInitialAmountRaw = 0.0;
                     double totalDayReturnsRaw = 0.0;
                     try {
                         Session sess2 = m_App.getSession();
                         java.sql.Connection conn2 = sess2.getConnection();
                         if (allShifts != null) {
                             for (ShiftData sh : allShifts) {
-                                totalDayInitialAmountRaw += sh.getInitialAmount();
                                 String mn = sh.getMoney();
                                 if (mn == null || mn.isEmpty())
                                     continue;
-                                // ventas por forma de pago
-                                java.sql.PreparedStatement ps2 = conn2.prepareStatement(
-                                        "SELECT payments.PAYMENT, COALESCE(SUM(payments.TOTAL),0) AS T " +
-                                                "FROM payments INNER JOIN receipts ON payments.RECEIPT=receipts.ID " +
-                                                "INNER JOIN tickets ON receipts.ID=tickets.ID " +
-                                                "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 GROUP BY payments.PAYMENT");
-                                ps2.setString(1, mn);
-                                java.sql.ResultSet rs2 = ps2.executeQuery();
-                                while (rs2.next()) {
-                                    String pt = rs2.getString("PAYMENT");
-                                    double pv = rs2.getDouble("T");
-                                    if ("card".equals(pt) || "magcard".equals(pt))
-                                        totalDayCardSalesRaw += pv;
-                                    else if ("debt".equals(pt))
-                                        totalDayCreditSalesRaw += pv;
-                                    else if ("voucher".equals(pt))
-                                        totalDayVoucherSalesRaw += pv;
-                                }
-                                rs2.close();
-                                ps2.close();
                                 // ganancia
-                                ps2 = conn2.prepareStatement(
+                                java.sql.PreparedStatement ps2 = conn2.prepareStatement(
                                         "SELECT COALESCE(SUM((ticketlines.PRICE-COALESCE(products.PRICEBUY,0))*ticketlines.UNITS),0) "
                                                 +
                                                 "FROM ticketlines INNER JOIN receipts ON ticketlines.TICKET=receipts.ID "
@@ -2109,7 +2218,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                                                 "LEFT JOIN products ON ticketlines.PRODUCT=products.ID " +
                                                 "WHERE receipts.MONEY=? AND ticketlines.PRODUCT IS NOT NULL");
                                 ps2.setString(1, mn);
-                                rs2 = ps2.executeQuery();
+                                java.sql.ResultSet rs2 = ps2.executeQuery();
                                 if (rs2.next())
                                     totalDayProfitRaw += rs2.getDouble(1);
                                 rs2.close();
@@ -2132,11 +2241,21 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     } catch (Exception ex2) {
                         LOGGER.log(Level.WARNING, "Error extras printPayments dia", ex2);
                     }
-                    double totalDayCashTotalRaw = totalDayInitialAmountRaw + totalDayCashSales + totalDayCreditPayments
-                            + totalDayCashIn - totalDayCashOut - totalDayReturnsRaw;
+                    double totalDayCashTotalRaw = CloseCashAccounting.expectedCash(0.0,
+                            totalDayCashSales, totalDayCreditPayments, totalDayCashIn, totalDayCashOut);
+                    double totalDayCashGrossRaw = CloseCashAccounting.grossCashSales(
+                            totalDayCashSales, totalDayReturnsRaw);
+                    double displayedDaySales = CloseCashAccounting.netSalesAfterReturns(
+                            totalDayCashGrossRaw, totalDayCardSalesRaw, totalDayCreditSalesRaw,
+                            totalDayVoucherSalesRaw, totalDayTransferSalesRaw, totalDayChequeSalesRaw,
+                            totalDayOtherSalesRaw, totalDayReturnsRaw);
 
-                    LOGGER.info("Corte del dia - conciliacion de efectivo: fondo=" + totalDayInitialAmountRaw
-                            + ", ventas=" + totalDayCashSales
+                    if (Math.abs(displayedDaySales - totalDaySales) > 0.01) {
+                        throw new IllegalStateException("El desglose del corte del dia no coincide con las ventas: "
+                                + displayedDaySales + " != " + totalDaySales);
+                    }
+
+                    LOGGER.info("Corte del dia - conciliacion de efectivo: ventas=" + totalDayCashSales
                             + ", abonos=" + totalDayCreditPayments
                             + ", entradas=" + totalDayCashIn
                             + ", salidas=" + totalDayCashOut
@@ -2146,8 +2265,13 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     script.put("totalDayCardSales", Formats.CURRENCY.formatValue(totalDayCardSalesRaw));
                     script.put("totalDayCreditSales", Formats.CURRENCY.formatValue(totalDayCreditSalesRaw));
                     script.put("totalDayVoucherSales", Formats.CURRENCY.formatValue(totalDayVoucherSalesRaw));
+                    script.put("totalDayTransferSales", Formats.CURRENCY.formatValue(totalDayTransferSalesRaw));
+                    script.put("totalDayChequeSales", Formats.CURRENCY.formatValue(totalDayChequeSalesRaw));
+                    script.put("totalDayOtherSales", Formats.CURRENCY.formatValue(totalDayOtherSalesRaw));
+                    script.put("showTotalDayOtherSales", Math.abs(totalDayOtherSalesRaw) >= 0.005);
+                    script.put("totalDayCashGross", Formats.CURRENCY.formatValue(totalDayCashGrossRaw));
+                    script.put("totalDayReceiptCount", totalDayReceiptCount);
                     script.put("totalDayProfit", Formats.CURRENCY.formatValue(totalDayProfitRaw));
-                    script.put("totalDayInitialAmount", Formats.CURRENCY.formatValue(totalDayInitialAmountRaw));
                     script.put("totalDayCashTotal", Formats.CURRENCY.formatValue(totalDayCashTotalRaw));
                     script.put("totalDayReturns", Formats.CURRENCY.formatValue(totalDayReturnsRaw));
                     script.put("totalDayCreditPay", Formats.CURRENCY.formatValue(totalDayCreditPayments));
@@ -2268,6 +2392,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     script.put("isDayClose", Boolean.FALSE);
                     script.put("allShifts", null);
                     script.put("consolidatedProducts", new java.util.ArrayList<>());
+                    putShiftCloseScriptValues(script, m_PaymentsToClose);
 
                     // Obtener productos del turno actual desde PaymentsModel
                     currentShiftProducts = m_PaymentsToClose != null ? m_PaymentsToClose.getProductSalesLines()
@@ -2944,7 +3069,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     if (cashOutRs.next()) {
                         double cashOut = cashOutRs.getDouble("TOTAL");
                         if (!cashOutRs.wasNull()) {
-                            shift.setCashOut(cashOut);
+                            shift.setCashOut(CloseCashAccounting.positiveOutflow(cashOut));
                         }
                     }
                     cashOutRs.close();
@@ -3025,17 +3150,39 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
 
                 try {
                     java.sql.PreparedStatement salesTotalStatement = session.getConnection().prepareStatement(
-                            "SELECT COALESCE(SUM((ticketlines.PRICE + ticketlines.PRICE * COALESCE(taxes.RATE, 0)) * ticketlines.UNITS), 0) AS TOTAL "
-                                    + "FROM ticketlines "
-                                    + "INNER JOIN tickets ON ticketlines.TICKET = tickets.ID "
+                            "SELECT tickets.ID, ticketlines.PRICE, ticketlines.UNITS, "
+                                    + "COALESCE(tax_totals.TAX_TOTAL, 0) AS TAX_TOTAL "
+                                    + "FROM tickets "
                                     + "INNER JOIN receipts ON tickets.ID = receipts.ID "
-                                    + "LEFT JOIN taxes ON ticketlines.TAXID = taxes.ID "
-                                    + "WHERE receipts.MONEY = ?");
+                                    + "INNER JOIN ticketlines ON tickets.ID = ticketlines.TICKET "
+                                    + "LEFT JOIN (SELECT taxlines.RECEIPT, SUM(taxlines.AMOUNT) AS TAX_TOTAL "
+                                    + "FROM taxlines GROUP BY taxlines.RECEIPT) tax_totals "
+                                    + "ON tickets.ID = tax_totals.RECEIPT "
+                                    + "WHERE receipts.MONEY = ? "
+                                    + "ORDER BY tickets.ID");
                     salesTotalStatement.setString(1, money);
                     java.sql.ResultSet salesTotalResult = salesTotalStatement.executeQuery();
-                    if (salesTotalResult.next()) {
-                        shift.setTotalSales(salesTotalResult.getDouble("TOTAL"));
+                    double roundedTicketSales = 0.0;
+                    String currentTicketId = null;
+                    double currentSubtotal = 0.0;
+                    double currentTax = 0.0;
+                    while (salesTotalResult.next()) {
+                        String ticketId = salesTotalResult.getString("ID");
+                        if (currentTicketId != null && !currentTicketId.equals(ticketId)) {
+                            roundedTicketSales += CloseCashAccounting.ticketTotal(currentSubtotal, currentTax);
+                            currentSubtotal = 0.0;
+                        }
+                        if (!ticketId.equals(currentTicketId)) {
+                            currentTicketId = ticketId;
+                            currentTax = salesTotalResult.getDouble("TAX_TOTAL");
+                        }
+                        currentSubtotal += salesTotalResult.getDouble("PRICE")
+                                * salesTotalResult.getDouble("UNITS");
                     }
+                    if (currentTicketId != null) {
+                        roundedTicketSales += CloseCashAccounting.ticketTotal(currentSubtotal, currentTax);
+                    }
+                    shift.setTotalSales(roundedTicketSales);
                     salesTotalResult.close();
                     salesTotalStatement.close();
                 } catch (Exception e) {
@@ -3245,7 +3392,24 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
     private boolean m_isDayMode = false;
 
     private boolean canPerformDayClose() {
-        return m_App != null && m_App.hasPermission(PermissionsCatalog.DAY_CLOSE_PERMISSION);
+        if (m_App == null || m_App.getAppUserView() == null || m_App.getAppUserView().getUser() == null) {
+            return false;
+        }
+
+        return canSkipDayClosePassword(
+                m_App.getAppUserView().getUser().getRole(),
+                m_App.hasPermission(PermissionsCatalog.DAY_CLOSE_PERMISSION));
+    }
+
+    static boolean canSkipDayClosePassword(String role, boolean hasDayClosePermission) {
+        if (!hasDayClosePermission || role == null) {
+            return false;
+        }
+
+        String normalizedRole = role.trim();
+        return "0".equals(normalizedRole)
+                || "1".equals(normalizedRole)
+                || "ADMIN".equalsIgnoreCase(normalizedRole);
     }
 
     private void updateDayClosePermissionState() {
@@ -7103,10 +7267,11 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             }
             LOGGER.info("Turnos del dia encontrados: " + allShifts.size());
 
-            double dayInitialAmount = 0.0, dayCashSales = 0.0, dayCardSales = 0.0;
-            double dayCreditSales = 0.0, dayVoucherSales = 0.0;
+            double dayCashSales = 0.0, dayCardSales = 0.0;
+            double dayCreditSales = 0.0, dayVoucherSales = 0.0, dayOtherSales = 0.0;
             double dayCashIn = 0.0, dayCashOut = 0.0, dayReturns = 0.0;
             double dayCreditPay = 0.0, dayProfit = 0.0;
+            CloseCashAccounting.PaymentTotals dayPaymentTotals = new CloseCashAccounting.PaymentTotals();
 
             Session session = m_App.getSession();
             java.sql.Connection conn = session.getConnection();
@@ -7115,7 +7280,6 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 String money = shift.getMoney();
                 if (money == null || money.isEmpty())
                     continue;
-                dayInitialAmount += shift.getInitialAmount();
                 dayCashIn += shift.getCashIn();
                 dayCashOut += shift.getCashOut();
                 try {
@@ -7123,7 +7287,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                             "SELECT payments.PAYMENT, COALESCE(SUM(payments.TOTAL),0) AS TOTAL " +
                                     "FROM payments INNER JOIN receipts ON payments.RECEIPT=receipts.ID " +
                                     "INNER JOIN tickets ON receipts.ID=tickets.ID " +
-                                    "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 " +
+                                    "WHERE receipts.MONEY=? " +
                                     "AND NOT EXISTS (SELECT 1 FROM payments debt_payment " +
                                     "WHERE debt_payment.RECEIPT=payments.RECEIPT " +
                                     "AND debt_payment.PAYMENT='debtpaid') " +
@@ -7131,16 +7295,7 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     ps.setString(1, money);
                     java.sql.ResultSet rs = ps.executeQuery();
                     while (rs.next()) {
-                        String pt = rs.getString("PAYMENT");
-                        double pv = rs.getDouble("TOTAL");
-                        if ("cash".equals(pt))
-                            dayCashSales += pv;
-                        else if ("card".equals(pt) || "magcard".equals(pt))
-                            dayCardSales += pv;
-                        else if ("debt".equals(pt))
-                            dayCreditSales += pv;
-                        else if ("voucher".equals(pt))
-                            dayVoucherSales += pv;
+                        dayPaymentTotals.add(rs.getString("PAYMENT"), rs.getDouble("TOTAL"));
                     }
                     rs.close();
                     ps.close();
@@ -7198,6 +7353,11 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 }
             }
 
+            dayCashSales = dayPaymentTotals.getCash();
+            dayCardSales = dayPaymentTotals.getCard();
+            dayCreditSales = dayPaymentTotals.getCredit();
+            dayVoucherSales = dayPaymentTotals.getVoucher();
+
             // Ventas + Ganancia por Departamento: [units, ventas, ganancia]
             java.util.Map<String, double[]> deptMap = new java.util.LinkedHashMap<>();
             try {
@@ -7208,14 +7368,15 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     java.sql.PreparedStatement ps = conn.prepareStatement(
                             "SELECT COALESCE(categories.NAME,'Sin Departamento') AS CAT, " +
                                     "SUM(ticketlines.UNITS) AS UNITS, " +
-                                    "SUM(ticketlines.PRICE*ticketlines.UNITS) AS TOTAL, " +
+                                    "SUM((ticketlines.PRICE + ticketlines.PRICE * COALESCE(taxes.RATE,0))*ticketlines.UNITS) AS TOTAL, " +
                                     "SUM((ticketlines.PRICE-COALESCE(products.PRICEBUY,0))*ticketlines.UNITS) AS PROFIT "
                                     +
                                     "FROM ticketlines INNER JOIN tickets ON ticketlines.TICKET=tickets.ID " +
                                     "INNER JOIN receipts ON tickets.ID=receipts.ID " +
-                                    "INNER JOIN products ON ticketlines.PRODUCT=products.ID " +
+                                    "LEFT JOIN products ON ticketlines.PRODUCT=products.ID " +
                                     "LEFT JOIN categories ON products.CATEGORY=categories.ID " +
-                                    "WHERE receipts.MONEY=? AND tickets.TICKETTYPE=0 " +
+                                    "LEFT JOIN taxes ON ticketlines.TAXID=taxes.ID " +
+                                    "WHERE receipts.MONEY=? " +
                                     "GROUP BY COALESCE(categories.NAME,'Sin Departamento')");
                     ps.setString(1, money);
                     java.sql.ResultSet rs = ps.executeQuery();
@@ -7320,12 +7481,35 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                 LOGGER.log(Level.WARNING, "Error detalle listas dia", ex);
             }
 
-            double dayTotalSales = dayCashSales + dayCardSales + dayCreditSales + dayVoucherSales - dayReturns;
-            double dayCashTotal = dayInitialAmount + dayCashSales + dayCreditPay + dayCashIn - dayCashOut
-                    - dayReturns;
+            double dayTotalSales = 0.0;
+            for (ShiftData shift : allShifts) {
+                dayTotalSales += shift.getTotalSales();
+            }
 
-            LOGGER.info("Reporte corte del dia - conciliacion de efectivo: fondo=" + dayInitialAmount
-                    + ", ventas=" + dayCashSales
+            double rawDepartmentSales = 0.0;
+            for (double[] department : deptMap.values()) {
+                rawDepartmentSales += department[1];
+            }
+            double roundingAdjustment = dayTotalSales - rawDepartmentSales;
+            if (Math.abs(roundingAdjustment) >= 0.005) {
+                deptMap.put("AJUSTE REDONDEO", new double[] { 0.0, roundingAdjustment, 0.0 });
+            }
+
+            double paymentAdjustment = dayPaymentTotals.reconcileToSales(dayTotalSales);
+            dayCashSales = dayPaymentTotals.getCash();
+            dayCardSales = dayPaymentTotals.getCard();
+            dayCreditSales = dayPaymentTotals.getCredit();
+            dayVoucherSales = dayPaymentTotals.getVoucher();
+            dayOtherSales = dayPaymentTotals.getOther();
+            if (Math.abs(paymentAdjustment) >= 0.005) {
+                LOGGER.warning("Reporte diario concilió pagos contra ventas. Ajuste en efectivo: "
+                        + paymentAdjustment);
+            }
+
+            double dayCashTotal = CloseCashAccounting.expectedCash(0.0, dayCashSales, dayCreditPay,
+                    dayCashIn, dayCashOut);
+
+            LOGGER.info("Reporte corte del dia - conciliacion de efectivo: ventas=" + dayCashSales
                     + ", abonos=" + dayCreditPay
                     + ", entradas=" + dayCashIn
                     + ", salidas=" + dayCashOut
@@ -7375,10 +7559,8 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             // Dinero Caja | Ventas
             html.append("<table width='100%' border='0' cellspacing='8' cellpadding='0'><tr>");
             html.append(
-                    "<td width='50%' valign='top' style='padding-right:12px;'><div class='st'>Dinero en Caja</div><table class='dt'>");
-            html.append("<tr><td class='dc'>Fondo de caja</td><td class='vc'>")
-                    .append(Formats.CURRENCY.formatValue(dayInitialAmount)).append("</td></tr>");
-            html.append("<tr><td class='dc'>Ventas en Efectivo</td><td class='vc pos'>+ ")
+                    "<td width='50%' valign='top' style='padding-right:12px;'><div class='st'>Movimientos de Efectivo</div><table class='dt'>");
+            html.append("<tr><td class='dc'>Ventas en Efectivo (netas)</td><td class='vc pos'>+ ")
                     .append(Formats.CURRENCY.formatValue(dayCashSales)).append("</td></tr>");
             html.append("<tr><td class='dc'>Abonos en efectivo</td><td class='vc pos'>+ ")
                     .append(Formats.CURRENCY.formatValue(dayCreditPay)).append("</td></tr>");
@@ -7386,14 +7568,14 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     .append(Formats.CURRENCY.formatValue(dayCashIn)).append("</td></tr>");
             html.append("<tr><td class='dc'>Salidas</td><td class='vc neg'>- ")
                     .append(Formats.CURRENCY.formatValue(dayCashOut)).append("</td></tr>");
-            html.append("<tr><td class='dc'>Devoluciones efectivo</td><td class='vc neg'>- ")
+            html.append("<tr><td class='dc'>Devoluciones ya descontadas</td><td class='vc neg'>")
                     .append(Formats.CURRENCY.formatValue(dayReturns)).append("</td></tr>");
             html.append("<tr><td class='tl'>Total</td><td class='tv'>")
                     .append(Formats.CURRENCY.formatValue(dayCashTotal)).append("</td></tr>");
             html.append("</table></td>");
             html.append(
                     "<td width='50%' valign='top' style='padding-left:12px;'><div class='st'>Ventas</div><table class='dt'>");
-            html.append("<tr><td class='dc'>En Efectivo</td><td class='vc pos'>+ ")
+            html.append("<tr><td class='dc'>En Efectivo (neto)</td><td class='vc pos'>+ ")
                     .append(Formats.CURRENCY.formatValue(dayCashSales)).append("</td></tr>");
             html.append("<tr><td class='dc'>Con Tarjeta</td><td class='vc pos'>+ ")
                     .append(Formats.CURRENCY.formatValue(dayCardSales)).append("</td></tr>");
@@ -7401,7 +7583,11 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     .append(Formats.CURRENCY.formatValue(dayCreditSales)).append("</td></tr>");
             html.append("<tr><td class='dc'>Vales de Despensa</td><td class='vc pos'>+ ")
                     .append(Formats.CURRENCY.formatValue(dayVoucherSales)).append("</td></tr>");
-            html.append("<tr><td class='dc'>Devoluciones</td><td class='vc neg'>- ")
+            if (Math.abs(dayOtherSales) >= 0.005) {
+                html.append("<tr><td class='dc'>Otros</td><td class='vc pos'>+ ")
+                        .append(Formats.CURRENCY.formatValue(dayOtherSales)).append("</td></tr>");
+            }
+            html.append("<tr><td class='dc'>Devoluciones ya descontadas</td><td class='vc neg'>")
                     .append(Formats.CURRENCY.formatValue(dayReturns)).append("</td></tr>");
             html.append("<tr><td class='tl'>Total</td><td class='tv'>")
                     .append(Formats.CURRENCY.formatValue(dayTotalSales)).append("</td></tr>");
@@ -7496,6 +7682,15 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
             }
             m_isDayMode = true;
             DayCloseTicketScope.markCompleted(dayDate);
+            if (!canPerformDayClose()
+                    && m_App != null
+                    && m_App.getAppUserView() != null
+                    && m_App.getAppUserView().getUser() != null) {
+                String authorizedUserId = m_App.getAppUserView().getUser().getId();
+                DayCloseTicketScope.grantAllTicketsAccess(dayDate, authorizedUserId);
+                LOGGER.info("Consulta de todos los tickets del día habilitada para el cajero autorizado: "
+                        + authorizedUserId);
+            }
             LOGGER.info("Corte del Dia cargado. Turnos: " + allShifts.size());
 
         } catch (Exception ex) {
@@ -7575,7 +7770,10 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     Date abonoDateStart = m_PaymentsToClose.getDateStart();
                     String sql = "SELECT COALESCE(SUM(payments.TOTAL), 0) FROM receipts " +
                                  "INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
-                                 "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'debt' AND receipts.DATENEW >= ?";
+                                 "WHERE receipts.MONEY = ? AND payments.PAYMENT = 'cash' AND receipts.DATENEW >= ? " +
+                                 "AND EXISTS (SELECT 1 FROM payments debt_payment " +
+                                 "WHERE debt_payment.RECEIPT = payments.RECEIPT " +
+                                 "AND debt_payment.PAYMENT = 'debtpaid')";
                     java.sql.PreparedStatement pstmt = conn.prepareStatement(sql);
                     pstmt.setString(1, activeCashIndex);
                     pstmt.setTimestamp(2, new java.sql.Timestamp(abonoDateStart.getTime()));
@@ -7651,49 +7849,45 @@ public class JPanelCloseMoney extends JPanel implements JPanelView, BeanFactoryA
                     pstmt.close();
                 } catch (Exception e) {}
 
-                double cashTotal = initialAmount + cashSales + creditPaymentsCash + cashIn - cashOut;
+                double cashTotal = CloseCashAccounting.expectedCash(initialAmount, cashSales, creditPaymentsCash,
+                        cashIn, cashOut);
                 double totalSales = 0.0;
                 try {
                     String sTotal = m_PaymentsToClose.printSalesTotal();
                     if (sTotal != null) totalSales = Formats.CURRENCY.parseValue(sTotal);
                 } catch (Exception e) {}
 
-                double cardSales = 0.0;
-                double creditSales = 0.0;
-                double voucherSales = 0.0;
+                CloseCashAccounting.PaymentTotals exportPaymentTotals = new CloseCashAccounting.PaymentTotals();
                 if (m_PaymentsToClose.getPaymentLines() != null) {
                     for (PaymentsModel.PaymentsLine pl : m_PaymentsToClose.getPaymentLines()) {
                         String pType = pl.getType();
                         double val = pl.getValue() != null ? pl.getValue() : 0.0;
-                        if ("card".equals(pType) || "magcard".equals(pType)) {
-                            cardSales += val;
-                        } else if ("debt".equals(pType)) {
-                            creditSales += val;
-                        } else if ("voucher".equals(pType)) {
-                            voucherSales += val;
-                        }
+                        exportPaymentTotals.add(pType, val);
                     }
                 }
+                double cardSales = exportPaymentTotals.getCard();
+                double creditSales = exportPaymentTotals.getCredit();
+                double voucherSales = exportPaymentTotals.getVoucher();
 
                 // Escribir Dinero en Caja
                 pw.print("📊 RESUMEN DE DINERO EN CAJA\n");
                 pw.print("Concepto\tMonto\n");
                 pw.print(String.format("Fondo Inicial (Fondo de caja)\t%.2f\n", initialAmount));
-                pw.print(String.format("Ventas en Efectivo (+)\t%.2f\n", cashSales));
+                pw.print(String.format("Ventas en Efectivo Netas (+)\t%.2f\n", cashSales));
                 pw.print(String.format("Abonos en Efectivo (+)\t%.2f\n", creditPaymentsCash));
                 pw.print(String.format("Entradas (+)\t%.2f\n", cashIn));
                 pw.print(String.format("Salidas (-)\t%.2f\n", cashOut));
-                pw.print(String.format("Devoluciones en Efectivo (-)\t%.2f\n", returns));
+                pw.print(String.format("Devoluciones ya incluidas en ventas netas\t%.2f\n", returns));
                 pw.print(String.format("TOTAL EFECTIVO ESPERADO\t%.2f\n\n", cashTotal));
 
                 // Escribir Ventas
                 pw.print("🛒 RESUMEN DE VENTAS POR MÉTODO DE PAGO\n");
                 pw.print("Método de Pago\tMonto\n");
-                pw.print(String.format("En Efectivo\t%.2f\n", cashSales));
+                pw.print(String.format("En Efectivo (Neto)\t%.2f\n", cashSales));
                 pw.print(String.format("Con Tarjeta de Crédito/Débito\t%.2f\n", cardSales));
                 pw.print(String.format("A Crédito\t%.2f\n", creditSales));
                 pw.print(String.format("Con Vales de Despensa\t%.2f\n", voucherSales));
-                pw.print(String.format("Devoluciones de Ventas (-)\t%.2f\n", returns));
+                pw.print(String.format("Devoluciones ya descontadas\t%.2f\n", returns));
                 pw.print(String.format("TOTAL VENTAS NETAS\t%.2f\n\n", totalSales));
 
                 // Escribir Ventas por Departamento

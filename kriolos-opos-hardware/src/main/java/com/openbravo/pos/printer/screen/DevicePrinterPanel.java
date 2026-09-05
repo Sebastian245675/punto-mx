@@ -117,7 +117,10 @@ public class DevicePrinterPanel extends javax.swing.JPanel implements DevicePrin
         m_jTicketContainer = new JTicketContainer();
         m_jScrollView.setViewportView(m_jTicketContainer);
         m_jScrollView.getVerticalScrollBar().setValue(0);
-        m_jScrollView.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+        m_jScrollView.getVerticalScrollBar().setUnitIncrement(24);
+        m_jScrollView.getHorizontalScrollBar().setUnitIncrement(24);
+        m_jScrollView.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_ALWAYS);
+        m_jScrollView.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
     }
 
     /**
@@ -166,7 +169,7 @@ public class DevicePrinterPanel extends javax.swing.JPanel implements DevicePrin
 
     @Override
     public void beginReceipt() {
-        m_ticketcurrent = new BasicTicketForScreen(fontName, fontSize, fontBold, normalTotals);
+        m_ticketcurrent = new BasicTicketForScreen(fontName, getPreviewFontSize(), fontBold, normalTotals);
     }
 
     /**
@@ -221,11 +224,14 @@ public class DevicePrinterPanel extends javax.swing.JPanel implements DevicePrin
      */
     @Override
     public void endReceipt() {
-        double screenScale = 12.0 / 7.0;
-        int screenFontSize = (int) Math.round(fontSize * screenScale);
+        int screenFontSize = getPreviewFontSize();
         m_lastTicket = new JTicket(m_ticketcurrent, columns, paperWidth, screenFontSize);
         m_jTicketContainer.addTicket(m_lastTicket);
         m_ticketcurrent = null;
+    }
+
+    private int getPreviewFontSize() {
+        return Math.max(11, Math.min(fontSize, 16));
     }
 
     /**

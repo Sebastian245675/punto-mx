@@ -17,7 +17,6 @@
 package com.openbravo.pos.printer.ticket;
 
 import java.awt.Font;
-import java.awt.geom.AffineTransform;
 
 /**
  *
@@ -36,14 +35,10 @@ public class BasicTicketForScreen extends BasicTicket {
 
     public BasicTicketForScreen(String fontName, int fontSize, boolean fontBold, boolean normalTotals) {
         int style = fontBold ? Font.BOLD : Font.PLAIN;
-        // Scale the printer font size up to screen size (base printer size is 7, base
-        // screen size is 12)
-        double screenScale = 12.0 / 7.0;
-        int screenFontSize = (int) Math.round(fontSize * screenScale);
+        int screenFontSize = Math.max(10, Math.min(fontSize, 18));
 
-        this.baseFont = new Font(fontName, style, screenFontSize)
-                .deriveFont(AffineTransform.getScaleInstance(1.65, 1.40));
-        this.fontHeight = (int) Math.round(screenFontSize * 1.7);
+        this.baseFont = new Font(fontName, style, screenFontSize);
+        this.fontHeight = Math.max(14, (int) Math.round(screenFontSize * 1.35));
         this.imageScale = 1.0;
         this.normalTotals = normalTotals;
 

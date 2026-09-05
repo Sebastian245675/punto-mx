@@ -76,6 +76,8 @@ public class PaymentsModel {
 
     // Sebastian - Fondo inicial de caja
     private Double m_dInitialAmount;
+    private Double m_dCashSales;
+    private Double m_dCashCreditPayments;
 
     // Sebastian - Devoluciones/cancelaciones del turno con hora y monto
     private java.util.List<RefundLine> m_lrefunds;
@@ -124,6 +126,8 @@ public class PaymentsModel {
 
         // Sebastian - Fondo inicial por defecto
         p.m_dInitialAmount = 0.0;
+        p.m_dCashSales = 0.0;
+        p.m_dCashCreditPayments = 0.0;
         p.m_lrefunds = new ArrayList<>();
         p.m_dCountedCash = 0.0;
 
@@ -234,6 +238,35 @@ public class PaymentsModel {
 
         if (p.m_lpayments == null) {
             p.m_lpayments = new ArrayList<>();
+        }
+
+        Object[] cashSummary = (Object[]) new StaticSentence(app.getSession(),
+                "SELECT "
+                        + "COALESCE(SUM(CASE "
+                        + "WHEN payments.PAYMENT = 'cashrefund' "
+                        + "AND NOT EXISTS (SELECT 1 FROM payments debt_payment "
+                        + "WHERE debt_payment.RECEIPT = payments.RECEIPT AND debt_payment.PAYMENT = 'debtpaid') "
+                        + "THEN -ABS(payments.TOTAL) "
+                        + "WHEN payments.PAYMENT = 'cash' "
+                        + "AND NOT EXISTS (SELECT 1 FROM payments debt_payment "
+                        + "WHERE debt_payment.RECEIPT = payments.RECEIPT AND debt_payment.PAYMENT = 'debtpaid') "
+                        + "THEN payments.TOTAL ELSE 0 END), 0), "
+                        + "COALESCE(SUM(CASE WHEN payments.PAYMENT = 'cash' "
+                        + "AND EXISTS (SELECT 1 FROM payments debt_payment "
+                        + "WHERE debt_payment.RECEIPT = payments.RECEIPT AND debt_payment.PAYMENT = 'debtpaid') "
+                        + "THEN payments.TOTAL ELSE 0 END), 0) "
+                        + "FROM payments INNER JOIN receipts ON payments.RECEIPT = receipts.ID "
+                        + "WHERE receipts.MONEY = ?",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadBasic(new Datas[] { Datas.DOUBLE, Datas.DOUBLE }))
+                .find(app.getActiveCashIndex());
+
+        if (cashSummary == null) {
+            p.m_dCashSales = 0.0;
+            p.m_dCashCreditPayments = 0.0;
+        } else {
+            p.m_dCashSales = cashSummary[0] != null ? (Double) cashSummary[0] : 0.0;
+            p.m_dCashCreditPayments = cashSummary[1] != null ? (Double) cashSummary[1] : 0.0;
         }
 
         // Sales
@@ -675,6 +708,12 @@ public class PaymentsModel {
         return Formats.CURRENCY.formatValue((m_dSalesBase == null || m_dSalesTaxes == null)
                 ? null
                 : m_dSalesBase + m_dSalesTaxes);
+    }
+
+    public double getSalesTotal() {
+        double salesBase = m_dSalesBase != null ? m_dSalesBase : 0.0;
+        double salesTaxes = m_dSalesTaxes != null ? m_dSalesTaxes : 0.0;
+        return salesBase + salesTaxes;
     }
 
     /**
@@ -1360,18 +1399,7 @@ public class PaymentsModel {
      * @return el total de efectivo más el fondo inicial
      */
     public Double getCashTotalWithInitial() {
-        Double cashTotal = 0.0;
-
-        // Buscar pagos en efectivo (solo ventas, NO incluir movimientos de
-        // entrada/salida)
-        for (PaymentsLine payment : m_lpayments) {
-            if ("cash".equals(payment.getType())) {
-                cashTotal += payment.getValue();
-            }
-        }
-
-        // Agregar fondo inicial
-        return cashTotal + getInitialAmount();
+        return getCashTotal() + getInitialAmount();
     }
 
     /**
@@ -1389,17 +1417,22 @@ public class PaymentsModel {
      * @return el total de efectivo recibido en las ventas
      */
     public Double getCashTotal() {
+        if (m_dCashSales != null) {
+            return m_dCashSales;
+        }
+
         Double cashTotal = 0.0;
 
-        // Buscar pagos en efectivo (solo ventas, NO incluir movimientos de
-        // entrada/salida)
         for (PaymentsLine payment : m_lpayments) {
-            if ("cash".equals(payment.getType())) {
-                cashTotal += payment.getValue();
-            }
+            double value = payment.getValue() != null ? payment.getValue() : 0.0;
+            cashTotal += CloseCashAccounting.cashSalesContribution(payment.getType(), value);
         }
 
         return cashTotal;
+    }
+
+    public Double getCashCreditPayments() {
+        return m_dCashCreditPayments != null ? m_dCashCreditPayments : 0.0;
     }
 
     /**
@@ -1415,16 +1448,14 @@ public class PaymentsModel {
 
     /** Efectivo esperado = fondo inicial + ventas efectivo + entradas - salidas */
     public Double getExpectedCash() {
-        Double expected = getInitialAmount();
+        Double expected = getInitialAmount() + getCashTotal() + getCashCreditPayments();
         for (PaymentsLine payment : m_lpayments) {
-            String type = payment.getType();
-            if ("cash".equals(type)) {
-                expected += payment.getValue();
-            } else if ("cashin".equals(type)) {
-                expected += payment.getValue();
-            } else if ("cashout".equals(type)) {
-                expected -= payment.getValue();
+            String paymentType = payment.getType();
+            if (!"cashin".equals(paymentType) && !"cashout".equals(paymentType)) {
+                continue;
             }
+            double value = payment.getValue() != null ? payment.getValue() : 0.0;
+            expected += CloseCashAccounting.cashMovementContribution(paymentType, value);
         }
         return expected;
     }
@@ -1458,6 +1489,14 @@ public class PaymentsModel {
     /** Lista de devoluciones/cancelaciones con hora y monto */
     public List<RefundLine> getRefundLines() {
         return m_lrefunds != null ? m_lrefunds : new ArrayList<>();
+    }
+
+    public double getReturnsTotal() {
+        double total = 0.0;
+        for (RefundLine refund : getRefundLines()) {
+            total += Math.abs(refund.getAmount());
+        }
+        return total;
     }
 
     /** Clase interna para devoluciones con timestamp */

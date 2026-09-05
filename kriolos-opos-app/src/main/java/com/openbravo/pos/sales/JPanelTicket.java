@@ -61,8 +61,8 @@ import com.openbravo.pos.ticket.TicketInfo;
 import com.openbravo.pos.sales.JDialogUnits;
 
 import com.openbravo.pos.ticket.TicketLineInfo;
-import com.openbravo.pos.util.InactivityListener;
 import com.openbravo.pos.util.DayCloseTicketScope;
+import com.openbravo.pos.util.InactivityListener;
 import com.openbravo.pos.reports.JRPrinterAWT300;
 import com.openbravo.pos.util.ReportUtils;
 import com.openbravo.beans.JCalendarDialog;
@@ -3084,6 +3084,25 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                         // Sebastian - Restaurar foco en campo de búsqueda después de cerrar diálogo de
                         // pago
                         setSearchFieldFocus();
+
+                        double ticketTotal = ticket.getTotal();
+                        double paymentTotal = paymentdialog.getTotal();
+                        if (Math.abs(ticketTotal - paymentTotal) > 0.01) {
+                            LOGGER.log(System.Logger.Level.ERROR,
+                                    "Pago rechazado por inconsistencia. Ticket total: " + ticketTotal
+                                            + "; Payment total: " + paymentTotal
+                                            + "; Payments selected: " + paymentdialog.getSelectedPayments().size());
+                            JOptionPane.showMessageDialog(
+                                    this,
+                                    "El pago no coincide con el total del ticket. No se guardo la venta. Intente cobrar nuevamente.",
+                                    "Pago inconsistente",
+                                    JOptionPane.ERROR_MESSAGE);
+                            ticket.resetTaxes();
+                            ticket.resetPayments();
+                            jCheckStock.setText("");
+                            setSearchFieldFocus();
+                            return false;
+                        }
 
                         ticket.setPayments(paymentdialog.getSelectedPayments());
 
@@ -7179,6 +7198,125 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
         }
     }
 
+    private int showCancellationConfirmation(java.awt.Component parent, TicketInfo ticket) {
+        Object[] options = { "Sí", "No" };
+        String message = String.format(
+                "<html><center><h3>¿Cancelar esta venta?</h3>" +
+                        "<p><b>Ticket:</b> #%d</p>" +
+                        "<p><b>Cliente:</b> %s</p>" +
+                        "<p><b>Total:</b> %s</p>" +
+                        "<p>Esta acción no se puede deshacer.</p></center></html>",
+                ticket.getTicketId(),
+                ticket.getCustomer() != null ? ticket.getCustomer().getName() : "Al contado",
+                Formats.CURRENCY.formatValue(ticket.getTotal()));
+
+        javax.swing.JOptionPane optionPane = new javax.swing.JOptionPane(
+                message,
+                javax.swing.JOptionPane.WARNING_MESSAGE,
+                javax.swing.JOptionPane.YES_NO_OPTION,
+                null,
+                options,
+                options[1]);
+        javax.swing.JDialog confirmationDialog = optionPane.createDialog(parent, "Confirmar Cancelación");
+
+        java.util.List<javax.swing.JButton> buttons = new java.util.ArrayList<>();
+        collectButtons(optionPane, buttons);
+        javax.swing.JButton yesButton = null;
+        javax.swing.JButton noButton = null;
+        for (javax.swing.JButton button : buttons) {
+            if ("No".equals(button.getText())) {
+                noButton = button;
+            } else if (yesButton == null) {
+                yesButton = button;
+            }
+        }
+
+        if (yesButton != null && noButton != null) {
+            final javax.swing.JButton yes = yesButton;
+            final javax.swing.JButton no = noButton;
+            javax.swing.JRootPane rootPane = confirmationDialog.getRootPane();
+            javax.swing.InputMap inputMap = rootPane.getInputMap(javax.swing.JComponent.WHEN_IN_FOCUSED_WINDOW);
+            javax.swing.ActionMap actionMap = rootPane.getActionMap();
+
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_LEFT, 0), "selectYes");
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_UP, 0), "selectYes");
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_RIGHT, 0), "selectNo");
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_DOWN, 0), "selectNo");
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ENTER, 0), "confirmOption");
+            inputMap.put(javax.swing.KeyStroke.getKeyStroke(java.awt.event.KeyEvent.VK_ESCAPE, 0), "cancelOption");
+
+            actionMap.put("selectYes", new javax.swing.AbstractAction() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent event) {
+                    yes.requestFocusInWindow();
+                }
+            });
+            actionMap.put("selectNo", new javax.swing.AbstractAction() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent event) {
+                    no.requestFocusInWindow();
+                }
+            });
+            actionMap.put("confirmOption", new javax.swing.AbstractAction() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent event) {
+                    java.awt.Component focused = java.awt.KeyboardFocusManager
+                            .getCurrentKeyboardFocusManager().getFocusOwner();
+                    if (focused == yes) {
+                        yes.doClick();
+                    } else {
+                        no.doClick();
+                    }
+                }
+            });
+            actionMap.put("cancelOption", new javax.swing.AbstractAction() {
+                @Override
+                public void actionPerformed(java.awt.event.ActionEvent event) {
+                    optionPane.setValue(options[1]);
+                    confirmationDialog.dispose();
+                }
+            });
+
+            yes.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusGained(java.awt.event.FocusEvent event) {
+                    rootPane.setDefaultButton(yes);
+                }
+            });
+            no.addFocusListener(new java.awt.event.FocusAdapter() {
+                @Override
+                public void focusGained(java.awt.event.FocusEvent event) {
+                    rootPane.setDefaultButton(no);
+                }
+            });
+            javax.swing.SwingUtilities.invokeLater(() -> no.requestFocusInWindow());
+        }
+
+        confirmationDialog.setVisible(true);
+        confirmationDialog.dispose();
+        return options[0].equals(optionPane.getValue())
+                ? javax.swing.JOptionPane.YES_OPTION
+                : javax.swing.JOptionPane.NO_OPTION;
+    }
+
+    private void collectButtons(java.awt.Container container, java.util.List<javax.swing.JButton> buttons) {
+        for (java.awt.Component component : container.getComponents()) {
+            if (component instanceof javax.swing.JButton) {
+                buttons.add((javax.swing.JButton) component);
+            }
+            if (component instanceof java.awt.Container) {
+                collectButtons((java.awt.Container) component, buttons);
+            }
+        }
+    }
+
+    static boolean canViewDailyTicket(boolean currentUserIsAdmin, boolean hasAuthorizedDayCloseAccess,
+            String currentUserId, String ticketUserId) {
+        return currentUserIsAdmin
+                || hasAuthorizedDayCloseAccess
+                || java.util.Objects.equals(currentUserId, ticketUserId);
+    }
+
     /**
      * Sebastian - Muestra el diálogo de Ventas del día y Devoluciones
      */
@@ -7200,11 +7338,19 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             javax.swing.JPanel leftPanel = new javax.swing.JPanel(new java.awt.BorderLayout(5, 5));
             leftPanel.setPreferredSize(new java.awt.Dimension(500, 0));
 
-            final boolean mostrarTodosLosTurnos = DayCloseTicketScope.isCompleted(new java.util.Date());
+            final String currentUserId = m_App.getAppUserView().getUser().getId();
+            final String currentUserName = m_App.getAppUserView().getUser().getName();
+            final String currentUserRole = m_App.getAppUserView().getUser().getRole();
+            final boolean currentUserIsAdmin = "0".equals(currentUserRole)
+                    || "1".equals(currentUserRole)
+                    || "ADMIN".equalsIgnoreCase(currentUserRole);
+            final boolean hasAuthorizedDayCloseAccess = DayCloseTicketScope.hasAllTicketsAccess(
+                    new java.util.Date(), currentUserId);
+            final boolean canViewAllDailyTickets = currentUserIsAdmin || hasAuthorizedDayCloseAccess;
 
             // Título "VENTAS DEL DIA"
             javax.swing.JLabel lblTitulo = new javax.swing.JLabel(
-                    mostrarTodosLosTurnos ? "VENTAS DEL DIA - TODOS LOS TURNOS" : "VENTAS DEL DIA - MIS TURNOS");
+                    canViewAllDailyTickets ? "VENTAS DEL DIA - TODOS LOS CAJEROS" : "VENTAS DEL DIA - MIS TURNOS");
             lblTitulo.setFont(new java.awt.Font("Arial", java.awt.Font.BOLD, 20));
             lblTitulo.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 0, 10, 0));
             leftPanel.add(lblTitulo, java.awt.BorderLayout.NORTH);
@@ -7407,7 +7553,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             gbc.gridx = 1;
             gbc.gridwidth = 2;
             javax.swing.JLabel lblCajeroValor = new javax.swing.JLabel(
-                    mostrarTodosLosTurnos ? "Todos los cajeros (corte del día realizado)"
+                    canViewAllDailyTickets ? "Todos los cajeros"
                             : m_App.getAppUserView().getUser().getName());
             lblCajeroValor.setFont(new java.awt.Font("Arial", java.awt.Font.PLAIN, 12));
             filtersPanel.add(lblCajeroValor, gbc);
@@ -7586,8 +7732,6 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
             // === FUNCIONALIDAD ===
             // Variable para el checkbox (debe ser final para usar en la clase anónima)
             final javax.swing.JCheckBox finalChkVentasCredito = chkVentasCredito;
-            final String currentUserId = m_App.getAppUserView().getUser().getId();
-            final String currentUserName = m_App.getAppUserView().getUser().getName();
 
             // Cargar tickets del día
             ListProviderCreator<FindTicketsInfo> lpr = new ListProviderCreator<FindTicketsInfo>(
@@ -7623,9 +7767,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             afilter[7] = startDate;
                             afilter[8] = QBFCompareEnum.COMP_LESS; // EndDate
                             afilter[9] = endDate;
-                            afilter[10] = mostrarTodosLosTurnos ? QBFCompareEnum.COMP_NONE
+                            afilter[10] = canViewAllDailyTickets ? QBFCompareEnum.COMP_NONE
                                     : QBFCompareEnum.COMP_EQUALS; // User
-                            afilter[11] = mostrarTodosLosTurnos ? null : currentUserName;
+                            afilter[11] = canViewAllDailyTickets ? null : currentUserName;
                             afilter[12] = QBFCompareEnum.COMP_NONE; // Customer
                             afilter[13] = null;
 
@@ -7661,8 +7805,9 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                             TicketInfo ticketInfo = dlSales.loadTicket(ticket.getTicketType(), ticket.getTicketId());
 
                             if (ticketInfo != null && ticketInfo.getUser() != null
-                                    && (mostrarTodosLosTurnos
-                                            || java.util.Objects.equals(currentUserId, ticketInfo.getUser().getId()))) {
+                                    && canViewDailyTicket(currentUserIsAdmin, hasAuthorizedDayCloseAccess,
+                                            currentUserId,
+                                            ticketInfo.getUser().getId())) {
                                 // Determinar el tipo de ticket
                                 String tipoTicket;
                                 if (ticketInfo.getTicketStatus() == 2) {
@@ -7871,24 +8016,7 @@ public abstract class JPanelTicket extends JPanel implements JPanelView, Tickets
                     }
 
                     // Confirmar cancelación
-                    int confirmacion = javax.swing.JOptionPane.showOptionDialog(
-                            dialog,
-                            String.format(
-                                    "<html><center><h3>¿Cancelar esta venta?</h3>" +
-                                            "<p><b>Ticket:</b> #%d</p>" +
-                                            "<p><b>Cliente:</b> %s</p>" +
-                                            "<p><b>Total:</b> %s</p>" +
-                                            "<p>Esta acción no se puede deshacer.</p></center></html>",
-                                    ticketACancelar.getTicketId(),
-                                    ticketACancelar.getCustomer() != null ? ticketACancelar.getCustomer().getName()
-                                            : "Al contado",
-                                    Formats.CURRENCY.formatValue(ticketACancelar.getTotal())),
-                            "Confirmar Cancelación",
-                            javax.swing.JOptionPane.YES_NO_OPTION,
-                            javax.swing.JOptionPane.WARNING_MESSAGE,
-                            null,
-                            new Object[] { "Sí", "No" },
-                            "No");
+                    int confirmacion = showCancellationConfirmation(dialog, ticketACancelar);
 
                     if (confirmacion != javax.swing.JOptionPane.YES_OPTION) {
                         return;

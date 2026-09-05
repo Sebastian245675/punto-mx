@@ -432,6 +432,32 @@ public final class TicketInfo implements SerializableRead, Externalizable {
         return getTotalPaid();
     }
 
+    public double getCashReceived() {
+        double cashTotal = payments.stream()
+                .filter(payment -> "cash".equals(payment.getName()))
+                .map(PaymentInfo::getTotal)
+                .reduce(0.0, Double::sum);
+        double cashReceived = payments.stream()
+                .filter(payment -> "cash".equals(payment.getName()))
+                .map(PaymentInfo::getPaid)
+                .reduce(0.0, Double::sum);
+
+        if (Math.abs(getTotalPaid() - getTotal()) > 0.01 || cashReceived <= 0.0) {
+            return cashTotal;
+        }
+        return cashReceived;
+    }
+
+    public double getCashChange() {
+        double nonCashTotal = payments.stream()
+                .filter(payment -> !"cash".equals(payment.getName())
+                        && !"debtpaid".equals(payment.getName()))
+                .map(PaymentInfo::getTotal)
+                .reduce(0.0, Double::sum);
+        double cashDue = getTotal() - nonCashTotal;
+        return Math.max(0.0, getCashReceived() - cashDue);
+    }
+
     public List<TicketLineInfo> getLines() {
         return m_aLines;
     }
@@ -621,6 +647,14 @@ public final class TicketInfo implements SerializableRead, Externalizable {
 
     public String printTendered() {
         return Formats.CURRENCY.formatValue(getTendered());
+    }
+
+    public String printCashReceived() {
+        return Formats.CURRENCY.formatValue(getCashReceived());
+    }
+
+    public String printCashChange() {
+        return Formats.CURRENCY.formatValue(getCashChange());
     }
 
     public String VoucherReturned() {

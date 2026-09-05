@@ -29,6 +29,7 @@ import java.awt.event.KeyEvent;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import javax.swing.JOptionPane;
 import javax.swing.Icon;
 import javax.swing.JComponent;
@@ -61,15 +62,9 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
 
     private final Map<String, JPaymentInterface> payments = new HashMap<>();
     private String m_sTransactionID;
-    private static PaymentInfo returnPayment = null;
-
-    public static PaymentInfo getReturnPayment() {
-        return returnPayment;
-    }
-
-    public static void setReturnPayment(PaymentInfo returnPayment) {
-        JPaymentSelect.returnPayment = returnPayment;
-    }
+    private boolean paymentProcessing;
+    private KeyEventDispatcher f2ReleaseGuard;
+    private javax.swing.Timer f2ReleaseGuardTimeout;
 
     protected JPaymentSelect(java.awt.Frame parent, boolean modal, ComponentOrientation o) {
         super(parent, modal);
@@ -151,6 +146,8 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
     public boolean showDialog(double total, CustomerInfoExt customerext, double deposit) {
         m_aPaymentInfo = new PaymentInfoList();
         accepted = false;
+        paymentProcessing = false;
+        setPaymentActionsEnabled(true);
         total = total - deposit;
         m_dTotal = total;
 
@@ -171,6 +168,8 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
 
         m_aPaymentInfo = new PaymentInfoList();
         accepted = false;
+        paymentProcessing = false;
+        setPaymentActionsEnabled(true);
 
         m_dTotal = total;
 
@@ -917,21 +916,34 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
 
     private void m_jButtonOKActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jButtonOKActionPerformed
 
-        SwingWorker<Object, Object> worker = new SwingWorker<>() {
+        if (paymentProcessing) {
+            return;
+        }
+
+        JPaymentInterface selectedPayment = (JPaymentInterface) m_jTabPayment.getSelectedComponent();
+        if (selectedPayment == null) {
+            return;
+        }
+
+        paymentProcessing = true;
+        setPaymentActionsEnabled(false);
+
+        SwingWorker<PaymentInfo, Void> worker = new SwingWorker<>() {
             @Override
-            protected Object doInBackground() throws Exception {
-                setReturnPayment(
-                        ((JPaymentInterface) m_jTabPayment.getSelectedComponent())
-                                .executePayment());
-                return null;
+            protected PaymentInfo doInBackground() throws Exception {
+                return selectedPayment.executePayment();
             }
 
             @Override
             public void done() {
-                m_jButtonOK.setEnabled(true);
-                m_jButtonCancel.setEnabled(true);
-                if (returnPayment != null) {
-                    m_aPaymentInfo.add(returnPayment);
+                try {
+                    PaymentInfo completedPayment = get();
+                    if (completedPayment == null) {
+                        finishPaymentProcessing();
+                        return;
+                    }
+
+                    m_aPaymentInfo.add(completedPayment);
 
                     // Sebastian - Verificar si el pago está completo antes de cerrar
                     double remaining = m_dTotal - m_aPaymentInfo.getTotal();
@@ -952,17 +964,82 @@ public abstract class JPaymentSelect extends javax.swing.JDialog implements JPay
                                 JOptionPane.WARNING_MESSAGE);
 
                         printState(); // Actualizar la vista
+                        finishPaymentProcessing();
                     } else {
                         // Pago completo o con sobrepago
                         accepted = true;
+                        paymentProcessing = false;
+                        if (!isPrintSelected()) {
+                            suppressF2UntilReleased();
+                        }
                         dispose();
                     }
+                } catch (InterruptedException ex) {
+                    Thread.currentThread().interrupt();
+                    showPaymentError();
+                    finishPaymentProcessing();
+                } catch (ExecutionException ex) {
+                    showPaymentError();
+                    finishPaymentProcessing();
                 }
             }
         };
 
         worker.execute();
     }// GEN-LAST:event_m_jButtonOKActionPerformed
+
+    private void suppressF2UntilReleased() {
+        clearF2ReleaseGuard();
+
+        f2ReleaseGuard = event -> {
+            if (event.getKeyCode() != KeyEvent.VK_F2) {
+                return false;
+            }
+
+            if (event.getID() == KeyEvent.KEY_RELEASED) {
+                SwingUtilities.invokeLater(this::clearF2ReleaseGuard);
+            }
+            return true;
+        };
+
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(f2ReleaseGuard);
+
+        // Evita dejar el filtro instalado si el sistema no entrega el evento de soltar F2.
+        f2ReleaseGuardTimeout = new javax.swing.Timer(1500, event -> clearF2ReleaseGuard());
+        f2ReleaseGuardTimeout.setRepeats(false);
+        f2ReleaseGuardTimeout.start();
+    }
+
+    private void clearF2ReleaseGuard() {
+        if (f2ReleaseGuard != null) {
+            KeyboardFocusManager.getCurrentKeyboardFocusManager().removeKeyEventDispatcher(f2ReleaseGuard);
+            f2ReleaseGuard = null;
+        }
+        if (f2ReleaseGuardTimeout != null) {
+            f2ReleaseGuardTimeout.stop();
+            f2ReleaseGuardTimeout = null;
+        }
+    }
+
+    private void setPaymentActionsEnabled(boolean enabled) {
+        m_jButtonOK.setEnabled(enabled);
+        m_jButtonCobrarImprimir.setEnabled(enabled);
+        m_jButtonCobrarSinImprimir.setEnabled(enabled);
+        m_jButtonCancel.setEnabled(enabled);
+    }
+
+    private void finishPaymentProcessing() {
+        paymentProcessing = false;
+        setPaymentActionsEnabled(true);
+    }
+
+    private void showPaymentError() {
+        JOptionPane.showMessageDialog(
+                this,
+                "No se pudo procesar el pago. Intente nuevamente.",
+                "Error de pago",
+                JOptionPane.ERROR_MESSAGE);
+    }
 
     private void m_jButtonCancelActionPerformed(java.awt.event.ActionEvent evt) {// GEN-FIRST:event_m_jButtonCancelActionPerformed
 

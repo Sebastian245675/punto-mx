@@ -18,10 +18,9 @@ package com.openbravo.pos.printer.screen;
 
 import java.awt.Component;
 import java.awt.Dimension;
-import java.awt.GraphicsEnvironment;
 import java.awt.Insets;
 import java.awt.Rectangle;
-import java.awt.Toolkit;
+import javax.swing.SwingUtilities;
 
 /**
  *
@@ -34,12 +33,9 @@ public class JTicketContainer extends javax.swing.JPanel {
     private int H_GAP = 8;
     private int V_GAP = 8;
     private int lastVerticalPosition = 0;
-    private final int screenWidth;
     
     public JTicketContainer() {
         initComponents();
-         GraphicsEnvironment ge = GraphicsEnvironment.getLocalGraphicsEnvironment();
-        this.screenWidth = ((ge.getScreenDevices()).length == 1) ? (Toolkit.getDefaultToolkit().getScreenSize()).width : ge.getDefaultScreenDevice().getDisplayMode().getWidth();
     }
 
     @Override
@@ -73,27 +69,17 @@ public class JTicketContainer extends javax.swing.JPanel {
     @Override
     public void doLayout() {
         Insets ins = getInsets();
-        int x = ins.left + this.H_GAP;
         int y = ins.top + this.V_GAP;
-        int columns = this.screenWidth / (getPreferredSize()).width;
-        int iMaxy = 0;
-        int iMaxx = 0;
+        int availableWidth = getParent() == null ? getWidth() : Math.max(getWidth(), getParent().getWidth());
         int numComponents = getComponentCount();
         for (int pos = 0; pos < numComponents; pos++) {
             Component comp = getComponent(pos);
             Dimension dc = comp.getPreferredSize();
+            int contentWidth = Math.max(0, availableWidth - ins.left - ins.right);
+            int x = ins.left + Math.max(this.H_GAP, (contentWidth - dc.width) / 2);
             comp.setBounds(x, y, dc.width, dc.height);
-            x += this.H_GAP + dc.width;
-            if (dc.height > iMaxy) {
-                iMaxy = dc.height;
-            }
-            if ((pos + 1) % columns == 0) {
-                x = ins.left + this.H_GAP;
-                y += this.V_GAP + iMaxy;
-                iMaxy = 0;
-            }
-            
             lastVerticalPosition = y;
+            y += this.V_GAP + dc.height;
         }
     }
     
@@ -101,7 +87,11 @@ public class JTicketContainer extends javax.swing.JPanel {
         add(ticket);
         doLayout();
         revalidate();
-        scrollRectToVisible(new Rectangle(0, lastVerticalPosition, 1, 1));
+        int ticketPosition = lastVerticalPosition;
+        SwingUtilities.invokeLater(() -> {
+            int visibleHeight = Math.max(1, getVisibleRect().height);
+            scrollRectToVisible(new Rectangle(0, ticketPosition, 1, visibleHeight));
+        });
     }
     
     public void removeAllTickets() {

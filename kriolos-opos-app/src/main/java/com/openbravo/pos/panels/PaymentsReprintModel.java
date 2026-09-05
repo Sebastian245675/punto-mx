@@ -74,6 +74,10 @@ public class PaymentsReprintModel {
     private Double m_dSalesTaxes;
     private Double m_dSalesTaxNet;
     private java.util.List<SalesLine> m_lsales;
+    private Double m_dInitialAmount;
+    private Double m_dCashSales;
+    private Double m_dCashCreditPayments;
+    private Double m_dReturnsTotal;
     
     private final static String[] SALEHEADERS = {"label.taxcategory", "label.totaltax", "label.totalnet"};
 
@@ -101,6 +105,10 @@ public class PaymentsReprintModel {
         p.m_dSalesBase = 0.0;
         p.m_dSalesTaxes = 0.0;
         p.m_dSalesTaxNet = 0.0;
+        p.m_dInitialAmount = 0.0;
+        p.m_dCashSales = 0.0;
+        p.m_dCashCreditPayments = 0.0;
+        p.m_dReturnsTotal = 0.0;
         
         p.m_iProductSalesRows = 0;
         p.m_dProductSalesTotalUnits = 0.0;
@@ -139,13 +147,13 @@ public class PaymentsReprintModel {
     
         Object[] ccash;
         ccash = (Object []) new StaticSentence(app.getSession(),
-                "SELECT money, host, hostsequence, datestart, dateend, nosales " +
+                "SELECT money, host, hostsequence, datestart, dateend, nosales, initial_amount " +
                         "FROM closedcash " +
                         "where hostsequence = ? and dateend is not null " +
                             "AND host = " + "'" + app.getProperties().getHost() + "'"
                 , SerializerWriteString.INSTANCE
                 , new SerializerReadBasic(new Datas[] {
-                    Datas.STRING, Datas.STRING, Datas.INT, Datas.STRING, Datas.STRING, Datas.INT}))
+                    Datas.STRING, Datas.STRING, Datas.INT, Datas.STRING, Datas.STRING, Datas.INT, Datas.DOUBLE}))
                 .find(sequence);                
 
         if (ccash == null) {
@@ -156,6 +164,7 @@ public class PaymentsReprintModel {
         } else {
             p.m_dDateStart = ccash[3].toString();
             p.m_dDateEnd = ccash[4].toString();
+            p.m_dInitialAmount = ccash[6] != null ? (Double) ccash[6] : 0.0;
                 
             // Product category Sales
             Object[] valcategorysales = (Object []) new StaticSentence(app.getSession()
@@ -237,7 +246,47 @@ public class PaymentsReprintModel {
                 p.m_lpayments = new ArrayList();
             } else {
                 p.m_lpayments = l;
-            }        
+            }
+
+            Object[] cashSummary = (Object[]) new StaticSentence(app.getSession(),
+                "SELECT " +
+                    "COALESCE(SUM(CASE " +
+                    "WHEN payments.PAYMENT = 'cashrefund' " +
+                    "AND NOT EXISTS (SELECT 1 FROM payments debt_payment " +
+                    "WHERE debt_payment.RECEIPT = payments.RECEIPT AND debt_payment.PAYMENT = 'debtpaid') " +
+                    "THEN -ABS(payments.TOTAL) " +
+                    "WHEN payments.PAYMENT = 'cash' " +
+                    "AND NOT EXISTS (SELECT 1 FROM payments debt_payment " +
+                    "WHERE debt_payment.RECEIPT = payments.RECEIPT AND debt_payment.PAYMENT = 'debtpaid') " +
+                    "THEN payments.TOTAL ELSE 0 END), 0), " +
+                    "COALESCE(SUM(CASE WHEN payments.PAYMENT = 'cash' " +
+                    "AND EXISTS (SELECT 1 FROM payments debt_payment " +
+                    "WHERE debt_payment.RECEIPT = payments.RECEIPT AND debt_payment.PAYMENT = 'debtpaid') " +
+                    "THEN payments.TOTAL ELSE 0 END), 0) " +
+                "FROM payments INNER JOIN receipts ON payments.RECEIPT = receipts.ID " +
+                "WHERE receipts.MONEY = ?",
+                SerializerWriteString.INSTANCE,
+                new SerializerReadBasic(new Datas[] {Datas.DOUBLE, Datas.DOUBLE}))
+                .find(ccash[0]);
+
+            if (cashSummary == null) {
+                p.m_dCashSales = 0.0;
+                p.m_dCashCreditPayments = 0.0;
+            } else {
+                p.m_dCashSales = cashSummary[0] != null ? (Double) cashSummary[0] : 0.0;
+                p.m_dCashCreditPayments = cashSummary[1] != null ? (Double) cashSummary[1] : 0.0;
+            }
+
+            Object returnsTotal = new StaticSentence(app.getSession(),
+                "SELECT COALESCE(SUM(ABS(payments.TOTAL)), 0) " +
+                "FROM receipts INNER JOIN payments ON receipts.ID = payments.RECEIPT " +
+                "INNER JOIN tickets ON receipts.ID = tickets.ID " +
+                "WHERE receipts.MONEY = ? " +
+                "AND (payments.PAYMENT = 'cash' OR payments.PAYMENT = 'cashrefund') " +
+                "AND (tickets.TICKETTYPE = 1 OR payments.TOTAL < 0)",
+                SerializerWriteString.INSTANCE,
+                SerializerReadDouble.INSTANCE).find(ccash[0]);
+            p.m_dReturnsTotal = returnsTotal != null ? (Double) returnsTotal : 0.0;
         
             // Sales
             Object[] recsales = (Object []) new StaticSentence(app.getSession(),
@@ -592,7 +641,29 @@ public class PaymentsReprintModel {
         return Formats.CURRENCY.formatValue((m_dSalesBase == null || m_dSalesTaxes == null)
                 ? null
                 : m_dSalesBase + m_dSalesTaxes);
-    }     
+    }
+
+    public double getSalesTotal() {
+        double salesBase = m_dSalesBase != null ? m_dSalesBase : 0.0;
+        double salesTaxes = m_dSalesTaxes != null ? m_dSalesTaxes : 0.0;
+        return salesBase + salesTaxes;
+    }
+
+    public double getInitialAmount() {
+        return m_dInitialAmount != null ? m_dInitialAmount : 0.0;
+    }
+
+    public double getCashTotal() {
+        return m_dCashSales != null ? m_dCashSales : 0.0;
+    }
+
+    public double getCashCreditPayments() {
+        return m_dCashCreditPayments != null ? m_dCashCreditPayments : 0.0;
+    }
+
+    public double getReturnsTotal() {
+        return m_dReturnsTotal != null ? m_dReturnsTotal : 0.0;
+    }
 
     /**
      *

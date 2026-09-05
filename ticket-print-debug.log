@@ -590,3 +590,7 @@
 [2026-08-15 14:36:34.505] [INFO] [TICKET-PRINT]     size efectivo (usado)      = 3 (DOUBLE_WIDTH_HEIGHT (2x2) - Letras grandes)
 [2026-08-15 14:36:34.506] [INFO] [TICKET-PRINT]     printText: style=BOLD (1), text="                  $232,00                 "
 [2026-08-15 14:36:34.508] [INFO] [TICKET-PRINT]   --- endLine() ---
+[2026-08-23 17:24:39.827] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-23 17:24:39.831] [INFO] [TICKET-PRINT] TicketPrintLogger INICIALIZADO CORRECTAMENTE
+[2026-08-23 17:24:39.832] [INFO] [TICKET-PRINT] =========================================================
+[2026-08-23 17:24:39.834] [INFO] [TICKET-PRINT] >>> APLICACION StartPOS INICIADA EXITOSAMENTE <<<

@@ -156,9 +156,9 @@
             #if ($paymentline.name == "cash")
                 <line size="3"><text bold="true">Efectivo</text></line>
                 <line></line>
-                <line size="3"><text align="left" length="14">Recibido:</text><text align="right" length="16" bold="true">${paymentline.printPaid()}</text></line>
+                <line size="3"><text align="left" length="14">Recibido:</text><text align="right" length="16" bold="true">${ticket.printCashReceived()}</text></line>
                 <line></line>
-                <line size="3"><text align="left" length="14">Cambio:</text><text align="right" length="16" bold="true">${paymentline.printChange()}</text></line>
+                <line size="3"><text align="left" length="14">Cambio:</text><text align="right" length="16" bold="true">${ticket.printCashChange()}</text></line>
             #end
 
             #if ($paymentline.name == "cashrefund")
